@@ -1,88 +1,27 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:collection/collection.dart';
-import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:riverpod_annotation/riverpod_annotation.dart';
-
+import 'package:fladder/models/media_playback_model.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
+import 'package:fladder/providers/video_player_provider.dart';
 import 'package:fladder/util/update_checker.dart';
+import 'package:fladder/util/update_controller.dart';
 
-part 'update_provider.freezed.dart';
-part 'update_provider.g.dart';
-
-final hasNewUpdateProvider = Provider<bool>((ref) {
-  final latestRelease = ref.watch(updateProvider).latestRelease;
-  final lastViewedVersion = ref.watch(clientSettingsProvider.select((value) => value.lastViewedUpdate));
-
-  final latestVersion = latestRelease?.version;
-
-  if (latestVersion == null || lastViewedVersion == null) {
-    return false;
-  }
-
-  return latestVersion != lastViewedVersion;
+final updateProvider = ChangeNotifierProvider<UpdateController>((ref) {
+  final controller = UpdateController(
+    checker: UpdateChecker(),
+    bridge: AndroidUpdateBridge(),
+    supported: !kIsWeb && defaultTargetPlatform == TargetPlatform.android,
+  );
+  controller.automatic = ref.read(clientSettingsProvider).checkForUpdates;
+  controller.playback = ref.read(mediaPlaybackProvider).state != VideoPlayerState.disposed;
+  ref.listen(mediaPlaybackProvider.select((value) => value.state), (previous, next) {
+    controller.setPlayback(next != VideoPlayerState.disposed);
+  });
+  unawaited(controller.initialize());
+  return controller;
 });
 
-@Riverpod(keepAlive: true)
-class Update extends _$Update {
-  final updateChecker = UpdateChecker();
-
-  Timer? _timer;
-
-  @override
-  UpdatesModel build() {
-    ref.listen(
-        clientSettingsProvider.select((value) => value.checkForUpdates), (previous, next) => toggleUpdateChecker(next));
-    final checkForUpdates = ref.read(clientSettingsProvider.select((value) => value.checkForUpdates));
-
-    if (!checkForUpdates) {
-      _timer?.cancel();
-      return UpdatesModel();
-    }
-
-    ref.onDispose(() {
-      _timer?.cancel();
-    });
-
-    _timer?.cancel();
-
-    _timer = Timer.periodic(const Duration(minutes: 30), (timer) {
-      _fetchLatest();
-    });
-
-    _fetchLatest();
-
-    return UpdatesModel();
-  }
-
-  void toggleUpdateChecker(bool checkForUpdates) {
-    _timer?.cancel();
-    if (checkForUpdates) {
-      _timer = Timer.periodic(const Duration(minutes: 30), (timer) {
-        _fetchLatest();
-      });
-      _fetchLatest();
-    }
-  }
-
-  Future<List<ReleaseInfo>> _fetchLatest() async {
-    final latest = await updateChecker.fetchRecentReleases();
-    state = UpdatesModel(
-      lastRelease: latest,
-    );
-    return latest;
-  }
-}
-
-@Freezed(toJson: false, fromJson: false)
-abstract class UpdatesModel with _$UpdatesModel {
-  const UpdatesModel._();
-
-  factory UpdatesModel({
-    @Default([]) List<ReleaseInfo> lastRelease,
-  }) = _UpdatesModel;
-
-  ReleaseInfo? get latestRelease => lastRelease.firstWhereOrNull((value) => value.isNewerThanCurrent);
-}
+final hasNewUpdateProvider = Provider<bool>((ref) => ref.watch(updateProvider).hasNewUpdate);

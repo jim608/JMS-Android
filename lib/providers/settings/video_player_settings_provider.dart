@@ -21,10 +21,20 @@ final videoPlayerSettingsProvider =
 
 final playbackRateProvider = StateProvider<double>((ref) => 1.0);
 
+typedef AmbientAppearance = ({double intensity, double spread});
+final ambientPreviewProvider = StateProvider.autoDispose<AmbientAppearance?>((ref) => null);
+final ambientAppearanceProvider = Provider.autoDispose<AmbientAppearance>((ref) {
+  final saved = ref.watch(videoPlayerSettingsProvider
+      .select((settings) => (intensity: settings.effectiveAmbientIntensity, spread: settings.effectiveAmbientSpread)));
+  return ref.watch(ambientPreviewProvider) ?? saved;
+});
+
 class VideoPlayerSettingsProviderNotifier extends StateNotifier<VideoPlayerSettingsModel> {
   VideoPlayerSettingsProviderNotifier(this.ref) : super(_sanitizeCrossfade(VideoPlayerSettingsModel()));
 
   final Ref ref;
+
+  void applyRestoredSettings(VideoPlayerSettingsModel value) => super.state = _sanitizeCrossfade(value);
 
   @override
   set state(VideoPlayerSettingsModel value) {
@@ -179,4 +189,9 @@ class VideoPlayerSettingsProviderNotifier extends StateNotifier<VideoPlayerSetti
   }
 
   void setAmbientBlur(bool value) => state = state.copyWith(ambientBlur: value);
+
+  void setAmbientAppearance(AmbientAppearance appearance) => state = state.copyWith(
+        ambientIntensity: appearance.intensity.clamp(0.0, 1.0),
+        ambientSpread: appearance.spread.clamp(0.0, 1.0),
+      );
 }

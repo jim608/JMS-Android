@@ -1,10 +1,12 @@
+import 'package:fladder/util/brand.dart';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 enum ColorThemes {
   fladder(
-    name: 'Fladder',
-    color: kDebugMode ? Colors.purpleAccent : Colors.orange,
+    name: Brand.name,
+    color: kDebugMode ? Colors.purpleAccent : Colors.teal,
   ),
   deepOrange(
     name: 'Deep Orange',

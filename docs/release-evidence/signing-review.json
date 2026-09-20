@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "status": "APPROVED",
+  "signerSha256": "4327eedb953fbf51d82b70e2e56c23122c85304d55a67fbbdb37a8f1ffd5f399",
+  "ownerStatement": "使用者於 2026-09-20 先回答『是我本人』，針對分享、存取者及備份控制補充『我控制 沒有人知道』。依使用者陳述確認本人控制；不是對所有歷史提出無法證明的保證。",
+  "ownerCreatedAndHolds": true,
+  "sharingHistory": "Owner states nobody else knows or has access; no sharing reported",
+  "backupCustody": "Owner states under their control; backup medium unspecified and not required to disclose",
+  "reviewedAt": "2026-09-20",
+  "knownCompromise": false,
+  "localExposureAudit": "PASS",
+  "auditEvidence": {
+    "path": "artifacts/checks/m12/signing-exposure.json",
+    "sha256": "e0a35a93c12287e4338a62ab155759047b24aad1917331ed0f47d7ad951a1516"
+  },
+  "validFrom": "2026-08-09T03:30:57Z",
+  "validUntil": "2056-08-01T03:30:57Z",
+  "scope": "owner custody statement plus bounded available Git/source archive audit; no known compromise, not proof of all historic events"
+}

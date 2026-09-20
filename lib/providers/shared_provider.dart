@@ -22,6 +22,7 @@ import 'package:fladder/providers/settings/subtitle_settings_provider.dart';
 import 'package:fladder/providers/settings/video_player_settings_provider.dart';
 import 'package:fladder/providers/update_notifications_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
+import 'package:fladder/util/settings_backup.dart';
 
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
   throw UnimplementedError();
@@ -175,15 +176,18 @@ class SharedHelper {
 
   ClientSettingsModel get clientSettings {
     try {
-      return ClientSettingsModel.fromJson(jsonDecode(sharedPreferences.getString(SharedKeys._clientSettingsKey) ?? ""));
+      return ClientSettingsModel.fromJson(SettingsBundleStore(sharedPreferences).section('client') ??
+          jsonDecode(sharedPreferences.getString(SharedKeys._clientSettingsKey) ?? ""));
     } catch (e) {
-      log(e.toString());
+      log('Unable to load client settings');
       return ClientSettingsModel.defaultModel();
     }
   }
 
-  set clientSettings(ClientSettingsModel settings) =>
-      sharedPreferences.setString(SharedKeys._clientSettingsKey, jsonEncode(settings.toJson()));
+  Future<bool> saveClientSettings(ClientSettingsModel settings) =>
+      SettingsBundleStore(sharedPreferences).writeSection('client', settings.toJson(), SharedKeys._clientSettingsKey);
+
+  set clientSettings(ClientSettingsModel settings) => unawaited(saveClientSettings(settings));
 
   HomeSettingsModel get homeSettings {
     try {
@@ -255,16 +259,17 @@ class SharedHelper {
 
   VideoPlayerSettingsModel get videoPlayerSettings {
     try {
-      return VideoPlayerSettingsModel.fromJson(
+      return VideoPlayerSettingsModel.fromJson(SettingsBundleStore(sharedPreferences).section('player') ??
           jsonDecode(sharedPreferences.getString(SharedKeys._videoPlayerSettingsKey) ?? ""));
     } catch (e) {
-      log(e.toString());
+      log('Unable to load player settings');
       return VideoPlayerSettingsModel();
     }
   }
 
   set videoPlayerSettings(VideoPlayerSettingsModel settings) {
-    sharedPreferences.setString(SharedKeys._videoPlayerSettingsKey, jsonEncode(settings.toJson()));
+    unawaited(SettingsBundleStore(sharedPreferences)
+        .writeSection('player', settings.toJson(), SharedKeys._videoPlayerSettingsKey));
   }
 
   PhotoViewSettingsModel get photoViewSettings {

@@ -16,6 +16,7 @@ import 'package:fladder/models/settings/video_player_settings.dart';
 import 'package:fladder/providers/settings/video_player_settings_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
+import 'package:fladder/screens/video_player/components/sleep_timer_dialog.dart';
 import 'package:fladder/screens/collections/add_to_collection.dart';
 import 'package:fladder/screens/metadata/info_screen.dart';
 import 'package:fladder/screens/playlists/add_to_playlists.dart';
@@ -139,6 +140,7 @@ class _VideoOptionsMobileState extends ConsumerState<VideoOptions> {
             content: Text(currentMediaStreams?.currentSubStream?.label(context) ?? context.localized.off),
             onTap: currentMediaStreams?.subStreams.isNotEmpty == true ? () => showSubSelection(context) : null,
           ),
+          const SleepTimerTile(),
           SpacedListTile(
             title: Text(context.localized.audio(1)),
             content: Text(currentMediaStreams?.currentAudioStream?.label(context) ?? context.localized.off),

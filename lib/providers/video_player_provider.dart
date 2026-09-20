@@ -31,6 +31,7 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
   final Ref ref;
 
   List<StreamSubscription> subscriptions = [];
+  Future<void> _initialization = Future<void>.value();
 
   late final mediaState = ref.read(mediaPlaybackProvider.notifier);
 
@@ -40,17 +41,35 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
   @override
   void dispose() {
     settingsChanged?.close();
+    for (final subscription in subscriptions) {
+      unawaited(subscription.cancel());
+    }
+    subscriptions.clear();
+    final player = state;
+    unawaited(_initialization.then((_) => player.dispose()));
     super.dispose();
   }
 
-  Future<void> init() async {
-    await state.stop();
-    await state.dispose();
-    await state.init();
+  Future<void> init() {
+    final task = _initialization.then((_) => _initialize());
+    _initialization = task.then<void>((_) {}, onError: (Object error, StackTrace stack) {});
+    return task;
+  }
 
-    for (final s in subscriptions) {
-      s.cancel();
+  Future<void> _initialize() async {
+    if (!mounted) return;
+    final player = state;
+    settingsChanged?.close();
+    for (final subscription in subscriptions) {
+      await subscription.cancel();
     }
+    subscriptions.clear();
+    await player.stop();
+    if (!mounted) return;
+    await player.dispose();
+    if (!mounted) return;
+    await player.init();
+    if (!mounted) return;
 
     settingsChanged = ref.listen(
       videoPlayerSettingsProvider,
@@ -138,7 +157,7 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
 
   Future<bool> loadPlaybackItem(PlaybackModel model, Duration startPosition) async {
     ref.read(playBackModel)?.dispose();
-    await state.stop();
+    await state.stop(preserveSleepTimer: true);
     ref.read(playbackRateProvider.notifier).state = 1.0;
 
     final useMinimizedPlayer =
@@ -171,7 +190,7 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
             skippedSegments: {},
           ));
 
-      await state.play();
+      await state.play(userInitiated: false);
       return true;
     }
 

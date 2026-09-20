@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "repository": "jim608/JMS-Android",
+  "defaultChannel": "prerelease",
+  "baselineApk": "artifacts/JMS-Android-0.11.1-jms.8-release-arm64-test-signed.apk",
+  "baselineSha256": "d8a77cdb277354b0a2c5feac8262d5d0512f96565873616ef8533d8aca8465a5",
+  "baselineBuildRecord": "artifacts/checks/build-0.11.1-jms.8-inputs.json",
+  "baselineBuildRecordSha256": "2295f2566fea009dcc9621651f7c67d9f4dacbe457cb987c1abbcd255ec9807d",
+  "signingEvidence": {"path": "docs/release-evidence/signing-review.json", "sha256": "bf87e5502c6d02bef0c09d27bdb397f2bf3609f38dc28e5495a8a3b27028b207"},
+  "nativeEvidence": {"path": "docs/release-evidence/native-review.json", "sha256": "84f223f4dc3d4d17ff490d0bd4f023b25ddea4f958eae3c2432208719e81b0af"},
+  "stableEvidence": null
+}

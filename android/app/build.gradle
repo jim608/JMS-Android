@@ -7,6 +7,7 @@ plugins {
 }
 
 def keystoreProperties = new Properties()
+def useJmsTestSigning = System.getenv('JMS_TEST_SIGNING') == 'true'
 def keystorePropertiesFile = file('key.properties')
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
@@ -39,10 +40,6 @@ android {
                     "lib/armeabi-v7a/libc++_shared.so",
                     "lib/x86/libc++_shared.so",
 
-                    "lib/x86_64/libass.so",
-                    "lib/arm64-v8a/libass.so",
-                    "lib/armeabi-v7a/libass.so",
-                    "lib/x86/libass.so",
             ]
         }
     }
@@ -66,7 +63,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "nl.jknaapen.fladder"
+        applicationId = "com.jim608.jms"
         minSdkVersion flutter.minSdkVersion
         targetSdk = 37
         versionCode = flutter.versionCode
@@ -90,7 +87,7 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
-            signingConfig signingConfigs.release
+            signingConfig = useJmsTestSigning ? signingConfigs.debug : signingConfigs.release
 
             packagingOptions {
                 resources {
@@ -118,6 +115,7 @@ flutter {
 }
 
 dependencies {
+    testImplementation 'junit:junit:4.13.2'
     def composeBom = platform('androidx.compose:compose-bom:2025.12.00')
     implementation composeBom
     androidTestImplementation composeBom

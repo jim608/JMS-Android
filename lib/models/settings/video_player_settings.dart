@@ -111,6 +111,8 @@ abstract class VideoPlayerSettingsModel with _$VideoPlayerSettingsModel {
     @Default(true) bool enableCrossfade,
     @Default(400) int crossfadeDurationMs,
     @Default(false) bool ambientBlur,
+    @Default(0.8) double ambientIntensity,
+    @Default(0.9) double ambientSpread,
   }) = _VideoPlayerSettingsModel;
 
   double get volume {
@@ -122,8 +124,17 @@ abstract class VideoPlayerSettingsModel with _$VideoPlayerSettingsModel {
 
   factory VideoPlayerSettingsModel.fromJson(Map<String, dynamic> json) => _$VideoPlayerSettingsModelFromJson(json);
 
-  PlayerOptions get wantedPlayer =>
-      leanBackMode ? PlayerOptions.nativePlayer : playerOptions ?? PlayerOptions.platformDefaults;
+  double get effectiveAmbientIntensity => ambientIntensity.isFinite ? ambientIntensity.clamp(0.0, 1.0) : 0.8;
+  double get effectiveAmbientSpread => ambientSpread.isFinite ? ambientSpread.clamp(0.0, 1.0) : 0.9;
+
+  bool get androidMdkUnavailable =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android && playerOptions == PlayerOptions.libMDK;
+
+  PlayerOptions get wantedPlayer => leanBackMode
+      ? PlayerOptions.nativePlayer
+      : androidMdkUnavailable
+          ? PlayerOptions.libMPV
+          : playerOptions ?? PlayerOptions.platformDefaults;
 
   Map<VideoHotKeys, KeyCombination> get currentShortcuts =>
       _defaultVideoHotKeys.map((key, value) => MapEntry(key, hotKeys[key] ?? value));
@@ -183,7 +194,7 @@ enum PlayerOptions {
       : kIsWeb
           ? {PlayerOptions.libMPV}
           : switch (defaultTargetPlatform) {
-              TargetPlatform.android => PlayerOptions.values,
+              TargetPlatform.android => {PlayerOptions.libMPV, PlayerOptions.nativePlayer},
               _ => {PlayerOptions.libMDK, PlayerOptions.libMPV},
             };
 

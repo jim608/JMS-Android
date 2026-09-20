@@ -1,3 +1,5 @@
+import 'package:fladder/util/brand.dart';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -17,6 +19,7 @@ import 'package:fladder/screens/settings/settings_list_tile.dart';
 import 'package:fladder/screens/settings/settings_scaffold.dart';
 import 'package:fladder/screens/settings/widgets/settings_label_divider.dart';
 import 'package:fladder/screens/settings/widgets/settings_list_group.dart';
+import 'package:fladder/screens/settings/widgets/settings_backup_tile.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
 import 'package:fladder/util/localization_helper.dart';
 import 'package:fladder/util/simple_duration_picker.dart';
@@ -41,8 +44,9 @@ class _ClientSettingsPageState extends ConsumerState<ClientSettingsPage> {
     final clientSettings = ref.watch(clientSettingsProvider);
 
     return SettingsScaffold(
-      label: "Fladder",
+      label: Brand.name,
       items: [
+        const SettingsBackupTile(),
         ...buildClientSettingsDownload(context, ref, setState),
         ...settingsListGroup(
           context,

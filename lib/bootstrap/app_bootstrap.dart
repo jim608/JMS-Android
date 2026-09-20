@@ -1,3 +1,5 @@
+import 'package:fladder/util/brand.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -14,7 +16,6 @@ import 'package:fladder/providers/crash_log_provider.dart';
 import 'package:fladder/src/video_player_helper.g.dart';
 import 'package:fladder/util/application_info.dart';
 import 'package:fladder/util/fladder_config.dart';
-import 'package:fladder/util/string_extensions.dart';
 import 'package:fladder/util/svg_utils.dart';
 
 bool get isDesktopPlatform {
@@ -43,6 +44,14 @@ class AppBootstrapResult {
 }
 
 Future<AppBootstrapResult> bootstrapApplication(List<String> args) async {
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks(
+        ['JMS / Fladder (DonutWare and contributors)'], await rootBundle.loadString('LICENSE'));
+    yield LicenseEntryWithLineBreaks(
+        ['Noto Sans CJK TC'], await rootBundle.loadString('assets/subtitle_fonts/OFL.txt'));
+    yield LicenseEntryWithLineBreaks(
+        ['JMS Android native components'], await rootBundle.loadString('assets/licenses/JMS_NATIVE_NOTICES.txt'));
+  });
   final crashProvider = CrashLogNotifier();
 
   if (kIsWeb) {
@@ -68,7 +77,7 @@ Future<AppBootstrapResult> bootstrapApplication(List<String> args) async {
   }
 
   final applicationInfo = ApplicationInfo(
-    name: packageInfo.appName.capitalize(),
+    name: Brand.name,
     version: packageInfo.version,
     buildNumber: packageInfo.buildNumber,
     platform: defaultTargetPlatform,

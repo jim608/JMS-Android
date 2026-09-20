@@ -1,3 +1,5 @@
+import 'package:fladder/util/brand.dart';
+
 // ignore_for_file: depend_on_referenced_packages
 
 import 'dart:developer';
@@ -30,7 +32,7 @@ class AuthService {
               context.localized.authenticateWithBiometrics("(${user.name} - ${user.credentials.serverName})"),
           authMessages: <AuthMessages>[
             AndroidAuthMessages(
-              signInTitle: 'Fladder',
+              signInTitle: Brand.name,
               biometricHint: context.localized.scanBiometricHint,
             ),
             IOSAuthMessages(

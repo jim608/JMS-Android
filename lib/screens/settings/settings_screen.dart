@@ -1,3 +1,5 @@
+import 'package:fladder/util/brand.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -171,7 +173,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             SettingsListTile(
               label: Text(context.localized.about),
-              subLabel: Text("Fladder, ${context.localized.latestReleases}"),
+              subLabel: const Text(Brand.fullName),
               selected: containsRoute(const AboutSettingsRoute()),
               leading: Opacity(
                 opacity: 1,

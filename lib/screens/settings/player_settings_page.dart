@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:fladder/widgets/shared/ambient_controls.dart';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:collection/collection.dart';
@@ -349,7 +350,9 @@ class _PlayerSettingsPageState extends ConsumerState<PlayerSettingsPage> {
             if (PlayerOptions.available.length != 1)
               SettingsListTileEnum(
                 label: Text(context.localized.playerSettingsBackendTitle),
-                subLabel: Text(context.localized.playerSettingsBackendDesc),
+                subLabel: Text(videoSettings.androidMdkUnavailable
+                    ? context.localized.jmsAndroidMdkUnavailable
+                    : context.localized.playerSettingsBackendDesc),
                 current: videoSettings.playerOptions == null
                     ? "${context.localized.defaultLabel} (${PlayerOptions.platformDefaults.label(context)})"
                     : videoSettings.wantedPlayer.label(context),
@@ -376,6 +379,7 @@ class _PlayerSettingsPageState extends ConsumerState<PlayerSettingsPage> {
                   value: videoSettings.ambientBlur,
                   onChanged: (value) => ref.read(videoPlayerSettingsProvider.notifier).setAmbientBlur(value == true),
                 ),
+                if (videoSettings.ambientBlur) const AmbientControls(),
                 AnimatedFadeSize(
                   child: videoSettings.ambientBlur
                       ? SettingsMessageBox(
@@ -400,7 +404,8 @@ class _PlayerSettingsPageState extends ConsumerState<PlayerSettingsPage> {
                 if (!kIsWeb)
                   SettingsListTile(
                     label: Text(context.localized.settingsPlayerNativeLibassAccelTitle),
-                    subLabel: Text(context.localized.settingsPlayerNativeLibassAccelDesc),
+                    subLabel: Text(
+                        '${context.localized.settingsPlayerNativeLibassAccelDesc}\n${context.localized.jmsPlainSubtitleHelp}'),
                     onTap: () => provider.setUseLibass(!videoSettings.useLibass),
                     trailing: Switch(
                       value: videoSettings.useLibass,

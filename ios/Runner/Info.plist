@@ -5,7 +5,7 @@
 		<key>CFBundleDevelopmentRegion</key>
 		<string>$(DEVELOPMENT_LANGUAGE)</string>
 		<key>CFBundleDisplayName</key>
-	<string>Fladder</string>
+		<string>JMS</string>
 		<key>CFBundleExecutable</key>
 		<string>$(EXECUTABLE_NAME)</string>
 		<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 		<key>CFBundleInfoDictionaryVersion</key>
 		<string>6.0</string>
 		<key>CFBundleName</key>
-	<string>Fladder</string>
+		<string>JMS</string>
 		<key>CFBundlePackageType</key>
 		<string>APPL</string>
 		<key>CFBundleShortVersionString</key>
@@ -47,24 +47,24 @@
 		<true/>
 		<key>UIApplicationSupportsIndirectInputEvents</key>
 		<true/>
-
 		<key>UIBackgroundModes</key>
 		<array>
 			<string>audio</string>
 			<string>fetch</string>
 		</array>
-
-		<!-- URL scheme for deep linking (example: fladder://details?id=xyz) -->
+		<!-- URL scheme for deep linking (example: jms://details?id=xyz) -->
 		<key>CFBundleURLTypes</key>
 		<array>
 			<dict>
 				<key>CFBundleURLName</key>
-				<string>fladder</string>
+				<string>jms</string>
 				<key>CFBundleURLSchemes</key>
 				<array>
-					<string>fladder</string>
+					<string>jms</string>
 				</array>
 			</dict>
 		</array>
+		<key>UIStatusBarHidden</key>
+		<false/>
 	</dict>
 </plist>

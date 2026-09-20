@@ -1,4 +1,7 @@
 # Miscellaneous
+/.jms-tools/
+/artifacts/
+/.playwright-cli/
 *.class
 *.log
 *.pyc
@@ -51,6 +54,7 @@ app.*.map.json
 **/android/gradlew.bat
 **/android/**/GeneratedPluginRegistrant.java
 **/android/key.properties
+**/key.properties
 *.jks
 local.properties
 **/.cxx/

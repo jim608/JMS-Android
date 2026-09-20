@@ -2,6 +2,7 @@ import 'package:fladder/providers/search_provider.dart';
 import 'package:fladder/screens/shared/media/poster_grid.dart';
 import 'package:fladder/util/debouncer.dart';
 import 'package:fladder/util/string_extensions.dart';
+import 'package:fladder/util/localization_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -21,8 +22,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   void initState() {
     super.initState();
     Future.microtask(() {
+      if (!mounted) return;
       ref.read(searchProvider.notifier).clear();
     });
+  }
+
+  @override
+  void dispose() {
+    searchDebouncer.cancel();
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
@@ -73,17 +82,24 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           },
         ),
       ),
-      body: ListView(
-        children: searchResults.results.entries
-            .map(
-              (e) => PosterGrid(
-                stickyHeader: false,
-                name: e.key.name.capitalize(),
-                posters: e.value,
+      body: searchResults.hasError
+          ? Center(
+              child: TextButton(
+                onPressed: () => ref.read(searchProvider.notifier).searchQuery(),
+                child: Text(context.localized.jmsSearchError),
               ),
             )
-            .toList(),
-      ),
+          : ListView(
+              children: searchResults.results.entries
+                  .map(
+                    (e) => PosterGrid(
+                      stickyHeader: false,
+                      name: e.key.name.capitalize(),
+                      posters: e.value,
+                    ),
+                  )
+                  .toList(),
+            ),
     );
   }
 }

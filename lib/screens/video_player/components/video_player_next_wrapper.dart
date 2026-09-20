@@ -14,6 +14,7 @@ import 'package:fladder/providers/settings/client_settings_provider.dart';
 import 'package:fladder/providers/settings/video_player_settings_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
+import 'package:fladder/providers/sleep_timer_provider.dart';
 import 'package:fladder/screens/shared/animated_fade_size.dart';
 import 'package:fladder/screens/shared/default_title_bar.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
@@ -47,6 +48,10 @@ class _VideoPlayerNextWrapperState extends ConsumerState<VideoPlayerNextWrapper>
 
   void onTimeOut() {
     timerController.cancel();
+    if (ref.read(sleepTimerProvider).blocksAutoNext) {
+      hideNextUp();
+      return;
+    }
     if (showOverwrite == true) return;
     final nextUp = ref.read(playBackModel.select((value) => value?.nextVideo));
     if (nextUp != null) {
@@ -71,6 +76,10 @@ class _VideoPlayerNextWrapperState extends ConsumerState<VideoPlayerNextWrapper>
   }
 
   void determineShow(MediaPlaybackModel model) {
+    if (ref.read(sleepTimerProvider).blocksAutoNext) {
+      if (show) hideNextUp();
+      return;
+    }
     final playerState = ref.watch(mediaPlaybackProvider.select((value) => value.state));
     if (playerState != VideoPlayerState.fullScreen) {
       showOverwrite = false;
@@ -155,6 +164,9 @@ class _VideoPlayerNextWrapperState extends ConsumerState<VideoPlayerNextWrapper>
     double padding = show ? 16 : 0;
 
     ref.listen(mediaPlaybackProvider, (previous, next) => determineShow(next));
+    ref.listen(sleepTimerProvider.select((timer) => timer.blocksAutoNext), (_, blocked) {
+      if (blocked) hideNextUp();
+    });
     return Hero(
       tag: videoPlayerHeroTag,
       child: Stack(

@@ -7,12 +7,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fladder/bootstrap/app_bootstrap.dart';
 import 'package:fladder/bootstrap/platform/platform_app_wrapper.dart';
 import 'package:fladder/l10n/generated/app_localizations.dart';
+import 'package:fladder/util/locale_resolver.dart';
 import 'package:fladder/localization_delegates.dart';
 import 'package:fladder/providers/arguments_provider.dart';
 import 'package:fladder/providers/crash_log_provider.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
 import 'package:fladder/providers/shared_provider.dart';
 import 'package:fladder/providers/sync_provider.dart';
+import 'package:fladder/providers/update_provider.dart';
 import 'package:fladder/routes/auto_router.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
 import 'package:fladder/util/application_info.dart';
@@ -49,6 +51,7 @@ class Main extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(updateProvider.select((value) => value.ready));
     return PlatformAppWrapper(
       builder: (context, autoRouter) {
         return _FladderApp(
@@ -81,6 +84,7 @@ class _FladderApp extends ConsumerWidget {
         light: lightTheme,
         dark: darkTheme,
         child: MaterialApp.router(
+          title: "JMS",
           theme: lightTheme,
           scrollBehavior: scrollBehaviour.copyWith(
             dragDevices: {
@@ -91,19 +95,7 @@ class _FladderApp extends ConsumerWidget {
           localizationsDelegates: FladderLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           locale: language,
-          localeResolutionCallback: (locale, supportedLocales) {
-            const fallback = Locale('en');
-            if (locale == null) return fallback;
-            if (supportedLocales.contains(locale)) {
-              return locale;
-            }
-            final matchByLanguage = supportedLocales.firstWhere(
-              (l) => l.languageCode == locale.languageCode,
-              orElse: () => fallback,
-            );
-
-            return matchByLanguage;
-          },
+          localeResolutionCallback: resolveSupportedLocale,
           builder: (context, child) => MediaQueryScaler(
             child: LocalizationContextWrapper(
               child: PipLifecycleController(child: child ?? Container()),

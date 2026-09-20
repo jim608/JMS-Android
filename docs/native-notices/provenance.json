@@ -1,0 +1,133 @@
+[
+  {
+    "file": "ass-android-2e7f6a6116b4-LICENSE.txt",
+    "source": "ass-android-2e7f6a6116b4.zip!libass-android-2e7f6a6116b401414352f18e72ced73640ca886e/LICENSE",
+    "sha256": "eede2bf250a8d39c3d25f1af6cabd310ca0322c4fb160bc0cd8538682dba49de"
+  },
+  {
+    "file": "ass-cmake-d3f00a43ca66-LICENSE.txt",
+    "source": "ass-cmake-d3f00a43ca66.zip!libass-cmake-d3f00a43ca66e42a2c34de964b1a7dbbfa9dbc8b/LICENSE",
+    "sha256": "50b2cd540b02ed7c2016ecdcb35243a81134cec0a9969fc7f206cd35b5eea64c"
+  },
+  {
+    "file": "jellyfin-ffmpeg-d388c347d41e-COPYING.GPLv2.txt",
+    "source": "jellyfin-ffmpeg-d388c347d41e.zip!FFmpeg-d388c347d41e4eb516dec05910551c5461e65615/COPYING.GPLv2",
+    "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+  },
+  {
+    "file": "jellyfin-ffmpeg-d388c347d41e-COPYING.GPLv3.txt",
+    "source": "jellyfin-ffmpeg-d388c347d41e.zip!FFmpeg-d388c347d41e4eb516dec05910551c5461e65615/COPYING.GPLv3",
+    "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+  },
+  {
+    "file": "jellyfin-ffmpeg-d388c347d41e-COPYING.LGPLv2.1.txt",
+    "source": "jellyfin-ffmpeg-d388c347d41e.zip!FFmpeg-d388c347d41e4eb516dec05910551c5461e65615/COPYING.LGPLv2.1",
+    "sha256": "b634ab5640e258563c536e658cad87080553df6f34f62269a21d554844e58bfe"
+  },
+  {
+    "file": "jellyfin-ffmpeg-d388c347d41e-COPYING.LGPLv3.txt",
+    "source": "jellyfin-ffmpeg-d388c347d41e.zip!FFmpeg-d388c347d41e4eb516dec05910551c5461e65615/COPYING.LGPLv3",
+    "sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768"
+  },
+  {
+    "file": "jellyfin-ffmpeg-d388c347d41e-LICENSE.md.txt",
+    "source": "jellyfin-ffmpeg-d388c347d41e.zip!FFmpeg-d388c347d41e4eb516dec05910551c5461e65615/LICENSE.md",
+    "sha256": "cb48bf09a11f5fb576cddb0431c8f5ed0a60157a9ec942adffc13907cbe083f2"
+  },
+  {
+    "file": "jellyfin-media3-84ef4b7201a9-LICENSE.txt",
+    "source": "jellyfin-media3-84ef4b7201a9.zip!jellyfin-androidx-media-84ef4b7201a9e1edfc699c31acbc505511a4af1f/LICENSE",
+    "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+  },
+  {
+    "file": "mdk-ffmpeg-base-5b614efc7e61-COPYING.GPLv2.txt",
+    "source": "mdk-ffmpeg-base-5b614efc7e61.zip!FFmpeg-5b614efc7e6134274fa5d05e240736be2dc203cc/COPYING.GPLv2",
+    "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+  },
+  {
+    "file": "mdk-ffmpeg-base-5b614efc7e61-COPYING.GPLv3.txt",
+    "source": "mdk-ffmpeg-base-5b614efc7e61.zip!FFmpeg-5b614efc7e6134274fa5d05e240736be2dc203cc/COPYING.GPLv3",
+    "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+  },
+  {
+    "file": "mdk-ffmpeg-base-5b614efc7e61-COPYING.LGPLv2.1.txt",
+    "source": "mdk-ffmpeg-base-5b614efc7e61.zip!FFmpeg-5b614efc7e6134274fa5d05e240736be2dc203cc/COPYING.LGPLv2.1",
+    "sha256": "246041b6ecf9bc32d718a62c57877c78b5eb397b6467e74ed7ae2626ab189c30"
+  },
+  {
+    "file": "mdk-ffmpeg-base-5b614efc7e61-COPYING.LGPLv3.txt",
+    "source": "mdk-ffmpeg-base-5b614efc7e61.zip!FFmpeg-5b614efc7e6134274fa5d05e240736be2dc203cc/COPYING.LGPLv3",
+    "sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768"
+  },
+  {
+    "file": "mdk-ffmpeg-base-5b614efc7e61-LICENSE.md.txt",
+    "source": "mdk-ffmpeg-base-5b614efc7e61.zip!FFmpeg-5b614efc7e6134274fa5d05e240736be2dc203cc/LICENSE.md",
+    "sha256": "2e1d16c72fd74e12063776371da757322f8b77589386532f4fd8634bde7de1af"
+  },
+  {
+    "file": "media-kit-helper-42054e5d479f-LICENSE.txt",
+    "source": "media-kit-helper-42054e5d479f.zip!media-kit-android-helper-42054e5d479f39ccbb0ae604862e2bcaf59b74c2/LICENSE",
+    "sha256": "2e3000f38718f050869d57540c288c661a446f64df1ba4ea4764df552b04a331"
+  },
+  {
+    "file": "mpv-78d43740f52d-Copyright.txt",
+    "source": "mpv-78d43740f52d.zip!mpv-78d43740f52db817d98bcf24fb30a76ab6fa13ff/Copyright",
+    "sha256": "ca8f78358716ff15098bf681e07d508007e4e5f1bbcbefc5d859bef55559d00d"
+  },
+  {
+    "file": "mpv-78d43740f52d-LICENSE.GPL.txt",
+    "source": "mpv-78d43740f52d.zip!mpv-78d43740f52db817d98bcf24fb30a76ab6fa13ff/LICENSE.GPL",
+    "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+  },
+  {
+    "file": "mpv-78d43740f52d-LICENSE.LGPL.txt",
+    "source": "mpv-78d43740f52d.zip!mpv-78d43740f52db817d98bcf24fb30a76ab6fa13ff/LICENSE.LGPL",
+    "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551"
+  },
+  {
+    "file": "mpv-build-23d81c8a50c6-LICENSE.txt",
+    "source": "mpv-build-23d81c8a50c6.zip!libmpv-android-video-build-23d81c8a50c6c9c662ce612422b850016ae54dc6/LICENSE",
+    "sha256": "8f25da1621b9e063833aaae0d4a28c6b83c3e70176aad0fae5e4893e219ae799"
+  },
+  {
+    "file": "fvp-0.35.0-LICENSE.txt",
+    "source": "%USERPROFILE%\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\fvp-0.35.0\\LICENSE",
+    "sha256": "79f6f1ed0d1ca6e9e8c1b37434267e37433d7b3264ef5586647e1ac517621e7e"
+  },
+  {
+    "file": "mdk-cached-sdk-README.txt",
+    "source": "%USERPROFILE%\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\fvp-0.35.0\\android\\mdk-sdk\\README.md",
+    "sha256": "cb8da2b4f486333ced58e3ae42e4a5ba2dd8d4b6c20fe8d896b0dfe90ff1ad21"
+  },
+  {
+    "file": "sqlite3_flutter_libs-0.5.40-LICENSE.txt",
+    "source": "%USERPROFILE%\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\sqlite3_flutter_libs-0.5.40\\LICENSE",
+    "sha256": "67e5d73a3a0c6e41f33d688a672b1161bf7f16e04da9ae48a7a14f1ba7436a4d"
+  },
+  {
+    "file": "flutter-3.35.7-LICENSE.txt",
+    "source": "%PROJECT%\\.jms-tools\\flutter\\LICENSE",
+    "sha256": "a3a9fd82f800a47377f7d3f60c60a5c91cae0495be8f329031e1448ce0f5dab9"
+  },
+  {
+    "file": "androidx-media-1.8.0-LICENSE.txt",
+    "source": "%PROJECT%\\artifacts\\native-materials-m10\\androidx-media-b7bbc6e2bc3e\\LICENSE",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  {
+    "file": "NDK-27.0.12077973-NOTICE.txt",
+    "source": "%PROJECT%\\.jms-tools\\android-sdk\\ndk\\27.0.12077973\\NOTICE",
+    "sha256": "4d5224d1c0b54ffa88b0dc0088191638fdbb7227835095dfb98f7f66b416a323"
+  },
+  {
+    "file": "NDK-27.0.12077973-NOTICE.toolchain.txt",
+    "source": "%PROJECT%\\.jms-tools\\android-sdk\\ndk\\27.0.12077973\\NOTICE.toolchain",
+    "sha256": "cbe3237be53c0a819f8df6aac5358fdee848eee3b6571b4e2ca20767ebd7465e"
+  },
+  {
+    "file": "libass-api-0.17.5-COPYING.txt",
+    "source": "https://github.com/libass/libass/blob/4a05d8127f525943ebf45fdc6497c9e665947f0d/COPYING",
+    "sha256": "f7e30699d02798351e7f839e3d3bfeb29ce65e44efa7735c225464c4fd7dfe9c",
+    "scope": "API-version-matching upstream license; not proof of exact MDK SDK source/patches"
+  }
+]

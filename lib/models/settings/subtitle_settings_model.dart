@@ -11,6 +11,17 @@ import 'package:fladder/providers/settings/subtitle_settings_provider.dart';
 import 'package:fladder/providers/settings/video_player_settings_provider.dart';
 import 'package:fladder/util/color_extensions.dart';
 
+enum SubtitleEncoding {
+  automatic('auto'),
+  utf8('utf-8'),
+  big5('big5'),
+  cp950('cp950'),
+  gb18030('gb18030');
+
+  const SubtitleEncoding(this.codepage);
+  final String codepage;
+}
+
 class SubtitleSettingsModel {
   final double fontSize;
   final FontWeight fontWeight;
@@ -20,6 +31,7 @@ class SubtitleSettingsModel {
   final double outlineSize;
   final Color backGroundColor;
   final double shadow;
+  final SubtitleEncoding externalEncoding;
   const SubtitleSettingsModel({
     this.fontSize = 60,
     this.fontWeight = FontWeight.normal,
@@ -29,6 +41,7 @@ class SubtitleSettingsModel {
     this.outlineSize = 4,
     this.backGroundColor = const Color.fromARGB(0, 0, 0, 0),
     this.shadow = 0.5,
+    this.externalEncoding = SubtitleEncoding.automatic,
   });
 
   SubtitleSettingsModel copyWith({
@@ -40,6 +53,7 @@ class SubtitleSettingsModel {
     double? outlineSize,
     Color? backGroundColor,
     double? shadow,
+    SubtitleEncoding? externalEncoding,
   }) {
     return SubtitleSettingsModel(
       fontSize: fontSize ?? this.fontSize,
@@ -50,6 +64,7 @@ class SubtitleSettingsModel {
       outlineSize: outlineSize ?? this.outlineSize,
       backGroundColor: backGroundColor ?? this.backGroundColor,
       shadow: shadow ?? this.shadow,
+      externalEncoding: externalEncoding ?? this.externalEncoding,
     );
   }
 
@@ -98,6 +113,7 @@ class SubtitleSettingsModel {
       'outlineSize': outlineSize,
       'backGroundColor': backGroundColor.toMap,
       'shadow': shadow,
+      'externalEncoding': externalEncoding.name,
     };
   }
 
@@ -115,6 +131,7 @@ class SubtitleSettingsModel {
       outlineSize: map['outlineSize'] as double?,
       backGroundColor: colorFromJson(map['backGroundColor']),
       shadow: map['shadow'] as double?,
+      externalEncoding: SubtitleEncoding.values.firstWhereOrNull((value) => value.name == map['externalEncoding']),
     );
   }
 
@@ -134,7 +151,8 @@ class SubtitleSettingsModel {
         other.outlineColor == outlineColor &&
         other.outlineSize == outlineSize &&
         other.backGroundColor == backGroundColor &&
-        other.shadow == shadow;
+        other.shadow == shadow &&
+        other.externalEncoding == externalEncoding;
   }
 
   @override
@@ -146,7 +164,8 @@ class SubtitleSettingsModel {
         outlineColor.hashCode ^
         outlineSize.hashCode ^
         backGroundColor.hashCode ^
-        shadow.hashCode;
+        shadow.hashCode ^
+        externalEncoding.hashCode;
   }
 }
 

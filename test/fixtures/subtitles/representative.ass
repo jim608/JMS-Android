@@ -1,0 +1,27 @@
+[Script Info]
+Title: JMS authored CJK ASS regression fixture
+ScriptType: v4.00+
+PlayResX: 1280
+PlayResY: 720
+WrapStyle: 0
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Noto Sans CJK TC,46,&H00FFFFFF,&H0000FFFF,&H00101010,&H80000000,0,0,0,0,100,100,0,0,1,2,1,2,40,40,35,1
+Style: Missing,JMS Missing Font,42,&H0000FFFF,&H0000FFFF,&H00101010,&H80000000,0,0,0,0,100,100,0,0,1,2,1,8,40,40,35,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:00:02.00,Default,,0,0,0,,繁體中文：龍與龜，測試字幕\N简体中文：龙与龟，测试字幕
+Dialogue: 0,0:00:02.00,0:00:04.00,Default,,0,0,0,,{\an8}日本語：こんにちは、字幕のテスト
+Dialogue: 1,0:00:02.00,0:00:04.00,Default,,0,0,0,,{\an2}繁中：上下雙語與多人對話
+Dialogue: 2,0:00:02.00,0:00:04.00,Missing,,0,0,0,,{\an5\pos(640,360)}缺字型 fallback：繁體简体日本語
+Dialogue: 1,0:00:04.00,0:00:06.00,Default,,0,0,0,,{\an5\pos(980,150)\frz-12\c&H00FFFF&\alpha&H20&}告示牌翻譯
+Dialogue: 0,0:00:04.00,0:00:06.00,Default,,0,0,0,,{\move(180,520,1100,520)\fad(200,300)}移動與淡入淡出
+Dialogue: 0,0:00:06.00,0:00:08.00,Default,,0,0,0,,{\an5\pos(640,240)\t(0,1500,\fscx150\fscy150\c&HFF8080&)}動畫變形
+Dialogue: 1,0:00:06.00,0:00:08.00,Default,,0,0,0,,{\an5\pos(640,450)\clip(350,400,930,510)}裁切效果：繁體简体日本語
+Dialogue: 0,0:00:08.00,0:00:10.00,Default,,0,0,0,,{\an5\pos(640,300)}{\k25}卡{\k25}拉{\k25}Ｏ{\k25}Ｋ {\kf40}動畫{\kf40}歌曲
+Dialogue: 1,0:00:08.00,0:00:10.00,Default,,0,0,0,,{\an7\pos(560,430)\p1\bord0\shad0\c&H80FF80&}m 0 0 l 160 0 80 100{\p0}
+Dialogue: 0,0:00:10.00,0:00:12.00,Default,,0,0,0,,{\an1\bord4\shad3\fs35}左下邊界
+Dialogue: 1,0:00:10.00,0:00:12.00,Default,,0,0,0,,{\an9\bord1\shad0\fs35}右上邊界
