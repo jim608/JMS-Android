@@ -14,6 +14,11 @@ import 'package:fladder/screens/seerr/widgets/seerr_request_popup.dart';
 import 'package:fladder/screens/shared/nested_scaffold.dart';
 import 'package:fladder/screens/shared/nested_sliver_appbar.dart';
 import 'package:fladder/seerr/seerr_models.dart';
+import 'package:fladder/screens/seerr/seerr_records_screen.dart';
+import 'package:fladder/screens/seerr/seerr_support_text.dart';
+import 'package:fladder/screens/seerr/seerr_link_panel.dart';
+import 'package:fladder/providers/seerr_link_provider.dart';
+import 'package:fladder/screens/settings/widgets/seerr_connection_dialog.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
 import 'package:fladder/util/localization_helper.dart';
 import 'package:fladder/util/sliver_list_padding.dart';
@@ -32,8 +37,11 @@ class _SeerrScreenState extends ConsumerState<SeerrScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(seerrDashboardProvider.notifier).fetchDashboard();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await ref.read(seerrLinkProvider.notifier).ensure();
+      if (mounted && ref.read(seerrLinkProvider) == 'connected') {
+        await ref.read(seerrDashboardProvider.notifier).fetchDashboard();
+      }
     });
   }
 
@@ -73,6 +81,13 @@ class _SeerrScreenState extends ConsumerState<SeerrScreen> {
                 NestedSliverAppBar(parent: context)
               else
                 const DefaultSliverTopBadding(),
+              const SliverToBoxAdapter(child: SeerrLinkPanel()),
+              SliverToBoxAdapter(child: Wrap(spacing: 12, alignment: WrapAlignment.center, children: [
+                OutlinedButton.icon(onPressed: () => showSeerrConnectionDialog(context), icon: const Icon(Icons.settings),
+                  label: Text(seerrText(context, 'Jellyseerr / Seerr connection', 'Jellyseerr／Seerr 連線設定'))),
+                FilledButton.icon(onPressed: () => openSeerrRecords(context), icon: const Icon(Icons.history),
+                  label: Text(seerrText(context, 'My requests / reports', '我的申請／回報'))),
+              ])),
               if (canViewRecent && dashboardState.recentlyAdded.isNotEmpty)
                 SliverToBoxAdapter(
                   child: SeerrPosterRow(

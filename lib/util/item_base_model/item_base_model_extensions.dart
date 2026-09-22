@@ -34,6 +34,8 @@ import 'package:fladder/screens/shared/fladder_notification_overlay.dart';
 import 'package:fladder/screens/syncing/sync_button.dart';
 import 'package:fladder/screens/syncing/sync_item_details.dart';
 import 'package:fladder/seerr/seerr_models.dart';
+import 'package:fladder/screens/seerr/seerr_report_dialog.dart';
+import 'package:fladder/screens/seerr/seerr_support_text.dart';
 import 'package:fladder/src/wallpaper_api.g.dart';
 import 'package:fladder/util/clipboard_helper.dart';
 import 'package:fladder/util/custom_cache_manager.dart';
@@ -183,6 +185,10 @@ extension ItemBaseModelExtensions on ItemBaseModel {
           : null,
     };
     return [
+      if ({FladderItemType.movie, FladderItemType.series, FladderItemType.season, FladderItemType.episode}.contains(type))
+        ItemActionButton(icon: const Icon(Icons.report_problem_outlined),
+          label: Text(seerrText(context, 'Report a problem', '回報問題')),
+          action: () => openSeerrReport(context, ref, item: this)),
       if (!exclude.contains(ItemActions.play))
         if (playAble)
           ItemActionButton(

@@ -17,6 +17,9 @@ import 'package:fladder/providers/settings/video_player_settings_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
 import 'package:fladder/screens/video_player/components/sleep_timer_dialog.dart';
+import 'package:fladder/screens/seerr/seerr_report_dialog.dart';
+import 'package:fladder/screens/seerr/seerr_support_text.dart';
+import 'package:fladder/seerr/seerr_connection.dart';
 import 'package:fladder/screens/collections/add_to_collection.dart';
 import 'package:fladder/screens/metadata/info_screen.dart';
 import 'package:fladder/screens/playlists/add_to_playlists.dart';
@@ -141,6 +144,13 @@ class _VideoOptionsMobileState extends ConsumerState<VideoOptions> {
             onTap: currentMediaStreams?.subStreams.isNotEmpty == true ? () => showSubSelection(context) : null,
           ),
           const SleepTimerTile(),
+          if (currentItem != null) ListTile(
+            leading: const Icon(Icons.report_problem_outlined),
+            title: Text(seerrText(context, 'Report a problem', '回報問題')),
+            onTap: () => openSeerrReport(context, ref, item: currentItem,
+              position: ref.read(mediaPlaybackProvider).position,
+              tracks: 'Audio: ${seerrTrackAttribute(currentMediaStreams?.currentAudioStream?.language)} / ${seerrTrackAttribute(currentMediaStreams?.currentAudioStream?.codec)}\nSubtitle: ${seerrTrackAttribute(currentMediaStreams?.currentSubStream?.language)} / ${seerrTrackAttribute(currentMediaStreams?.currentSubStream?.codec)}'),
+          ),
           SpacedListTile(
             title: Text(context.localized.audio(1)),
             content: Text(currentMediaStreams?.currentAudioStream?.label(context) ?? context.localized.off),

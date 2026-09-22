@@ -6,6 +6,7 @@ import 'package:fladder/models/items/images_models.dart';
 import 'package:fladder/models/items/item_shared_models.dart';
 import 'package:fladder/models/seerr/seerr_dashboard_model.dart';
 import 'package:fladder/providers/seerr_api_provider.dart';
+import 'package:fladder/providers/seerr_service_provider.dart';
 import 'package:fladder/providers/seerr_user_provider.dart';
 import 'package:fladder/seerr/seerr_models.dart';
 import 'package:fladder/util/seerr_helpers.dart';
@@ -15,7 +16,8 @@ part 'seerr_details_provider.g.dart';
 
 @riverpod
 class SeerrDetails extends _$SeerrDetails {
-  late final api = ref.read(seerrApiProvider);
+  int _generation = 0;
+  SeerrService get api => ref.read(seerrApiProvider);
 
   @override
   SeerrDetailsModel build({
@@ -23,6 +25,9 @@ class SeerrDetails extends _$SeerrDetails {
     required SeerrMediaType mediaType,
     SeerrDashboardPosterModel? poster,
   }) {
+    ref.watch(seerrApiProvider);
+    _generation++;
+    ref.onDispose(() => _generation++);
     state = SeerrDetailsModel(
       tmdbId: tmdbId,
       mediaType: mediaType,
@@ -37,6 +42,8 @@ class SeerrDetails extends _$SeerrDetails {
   }
 
   Future<void> fetch() async {
+    final generation = ++_generation;
+    final api = this.api;
     final currentTmdbId = state.tmdbId;
     final currentMediaType = state.mediaType;
     if (currentTmdbId == null || currentMediaType == null) return;
@@ -47,13 +54,16 @@ class SeerrDetails extends _$SeerrDetails {
       tmdbId: currentTmdbId,
       mediaType: currentMediaType,
     );
+    if (generation != _generation) return;
 
     poster = refreshedPoster ?? poster;
     if (poster == null) return;
 
     state = state.copyWith(poster: poster);
 
-    final currentUserBody = await ref.read(seerrUserProvider.notifier).refreshUser();
+    final currentUserBody =
+        await ref.read(seerrUserProvider.notifier).refreshUser();
+    if (generation != _generation) return;
     final isTv = currentMediaType == SeerrMediaType.tvshow;
     if (isTv) {
       final tvDetailsResponse = await api.tvDetails(tvId: poster.tmdbId);
@@ -63,13 +73,16 @@ class SeerrDetails extends _$SeerrDetails {
         final seasonStatusMap = SeerrHelpers.buildSeasonStatusMap(details);
 
         final userRegion = currentUserBody?.settings?.discoverRegion ?? 'US';
-        final contentRating = SeerrHelpers.extractContentRating(details.contentRatings, userRegion);
+        final contentRating = SeerrHelpers.extractContentRating(
+            details.contentRatings, userRegion);
 
         final ratings = await api.tvRatings(poster.tmdbId);
+        if (generation != _generation) return;
 
         final updatedPoster = poster.copyWith(
           seasons: details.seasons,
-          seasonStatuses: seasonStatusMap.isEmpty ? poster.seasonStatuses : seasonStatusMap,
+          seasonStatuses:
+              seasonStatusMap.isEmpty ? poster.seasonStatuses : seasonStatusMap,
           mediaInfo: details.mediaInfo,
         );
 
@@ -89,17 +102,21 @@ class SeerrDetails extends _$SeerrDetails {
         );
       }
     } else {
-      final movieDetailsResponse = await api.movieDetails(tmdbId: poster.tmdbId);
-      if (movieDetailsResponse.isSuccessful && movieDetailsResponse.body != null) {
+      final movieDetailsResponse =
+          await api.movieDetails(tmdbId: poster.tmdbId);
+      if (movieDetailsResponse.isSuccessful &&
+          movieDetailsResponse.body != null) {
         final details = movieDetailsResponse.body!;
         final userRegion = currentUserBody?.settings?.discoverRegion ?? 'US';
-        final contentRating = SeerrHelpers.extractContentRating(details.contentRatings, userRegion);
+        final contentRating = SeerrHelpers.extractContentRating(
+            details.contentRatings, userRegion);
 
         final updatedPoster = poster.copyWith(
           mediaInfo: details.mediaInfo,
         );
 
         final ratings = await api.movieRatings(poster.tmdbId);
+        if (generation != _generation) return;
 
         state = state.copyWith(
           poster: updatedPoster,
@@ -116,20 +133,21 @@ class SeerrDetails extends _$SeerrDetails {
     }
 
     if (currentMediaType == SeerrMediaType.movie) {
-      final recommended = await api.discoverRecommendedMovies(tmdbId: poster.tmdbId);
+      final recommended =
+          await api.discoverRecommendedMovies(tmdbId: poster.tmdbId);
       final related = await api.discoverRelatedMovies(tmdbId: poster.tmdbId);
+      if (generation != _generation) return;
       state = state.copyWith(recommended: recommended, similar: related);
     } else {
-      final recommended = await api.discoverRecommendedSeries(tmdbId: poster.tmdbId);
+      final recommended =
+          await api.discoverRecommendedSeries(tmdbId: poster.tmdbId);
       final related = await api.discoverRelatedSeries(tmdbId: poster.tmdbId);
+      if (generation != _generation) return;
       state = state.copyWith(recommended: recommended, similar: related);
     }
 
     state = state.copyWith(
       currentUser: currentUserBody,
-      poster: poster.copyWith(
-        mediaInfo: refreshedPoster?.mediaInfo == null ? null : poster.mediaInfo,
-      ),
     );
   }
 
@@ -154,7 +172,8 @@ class SeerrDetails extends _$SeerrDetails {
 
       ImageData? image;
       if (profileUrl != null && profileUrl.isNotEmpty) {
-        image = ImageData(path: profileUrl, key: 'seerr_person_${id ?? safeName.hashCode}');
+        image = ImageData(
+            path: profileUrl, key: 'seerr_person_${id ?? safeName.hashCode}');
       }
 
       people.add(
@@ -196,10 +215,14 @@ class SeerrDetails extends _$SeerrDetails {
     if (normalized == null || normalized.isEmpty) return PersonKind.unknown;
     if (normalized.contains('director')) return PersonKind.director;
     if (normalized.contains('producer')) return PersonKind.producer;
-    if (normalized.contains('writer') || normalized.contains('screenplay') || normalized.contains('story')) {
+    if (normalized.contains('writer') ||
+        normalized.contains('screenplay') ||
+        normalized.contains('story')) {
       return PersonKind.writer;
     }
-    if (normalized.contains('composer') || normalized.contains('music')) return PersonKind.composer;
+    if (normalized.contains('composer') || normalized.contains('music')) {
+      return PersonKind.composer;
+    }
     return PersonKind.unknown;
   }
 
@@ -227,7 +250,8 @@ class SeerrDetails extends _$SeerrDetails {
 
     if (response.isSuccessful && response.body != null) {
       final episodes = response.body!.episodes ?? [];
-      final updatedCache = Map<int, List<SeerrEpisode>>.from(state.episodesCache);
+      final updatedCache =
+          Map<int, List<SeerrEpisode>>.from(state.episodesCache);
       updatedCache[seasonNumber] = episodes;
       state = state.copyWith(episodesCache: updatedCache);
     }
@@ -301,11 +325,20 @@ abstract class SeerrDetailsModel with _$SeerrDetailsModel {
       urls.add(ExternalUrls(name: name, url: url));
     }
 
-    addUrl('TMDB', 'https://www.themoviedb.org/${isTv ? 'tv' : 'movie'}/$tmdbId');
-    addUrl('IMDb', imdbId != null ? 'https://www.imdb.com/title/$imdbId' : null);
-    addUrl('Trakt',
-        imdbId != null ? 'https://trakt.tv/search/imdb/$imdbId?source=imdb' : 'https://trakt.tv/search/tmdb/$tmdbId');
-    addUrl('TVDB', tvdbId != null ? 'http://www.thetvdb.com/?tab=series&id=$tvdbId' : null);
+    addUrl(
+        'TMDB', 'https://www.themoviedb.org/${isTv ? 'tv' : 'movie'}/$tmdbId');
+    addUrl(
+        'IMDb', imdbId != null ? 'https://www.imdb.com/title/$imdbId' : null);
+    addUrl(
+        'Trakt',
+        imdbId != null
+            ? 'https://trakt.tv/search/imdb/$imdbId?source=imdb'
+            : 'https://trakt.tv/search/tmdb/$tmdbId');
+    addUrl(
+        'TVDB',
+        tvdbId != null
+            ? 'http://www.thetvdb.com/?tab=series&id=$tvdbId'
+            : null);
     addUrl('Rotten Tomatoes', rtUrl);
     return urls;
   }
@@ -351,7 +384,9 @@ abstract class SeerrDetailsModel with _$SeerrDetailsModel {
 
       final videoName = video.name?.trim() ?? '';
       final videoType = video.type?.trim() ?? '';
-      final label = videoName.isNotEmpty ? videoName : (videoType.isNotEmpty ? videoType : 'Video ${i + 1}');
+      final label = videoName.isNotEmpty
+          ? videoName
+          : (videoType.isNotEmpty ? videoType : 'Video ${i + 1}');
 
       urls.add(ExternalUrls(name: label, url: url));
     }
@@ -361,6 +396,8 @@ abstract class SeerrDetailsModel with _$SeerrDetailsModel {
 
   bool isRequestedAlready(int seasonNumber) {
     final status = seasonStatuses[seasonNumber];
-    return status != null && status.isKnown && status != SeerrMediaStatus.deleted;
+    return status != null &&
+        status.isKnown &&
+        status != SeerrMediaStatus.deleted;
   }
 }

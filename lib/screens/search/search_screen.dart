@@ -5,6 +5,11 @@ import 'package:fladder/util/string_extensions.dart';
 import 'package:fladder/util/localization_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:auto_route/auto_route.dart';
+import 'package:fladder/routes/auto_router.gr.dart';
+import 'package:fladder/providers/seerr_search_provider.dart';
+import 'package:fladder/seerr/seerr_models.dart';
+import 'package:fladder/screens/seerr/seerr_support_text.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -39,6 +44,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final searchResults = ref.watch(searchProvider);
     return Scaffold(
       appBar: AppBar(
+        actions: [TextButton.icon(onPressed: () {
+          ref.read(seerrSearchProvider.notifier).setQuery(_controller.text);
+          context.pushRoute(SeerrSearchRoute(mode: SeerrSearchMode.search));
+        }, icon: const Icon(Icons.movie_filter_outlined), label: Text(seerrText(context, 'Request search', '點片搜尋')))],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(0),
           child: Stack(
@@ -67,8 +76,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         title: TextField(
           controller: _controller,
           autofocus: true,
-          decoration: const InputDecoration(
-            hintText: "Search library...",
+          decoration: InputDecoration(
+            hintText: seerrText(context, 'Search library...', '搜尋媒體庫…'),
             border: InputBorder.none,
           ),
           onSubmitted: (value) {

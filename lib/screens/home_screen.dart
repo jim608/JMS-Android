@@ -114,7 +114,7 @@ class HomeScreen extends ConsumerWidget {
     final canDownload = ref.watch(showSyncButtonProviderProvider);
     final isMusicDashboardMode = ref.watch(musicDashboardModeProvider);
     final seerrAuthenticated = ref.watch(
-      userProvider.select((user) => user?.seerrCredentials?.isConfigured ?? false),
+      userProvider.select((user) => user != null),
     );
     final destinations = HomeTabs.values
         .map((e) {
@@ -158,7 +158,7 @@ class HomeScreen extends ConsumerWidget {
             case HomeTabs.seerr:
               if (seerrAuthenticated) {
                 return DestinationModel(
-                  label: context.localized.discover,
+                  label: context.localized.seerr,
                   icon: Icon(e.icon),
                   selectedIcon: Icon(e.selectedIcon),
                   route: const SeerrRoute(),

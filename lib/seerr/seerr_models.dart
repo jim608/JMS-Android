@@ -191,6 +191,7 @@ abstract class SeerrUserModel with _$SeerrUserModel {
     String? displayName,
     String? plexToken,
     String? plexUsername,
+    String? jellyfinUserId,
     int? permissions,
     String? avatar,
     SeerrUserSettings? settings,
@@ -222,7 +223,7 @@ class SeerrQuotaEntry {
   final int? remaining;
   final bool? restricted;
 
-  bool get hasRestrictions => restricted == true || limit != 0;
+  bool get hasRestrictions => restricted == true || (limit ?? 0) > 0;
 
   SeerrQuotaEntry({this.days, this.limit, this.used, this.remaining, this.restricted});
 
@@ -281,7 +282,12 @@ extension SeerrUserPermissions on SeerrUserModel {
       isAdmin ? true : (_permissionValue & permission.bit) == permission.bit;
 
   bool get canManageRequests =>
-      hasPermission(SeerrPermission.manageRequests) || hasPermission(SeerrPermission.requestAdvanced);
+      hasPermission(SeerrPermission.manageRequests);
+
+  bool get canConfigureRequests => hasPermission(SeerrPermission.requestAdvanced) || canManageRequests;
+  bool get canCreateIssues => hasPermission(SeerrPermission.createIssues) || canManageIssues;
+  bool get canManageIssues => hasPermission(SeerrPermission.manageIssues);
+  bool get canViewIssues => canCreateIssues || hasPermission(SeerrPermission.viewIssues);
 
   bool get canManageUsers => hasPermission(SeerrPermission.manageUsers);
 
@@ -939,6 +945,7 @@ abstract class SeerrMediaInfo with _$SeerrMediaInfo {
   factory SeerrMediaInfo({
     int? id,
     int? tmdbId,
+    String? mediaType,
     int? tvdbId,
     int? status,
     String? jellyfinMediaId,

@@ -7,14 +7,14 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:fladder/models/item_base_model.dart';
 import 'package:fladder/models/seerr/seerr_dashboard_model.dart';
 import 'package:fladder/providers/seerr/seerr_request_provider.dart';
-import 'package:fladder/providers/user_provider.dart';
+import 'package:fladder/routes/auto_router.gr.dart';
 import 'package:fladder/screens/seerr/widgets/request_configuration_section.dart';
 import 'package:fladder/screens/seerr/widgets/request_popup_widgets.dart';
 import 'package:fladder/screens/seerr/widgets/seasons_section.dart';
 import 'package:fladder/screens/shared/adaptive_dialog.dart';
 import 'package:fladder/screens/shared/fladder_notification_overlay.dart';
-import 'package:fladder/screens/shared/media/external_urls.dart';
 import 'package:fladder/seerr/seerr_models.dart';
+import 'package:fladder/screens/seerr/seerr_support_text.dart';
 import 'package:fladder/theme.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
 import 'package:fladder/util/fladder_image.dart';
@@ -74,12 +74,9 @@ class _SeerrRequestPopupState extends ConsumerState<SeerrRequestPopup> {
   }
 
   Future<void> openSeerrLink(BuildContext context, SeerrDashboardPosterModel model) async {
-    final seerrUrl = ref.read(userProvider)?.seerrCredentials?.serverUrl;
-    if (seerrUrl != null && seerrUrl.isNotEmpty) {
-      final mediaType = model.type == SeerrMediaType.movie ? 'movie' : 'tv';
-      final url = '$seerrUrl/$mediaType/${model.tmdbId}';
-      launchUrl(context, url);
-    }
+    final router = context.router;
+    Navigator.of(context).pop();
+    await router.push(SeerrDetailsRoute(mediaType: model.type == SeerrMediaType.movie ? 'movie' : 'tv', tmdbId: model.tmdbId));
   }
 
   @override
@@ -91,7 +88,7 @@ class _SeerrRequestPopupState extends ConsumerState<SeerrRequestPopup> {
     final seasonStatuses = requestState.seasonStatuses;
 
     final currentUser = requestState.currentUser;
-    final canShowAdvancedConfiguration = currentUser?.canManageRequests ?? false;
+    final canShowAdvancedConfiguration = currentUser?.canConfigureRequests ?? false;
 
     return PullToRefresh(
       onRefresh: () => notifier.initialize(widget.requestModel),
@@ -323,13 +320,18 @@ class _SeerrRequestPopupState extends ConsumerState<SeerrRequestPopup> {
             FilledButtonAwait(
               onPressed: requestState.canSubmitRequest
                   ? () async {
-                      await FladderSnack.showResponse(
-                        notifier.submitRequest(),
-                        successTitle: context.localized.requestedSuccessForItem(model.title),
-                      );
-                      if (context.mounted) {
-                        Navigator.of(context).pop();
-                      }
+                        try {
+                          final result = await notifier.submitRequest();
+                          if (!context.mounted) return;
+                          if (result?.isSuccess == true && result?.data != null) {
+                            FladderSnack.show(context.localized.requestedSuccessForItem(model.title), context: context);
+                            Navigator.of(context).pop();
+                          } else {
+                            FladderSnack.show(seerrText(context, 'Request not confirmed. Check My records.', '申請尚未確認，請查看我的紀錄。'), context: context);
+                          }
+                        } catch (failure) {
+                          if (context.mounted) FladderSnack.show(seerrError(context, failure), context: context);
+                        }
                     }
                   : null,
               child: Row(

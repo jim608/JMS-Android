@@ -10,7 +10,8 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:fladder/models/account_model.dart';
 import 'package:fladder/providers/api_provider.dart';
 import 'package:fladder/providers/auth_provider.dart';
-import 'package:fladder/providers/seerr_api_provider.dart';
+import 'package:fladder/providers/seerr_link_provider.dart';
+import 'package:fladder/screens/seerr/seerr_support_text.dart';
 import 'package:fladder/providers/shared_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/routes/auto_router.gr.dart';
@@ -48,6 +49,7 @@ class _LoginScreenCredentialsState extends ConsumerState<LoginScreenCredentials>
   final FocusNode focusNode = FocusNode();
 
   bool loggingIn = false;
+  bool linkSeerr = false;
 
   @override
   void initState() {
@@ -292,6 +294,12 @@ class _LoginScreenCredentialsState extends ConsumerState<LoginScreenCredentials>
                         ),
                     ],
                   ),
+                  CheckboxListTile(
+                    value: linkSeerr,
+                    onChanged: loggingIn ? null : (value) => setState(() => linkSeerr = value ?? false),
+                    title: Text(seerrText(context, 'Also connect my request service', '此登入同時連接媒體庫與點片服務')),
+                    subtitle: Text('${seerrText(context, 'Only select if this Jellyfin belongs to ', '僅當目前 Jellyfin 屬於此服務才勾選：')}$jmsSeerrSource\n${seerrText(context, 'Identity is verified; password is used once and never saved.', '會核對本人身分；必要時僅使用本次密碼，不保存。')}'),
+                  ),
                   if (hasQuickConnect)
                     FilledButton(
                       onPressed: () async {
@@ -366,45 +374,15 @@ class _LoginScreenCredentialsState extends ConsumerState<LoginScreenCredentials>
       return;
     }
 
-    final tempSeerrUrl = ref.read(authProvider.select((value) => value.tempSeerrUrl));
-    if (tempSeerrUrl != null && tempSeerrUrl.isNotEmpty) {
-      await _tryAuthenticateSeerr(tempSeerrUrl);
+    if (linkSeerr) {
+      ref.read(userProvider.notifier).bindSeerrAccount(jmsSeerrSource);
+      unawaited(ref.read(seerrLinkProvider.notifier).ensure(
+        username: usernameController.text.trim(), password: passwordController.text));
     }
+    passwordController.clear();
 
     if (context.mounted) {
       await loggedInGoToHome(context, ref);
-    }
-  }
-
-  Future<void> _tryAuthenticateSeerr(String seerrUrl) async {
-    try {
-      final username = usernameController.text.trim();
-      final password = passwordController.text;
-
-      final effectiveSeerrUrl = FladderConfig.seerrBaseUrl ?? seerrUrl;
-      ref.read(userProvider.notifier).setSeerrServerUrl(effectiveSeerrUrl);
-
-      final tempCookie = ref.read(authProvider.select((value) => value.tempSeerrSessionCookie));
-      final cookie = tempCookie ??
-          await ref.read(seerrApiProvider).authenticateJellyfin(
-                username: username,
-                password: password,
-              );
-
-      ref.read(userProvider.notifier).setSeerrSessionCookie(cookie);
-      ref.read(userProvider.notifier).setSeerrApiKey('');
-      ref.read(authProvider.notifier).setTempSeerrSessionCookie(null);
-
-      if (context.mounted) {
-        FladderSnack.show(context.localized.seerrLoggedIn, context: context);
-      }
-    } catch (e) {
-      if (context.mounted) {
-        FladderSnack.show(
-          "${context.localized.seerrAuthenticateLocal}: ${e.toString()}",
-          context: context,
-        );
-      }
     }
   }
 
@@ -416,6 +394,7 @@ class _LoginScreenCredentialsState extends ConsumerState<LoginScreenCredentials>
       ref.read(authProvider.notifier).authenticateUsingSecret(secret),
     );
     if (response.isSuccess && context.mounted) {
+      if (linkSeerr) ref.read(userProvider.notifier).bindSeerrAccount(jmsSeerrSource);
       loggedInGoToHome(context, ref);
     }
     setState(() {
@@ -427,6 +406,7 @@ class _LoginScreenCredentialsState extends ConsumerState<LoginScreenCredentials>
 }
 
 Future<void> loggedInGoToHome(BuildContext context, WidgetRef ref) async {
+  unawaited(ref.read(seerrLinkProvider.notifier).ensure());
   ref.read(lockScreenActiveProvider.notifier).update((state) => false);
   if (context.mounted) {
     await context.router.replaceAll([const DashboardRoute()]);

@@ -41,6 +41,7 @@ class MainActivity : AudioServiceFragmentActivity(), NativeVideoActivity {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        SeerrSessionBridge(this, flutterEngine.dartExecutor.binaryMessenger)
         nl.jknaapen.fladder.updates.AndroidUpdateBridge(this, flutterEngine.dartExecutor.binaryMessenger)
 
         val videoPlayerHost = VideoPlayerObject

@@ -1484,7 +1484,7 @@
     "email": "电子邮件",
     "username": "用户名",
     "ok": "确定",
-    "seerr": "Seerr",
+  "seerr": "点片",
     "seerrNotConfigured": "未配置",
     "seerrLoadingUser": "正在加载用户",
     "seerrUnknownUser": "未知用户",

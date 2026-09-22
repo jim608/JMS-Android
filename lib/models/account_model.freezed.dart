@@ -49,7 +49,8 @@ mixin _$AccountModel implements DiagnosticableTreeMixin {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @pragma('vm:prefer-inline')
   $AccountModelCopyWith<AccountModel> get copyWith =>
-      _$AccountModelCopyWithImpl<AccountModel>(this as AccountModel, _$identity);
+      _$AccountModelCopyWithImpl<AccountModel>(
+          this as AccountModel, _$identity);
 
   /// Serializes this AccountModel to a JSON map.
   Map<String, dynamic> toJson();
@@ -71,7 +72,8 @@ mixin _$AccountModel implements DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('searchQueryHistory', searchQueryHistory))
       ..add(DiagnosticsProperty('quickConnectState', quickConnectState))
       ..add(DiagnosticsProperty('libraryFilters', libraryFilters))
-      ..add(DiagnosticsProperty('updateNotificationsEnabled', updateNotificationsEnabled))
+      ..add(DiagnosticsProperty(
+          'updateNotificationsEnabled', updateNotificationsEnabled))
       ..add(DiagnosticsProperty('seerrRequestsEnabled', seerrRequestsEnabled))
       ..add(DiagnosticsProperty('includeHiddenViews', includeHiddenViews))
       ..add(DiagnosticsProperty('incognitoMode', incognitoMode))
@@ -91,7 +93,9 @@ mixin _$AccountModel implements DiagnosticableTreeMixin {
 
 /// @nodoc
 abstract mixin class $AccountModelCopyWith<$Res> {
-  factory $AccountModelCopyWith(AccountModel value, $Res Function(AccountModel) _then) = _$AccountModelCopyWithImpl;
+  factory $AccountModelCopyWith(
+          AccountModel value, $Res Function(AccountModel) _then) =
+      _$AccountModelCopyWithImpl;
   @useResult
   $Res call(
       {String name,
@@ -112,10 +116,13 @@ abstract mixin class $AccountModelCopyWith<$Res> {
       bool includeHiddenViews,
       bool? incognitoMode,
       @JsonKey(includeFromJson: false, includeToJson: false) UserPolicy? policy,
-      @JsonKey(includeFromJson: false, includeToJson: false) ServerConfiguration? serverConfiguration,
-      @JsonKey(includeFromJson: false, includeToJson: false) UserConfiguration? userConfiguration,
+      @JsonKey(includeFromJson: false, includeToJson: false)
+      ServerConfiguration? serverConfiguration,
+      @JsonKey(includeFromJson: false, includeToJson: false)
+      UserConfiguration? userConfiguration,
       @JsonKey(includeFromJson: false, includeToJson: false) bool? hasPassword,
-      @JsonKey(includeFromJson: false, includeToJson: false) bool? hasConfiguredPassword,
+      @JsonKey(includeFromJson: false, includeToJson: false)
+      bool? hasConfiguredPassword,
       UserSettings? userSettings});
 
   $CredentialsModelCopyWith<$Res> get credentials;
@@ -274,7 +281,8 @@ class _$AccountModelCopyWithImpl<$Res> implements $AccountModelCopyWith<$Res> {
       return null;
     }
 
-    return $SeerrCredentialsModelCopyWith<$Res>(_self.seerrCredentials!, (value) {
+    return $SeerrCredentialsModelCopyWith<$Res>(_self.seerrCredentials!,
+        (value) {
       return _then(_self.copyWith(seerrCredentials: value));
     });
   }
@@ -405,11 +413,16 @@ extension AccountModelPatterns on AccountModel {
             bool seerrRequestsEnabled,
             bool includeHiddenViews,
             bool? incognitoMode,
-            @JsonKey(includeFromJson: false, includeToJson: false) UserPolicy? policy,
-            @JsonKey(includeFromJson: false, includeToJson: false) ServerConfiguration? serverConfiguration,
-            @JsonKey(includeFromJson: false, includeToJson: false) UserConfiguration? userConfiguration,
-            @JsonKey(includeFromJson: false, includeToJson: false) bool? hasPassword,
-            @JsonKey(includeFromJson: false, includeToJson: false) bool? hasConfiguredPassword,
+            @JsonKey(includeFromJson: false, includeToJson: false)
+            UserPolicy? policy,
+            @JsonKey(includeFromJson: false, includeToJson: false)
+            ServerConfiguration? serverConfiguration,
+            @JsonKey(includeFromJson: false, includeToJson: false)
+            UserConfiguration? userConfiguration,
+            @JsonKey(includeFromJson: false, includeToJson: false)
+            bool? hasPassword,
+            @JsonKey(includeFromJson: false, includeToJson: false)
+            bool? hasConfiguredPassword,
             UserSettings? userSettings)?
         $default, {
     required TResult orElse(),
@@ -479,11 +492,16 @@ extension AccountModelPatterns on AccountModel {
             bool seerrRequestsEnabled,
             bool includeHiddenViews,
             bool? incognitoMode,
-            @JsonKey(includeFromJson: false, includeToJson: false) UserPolicy? policy,
-            @JsonKey(includeFromJson: false, includeToJson: false) ServerConfiguration? serverConfiguration,
-            @JsonKey(includeFromJson: false, includeToJson: false) UserConfiguration? userConfiguration,
-            @JsonKey(includeFromJson: false, includeToJson: false) bool? hasPassword,
-            @JsonKey(includeFromJson: false, includeToJson: false) bool? hasConfiguredPassword,
+            @JsonKey(includeFromJson: false, includeToJson: false)
+            UserPolicy? policy,
+            @JsonKey(includeFromJson: false, includeToJson: false)
+            ServerConfiguration? serverConfiguration,
+            @JsonKey(includeFromJson: false, includeToJson: false)
+            UserConfiguration? userConfiguration,
+            @JsonKey(includeFromJson: false, includeToJson: false)
+            bool? hasPassword,
+            @JsonKey(includeFromJson: false, includeToJson: false)
+            bool? hasConfiguredPassword,
             UserSettings? userSettings)
         $default,
   ) {
@@ -551,11 +569,16 @@ extension AccountModelPatterns on AccountModel {
             bool seerrRequestsEnabled,
             bool includeHiddenViews,
             bool? incognitoMode,
-            @JsonKey(includeFromJson: false, includeToJson: false) UserPolicy? policy,
-            @JsonKey(includeFromJson: false, includeToJson: false) ServerConfiguration? serverConfiguration,
-            @JsonKey(includeFromJson: false, includeToJson: false) UserConfiguration? userConfiguration,
-            @JsonKey(includeFromJson: false, includeToJson: false) bool? hasPassword,
-            @JsonKey(includeFromJson: false, includeToJson: false) bool? hasConfiguredPassword,
+            @JsonKey(includeFromJson: false, includeToJson: false)
+            UserPolicy? policy,
+            @JsonKey(includeFromJson: false, includeToJson: false)
+            ServerConfiguration? serverConfiguration,
+            @JsonKey(includeFromJson: false, includeToJson: false)
+            UserConfiguration? userConfiguration,
+            @JsonKey(includeFromJson: false, includeToJson: false)
+            bool? hasPassword,
+            @JsonKey(includeFromJson: false, includeToJson: false)
+            bool? hasConfiguredPassword,
             UserSettings? userSettings)?
         $default,
   ) {
@@ -614,16 +637,20 @@ class _AccountModel extends AccountModel with DiagnosticableTreeMixin {
       this.includeHiddenViews = false,
       this.incognitoMode,
       @JsonKey(includeFromJson: false, includeToJson: false) this.policy,
-      @JsonKey(includeFromJson: false, includeToJson: false) this.serverConfiguration,
-      @JsonKey(includeFromJson: false, includeToJson: false) this.userConfiguration,
+      @JsonKey(includeFromJson: false, includeToJson: false)
+      this.serverConfiguration,
+      @JsonKey(includeFromJson: false, includeToJson: false)
+      this.userConfiguration,
       @JsonKey(includeFromJson: false, includeToJson: false) this.hasPassword,
-      @JsonKey(includeFromJson: false, includeToJson: false) this.hasConfiguredPassword,
+      @JsonKey(includeFromJson: false, includeToJson: false)
+      this.hasConfiguredPassword,
       this.userSettings})
       : _latestItemsExcludes = latestItemsExcludes,
         _searchQueryHistory = searchQueryHistory,
         _libraryFilters = libraryFilters,
         super._();
-  factory _AccountModel.fromJson(Map<String, dynamic> json) => _$AccountModelFromJson(json);
+  factory _AccountModel.fromJson(Map<String, dynamic> json) =>
+      _$AccountModelFromJson(json);
 
   @override
   final String name;
@@ -651,7 +678,8 @@ class _AccountModel extends AccountModel with DiagnosticableTreeMixin {
   @override
   @JsonKey()
   List<String> get latestItemsExcludes {
-    if (_latestItemsExcludes is EqualUnmodifiableListView) return _latestItemsExcludes;
+    if (_latestItemsExcludes is EqualUnmodifiableListView)
+      return _latestItemsExcludes;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_latestItemsExcludes);
   }
@@ -660,7 +688,8 @@ class _AccountModel extends AccountModel with DiagnosticableTreeMixin {
   @override
   @JsonKey()
   List<String> get searchQueryHistory {
-    if (_searchQueryHistory is EqualUnmodifiableListView) return _searchQueryHistory;
+    if (_searchQueryHistory is EqualUnmodifiableListView)
+      return _searchQueryHistory;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_searchQueryHistory);
   }
@@ -712,7 +741,8 @@ class _AccountModel extends AccountModel with DiagnosticableTreeMixin {
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   @pragma('vm:prefer-inline')
-  _$AccountModelCopyWith<_AccountModel> get copyWith => __$AccountModelCopyWithImpl<_AccountModel>(this, _$identity);
+  _$AccountModelCopyWith<_AccountModel> get copyWith =>
+      __$AccountModelCopyWithImpl<_AccountModel>(this, _$identity);
 
   @override
   Map<String, dynamic> toJson() {
@@ -738,7 +768,8 @@ class _AccountModel extends AccountModel with DiagnosticableTreeMixin {
       ..add(DiagnosticsProperty('searchQueryHistory', searchQueryHistory))
       ..add(DiagnosticsProperty('quickConnectState', quickConnectState))
       ..add(DiagnosticsProperty('libraryFilters', libraryFilters))
-      ..add(DiagnosticsProperty('updateNotificationsEnabled', updateNotificationsEnabled))
+      ..add(DiagnosticsProperty(
+          'updateNotificationsEnabled', updateNotificationsEnabled))
       ..add(DiagnosticsProperty('seerrRequestsEnabled', seerrRequestsEnabled))
       ..add(DiagnosticsProperty('includeHiddenViews', includeHiddenViews))
       ..add(DiagnosticsProperty('incognitoMode', incognitoMode))
@@ -757,8 +788,11 @@ class _AccountModel extends AccountModel with DiagnosticableTreeMixin {
 }
 
 /// @nodoc
-abstract mixin class _$AccountModelCopyWith<$Res> implements $AccountModelCopyWith<$Res> {
-  factory _$AccountModelCopyWith(_AccountModel value, $Res Function(_AccountModel) _then) = __$AccountModelCopyWithImpl;
+abstract mixin class _$AccountModelCopyWith<$Res>
+    implements $AccountModelCopyWith<$Res> {
+  factory _$AccountModelCopyWith(
+          _AccountModel value, $Res Function(_AccountModel) _then) =
+      __$AccountModelCopyWithImpl;
   @override
   @useResult
   $Res call(
@@ -780,10 +814,13 @@ abstract mixin class _$AccountModelCopyWith<$Res> implements $AccountModelCopyWi
       bool includeHiddenViews,
       bool? incognitoMode,
       @JsonKey(includeFromJson: false, includeToJson: false) UserPolicy? policy,
-      @JsonKey(includeFromJson: false, includeToJson: false) ServerConfiguration? serverConfiguration,
-      @JsonKey(includeFromJson: false, includeToJson: false) UserConfiguration? userConfiguration,
+      @JsonKey(includeFromJson: false, includeToJson: false)
+      ServerConfiguration? serverConfiguration,
+      @JsonKey(includeFromJson: false, includeToJson: false)
+      UserConfiguration? userConfiguration,
       @JsonKey(includeFromJson: false, includeToJson: false) bool? hasPassword,
-      @JsonKey(includeFromJson: false, includeToJson: false) bool? hasConfiguredPassword,
+      @JsonKey(includeFromJson: false, includeToJson: false)
+      bool? hasConfiguredPassword,
       UserSettings? userSettings});
 
   @override
@@ -795,7 +832,8 @@ abstract mixin class _$AccountModelCopyWith<$Res> implements $AccountModelCopyWi
 }
 
 /// @nodoc
-class __$AccountModelCopyWithImpl<$Res> implements _$AccountModelCopyWith<$Res> {
+class __$AccountModelCopyWithImpl<$Res>
+    implements _$AccountModelCopyWith<$Res> {
   __$AccountModelCopyWithImpl(this._self, this._then);
 
   final _AccountModel _self;
@@ -945,7 +983,8 @@ class __$AccountModelCopyWithImpl<$Res> implements _$AccountModelCopyWith<$Res> 
       return null;
     }
 
-    return $SeerrCredentialsModelCopyWith<$Res>(_self.seerrCredentials!, (value) {
+    return $SeerrCredentialsModelCopyWith<$Res>(_self.seerrCredentials!,
+        (value) {
       return _then(_self.copyWith(seerrCredentials: value));
     });
   }
@@ -975,7 +1014,8 @@ mixin _$UserSettings implements DiagnosticableTreeMixin {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @pragma('vm:prefer-inline')
   $UserSettingsCopyWith<UserSettings> get copyWith =>
-      _$UserSettingsCopyWithImpl<UserSettings>(this as UserSettings, _$identity);
+      _$UserSettingsCopyWithImpl<UserSettings>(
+          this as UserSettings, _$identity);
 
   /// Serializes this UserSettings to a JSON map.
   Map<String, dynamic> toJson();
@@ -996,7 +1036,9 @@ mixin _$UserSettings implements DiagnosticableTreeMixin {
 
 /// @nodoc
 abstract mixin class $UserSettingsCopyWith<$Res> {
-  factory $UserSettingsCopyWith(UserSettings value, $Res Function(UserSettings) _then) = _$UserSettingsCopyWithImpl;
+  factory $UserSettingsCopyWith(
+          UserSettings value, $Res Function(UserSettings) _then) =
+      _$UserSettingsCopyWithImpl;
   @useResult
   $Res call({Duration skipForwardDuration, Duration skipBackDuration});
 }
@@ -1122,7 +1164,8 @@ extension UserSettingsPatterns on UserSettings {
 
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>(
-    TResult Function(Duration skipForwardDuration, Duration skipBackDuration)? $default, {
+    TResult Function(Duration skipForwardDuration, Duration skipBackDuration)?
+        $default, {
     required TResult orElse(),
   }) {
     final _that = this;
@@ -1149,7 +1192,8 @@ extension UserSettingsPatterns on UserSettings {
 
   @optionalTypeArgs
   TResult when<TResult extends Object?>(
-    TResult Function(Duration skipForwardDuration, Duration skipBackDuration) $default,
+    TResult Function(Duration skipForwardDuration, Duration skipBackDuration)
+        $default,
   ) {
     final _that = this;
     switch (_that) {
@@ -1174,7 +1218,8 @@ extension UserSettingsPatterns on UserSettings {
 
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>(
-    TResult? Function(Duration skipForwardDuration, Duration skipBackDuration)? $default,
+    TResult? Function(Duration skipForwardDuration, Duration skipBackDuration)?
+        $default,
   ) {
     final _that = this;
     switch (_that) {
@@ -1190,8 +1235,10 @@ extension UserSettingsPatterns on UserSettings {
 @JsonSerializable()
 class _UserSettings with DiagnosticableTreeMixin implements UserSettings {
   _UserSettings(
-      {this.skipForwardDuration = const Duration(seconds: 30), this.skipBackDuration = const Duration(seconds: 10)});
-  factory _UserSettings.fromJson(Map<String, dynamic> json) => _$UserSettingsFromJson(json);
+      {this.skipForwardDuration = const Duration(seconds: 30),
+      this.skipBackDuration = const Duration(seconds: 10)});
+  factory _UserSettings.fromJson(Map<String, dynamic> json) =>
+      _$UserSettingsFromJson(json);
 
   @override
   @JsonKey()
@@ -1205,7 +1252,8 @@ class _UserSettings with DiagnosticableTreeMixin implements UserSettings {
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   @pragma('vm:prefer-inline')
-  _$UserSettingsCopyWith<_UserSettings> get copyWith => __$UserSettingsCopyWithImpl<_UserSettings>(this, _$identity);
+  _$UserSettingsCopyWith<_UserSettings> get copyWith =>
+      __$UserSettingsCopyWithImpl<_UserSettings>(this, _$identity);
 
   @override
   Map<String, dynamic> toJson() {
@@ -1229,15 +1277,19 @@ class _UserSettings with DiagnosticableTreeMixin implements UserSettings {
 }
 
 /// @nodoc
-abstract mixin class _$UserSettingsCopyWith<$Res> implements $UserSettingsCopyWith<$Res> {
-  factory _$UserSettingsCopyWith(_UserSettings value, $Res Function(_UserSettings) _then) = __$UserSettingsCopyWithImpl;
+abstract mixin class _$UserSettingsCopyWith<$Res>
+    implements $UserSettingsCopyWith<$Res> {
+  factory _$UserSettingsCopyWith(
+          _UserSettings value, $Res Function(_UserSettings) _then) =
+      __$UserSettingsCopyWithImpl;
   @override
   @useResult
   $Res call({Duration skipForwardDuration, Duration skipBackDuration});
 }
 
 /// @nodoc
-class __$UserSettingsCopyWithImpl<$Res> implements _$UserSettingsCopyWith<$Res> {
+class __$UserSettingsCopyWithImpl<$Res>
+    implements _$UserSettingsCopyWith<$Res> {
   __$UserSettingsCopyWithImpl(this._self, this._then);
 
   final _UserSettings _self;

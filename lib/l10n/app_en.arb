@@ -2356,7 +2356,7 @@
   "@kbps": {},
   "resolutionLabel": "Resolution",
   "@resolutionLabel": {},
-  "seerr": "Seerr",
+  "seerr": "Requests",
   "@seerr": {},
   "seerrNotConfigured": "Not configured",
   "@seerrNotConfigured": {},

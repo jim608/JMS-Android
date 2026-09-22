@@ -174,7 +174,15 @@ class AuthNotifier extends StateNotifier<LoginScreenModel> {
     } catch (e) {
       // Ignore logout errors for seerr
     }
-    clearAllProviders();
+    try {
+      if (currentUser != null && ref.read(userProvider)?.sameIdentity(currentUser) == true) {
+        await ref.read(userProvider.notifier).logoutSeerr();
+      }
+    } finally {
+      if (currentUser != null && ref.read(userProvider)?.sameIdentity(currentUser) == true) {
+        clearAllProviders();
+      }
+    }
     return null;
   }
 

@@ -1527,7 +1527,7 @@
     "email": "電子郵件",
     "username": "使用者名稱",
     "ok": "確定",
-    "seerr": "Seerr",
+  "seerr": "點片",
     "seerrNotConfigured": "未設置",
     "seerrLoadingUser": "正在載入使用者",
     "seerrUnknownUser": "未知使用者",

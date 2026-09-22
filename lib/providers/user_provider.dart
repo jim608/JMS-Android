@@ -6,6 +6,7 @@ import 'package:fladder/jellyfin/enum_models.dart';
 import 'package:fladder/jellyfin/jellyfin_open_api.enums.swagger.dart' as enums;
 import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart';
 import 'package:fladder/models/account_model.dart';
+import 'package:fladder/seerr/seerr_session_store.dart';
 import 'package:fladder/models/api_result.dart';
 import 'package:fladder/models/item_base_model.dart';
 import 'package:fladder/models/items/item_shared_models.dart';
@@ -204,13 +205,18 @@ class User extends _$User {
   void setSeerrServerUrl(String? value) {
     final user = state;
     if (user == null) return;
-    final updated = (user.seerrCredentials ?? const SeerrCredentialsModel()).copyWith(
-      serverUrl: value?.trim() ?? "",
-    );
+    final previous = user.seerrCredentials ?? const SeerrCredentialsModel();
+    final nextUrl = (value?.trim() ?? '').replaceAll(RegExp(r'/+$'), '');
+    final changed = previous.serverUrl.replaceAll(RegExp(r'/+$'), '') != nextUrl;
+    final updated = previous.copyWith(serverUrl: nextUrl,
+      linkedServerId: changed ? '' : previous.linkedServerId,
+      apiKey: changed ? '' : previous.apiKey,
+      sessionCookie: changed ? '' : previous.sessionCookie,
+      customHeaders: changed ? {} : previous.customHeaders);
     userState = user.copyWith(seerrCredentials: updated);
   }
 
-  void logoutSeerr() {
+  Future<void> logoutSeerr() async {
     final user = state;
     if (user == null) return;
     final updated = (user.seerrCredentials ?? const SeerrCredentialsModel()).copyWith(
@@ -218,6 +224,7 @@ class User extends _$User {
       sessionCookie: "",
     );
     userState = user.copyWith(seerrCredentials: updated);
+    await ref.read(seerrSessionStoreProvider).write(user, null);
   }
 
   void setSeerrApiKey(String? value) {
@@ -229,13 +236,25 @@ class User extends _$User {
     userState = user.copyWith(seerrCredentials: updated);
   }
 
-  void setSeerrSessionCookie(String? value) {
+  Future<void> setSeerrSessionCookie(String? value) async {
     final user = state;
     if (user == null) return;
-    final updated = (user.seerrCredentials ?? const SeerrCredentialsModel()).copyWith(
+    await ref.read(seerrSessionStoreProvider).write(user, value);
+    final current = state;
+    if (current == null || !current.sameIdentity(user) || current.seerrCredentials?.serverUrl != user.seerrCredentials?.serverUrl) return;
+    final updated = (current.seerrCredentials ?? const SeerrCredentialsModel()).copyWith(
       sessionCookie: value?.trim() ?? "",
     );
-    userState = user.copyWith(seerrCredentials: updated);
+    userState = current.copyWith(seerrCredentials: updated);
+  }
+
+  void bindSeerrAccount(String source) {
+    final user = state;
+    if (user == null || user.credentials.serverId.isEmpty) return;
+    final previous = user.seerrCredentials;
+    userState = user.copyWith(seerrCredentials: SeerrCredentialsModel(serverUrl: source,
+      sessionCookie: previous?.serverUrl == source && previous?.apiKey.isEmpty == true ? previous!.sessionCookie : '',
+      linkedServerId: user.credentials.serverId), seerrRequestsEnabled: true);
   }
 
   void setSeerrCustomHeaders(Map<String, String> headers) {
