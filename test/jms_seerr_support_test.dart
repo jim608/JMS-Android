@@ -411,7 +411,8 @@ void main() {
             'mediaServerType': 2,
             'mediaServerLogin': true
           });
-    expect((await service.linkCapabilities())['quickConnect'], isTrue);
+    expect((await service.linkCapabilities()).containsKey('quickConnect'),
+        isFalse);
     extra = (request) async => json(
         {'initialized': true, 'mediaServerType': 1, 'mediaServerLogin': true});
     await expectLater(service.linkCapabilities(), throwsA(isA<SeerrFailure>()));
@@ -428,7 +429,8 @@ void main() {
             'mediaServerType': 2,
             'mediaServerLogin': true
           });
-    expect((await service.linkCapabilities())['quickConnect'], isFalse);
+    expect((await service.linkCapabilities()).containsKey('quickConnect'),
+        isFalse);
   });
 
   test(

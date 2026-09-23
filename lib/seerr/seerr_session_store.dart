@@ -11,6 +11,7 @@ final seerrSessionStoreProvider = Provider((ref) => SeerrSessionStore());
 
 class SeerrSessionStore {
   static const channel = MethodChannel('com.jim608.jms/seerr-session');
+  final Map<String, SeerrCookieJar> _staged = {};
 
   static String key(AccountModel account, {Uri? origin}) => sha256
       .convert(utf8.encode(jsonEncode([
@@ -54,7 +55,54 @@ class SeerrSessionStore {
 
   Future<String?> readForRequest(AccountModel account, Uri requestUri) async {
     if (!_supported || !_matchesAccount(account, requestUri)) return null;
+    final scope = key(account, origin: requestUri);
+    final staged = _staged[scope];
+    if (staged != null) {
+      return _isIdentityCheck(requestUri) ? staged.headerFor(requestUri) : null;
+    }
     return (await _readJar(account, requestUri))?.headerFor(requestUri);
+  }
+
+  String? readStagedForRequest(AccountModel account, Uri requestUri) {
+    if (!_supported || !_matchesAccount(account, requestUri)) return null;
+    return _isIdentityCheck(requestUri)
+        ? _staged[key(account, origin: requestUri)]?.headerFor(requestUri)
+        : null;
+  }
+
+  bool _isIdentityCheck(Uri uri) => uri.path.endsWith('/api/v1/auth/me');
+
+  Future<bool> stageFromResponse(
+      AccountModel account, Uri responseUri, List<String> setCookieHeaders,
+      {bool replaceExisting = false}) async {
+    if (!_supported ||
+        !_matchesAccount(account, responseUri) ||
+        setCookieHeaders.isEmpty) {
+      return false;
+    }
+    final scope = key(account, origin: responseUri);
+    final jar = replaceExisting
+        ? SeerrCookieJar(responseUri)
+        : _staged[scope] ??
+            await _readJar(account, responseUri) ??
+            SeerrCookieJar(responseUri);
+    final received = jar.ingest(responseUri, setCookieHeaders);
+    _staged[scope] = jar;
+    return received;
+  }
+
+  Future<bool> commitStaged(AccountModel account, Uri uri) async {
+    if (!_supported || !_matchesAccount(account, uri)) return false;
+    final scope = key(account, origin: uri);
+    final jar = _staged[scope];
+    if (jar == null) return false;
+    await _writeRecord(scope, jar.isEmpty ? null : jsonEncode(jar.toJson()));
+    _staged.remove(scope);
+    return !jar.isEmpty;
+  }
+
+  void discardStaged(AccountModel account, Uri uri) {
+    _staged.remove(key(account, origin: uri));
   }
 
   Future<bool> writeFromResponse(AccountModel account, Uri responseUri,
@@ -74,6 +122,7 @@ class SeerrSessionStore {
 
   Future<void> write(AccountModel account, String? cookie) async {
     if (!_supported) return;
+    _staged.remove(key(account));
     if (cookie == null || cookie.isEmpty) {
       await _writeRecord(key(account), null);
       final oldKey = _legacyKey(account);

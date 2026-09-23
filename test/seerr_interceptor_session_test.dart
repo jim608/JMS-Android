@@ -61,12 +61,19 @@ void main() {
     final service = SeerrChopperService.create(client);
     await service.authenticateJellyfin(SeerrAuthJellyfinBody(
         username: 'test-user', password: 'PRIVATE_PASSWORD'));
+    expect(store.values, isEmpty);
+    expect(
+        store.readStagedForRequest(
+            account, Uri.parse('https://seerr.example.invalid/api/v1/auth/me')),
+        'csrf=one; jms_session=first');
     await service.getMe();
 
     expect(calls, hasLength(2));
     expect(diagnostics.first.sessionCookieReceived, isTrue);
-    expect(diagnostics.first.sessionCookieStored, isTrue);
+    expect(diagnostics.first.sessionCookieAccepted, isTrue);
+    expect(diagnostics.first.sessionCookieStored, isFalse);
     expect(diagnostics.last.sessionCookieAttached, isTrue);
+    expect(diagnostics.last.sessionCookieStored, isTrue);
     expect(diagnostics.last.identityCheckHttp, 200);
     expect(diagnostics.last.identityMatched, isTrue);
     expect(
@@ -79,6 +86,158 @@ void main() {
         isNot(contains('jms_session')));
     expect(diagnostics.map((diagnostic) => diagnostic.report).join(),
         isNot(contains('renewed')));
+  });
+
+  test('403 challenge cookie and anonymous status cookie are never sessions',
+      () async {
+    final account = seerrFixtureAccount();
+    final store = SeerrFixtureStore();
+    final diagnostics = <SeerrDiagnostic>[];
+    final client = ChopperClient(
+      client: MockClient((request) async {
+        if (request.url.path == '/api/v1/status') {
+          return http.Response(jsonEncode({'version': '3.4.1'}), 200, headers: {
+            'content-type': 'application/json',
+            'set-cookie': 'anonymous=VALUE; Path=/; Secure'
+          });
+        }
+        return http.Response(jsonEncode({'status': 403}), 403, headers: {
+          'content-type': 'application/json',
+          'set-cookie': 'challenge=VALUE; Path=/; Secure'
+        });
+      }),
+      converter: const SeerrJsonConverter(),
+      interceptors: [
+        SeerrRequest('https://seerr.example.invalid', {}, {}, () => true,
+            account: account,
+            sessionStore: store,
+            expectedJellyfinUserId: account.id,
+            onDiagnostic: diagnostics.add),
+      ],
+    );
+    addTearDown(client.dispose);
+    final service = SeerrChopperService.create(client);
+    await service.getStatus();
+    await expectLater(service.initiateLink(), throwsA(isA<SeerrFailure>()));
+    expect(store.values, isEmpty);
+    expect(
+        await store.readForRequest(
+            account, Uri.parse('https://seerr.example.invalid/api/v1/auth/me')),
+        isNull);
+    expect(diagnostics.last.sessionCookieReceived, isTrue);
+    expect(diagnostics.last.sessionCookieAccepted, isFalse);
+    expect(diagnostics.last.sessionCookieStored, isFalse);
+  });
+
+  test('401 identity check discards the unverified login cookie', () async {
+    final account = seerrFixtureAccount();
+    final store = SeerrFixtureStore();
+    final client = ChopperClient(
+      client: MockClient((request) async => http.Response(
+              jsonEncode({
+                'status': request.url.path == '/api/v1/auth/me' ? 401 : 200
+              }),
+              request.url.path == '/api/v1/auth/me' ? 401 : 200,
+              headers: {
+                'content-type': 'application/json',
+                if (request.url.path == '/api/v1/auth/jellyfin')
+                  'set-cookie': 'jms_session=UNVERIFIED; Path=/; Secure'
+              })),
+      converter: const SeerrJsonConverter(),
+      interceptors: [
+        SeerrRequest('https://seerr.example.invalid', {}, {}, () => true,
+            account: account,
+            sessionStore: store,
+            expectedJellyfinUserId: account.id),
+      ],
+    );
+    addTearDown(client.dispose);
+    final service = SeerrChopperService.create(client);
+    await service.authenticateJellyfin(SeerrAuthJellyfinBody(
+        username: 'test-user', password: 'PRIVATE_PASSWORD'));
+    final meUri = Uri.parse('https://seerr.example.invalid/api/v1/auth/me');
+    expect(
+        store.readStagedForRequest(account, meUri), 'jms_session=UNVERIFIED');
+    await expectLater(service.getMe(), throwsA(isA<SeerrFailure>()));
+    expect(store.readStagedForRequest(account, meUri), isNull);
+    expect(await store.readForRequest(account, meUri), isNull);
+    expect(store.values, isEmpty);
+  });
+
+  test('unverified login cookie is not sent to ordinary API requests',
+      () async {
+    final account = seerrFixtureAccount();
+    final store = SeerrFixtureStore();
+    final client = ChopperClient(
+      client: MockClient((request) async {
+        if (request.url.path == '/api/v1/auth/jellyfin') {
+          return http.Response(jsonEncode({'id': 1}), 200, headers: {
+            'content-type': 'application/json',
+            'set-cookie': 'jms_session=UNVERIFIED; Path=/; Secure'
+          });
+        }
+        expect(request.url.path, '/api/v1/issue');
+        expect(request.headers.containsKey('Cookie'), isFalse);
+        return http.Response(jsonEncode({'status': 403}), 403,
+            headers: {'content-type': 'application/json'});
+      }),
+      converter: const SeerrJsonConverter(),
+      interceptors: [
+        SeerrRequest('https://seerr.example.invalid', {}, {}, () => true,
+            account: account,
+            sessionStore: store,
+            expectedJellyfinUserId: account.id),
+      ],
+    );
+    addTearDown(client.dispose);
+    final service = SeerrChopperService.create(client);
+    await service.authenticateJellyfin(SeerrAuthJellyfinBody(
+        username: 'test-user', password: 'PRIVATE_PASSWORD'));
+    await expectLater(service.getIssues(), throwsA(isA<SeerrFailure>()));
+    expect(store.values, isEmpty);
+  });
+
+  test('auth/me deleting the staged session fails closed despite HTTP 200',
+      () async {
+    final account = seerrFixtureAccount();
+    final store = SeerrFixtureStore();
+    final client = ChopperClient(
+      client: MockClient((request) async {
+        if (request.url.path == '/api/v1/auth/jellyfin') {
+          return http.Response(jsonEncode({'id': 1}), 200, headers: {
+            'content-type': 'application/json',
+            'set-cookie': 'jms_session=UNVERIFIED; Path=/; Secure'
+          });
+        }
+        expect(request.url.path, '/api/v1/auth/me');
+        expect(request.headers['Cookie'], 'jms_session=UNVERIFIED');
+        return http.Response(
+            jsonEncode({'id': 1, 'jellyfinUserId': account.id}), 200,
+            headers: {
+              'content-type': 'application/json',
+              'set-cookie': 'jms_session=; Max-Age=0; Path=/; Secure'
+            });
+      }),
+      converter: const SeerrJsonConverter(),
+      interceptors: [
+        SeerrRequest('https://seerr.example.invalid', {}, {}, () => true,
+            account: account,
+            sessionStore: store,
+            expectedJellyfinUserId: account.id),
+      ],
+    );
+    addTearDown(client.dispose);
+    final service = SeerrChopperService.create(client);
+    await service.authenticateJellyfin(SeerrAuthJellyfinBody(
+        username: 'test-user', password: 'PRIVATE_PASSWORD'));
+    await expectLater(
+        service.getMe(),
+        throwsA(predicate((error) =>
+            error is SeerrFailure && error.code == 'session_expired')));
+    final meUri = Uri.parse('https://seerr.example.invalid/api/v1/auth/me');
+    expect(store.readStagedForRequest(account, meUri), isNull);
+    expect(await store.readForRequest(account, meUri), isNull);
+    expect(store.values, isEmpty);
   });
 
   test('verified identity classifies later 403 and resets on 401', () async {

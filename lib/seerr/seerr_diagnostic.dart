@@ -17,7 +17,13 @@ class SeerrDiagnostic {
     this.jellyfinAuthSuccess,
     this.seerrAuthAttempted,
     this.seerrAuthHttp,
+    this.quickConnectAttempted,
+    this.quickConnectHttp,
+    this.passwordFallbackAttempted,
+    this.jellyfinAuthHttp,
+    this.loginResponseJson,
     this.sessionCookieReceived,
+    this.sessionCookieAccepted,
     this.sessionCookieStored,
     this.sessionCookieRestored,
     this.sessionCookieAttached,
@@ -40,7 +46,13 @@ class SeerrDiagnostic {
   final bool? jellyfinAuthSuccess;
   final bool? seerrAuthAttempted;
   final int? seerrAuthHttp;
+  final bool? quickConnectAttempted;
+  final int? quickConnectHttp;
+  final bool? passwordFallbackAttempted;
+  final int? jellyfinAuthHttp;
+  final bool? loginResponseJson;
   final bool? sessionCookieReceived;
+  final bool? sessionCookieAccepted;
   final bool? sessionCookieStored;
   final bool? sessionCookieRestored;
   final bool? sessionCookieAttached;
@@ -63,7 +75,13 @@ class SeerrDiagnostic {
     bool? jellyfinAuthSuccess,
     bool? seerrAuthAttempted,
     int? seerrAuthHttp,
+    bool? quickConnectAttempted,
+    int? quickConnectHttp,
+    bool? passwordFallbackAttempted,
+    int? jellyfinAuthHttp,
+    bool? loginResponseJson,
     bool? sessionCookieReceived,
+    bool? sessionCookieAccepted,
     bool? sessionCookieStored,
     bool? sessionCookieRestored,
     bool? sessionCookieAttached,
@@ -84,8 +102,17 @@ class SeerrDiagnostic {
         jellyfinAuthSuccess: jellyfinAuthSuccess ?? this.jellyfinAuthSuccess,
         seerrAuthAttempted: seerrAuthAttempted ?? this.seerrAuthAttempted,
         seerrAuthHttp: seerrAuthHttp ?? this.seerrAuthHttp,
+        quickConnectAttempted:
+            quickConnectAttempted ?? this.quickConnectAttempted,
+        quickConnectHttp: quickConnectHttp ?? this.quickConnectHttp,
+        passwordFallbackAttempted:
+            passwordFallbackAttempted ?? this.passwordFallbackAttempted,
+        jellyfinAuthHttp: jellyfinAuthHttp ?? this.jellyfinAuthHttp,
+        loginResponseJson: loginResponseJson ?? this.loginResponseJson,
         sessionCookieReceived:
             sessionCookieReceived ?? this.sessionCookieReceived,
+        sessionCookieAccepted:
+            sessionCookieAccepted ?? this.sessionCookieAccepted,
         sessionCookieStored: sessionCookieStored ?? this.sessionCookieStored,
         sessionCookieRestored:
             sessionCookieRestored ?? this.sessionCookieRestored,
@@ -109,7 +136,13 @@ class SeerrDiagnostic {
         'Jellyfin auth success: ${jellyfinAuthSuccess ?? 'unknown'}',
         'Seerr auth attempted: ${seerrAuthAttempted ?? 'unknown'}',
         'Seerr auth HTTP: ${seerrAuthHttp ?? 'unavailable'}',
+        'Quick Connect attempted: ${quickConnectAttempted ?? 'unknown'}',
+        'Quick Connect HTTP: ${quickConnectHttp ?? 'unavailable'}',
+        'Password fallback attempted: ${passwordFallbackAttempted ?? 'unknown'}',
+        'Jellyfin auth HTTP: ${jellyfinAuthHttp ?? 'unavailable'}',
+        'Login response JSON: ${loginResponseJson ?? 'unknown'}',
         'Session cookie received: ${sessionCookieReceived ?? 'unknown'}',
+        'Session cookie accepted: ${sessionCookieAccepted ?? 'unknown'}',
         'Session cookie stored: ${sessionCookieStored ?? 'unknown'}',
         'Session cookie restored: ${sessionCookieRestored ?? 'unknown'}',
         'Session cookie attached: ${sessionCookieAttached ?? hasCookie}',
@@ -183,6 +216,10 @@ String seerrStage(String path) {
     return 'status_probe';
   }
   if (path == '/api/v1/auth/me') return 'identity_check';
+  if (path.startsWith('/api/v1/auth/jellyfin/quickconnect/')) {
+    return 'quickconnect';
+  }
+  if (path == '/api/v1/auth/jellyfin') return 'jellyfin_login';
   if (path.startsWith('/api/v1/auth/')) return 'login';
   if (path.startsWith('/api/v1/request') ||
       path.startsWith('/api/v1/issue') ||
@@ -255,20 +292,26 @@ SeerrAssessment seerrAssessResponse({
     failureCode = 'edge_rejected_unknown';
   } else if (challenged) {
     failureCode = 'proxy_challenge';
+  } else if (contentType == 'text/html') {
+    failureCode = 'unexpected_html';
   } else if (response.statusCode == 400 && path == '/api/v1/auth/jellyfin') {
     failureCode = 'authentication_failed';
   } else if (response.statusCode == 401) {
-    failureCode = path == '/api/v1/auth/jellyfin'
-        ? 'authentication_failed'
-        : hasCookie
-            ? 'session_expired'
-            : 'session_missing';
+    failureCode = path.startsWith('/api/v1/auth/jellyfin/quickconnect/')
+        ? 'quickconnect_unavailable'
+        : path == '/api/v1/auth/jellyfin'
+            ? 'authentication_failed'
+            : hasCookie
+                ? 'session_expired'
+                : 'session_missing';
   } else if (response.statusCode >= 500) {
     failureCode = 'service_unavailable';
   } else if (!jsonResponse && response.statusCode != 204) {
     failureCode = isJsonType ? 'invalid_response' : 'unexpected_html';
   } else if (response.statusCode == 403) {
-    if (path == '/api/v1/auth/me') {
+    if (path.startsWith('/api/v1/auth/jellyfin/quickconnect/')) {
+      failureCode = 'quickconnect_unavailable';
+    } else if (path == '/api/v1/auth/me') {
       failureCode = hasCookie ? 'session_expired' : 'session_missing';
     } else if (path == '/api/v1/auth/jellyfin') {
       failureCode = 'authentication_failed';
@@ -278,7 +321,10 @@ SeerrAssessment seerrAssessResponse({
       failureCode = 'unknown';
     }
   } else if (response.statusCode >= 400) {
-    failureCode = 'unknown';
+    failureCode = {404, 405}.contains(response.statusCode) &&
+            path.startsWith('/api/v1/auth/jellyfin/quickconnect/')
+        ? 'quickconnect_unavailable'
+        : 'unknown';
   } else if (response.statusCode >= 200 &&
       response.statusCode < 300 &&
       path == '/api/v1/status' &&
@@ -302,6 +348,17 @@ SeerrAssessment seerrAssessResponse({
           seerrAuthAttempted: path == '/api/v1/auth/jellyfin',
           seerrAuthHttp:
               path == '/api/v1/auth/jellyfin' ? response.statusCode : null,
+          quickConnectAttempted:
+              path.startsWith('/api/v1/auth/jellyfin/quickconnect/'),
+          quickConnectHttp:
+              path.startsWith('/api/v1/auth/jellyfin/quickconnect/')
+                  ? response.statusCode
+                  : null,
+          passwordFallbackAttempted: false,
+          jellyfinAuthHttp:
+              path == '/api/v1/auth/jellyfin' ? response.statusCode : null,
+          loginResponseJson:
+              path == '/api/v1/auth/jellyfin' ? jsonResponse : null,
           sessionCookieAttached: hasCookie,
           identityCheckHttp:
               path == '/api/v1/auth/me' ? response.statusCode : null,

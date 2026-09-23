@@ -55,6 +55,73 @@ void main() {
     expect(stored, isEmpty);
   });
 
+  test('login cookie stays in memory until verified session is committed',
+      () async {
+    final login =
+        Uri.parse('https://seerr.example.invalid/api/v1/auth/jellyfin');
+    final me = Uri.parse('https://seerr.example.invalid/api/v1/auth/me');
+    expect(
+        await store.stageFromResponse(
+            account, login, ['jms_session=FIRST; Path=/; Secure; HttpOnly'],
+            replaceExisting: true),
+        isTrue);
+    expect(store.readStagedForRequest(account, me), 'jms_session=FIRST');
+    expect(await store.readForRequest(account, me), 'jms_session=FIRST');
+    expect(
+        await store.readForRequest(
+            account, Uri.parse('https://seerr.example.invalid/api/v1/request')),
+        isNull);
+    expect(stored, isEmpty);
+    expect(await SeerrSessionStore().readForRequest(account, me), isNull);
+
+    expect(await store.commitStaged(account, me), isTrue);
+    expect(await SeerrSessionStore().readForRequest(account, me),
+        'jms_session=FIRST');
+  });
+
+  test('discarded login cookie never survives restart or crosses accounts',
+      () async {
+    final login =
+        Uri.parse('https://seerr.example.invalid/api/v1/auth/jellyfin');
+    final me = Uri.parse('https://seerr.example.invalid/api/v1/auth/me');
+    await store.stageFromResponse(
+        account, login, ['jms_session=UNVERIFIED; Path=/; Secure'],
+        replaceExisting: true);
+    expect(
+        store.readStagedForRequest(account.copyWith(id: 'other'), me), isNull);
+    expect(
+        store.readStagedForRequest(
+            account.copyWith(
+                seerrCredentials: account.seerrCredentials!
+                    .copyWith(serverUrl: 'https://another.invalid')),
+            me),
+        isNull);
+    store.discardStaged(account, me);
+    expect(await store.readForRequest(account, me), isNull);
+    expect(await SeerrSessionStore().readForRequest(account, me), isNull);
+    expect(stored, isEmpty);
+  });
+
+  test('expired staged cookie cannot expose a previously stored session',
+      () async {
+    final login =
+        Uri.parse('https://seerr.example.invalid/api/v1/auth/jellyfin');
+    final me = Uri.parse('https://seerr.example.invalid/api/v1/auth/me');
+    await store.write(account, 'jms_session=PREVIOUS');
+    await store.stageFromResponse(
+        account, login, ['jms_session=NEW; Path=/; Secure'],
+        replaceExisting: true);
+    await store.stageFromResponse(
+        account, me, ['jms_session=; Max-Age=0; Path=/; Secure']);
+    expect(await store.readForRequest(account, me), isNull);
+    expect(
+        await store.readForRequest(
+            account, Uri.parse('https://seerr.example.invalid/api/v1/request')),
+        isNull);
+    expect(await store.commitStaged(account, me), isFalse);
+    expect(await SeerrSessionStore().readForRequest(account, me), isNull);
+  });
+
   test('expired secure record is removed before use', () async {
     stored[SeerrSessionStore.key(account)] =
         jsonEncode({'expires': 0, 'cookie': 'connect.sid=EXPIRED'});

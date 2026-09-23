@@ -40,6 +40,7 @@ class SeerrFixtureUser extends User {
 class SeerrFixtureStore extends SeerrSessionStore {
   final values = <String, String>{};
   final jars = <String, SeerrCookieJar>{};
+  final staged = <String, SeerrCookieJar>{};
   @override
   Future<String?> read(AccountModel account) async =>
       values[SeerrSessionStore.key(account)];
@@ -51,6 +52,8 @@ class SeerrFixtureStore extends SeerrSessionStore {
       return null;
     }
     final scope = SeerrSessionStore.key(account, origin: requestUri);
+    final pending = staged[scope];
+    if (pending != null) return pending.headerFor(requestUri);
     final jar = jars[scope];
     if (jar != null) return jar.headerFor(requestUri);
     final cookie = values[scope];
@@ -61,6 +64,54 @@ class SeerrFixtureStore extends SeerrSessionStore {
     ]);
     jars[scope] = restored;
     return restored.headerFor(requestUri);
+  }
+
+  @override
+  String? readStagedForRequest(AccountModel account, Uri requestUri) {
+    final source = Uri.tryParse(account.seerrCredentials?.serverUrl ?? '');
+    if (source?.hasAuthority != true || source!.origin != requestUri.origin) {
+      return null;
+    }
+    return staged[SeerrSessionStore.key(account, origin: requestUri)]
+        ?.headerFor(requestUri);
+  }
+
+  @override
+  Future<bool> stageFromResponse(
+      AccountModel account, Uri responseUri, List<String> setCookieHeaders,
+      {bool replaceExisting = false}) async {
+    final source = Uri.tryParse(account.seerrCredentials?.serverUrl ?? '');
+    if (source?.hasAuthority != true || source!.origin != responseUri.origin) {
+      return false;
+    }
+    final scope = SeerrSessionStore.key(account, origin: responseUri);
+    final jar = replaceExisting
+        ? SeerrCookieJar(responseUri)
+        : staged[scope] ?? jars[scope] ?? SeerrCookieJar(responseUri);
+    final received = jar.ingest(responseUri, setCookieHeaders);
+    if (jar.isEmpty) {
+      staged.remove(scope);
+    } else {
+      staged[scope] = jar;
+    }
+    return received;
+  }
+
+  @override
+  Future<bool> commitStaged(AccountModel account, Uri uri) async {
+    final scope = SeerrSessionStore.key(account, origin: uri);
+    final jar = staged.remove(scope);
+    if (jar == null) return false;
+    final cookie = jar.headerFor(uri.replace(path: '/api/v1/auth/me'));
+    if (cookie == null) return false;
+    jars[scope] = jar;
+    values[scope] = cookie;
+    return true;
+  }
+
+  @override
+  void discardStaged(AccountModel account, Uri uri) {
+    staged.remove(SeerrSessionStore.key(account, origin: uri));
   }
 
   @override
@@ -85,6 +136,7 @@ class SeerrFixtureStore extends SeerrSessionStore {
   @override
   Future<void> write(AccountModel account, String? cookie) async {
     jars.remove(SeerrSessionStore.key(account));
+    staged.remove(SeerrSessionStore.key(account));
     if (cookie?.isNotEmpty == true) {
       values[SeerrSessionStore.key(account)] = cookie!;
     } else {
@@ -101,11 +153,15 @@ class SeerrFixture {
   String version = '2.7.3';
   int authStatus = 200;
   int? nextMeStatus;
+  String? meSetCookie;
   bool authSendsCookie = true;
   int statusStatus = 200;
   int issueStatus = 200;
+  int quickConnectInitiateStatus = 200;
+  bool quickConnectSendsCookieOnError = false;
   String advertisedJellyfin = '';
   Future<void> Function()? beforeLogin;
+  Future<void> Function()? beforeQuickConnectInitiate;
   bool requested = false;
   bool reported = false;
   int issueType = 3;
@@ -144,11 +200,13 @@ class SeerrFixture {
         ]
       };
 
-  http.Response json(Object data, {int status = 200, bool cookie = false}) =>
+  http.Response json(Object data,
+          {int status = 200, bool cookie = false, String? setCookie}) =>
       http.Response(jsonEncode(data), status, headers: {
         'content-type': 'application/json',
         if (cookie)
-          'set-cookie': 'connect.sid=TEST_ONLY; Path=/; HttpOnly; Secure'
+          'set-cookie': 'connect.sid=TEST_ONLY; Path=/; HttpOnly; Secure',
+        if (setCookie != null) 'set-cookie': setCookie
       });
 
   Future<http.Response> handle(http.Request call) async {
@@ -164,7 +222,8 @@ class SeerrFixture {
                   'error': 'You do not have permission to access this endpoint'
                 }
               : user,
-          status: status);
+          status: status,
+          setCookie: meSetCookie);
     }
     if (path == '/api/v1/status') {
       return json({'version': version}, status: statusStatus);
@@ -187,7 +246,11 @@ class SeerrFixture {
           cookie: authStatus == 200 && authSendsCookie);
     }
     if (path.endsWith('/quickconnect/initiate')) {
-      return json({'code': '123456', 'secret': 'aabbccddeeff00112233'});
+      await beforeQuickConnectInitiate?.call();
+      return json({'code': '123456', 'secret': 'aabbccddeeff00112233'},
+          status: quickConnectInitiateStatus,
+          cookie: quickConnectSendsCookieOnError &&
+              quickConnectInitiateStatus >= 400);
     }
     if (path.endsWith('/quickconnect/check')) {
       return json({'authenticated': true});

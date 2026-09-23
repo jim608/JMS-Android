@@ -60,6 +60,14 @@ String seerrError(BuildContext context, Object error) {
       'Confirm the service binding first.',
       '請先確認此 Jellyfin 與點片服務的來源綁定。'
     ),
+    'quickconnect_unavailable': (
+      'Quick Connect is unavailable. Verify your Jellyfin account once.',
+      '快速連線不可用，請以 Jellyfin 帳號驗證一次。'
+    ),
+    'quickconnect_fallback': (
+      'Quick Connect is unavailable; switching to Jellyfin account verification.',
+      '快速連線不可用，正在改用 Jellyfin 帳號驗證。'
+    ),
     'needs_auth': (
       'One-time verification needed; library login is preserved.',
       '需要一次重新驗證；媒體庫登入仍保留。'

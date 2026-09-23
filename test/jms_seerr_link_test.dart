@@ -88,6 +88,8 @@ void main() {
     expect(diagnostic.jellyfinAuthSuccess, isTrue);
     expect(diagnostic.seerrAuthAttempted, isTrue);
     expect(diagnostic.seerrAuthHttp, 200);
+    expect(diagnostic.quickConnectAttempted, isFalse);
+    expect(diagnostic.passwordFallbackAttempted, isFalse);
     expect(diagnostic.sessionCookieReceived, isTrue);
     expect(diagnostic.sessionCookieStored, isTrue);
     expect(diagnostic.sessionCookieAttached, isTrue);
@@ -159,6 +161,22 @@ void main() {
         container.read(seerrDiagnosticProvider)?.sessionCookieStored, isFalse);
   });
 
+  test('auth/me clearing the login Cookie never marks the owner connected',
+      () async {
+    fixture.meSetCookie = 'connect.sid=; Max-Age=0; Path=/; Secure';
+    await container
+        .read(seerrLinkProvider.notifier)
+        .ensure(username: 'fixture', password: 'TEST_ONLY');
+    expect(container.read(seerrLinkProvider), 'session_expired');
+    final account = container.read(userProvider)!;
+    expect(fixture.store.values[SeerrSessionStore.key(account)], isNull);
+    expect(account.seerrCredentials?.sessionCookie, isEmpty);
+    final diagnostic = container.read(seerrDiagnosticProvider)!;
+    expect(diagnostic.identityCheckHttp, 200);
+    expect(diagnostic.sessionCookieAccepted, isFalse);
+    expect(diagnostic.sessionCookieStored, isFalse);
+  });
+
   test(
       'successful manual verification clears the previous authentication error',
       () async {
@@ -192,6 +210,42 @@ void main() {
     expect(container.read(seerrLinkProvider), 'connected');
     expect(fixture.calls.map((call) => call.url.path), ['/api/v1/auth/me']);
     expect(fixture.calls.where((call) => call.method == 'POST'), isEmpty);
+  });
+
+  test('password login skips Quick Connect even when the server advertises it',
+      () async {
+    fixture.version = '3.4.1';
+    await container
+        .read(seerrLinkProvider.notifier)
+        .ensure(username: 'fixture', password: 'TEST_ONLY');
+    expect(container.read(seerrLinkProvider), 'connected');
+    expect(
+        fixture.calls.where(
+            (request) => request.url.path.endsWith('/quickconnect/initiate')),
+        isEmpty);
+    expect(
+        fixture.calls
+            .where((request) => request.url.path == '/api/v1/auth/jellyfin')
+            .length,
+        1);
+  });
+
+  test('failed Jellyfin password auth never checks identity', () async {
+    fixture.authStatus = 401;
+    await container
+        .read(seerrLinkProvider.notifier)
+        .ensure(username: 'fixture', password: 'TEST_ONLY');
+    expect(container.read(seerrLinkProvider), 'authentication_failed');
+    expect(
+        fixture.calls.where((request) => request.url.path == '/api/v1/auth/me'),
+        isEmpty);
+    expect(fixture.store.values, isEmpty);
+    expect(fixture.store.staged, isEmpty);
+    final diagnostic = container.read(seerrDiagnosticProvider)!;
+    expect(diagnostic.stage, 'jellyfin_login');
+    expect(diagnostic.jellyfinAuthHttp, 401);
+    expect(diagnostic.loginResponseJson, isTrue);
+    expect(diagnostic.identityCheckHttp, isNull);
   });
 
   test(
@@ -333,6 +387,18 @@ void main() {
         {'X-Maintenance': 'TEST_ONLY'});
   });
 
+  test('Seerr version alone never enables Quick Connect', () async {
+    fixture.version = '3.4.1';
+    await container.read(seerrLinkProvider.notifier).ensure();
+    expect(container.read(seerrLinkProvider), 'needs_auth');
+    expect(
+        fixture.calls.where(
+            (request) => request.url.path.endsWith('/quickconnect/initiate')),
+        isEmpty);
+    expect(container.read(seerrDiagnosticProvider)?.quickConnectAttempted,
+        isFalse);
+  });
+
   test('Quick Connect code stays inside this flow and token stays at Jellyfin',
       () async {
     fixture.version = '3.4.1';
@@ -340,6 +406,7 @@ void main() {
     final jellyfinCalls = <http.Request>[];
     container = ProviderContainer(overrides: [
       ...fixture.overrides(),
+      seerrQuickConnectCapabilityProvider.overrideWithValue(true),
       seerrJellyfinLinkFactoryProvider.overrideWithValue(
           (account, {anonymous = false}) => JellyfinOpenApi.create(
               baseUrl: Uri.parse('https://example.invalid'),
@@ -370,6 +437,158 @@ void main() {
         fixture.calls.every((call) => !call.headers.keys
             .any((key) => key.toLowerCase() == 'authorization')),
         isTrue);
+  });
+
+  test('Quick Connect 403 with no password requests native verification',
+      () async {
+    fixture.version = '3.4.1';
+    fixture.quickConnectInitiateStatus = 403;
+    fixture.quickConnectSendsCookieOnError = true;
+    container.dispose();
+    container = ProviderContainer(overrides: [
+      ...fixture.overrides(),
+      seerrQuickConnectCapabilityProvider.overrideWithValue(true),
+      seerrJellyfinLinkFactoryProvider.overrideWithValue(
+          (account, {anonymous = false}) => JellyfinOpenApi.create(
+              baseUrl: Uri.parse('https://example.invalid'),
+              httpClient: MockClient((request) async => fixture.json(
+                  request.url.path == '/System/Info/Public'
+                      ? {'Id': 'fixture-server'}
+                      : true))))
+    ]);
+
+    await container.read(seerrLinkProvider.notifier).ensure();
+    expect(container.read(seerrLinkProvider), 'needs_auth');
+    expect(
+        fixture.calls
+            .where((request) =>
+                request.url.path.endsWith('/quickconnect/initiate'))
+            .length,
+        1);
+    expect(
+        fixture.calls
+            .where((request) => request.url.path == '/api/v1/auth/jellyfin')
+            .length,
+        0);
+    expect(fixture.store.values, isEmpty);
+    expect(fixture.store.staged, isEmpty);
+    final diagnostic = container.read(seerrDiagnosticProvider)!;
+    expect(diagnostic.quickConnectAttempted, isTrue);
+    expect(diagnostic.quickConnectHttp, 403);
+    expect(diagnostic.passwordFallbackAttempted, isFalse);
+    expect(diagnostic.sessionCookieReceived, isTrue);
+    expect(diagnostic.sessionCookieAccepted, isFalse);
+    expect(diagnostic.sessionCookieStored, isFalse);
+    expect(diagnostic.reason, 'session_missing');
+
+    await container.read(seerrLinkProvider.notifier).ensure(manual: true);
+    expect(
+        fixture.calls
+            .where((request) =>
+                request.url.path.endsWith('/quickconnect/initiate'))
+            .length,
+        1);
+  });
+
+  for (final status in [401, 404, 405]) {
+    test('Quick Connect $status requests native verification once', () async {
+      fixture.version = '3.4.1';
+      fixture.quickConnectInitiateStatus = status;
+      container.dispose();
+      container = ProviderContainer(overrides: [
+        ...fixture.overrides(),
+        seerrQuickConnectCapabilityProvider.overrideWithValue(true),
+        seerrJellyfinLinkFactoryProvider.overrideWithValue(
+            (account, {anonymous = false}) => JellyfinOpenApi.create(
+                baseUrl: Uri.parse('https://example.invalid'),
+                httpClient: MockClient((request) async => fixture.json(
+                    request.url.path == '/System/Info/Public'
+                        ? {'Id': 'fixture-server'}
+                        : true))))
+      ]);
+
+      final link = container.read(seerrLinkProvider.notifier);
+      await link.ensure();
+      expect(container.read(seerrLinkProvider), 'needs_auth');
+      expect(container.read(seerrDiagnosticProvider)?.quickConnectHttp, status);
+      await link.ensure(manual: true);
+      expect(
+          fixture.calls
+              .where((request) =>
+                  request.url.path.endsWith('/quickconnect/initiate'))
+              .length,
+          1);
+      expect(
+          fixture.calls
+              .where((request) => request.url.path == '/api/v1/auth/jellyfin'),
+          isEmpty);
+    });
+  }
+
+  test('password arriving during Quick Connect 403 falls back exactly once',
+      () async {
+    fixture.version = '3.4.1';
+    fixture.quickConnectInitiateStatus = 403;
+    fixture.quickConnectSendsCookieOnError = true;
+    final started = Completer<void>();
+    final release = Completer<void>();
+    fixture.beforeQuickConnectInitiate = () {
+      started.complete();
+      return release.future;
+    };
+    container.dispose();
+    container = ProviderContainer(overrides: [
+      ...fixture.overrides(),
+      seerrQuickConnectCapabilityProvider.overrideWithValue(true),
+      seerrJellyfinLinkFactoryProvider.overrideWithValue(
+          (account, {anonymous = false}) => JellyfinOpenApi.create(
+              baseUrl: Uri.parse('https://example.invalid'),
+              httpClient: MockClient((request) async => fixture.json(
+                  request.url.path == '/System/Info/Public'
+                      ? {'Id': 'fixture-server'}
+                      : true))))
+    ]);
+
+    final link = container.read(seerrLinkProvider.notifier);
+    final quickConnect = link.ensure();
+    await started.future;
+    final passwordFallback =
+        link.ensure(username: 'fixture', password: 'TEST_ONLY');
+    release.complete();
+    await Future.wait([quickConnect, passwordFallback]);
+
+    expect(container.read(seerrLinkProvider), 'connected');
+    expect(
+        fixture.calls
+            .where((request) =>
+                request.url.path.endsWith('/quickconnect/initiate'))
+            .length,
+        1);
+    expect(
+        fixture.calls
+            .where((request) => request.url.path == '/api/v1/auth/jellyfin')
+            .length,
+        1);
+    final jellyfinLogin = fixture.calls
+        .singleWhere((request) => request.url.path == '/api/v1/auth/jellyfin');
+    expect(
+        jellyfinLogin.headers.keys
+            .any((header) => header.toLowerCase() == 'cookie'),
+        isFalse);
+    expect(
+        fixture.calls
+            .where((request) => request.url.path == '/api/v1/auth/me')
+            .length,
+        1);
+    final diagnostic = container.read(seerrDiagnosticProvider)!;
+    expect(diagnostic.quickConnectAttempted, isTrue);
+    expect(diagnostic.quickConnectHttp, 403);
+    expect(diagnostic.passwordFallbackAttempted, isTrue);
+    expect(diagnostic.jellyfinAuthHttp, 200);
+    expect(diagnostic.loginResponseJson, isTrue);
+    expect(diagnostic.sessionCookieAccepted, isTrue);
+    expect(diagnostic.sessionCookieStored, isTrue);
+    expect(diagnostic.identityMatched, isTrue);
   });
 
   test(

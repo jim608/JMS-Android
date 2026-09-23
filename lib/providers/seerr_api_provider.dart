@@ -194,18 +194,6 @@ class SeerrRequest implements Interceptor {
     }
     if (!active()) throw const SeerrFailure('account_changed');
     final setCookieHeaders = seerrSetCookieHeaders(response.base.headers);
-    bool? cookieStored;
-    if (usingNativeSession &&
-        response.statusCode >= 200 &&
-        response.statusCode < 300 &&
-        setCookieHeaders.isNotEmpty) {
-      try {
-        cookieStored = await sessionStore!
-            .writeFromResponse(account!, uri, setCookieHeaders);
-      } catch (_) {
-        throw const SeerrFailure('authentication_failed');
-      }
-    }
     final assessment = seerrAssessResponse(
         response: response,
         method: chain.request.method,
@@ -213,6 +201,72 @@ class SeerrRequest implements Interceptor {
         hasCookie: hasCookie,
         identityVerified: _verification.verified);
     var failureCode = assessment.failureCode;
+    final path = chain.request.url.path;
+    final sessionLogin = path == '/api/v1/auth/jellyfin' ||
+        path == '/api/v1/auth/jellyfin/quickconnect/authenticate';
+    final identityCheck = path == '/api/v1/auth/me';
+    bool? loginResponseJson;
+    if (sessionLogin) {
+      loginResponseJson = false;
+      if (assessment.diagnostic.jsonResponse &&
+          response.bodyString.length <= 32768) {
+        try {
+          loginResponseJson =
+              jsonDecode(response.bodyString) is Map<String, dynamic>;
+        } catch (_) {}
+      }
+      if (failureCode == null && loginResponseJson != true) {
+        failureCode = 'invalid_response';
+      }
+    }
+    final successfulJson = failureCode == null &&
+        response.statusCode >= 200 &&
+        response.statusCode < 300 &&
+        assessment.diagnostic.jsonResponse;
+    final accountSession = usingNativeSession ? account : null;
+    bool? cookieAccepted = setCookieHeaders.isNotEmpty ? false : null;
+    bool? cookieStored = setCookieHeaders.isNotEmpty ? false : null;
+    if (accountSession != null) {
+      try {
+        if (sessionLogin) {
+          sessionStore!.discardStaged(accountSession, uri);
+          if (successfulJson && setCookieHeaders.isNotEmpty) {
+            await sessionStore!.stageFromResponse(
+                accountSession, uri, setCookieHeaders,
+                replaceExisting: true);
+            final meUri =
+                seerrRequestUri(server!, Uri.parse('/api/v1/auth/me'));
+            cookieAccepted = sessionStore!
+                    .readStagedForRequest(accountSession, meUri)
+                    ?.isNotEmpty ==
+                true;
+          } else {
+            cookieAccepted = false;
+          }
+          cookieStored = false;
+        } else if (identityCheck) {
+          if (successfulJson && setCookieHeaders.isNotEmpty) {
+            await sessionStore!
+                .stageFromResponse(accountSession, uri, setCookieHeaders);
+            cookieAccepted = sessionStore!
+                    .readStagedForRequest(accountSession, uri)
+                    ?.isNotEmpty ==
+                true;
+            if (cookieAccepted != true) {
+              failureCode = 'session_expired';
+            }
+          }
+        } else if (_verification.verified &&
+            successfulJson &&
+            setCookieHeaders.isNotEmpty) {
+          cookieStored = await sessionStore!
+              .writeFromResponse(accountSession, uri, setCookieHeaders);
+          cookieAccepted = cookieStored;
+        }
+      } catch (_) {
+        throw const SeerrFailure('authentication_failed');
+      }
+    }
     if (response.statusCode == 401 ||
         {'session_missing', 'session_expired'}.contains(failureCode) ||
         chain.request.url.path == '/api/v1/auth/logout') {
@@ -220,6 +274,9 @@ class SeerrRequest implements Interceptor {
     }
     if (chain.request.url.path == '/api/v1/auth/me') {
       clearVerifiedIdentity();
+      if (failureCode == null && accountSession != null && !hasCookie) {
+        failureCode = 'session_missing';
+      }
       if (failureCode == null && expectedJellyfinUserId?.isNotEmpty == true) {
         try {
           final user = jsonDecode(response.bodyString);
@@ -233,8 +290,33 @@ class SeerrRequest implements Interceptor {
         } catch (_) {}
         if (!_verification.verified) failureCode = 'identity_mismatch';
       }
+      if (accountSession != null) {
+        try {
+          if (failureCode == null && _verification.verified) {
+            if (await sessionStore!.commitStaged(accountSession, uri)) {
+              cookieStored = true;
+            }
+            if (await sessionStore!.readForRequest(accountSession, uri) ==
+                null) {
+              failureCode = 'session_expired';
+            }
+          } else {
+            sessionStore!.discardStaged(accountSession, uri);
+          }
+          if ({'identity_mismatch', 'session_missing', 'session_expired'}
+              .contains(failureCode)) {
+            await sessionStore!.write(accountSession, null);
+            cookieStored = false;
+          }
+        } catch (_) {
+          throw const SeerrFailure('authentication_failed');
+        }
+      }
     }
-    if (failureCode == 'identity_mismatch') clearVerifiedIdentity();
+    if ({'identity_mismatch', 'session_missing', 'session_expired'}
+        .contains(failureCode)) {
+      clearVerifiedIdentity();
+    }
     if (failureCode != null ||
         {'/api/v1/auth/me', '/api/v1/auth/jellyfin'}
             .contains(chain.request.url.path)) {
@@ -246,7 +328,9 @@ class SeerrRequest implements Interceptor {
             ? response.statusCode
             : null,
         sessionCookieReceived: setCookieHeaders.isNotEmpty,
+        sessionCookieAccepted: cookieAccepted,
         sessionCookieStored: cookieStored,
+        loginResponseJson: loginResponseJson,
         sessionCookieRestored: storedCookie != null,
         sessionCookieAttached: hasCookie,
         identityCheckHttp: chain.request.url.path == '/api/v1/auth/me'

@@ -52,6 +52,11 @@ void main() {
   });
 
   test('Jellyfin auth rejection and unavailable service stay separate', () {
+    expect(
+        assess('/api/v1/auth/jellyfin', 200, {'id': 1})
+            .diagnostic
+            .passwordFallbackAttempted,
+        isFalse);
     expect(assess('/api/v1/auth/jellyfin', 401, {'status': 401}).failureCode,
         'authentication_failed');
     expect(assess('/api/v1/auth/jellyfin', 400, {'status': 400}).failureCode,
@@ -60,6 +65,26 @@ void main() {
         'authentication_failed');
     expect(assess('/api/v1/status', 503, {'error': 'unavailable'}).failureCode,
         'service_unavailable');
+  });
+
+  test('Quick Connect rejection is not a permission denial', () {
+    for (final status in [401, 403, 404, 405]) {
+      final assessment = assess('/api/v1/auth/jellyfin/quickconnect/initiate',
+          status, {'status': status},
+          headers: {'set-cookie': 'challenge=SECRET; Secure; HttpOnly'});
+      expect(assessment.failureCode, 'quickconnect_unavailable');
+      expect(assessment.diagnostic.stage, 'quickconnect');
+      expect(assessment.diagnostic.quickConnectAttempted, isTrue);
+      expect(assessment.diagnostic.quickConnectHttp, status);
+      expect(assessment.diagnostic.sessionCookieAccepted, isNull);
+      expect(assessment.diagnostic.report, isNot(contains('SECRET')));
+    }
+    expect(
+        assess('/api/v1/auth/jellyfin/quickconnect/initiate', 403,
+                '<html>Access required</html>',
+                contentType: 'text/html')
+            .failureCode,
+        'unexpected_html');
   });
 
   test('unknown JSON rejection, HTML, challenge and redirect remain distinct',
@@ -141,7 +166,13 @@ void main() {
           jellyfinAuthSuccess: true,
           seerrAuthAttempted: true,
           seerrAuthHttp: 200,
+          quickConnectAttempted: true,
+          quickConnectHttp: 403,
+          passwordFallbackAttempted: true,
+          jellyfinAuthHttp: 200,
+          loginResponseJson: true,
           sessionCookieReceived: true,
+          sessionCookieAccepted: true,
           sessionCookieStored: true,
           sessionCookieRestored: false,
           sessionCookieAttached: false,
@@ -151,6 +182,11 @@ void main() {
         )
         .report;
     expect(report, contains('Seerr auth HTTP: 200'));
+    expect(report, contains('Quick Connect HTTP: 403'));
+    expect(report, contains('Password fallback attempted: true'));
+    expect(report, contains('Jellyfin auth HTTP: 200'));
+    expect(report, contains('Login response JSON: true'));
+    expect(report, contains('Session cookie accepted: true'));
     expect(report, contains('Session cookie restored: false'));
     expect(report, contains('Identity matched: false'));
     expect(report, contains('Classification: session_missing'));

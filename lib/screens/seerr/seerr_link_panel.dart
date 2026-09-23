@@ -40,7 +40,13 @@ Future<void> openSeerrAccountLink(BuildContext context, WidgetRef ref) async {
     }
     ref.read(userProvider.notifier).bindSeerrAccount(jmsSeerrSource);
   }
-  await ref.read(seerrLinkProvider.notifier).ensure(manual: true);
+  final diagnostic = ref.read(seerrDiagnosticProvider);
+  final quickConnectRejected = ref.read(seerrLinkProvider) == 'needs_auth' &&
+      diagnostic?.quickConnectAttempted == true &&
+      {401, 403, 404, 405}.contains(diagnostic?.quickConnectHttp);
+  if (!quickConnectRejected) {
+    await ref.read(seerrLinkProvider.notifier).ensure(manual: true);
+  }
   if (!context.mounted ||
       ref.read(userProvider)?.sameIdentity(account) != true) {
     return;
@@ -106,7 +112,9 @@ class _SeerrLinkPanelState extends ConsumerState<SeerrLinkPanel> {
                     width: 24, height: 24, child: CircularProgressIndicator())
                 : TextButton(
                     onPressed: () => openSeerrAccountLink(context, ref),
-                    child: Text(seerrText(context, 'Connect', '連接／核對')))));
+                    child: Text(status == 'needs_auth'
+                        ? seerrText(context, 'Verify', '驗證')
+                        : seerrText(context, 'Connect', '連接／核對')))));
   }
 }
 
