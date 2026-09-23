@@ -16,6 +16,7 @@ import 'package:fladder/screens/shared/focused_outlined_text_field.dart';
 import 'package:fladder/screens/shared/outlined_text_field.dart';
 import 'package:fladder/seerr/seerr_models.dart';
 import 'package:fladder/seerr/seerr_connection.dart';
+import 'package:fladder/seerr/seerr_source.dart';
 import 'package:fladder/screens/seerr/seerr_support_text.dart';
 import 'package:fladder/screens/seerr/seerr_link_panel.dart';
 import 'package:fladder/util/fladder_config.dart';
@@ -44,8 +45,7 @@ class SeerrConnectionDialog extends ConsumerStatefulWidget {
   const SeerrConnectionDialog({super.key});
 
   @override
-  ConsumerState<ConsumerStatefulWidget> createState() =>
-      _SeerrConnectionDialogState();
+  ConsumerState<ConsumerStatefulWidget> createState() => _SeerrConnectionDialogState();
 }
 
 class _SeerrConnectionDialogState extends ConsumerState<SeerrConnectionDialog> {
@@ -68,7 +68,8 @@ class _SeerrConnectionDialogState extends ConsumerState<SeerrConnectionDialog> {
   String? serviceVersion;
 
   bool get _hasPresetSeerrBaseUrl =>
-      FladderConfig.seerrBaseUrl?.isNotEmpty == true;
+      FladderConfig.seerrBaseUrl?.isNotEmpty == true &&
+      ref.read(userProvider)?.seerrCredentials?.serverUrl.isNotEmpty != true;
 
   @override
   void initState() {
@@ -76,7 +77,7 @@ class _SeerrConnectionDialogState extends ConsumerState<SeerrConnectionDialog> {
     final creds = ref.read(userProvider)?.seerrCredentials;
     apiKeyController = TextEditingController(text: creds?.apiKey ?? '');
     serverController = TextEditingController(
-        text: FladderConfig.seerrBaseUrl ?? creds?.serverUrl ?? '');
+        text: creds?.serverUrl.isNotEmpty == true ? creds!.serverUrl : FladderConfig.seerrBaseUrl ?? jmsSeerrSource);
     localEmailController = TextEditingController();
     localPasswordController = TextEditingController();
     jfUsernameController = TextEditingController();
@@ -122,12 +123,10 @@ class _SeerrConnectionDialogState extends ConsumerState<SeerrConnectionDialog> {
   }
 
   Future<void> _refreshSession() async {
-    final serverUrl = (FladderConfig.seerrBaseUrl?.trim().isNotEmpty == true)
-        ? FladderConfig.seerrBaseUrl?.trim()
-        : (serverController.text.trim().isNotEmpty
-            ? serverController.text.trim()
-            : ref.read(userProvider)?.seerrCredentials?.serverUrl.trim());
-    if (serverUrl != null && serverUrl.isNotEmpty) {
+    final serverUrl = serverController.text.trim().isNotEmpty
+        ? serverController.text.trim()
+        : FladderConfig.seerrBaseUrl ?? jmsSeerrSource;
+    if (serverUrl.isNotEmpty) {
       if (!_hasPresetSeerrBaseUrl) {
         ref.read(userProvider.notifier).setSeerrServerUrl(serverUrl);
       }
@@ -185,7 +184,7 @@ class _SeerrConnectionDialogState extends ConsumerState<SeerrConnectionDialog> {
     }
 
     try {
-      final uri = seerrBaseUri(rawUrl);
+      final uri = seerrBaseUri(normalizeConfiguredSeerrSource(rawUrl) ?? rawUrl);
       serverController.text = uri.toString();
       final before = ref.read(userProvider)?.seerrCredentials?.serverUrl;
       ref.read(userProvider.notifier).setSeerrServerUrl(uri.toString());
@@ -370,8 +369,7 @@ class _SeerrConnectionDialogState extends ConsumerState<SeerrConnectionDialog> {
       ),
       child: Row(
         children: [
-          Icon(IconsaxPlusLinear.warning_2,
-              color: Theme.of(context).colorScheme.onErrorContainer),
+          Icon(IconsaxPlusLinear.warning_2, color: Theme.of(context).colorScheme.onErrorContainer),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -390,10 +388,8 @@ class _SeerrConnectionDialogState extends ConsumerState<SeerrConnectionDialog> {
 
   Widget _loggedInContent() {
     final serverUrl = ref.read(userProvider)?.seerrCredentials?.serverUrl ?? '';
-    final displayName = seerrUser?.displayName ??
-        seerrUser?.username ??
-        seerrUser?.email ??
-        context.localized.seerrUnknownUser;
+    final displayName =
+        seerrUser?.displayName ?? seerrUser?.username ?? seerrUser?.email ?? context.localized.seerrUnknownUser;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -401,8 +397,7 @@ class _SeerrConnectionDialogState extends ConsumerState<SeerrConnectionDialog> {
       children: [
         if (error != null) _errorBanner(),
         const SeerrDiagnosticButton(),
-        if (warning != null)
-          SettingsMessageBox(warning!, messageType: MessageType.warning),
+        if (warning != null) SettingsMessageBox(warning!, messageType: MessageType.warning),
         if (serverUrl.isNotEmpty)
           Flexible(
             child: Text(
@@ -414,8 +409,7 @@ class _SeerrConnectionDialogState extends ConsumerState<SeerrConnectionDialog> {
           spacing: 8,
           children: [
             seerrUser?.avatar != null && seerrUser!.avatar!.isNotEmpty
-                ? CircleAvatar(
-                    backgroundImage: NetworkImage(seerrUser!.avatar!))
+                ? CircleAvatar(backgroundImage: NetworkImage(seerrUser!.avatar!))
                 : CircleAvatar(child: Icon(FladderItemType.person.icon)),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -450,8 +444,7 @@ class _SeerrConnectionDialogState extends ConsumerState<SeerrConnectionDialog> {
                 : () async {
                     if (!await _beginProcessing()) return;
                     try {
-                      final response =
-                          await ref.read(seerrApiProvider).status();
+                      final response = await ref.read(seerrApiProvider).status();
                       seerrCheckStatus(response.statusCode);
                       if (response.body?.version == null) {
                         throw const SeerrFailure('invalid_response');
@@ -468,13 +461,11 @@ class _SeerrConnectionDialogState extends ConsumerState<SeerrConnectionDialog> {
                     }
                   },
             icon: const Icon(Icons.network_check),
-            label: Text(
-                seerrText(context, 'Test connection / version', '測試連線／版本'))),
+            label: Text(seerrText(context, 'Test connection / version', '測試連線／版本'))),
         if (serviceVersion != null) Text('Seerr $serviceVersion'),
         if (error != null) _errorBanner(),
         const SeerrDiagnosticButton(),
-        if (warning != null)
-          SettingsMessageBox(warning!, messageType: MessageType.warning),
+        if (warning != null) SettingsMessageBox(warning!, messageType: MessageType.warning),
         FocusedOutlinedTextField(
           label: context.localized.seerrServer,
           controller: serverController,
@@ -495,81 +486,83 @@ class _SeerrConnectionDialogState extends ConsumerState<SeerrConnectionDialog> {
           child: Text(seerrText(context, showAdvanced ? 'Hide advanced settings' : 'Advanced settings',
               showAdvanced ? '收合進階設定' : '進階設定')),
         ),
-        if (showAdvanced) Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text(
-                context.localized.seerrCustomHeaders,
-                style: Theme.of(context).textTheme.bodySmall,
+        if (showAdvanced)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  context.localized.seerrCustomHeaders,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
               ),
-            ),
-            Row(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: OutlinedTextField(
-                    label: context.localized.seerrHeader,
-                    controller: headerKeyController,
-                    textInputAction: TextInputAction.next,
+              Row(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: OutlinedTextField(
+                      label: context.localized.seerrHeader,
+                      controller: headerKeyController,
+                      textInputAction: TextInputAction.next,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  flex: 4,
-                  child: OutlinedTextField(
-                    label: context.localized.seerrHeaderValue,
-                    controller: headerValueController,
-                    textInputAction: TextInputAction.done,
-                    onSubmitted: (_) {
-                      _addHeader();
-                    },
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 4,
+                    child: OutlinedTextField(
+                      label: context.localized.seerrHeaderValue,
+                      controller: headerValueController,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) {
+                        _addHeader();
+                      },
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: _addHeader,
-                  icon: const Icon(IconsaxPlusBold.add_circle),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            if (customHeaders.isNotEmpty)
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: customHeaders.entries
-                    .map(
-                      (e) => InputChip(
-                        label: Text('${e.key}: ${e.value}'),
-                        onDeleted: () => _removeHeader(e.key),
-                      ),
-                    )
-                    .toList(),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: _addHeader,
+                    icon: const Icon(IconsaxPlusBold.add_circle),
+                  ),
+                ],
               ),
-          ],
-        ),
-        if (showAdvanced) Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: SegmentedButton<SeerrAuthTab>(
-            segments: SeerrAuthTab.values
-                .map(
-                  (tab) => ButtonSegment(
-                    value: tab,
-                    label: Text(tab.label(context)),
-                  ),
-                )
-                .toList(),
-            selected: {selectedTab},
-            onSelectionChanged: (value) {
-              setState(() {
-                selectedTab = value.first;
-              });
-            },
-            showSelectedIcon: false,
+              const SizedBox(height: 8),
+              if (customHeaders.isNotEmpty)
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: customHeaders.entries
+                      .map(
+                        (e) => InputChip(
+                          label: Text('${e.key}: ${e.value}'),
+                          onDeleted: () => _removeHeader(e.key),
+                        ),
+                      )
+                      .toList(),
+                ),
+            ],
           ),
-        ),
+        if (showAdvanced)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: SegmentedButton<SeerrAuthTab>(
+              segments: SeerrAuthTab.values
+                  .map(
+                    (tab) => ButtonSegment(
+                      value: tab,
+                      label: Text(tab.label(context)),
+                    ),
+                  )
+                  .toList(),
+              selected: {selectedTab},
+              onSelectionChanged: (value) {
+                setState(() {
+                  selectedTab = value.first;
+                });
+              },
+              showSelectedIcon: false,
+            ),
+          ),
         AnimatedFadeSize(child: _authForm()),
       ],
     );
@@ -594,10 +587,7 @@ class _SeerrConnectionDialogState extends ConsumerState<SeerrConnectionDialog> {
                 FilledButton(
                   onPressed: processing ? null : _useApiKey,
                   child: processing
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator())
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator())
                       : Text(context.localized.save),
                 ),
               ],
@@ -636,10 +626,7 @@ class _SeerrConnectionDialogState extends ConsumerState<SeerrConnectionDialog> {
                 FilledButton(
                   onPressed: processing ? null : _loginLocal,
                   child: processing
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator())
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator())
                       : Text(context.localized.login),
                 ),
               ],
@@ -677,10 +664,7 @@ class _SeerrConnectionDialogState extends ConsumerState<SeerrConnectionDialog> {
                 FilledButton(
                   onPressed: processing ? null : _loginJellyfin,
                   child: processing
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator())
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator())
                       : Text(context.localized.login),
                 ),
               ],
@@ -710,9 +694,7 @@ class _SeerrConnectionDialogState extends ConsumerState<SeerrConnectionDialog> {
                 child: CircularProgressIndicator(strokeCap: StrokeCap.round),
               )
             else
-              AnimatedFadeSize(
-                  child:
-                      seerrUser != null ? _loggedInContent() : _authContent()),
+              AnimatedFadeSize(child: seerrUser != null ? _loggedInContent() : _authContent()),
           ],
         ),
       ),

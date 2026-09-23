@@ -11,6 +11,7 @@ import 'package:fladder/models/account_model.dart';
 import 'package:fladder/providers/api_provider.dart';
 import 'package:fladder/providers/auth_provider.dart';
 import 'package:fladder/providers/seerr_link_provider.dart';
+import 'package:fladder/seerr/seerr_source.dart';
 import 'package:fladder/screens/seerr/seerr_support_text.dart';
 import 'package:fladder/providers/shared_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
@@ -298,7 +299,8 @@ class _LoginScreenCredentialsState extends ConsumerState<LoginScreenCredentials>
                     value: linkSeerr,
                     onChanged: loggingIn ? null : (value) => setState(() => linkSeerr = value ?? false),
                     title: Text(seerrText(context, 'Also connect my request service', '此登入同時連接媒體庫與點片服務')),
-                    subtitle: Text('${seerrText(context, 'Only select if this Jellyfin belongs to ', '僅當目前 Jellyfin 屬於此服務才勾選：')}$jmsSeerrSource\n${seerrText(context, 'Identity is verified; password is used once and never saved.', '會核對本人身分；必要時僅使用本次密碼，不保存。')}'),
+                    subtitle: Text(
+                        '${seerrText(context, 'Only select if this Jellyfin belongs to ', '僅當目前 Jellyfin 屬於此服務才勾選：')}$jmsSeerrSource\n${seerrText(context, 'Identity is verified; password is used once and never saved.', '會核對本人身分；必要時僅使用本次密碼，不保存。')}'),
                   ),
                   if (hasQuickConnect)
                     FilledButton(
@@ -376,8 +378,9 @@ class _LoginScreenCredentialsState extends ConsumerState<LoginScreenCredentials>
 
     if (linkSeerr) {
       ref.read(userProvider.notifier).bindSeerrAccount(jmsSeerrSource);
-      unawaited(ref.read(seerrLinkProvider.notifier).ensure(
-        username: usernameController.text.trim(), password: passwordController.text));
+      unawaited(ref
+          .read(seerrLinkProvider.notifier)
+          .ensure(username: usernameController.text.trim(), password: passwordController.text));
     }
     passwordController.clear();
 

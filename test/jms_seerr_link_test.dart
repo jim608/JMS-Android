@@ -14,6 +14,7 @@ import 'package:fladder/seerr/seerr_models.dart';
 import 'package:fladder/models/api_result.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/seerr/seerr_session_store.dart';
+import 'package:fladder/seerr/seerr_source.dart';
 import 'package:fladder/seerr/seerr_connection.dart';
 import 'fixtures/seerr_test_scope.dart';
 
@@ -109,8 +110,7 @@ void main() {
     expect(diagnostic?.status, 403);
     expect(diagnostic?.hasCookie, isFalse);
     fixture.statusStatus = 200;
-    await container.read(seerrLinkProvider.notifier).ensure(
-        username: 'fixture', password: 'TEST_ONLY', manual: true);
+    await container.read(seerrLinkProvider.notifier).ensure(username: 'fixture', password: 'TEST_ONLY', manual: true);
     expect(container.read(seerrLinkProvider), 'connected');
     expect(container.read(seerrDiagnosticProvider), isNull);
   });

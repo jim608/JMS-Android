@@ -20,7 +20,7 @@ class FakeGithub:
         self.uploads = []
         self.publishes = 0
         self.fail_once = None
-        self.release = {'id': 7, 'draft': True, 'tag_name': 'vfixture', 'prerelease': True,
+        self.release = {'id': 7, 'draft': True, 'tag_name': 'vfixture', 'name': 'JMS fixture', 'prerelease': True,
                         'body': 'fixture notes', 'assets': []}
 
     def api(self, endpoint, method='GET', payload=None):
@@ -58,7 +58,7 @@ class PublisherTests(unittest.TestCase):
         return result
 
     def state(self):
-        return {'releaseId': 7, 'tag': 'vfixture', 'prerelease': True, 'notes': 'fixture notes'}
+        return {'releaseId': 7, 'tag': 'vfixture', 'version': 'fixture', 'prerelease': True, 'notes': 'fixture notes'}
 
     def test_partial_draft_upload_resumes_without_duplicate_uploads(self):
         files = self.assets()
@@ -82,7 +82,7 @@ class PublisherTests(unittest.TestCase):
 
     def test_existing_content_or_channel_mismatch_never_mutates(self):
         files = self.assets()
-        for change in [{'body': 'different'}, {'prerelease': False}, {'tag_name': 'elsewhere'}]:
+        for change in [{'body': 'different'}, {'name': 'JMS other'}, {'prerelease': False}, {'tag_name': 'elsewhere'}]:
             with self.subTest(change=change):
                 github = FakeGithub(files)
                 github.release.update(change)

@@ -8,8 +8,7 @@ import 'package:fladder/providers/seerr_service_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/seerr/seerr_connection.dart';
 import 'package:fladder/seerr/seerr_session_store.dart';
-
-const jmsSeerrSource = 'https://legacy-seerr.example.invalid';
+import 'package:fladder/seerr/seerr_source.dart';
 
 final seerrJellyfinLinkFactoryProvider = Provider<JellyfinOpenApi Function(AccountModel, {bool anonymous})>((ref) =>
     (account, {anonymous = false}) => createJellyfinApiForAccount(

@@ -8,6 +8,8 @@ import subprocess
 import zipfile
 import os
 
+from jms_release_notes import require_current_notes
+
 ROOT = Path(__file__).resolve().parents[1]
 TEST_CERT = "4327eedb953fbf51d82b70e2e56c23122c85304d55a67fbbdb37a8f1ffd5f399"
 ALLOWED_ROOTS = {"lib", "assets", "icons", "android", "ios", "linux", "macos", "windows",
@@ -87,6 +89,7 @@ def main():
     version = info["versionName"]
     if not re.fullmatch(r"[A-Za-z0-9._+-]+", version):
         raise ValueError("Unsafe version name")
+    notes = require_current_notes(ROOT / 'CHANGELOG.md', Path(args.notes), version)
     inputs_path = Path(args.build_record) if args.build_record else ROOT / ("artifacts/checks/build-" + version + "-inputs.json")
     record = json.loads(inputs_path.read_text(encoding="utf-8-sig"))
     if record["version"] != version or info["versionCode"] != 2000 + record["baseVersionCode"]:

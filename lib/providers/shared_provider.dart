@@ -22,6 +22,8 @@ import 'package:fladder/providers/settings/subtitle_settings_provider.dart';
 import 'package:fladder/providers/settings/video_player_settings_provider.dart';
 import 'package:fladder/providers/update_notifications_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
+import 'package:fladder/seerr/seerr_session_store.dart';
+import 'package:fladder/seerr/seerr_source.dart';
 import 'package:fladder/util/settings_backup.dart';
 
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
@@ -147,6 +149,10 @@ class SharedHelper {
   }
 
   List<AccountModel> getAccounts() {
+    return _storedAccounts().map(migrateJmsSeerrSource).toList();
+  }
+
+  List<AccountModel> _storedAccounts() {
     final savedAccounts = sharedPreferences.getStringList(SharedKeys._loginCredentialsKey);
     try {
       return savedAccounts != null ? savedAccounts.map((e) => AccountModel.fromJson(jsonDecode(e))).toList() : [];
@@ -154,6 +160,20 @@ class SharedHelper {
       log(stacktrace.toString());
       return [];
     }
+  }
+
+  Future<int> migrateJmsSeerrAccounts() async {
+    final accounts = _storedAccounts();
+    final affected = accounts.where(needsJmsSeerrSourceMigration).toList();
+    if (affected.isEmpty) return 0;
+    final store = SeerrSessionStore();
+    for (final account in affected) {
+      if (account.seerrCredentials != null) await store.write(account, null);
+    }
+    if (await saveAccounts(accounts.map(migrateJmsSeerrSource).toList()) != true) {
+      throw StateError('Unable to save Seerr source migration');
+    }
+    return affected.length;
   }
 
   AccountModel? getActiveAccount() {

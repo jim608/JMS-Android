@@ -8,11 +8,11 @@ import 'package:fladder/models/credentials_model.dart';
 import 'package:fladder/models/seerr_credentials_model.dart';
 import 'package:fladder/providers/seerr_api_provider.dart';
 import 'package:fladder/providers/seerr_service_provider.dart';
-import 'package:fladder/providers/seerr_link_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/seerr/seerr_chopper_service.dart';
 import 'package:fladder/seerr/seerr_json_converter.dart';
 import 'package:fladder/seerr/seerr_session_store.dart';
+import 'package:fladder/seerr/seerr_source.dart';
 
 AccountModel seerrFixtureAccount({String id = 'aabbcc', bool bound = true}) => AccountModel(
       name: '測試使用者',
@@ -89,9 +89,9 @@ class SeerrFixture {
     calls.add(call);
     final path = call.url.path;
     if (path == '/api/v1/auth/me') {
-      return json(authStatus == 403
-          ? {'status': 403, 'error': 'You do not have permission to access this endpoint'}
-          : user, status: authStatus);
+      return json(
+          authStatus == 403 ? {'status': 403, 'error': 'You do not have permission to access this endpoint'} : user,
+          status: authStatus);
     }
     if (path == '/api/v1/status') return json({'version': version}, status: statusStatus);
     if (path == '/api/v1/settings/public') {
@@ -200,10 +200,10 @@ class _FixtureApi extends SeerrApi {
     final client =
         ChopperClient(client: MockClient(fixture.handle), converter: const SeerrJsonConverter(), interceptors: [
       SeerrRequest(jmsSeerrSource, {if (account?.sessionCookie.isNotEmpty == true) 'Cookie': account!.sessionCookie},
-          {}, () => active, expectedJellyfinUserId: ref.read(userProvider)?.id,
-          onDiagnostic: (diagnostic) {
-            if (active) ref.read(seerrDiagnosticProvider.notifier).state = diagnostic;
-          })
+          {}, () => active,
+          expectedJellyfinUserId: ref.read(userProvider)?.id, onDiagnostic: (diagnostic) {
+        if (active) ref.read(seerrDiagnosticProvider.notifier).state = diagnostic;
+      })
     ]);
     fixture.clients.add(client);
     return SeerrService(ref, SeerrChopperService.create(client));

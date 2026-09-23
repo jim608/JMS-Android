@@ -1,3 +1,5 @@
+import 'package:fladder/seerr/seerr_source.dart';
+
 class FladderConfig {
   static FladderConfig _instance = FladderConfig._();
   FladderConfig._();
@@ -7,7 +9,7 @@ class FladderConfig {
   String? _baseUrl;
 
   static String? get seerrBaseUrl => _instance._seerrBaseUrl;
-  static set seerrBaseUrl(String? value) => _instance._seerrBaseUrl = value;
+  static set seerrBaseUrl(String? value) => _instance._seerrBaseUrl = normalizeConfiguredSeerrSource(value);
   String? _seerrBaseUrl;
 
   static void fromJson(Map<String, dynamic> json) => _instance = FladderConfig._fromJson(json);
@@ -18,7 +20,7 @@ class FladderConfig {
     final newSeerrUrl = json['seerrBaseUrl'] as String?;
 
     config._baseUrl = newUrl?.isEmpty == true ? null : newUrl;
-    config._seerrBaseUrl = newSeerrUrl?.isEmpty == true ? null : newSeerrUrl;
+    config._seerrBaseUrl = normalizeConfiguredSeerrSource(newSeerrUrl);
 
     return config;
   }

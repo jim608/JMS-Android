@@ -288,6 +288,8 @@ def upload_complete_release(github, state, files, save, verification_directory):
     release = github.api(f'repos/{REPOSITORY}/releases/{state["releaseId"]}')
     if release['tag_name'] != state['tag'] or release['prerelease'] != state['prerelease']:
         raise ReleaseError('Existing release tag/channel differs; never overwrite a published release')
+    if release.get('name') != 'JMS ' + state['version']:
+        raise ReleaseError('Release title differs from the actual APK version')
     if release.get('body') != state['notes']:
         raise ReleaseError('Existing release notes differ; use a genuinely new version')
     actual = match_assets(release, files)

@@ -13,6 +13,7 @@ from jms_publication import (
     evidence_file, execute, native_hashes, publication_gates, read_json, release_lock,
     save_json, sha256, source_files, source_fingerprint, upload_complete_release,
 )
+from jms_release_notes import require_current_notes
 from prepare_jms_release import apk_info, require_bound_sources
 from verify_jms_snapshot import verify_snapshot
 
@@ -288,9 +289,7 @@ def publish(args):
                 prior_states = [read_json(path) for path in PUBLICATION.glob('v*/state.json')]
                 if not any(previous.get('published') and previous.get('sourceCommit') == parent for previous in prior_states):
                     raise ReleaseError('Unreviewed remote history; inspect it before extending main')
-            notes = (ROOT / 'docs/JMS_RELEASE_NOTES.zh-Hant.md').read_text(encoding='utf-8')
-            if version not in notes:
-                raise ReleaseError('Release notes do not describe this actual version')
+            notes = require_current_notes(ROOT / 'CHANGELOG.md', ROOT / 'docs/JMS_RELEASE_NOTES.zh-Hant.md', version)
             state = {'tag': tag, 'version': version, 'versionCode': code, 'prerelease': args.channel == 'prerelease',
                      'sourceFingerprint': fingerprint, 'parent': parent, 'notes': notes, 'published': False}
             state['sourceCommit'] = snapshot_source(files, parent, state_directory, version)

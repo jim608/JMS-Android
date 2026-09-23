@@ -14,6 +14,14 @@
 
 預設 **Prerelease**。`-Channel stable` 額外要求綁定同一版 APK hash 的手機穩定驗收證據；不會自動升穩定版。普通 `flutter build`、既有 build/prepare、測試或存檔不會呼叫此入口。後續無新工作不製造版本、不常駐輪詢。
 
+### 正式版本說明
+
+`CHANGELOG.md` 是各版本對外變更的單一來源。每次只比較上一個已公開版本與實際新 APK／來源，於 `# JMS <實際版本>` 下使用有內容的「新增、調整、修正、移除、已知問題、更新注意事項」章節；已在前版提供的功能不重複列為新增。歷史錯誤用勘誤或當版已知問題說明，不改寫舊版 APK 的事實。
+
+    rtk proxy python scripts/jms_release_notes.py --version <實際版本> --write
+
+此命令從 `CHANGELOG.md` 產生當版 `docs/JMS_RELEASE_NOTES.zh-Hant.md`。發布入口與打包工具要求兩者完全一致，並檢查標題、空章節、占位字、聊天式工作回報、敏感字串及本機路徑。GitHub Release 標題從 APK 版本生成為 `JMS <實際版本>`；內文與發布包的 `RELEASE_NOTES.zh-Hant.md` 使用同一份當版內容，App 線上更新讀取該 Release 內文。測試與建置證據留在 `JMS_STATUS.md`，不混入對外說明。已發布資產與 tag 不因文案勘誤而替換。
+
 ### 執行與接續
 
 M13 補充：本機候選建置與對外發布分開。可先執行 `scripts/build_jms_android.ps1` 及 `scripts/verify_jms_android_native.py --apk <候選 APK>`，不需先把舊 APK 的 native hash 當作新 APK 唯一允許值。單一發布入口會對照當前核准稽核的實際 APK/hash，再核對待發布候選的每個 ELF。變更不會被無條件放行。

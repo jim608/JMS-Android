@@ -10,6 +10,7 @@ import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/seerr/seerr_chopper_service.dart';
 import 'package:fladder/seerr/seerr_json_converter.dart';
 import 'package:fladder/seerr/seerr_connection.dart';
+import 'package:fladder/seerr/seerr_source.dart';
 import 'package:fladder/seerr/seerr_diagnostic.dart';
 import 'package:fladder/util/fladder_config.dart';
 import 'package:fladder/util/seerr_http_client.dart'
@@ -30,15 +31,10 @@ final seerrDiagnosticProvider = StateProvider<SeerrDiagnostic?>((ref) {
 class SeerrApi extends _$SeerrApi {
   @override
   SeerrService build() {
-    final scope = ref.watch(userProvider.select((account) => (
-          account?.id,
-          account?.credentials.serverId,
-          account?.seerrCredentials
-        )));
-    final credentials = scope.$3;
-    final server = credentials?.serverUrl.isNotEmpty == true
-        ? credentials!.serverUrl
-        : FladderConfig.seerrBaseUrl;
+    final scope = ref.watch(
+        userProvider.select((account) => (account?.id, account?.credentials.serverId, account?.seerrCredentials)));
+    final credentials = effectiveJmsSeerrCredentials(scope.$3, configuredSource: FladderConfig.seerrBaseUrl);
+    final server = credentials.serverUrl;
     bool active = true;
 
     final chopperClient = ChopperClient(
@@ -48,14 +44,15 @@ class SeerrApi extends _$SeerrApi {
         SeerrRequest(
             server,
             _authHeaders(
-            apiKey: credentials?.linkedServerId.isNotEmpty == true ? '' : credentials?.apiKey ?? '',
-                cookie: credentials?.sessionCookie ?? ''),
-            credentials?.linkedServerId.isNotEmpty == true ? {} : credentials?.customHeaders ?? {},
-            () => active, expectedJellyfinUserId: scope.$1, onDiagnostic: (diagnostic) {
+                apiKey: credentials.linkedServerId.isNotEmpty ? '' : credentials.apiKey,
+                cookie: credentials.sessionCookie),
+            credentials.linkedServerId.isNotEmpty ? {} : credentials.customHeaders,
+            () => active,
+            expectedJellyfinUserId: scope.$1, onDiagnostic: (diagnostic) {
           if (active) ref.read(seerrDiagnosticProvider.notifier).state = diagnostic;
         }, onUnauthorized: () {
           Future.microtask(() async {
-            if (active && credentials?.isConfigured == true) {
+            if (active && credentials.isConfigured) {
               try {
                 await ref.read(userProvider.notifier).logoutSeerr();
               } catch (_) {
@@ -92,8 +89,7 @@ class SeerrRequest implements Interceptor {
   final _verification = _SeerrVerification();
 
   @override
-  FutureOr<Response<BodyType>> intercept<BodyType>(
-      Chain<BodyType> chain) async {
+  FutureOr<Response<BodyType>> intercept<BodyType>(Chain<BodyType> chain) async {
     if (!active()) throw const SeerrFailure('account_changed');
     if (server == null || server!.isEmpty) {
       throw const SeerrFailure('not_configured');
@@ -102,23 +98,20 @@ class SeerrRequest implements Interceptor {
     final headers = <String, String>{
       'Accept': 'application/json',
       for (final entry in custom.entries)
-        if (!{'authorization', 'cookie', 'x-api-key', 'host', 'origin'}
-            .contains(entry.key.toLowerCase()))
+        if (!{'authorization', 'cookie', 'x-api-key', 'host', 'origin'}.contains(entry.key.toLowerCase()))
           entry.key: entry.value,
       if (!{'/api/v1/status', '/api/v1/settings/public'}.contains(chain.request.url.path) &&
           !(chain.request.url.path.startsWith('/api/v1/auth/') &&
-          !{'/api/v1/auth/me', '/api/v1/auth/logout'}.contains(chain.request.url.path)) &&
+              !{'/api/v1/auth/me', '/api/v1/auth/logout'}.contains(chain.request.url.path)) &&
           !chain.request.headers.keys.any((key) => key.toLowerCase() == 'cookie'))
         ...auth,
     };
-    final request =
-        applyHeaders(chain.request.copyWith(baseUri: Uri(), uri: uri), headers);
-    final bool hasCookie = request.headers.entries.any(
-        (entry) => entry.key.toLowerCase() == 'cookie' && entry.value.isNotEmpty);
+    final request = applyHeaders(chain.request.copyWith(baseUri: Uri(), uri: uri), headers);
+    final bool hasCookie =
+        request.headers.entries.any((entry) => entry.key.toLowerCase() == 'cookie' && entry.value.isNotEmpty);
     Response<BodyType> response;
     try {
-      response = await seerrBounded(
-          Future<Response<BodyType>>.sync(() => chain.proceed(request)),
+      response = await seerrBounded(Future<Response<BodyType>>.sync(() => chain.proceed(request)),
           mutation: chain.request.method.toUpperCase() == 'POST' &&
               (chain.request.url.path.startsWith('/api/v1/request') ||
                   chain.request.url.path.startsWith('/api/v1/issue')));
@@ -152,8 +145,7 @@ class SeerrRequest implements Interceptor {
           final user = jsonDecode(response.bodyString);
           final actualId = user is Map<String, dynamic> ? user['jellyfinUserId'] : null;
           if (actualId is String &&
-              actualId.replaceAll('-', '').toLowerCase() ==
-                  expectedJellyfinUserId!.replaceAll('-', '').toLowerCase()) {
+              actualId.replaceAll('-', '').toLowerCase() == expectedJellyfinUserId!.replaceAll('-', '').toLowerCase()) {
             _verification.verifiedAt = DateTime.now();
           }
         } catch (_) {}
@@ -176,8 +168,7 @@ class _SeerrVerification {
   DateTime? verifiedAt;
 }
 
-Map<String, String> _authHeaders(
-    {required String apiKey, required String cookie}) {
+Map<String, String> _authHeaders({required String apiKey, required String cookie}) {
   if (cookie.isNotEmpty && cookie != kBrowserManagedCookie) {
     return {'Cookie': cookie};
   }

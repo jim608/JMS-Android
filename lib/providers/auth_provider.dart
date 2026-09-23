@@ -19,6 +19,7 @@ import 'package:fladder/providers/seerr_dashboard_provider.dart';
 import 'package:fladder/providers/service_provider.dart';
 import 'package:fladder/providers/shared_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
+import 'package:fladder/seerr/seerr_source.dart';
 import 'package:fladder/providers/views_provider.dart';
 import 'package:fladder/screens/login/lock_screen.dart';
 import 'package:fladder/screens/shared/fladder_notification_overlay.dart';
@@ -42,6 +43,11 @@ class AuthNotifier extends StateNotifier<LoginScreenModel> {
 
   Future<void> initModel() async {
     ref.read(userProvider.notifier).clear();
+    try {
+      await ref.read(sharedUtilityProvider).migrateJmsSeerrAccounts();
+    } catch (error) {
+      debugPrint('Seerr source migration will retry: ${error.runtimeType}');
+    }
     final currentAccounts = ref.read(authProvider.notifier).getSavedAccounts();
     ref.read(lockScreenActiveProvider.notifier).update((state) => true);
     if (FladderConfig.baseUrl != null) {
@@ -241,20 +247,17 @@ class AuthNotifier extends StateNotifier<LoginScreenModel> {
   }
 
   String? _findSeerrUrlForServer(String? serverId) {
-    if (FladderConfig.seerrBaseUrl?.isNotEmpty == true) {
-      return FladderConfig.seerrBaseUrl;
-    }
-    if (serverId == null || serverId.isEmpty) return null;
+    if (serverId == null || serverId.isEmpty) return FladderConfig.seerrBaseUrl;
     final matches = state.accounts.where(
       (account) =>
           account.credentials.serverId == serverId && (account.seerrCredentials?.serverUrl.isNotEmpty ?? false),
     );
 
-    if (matches.isEmpty) return null;
+    if (matches.isEmpty) return FladderConfig.seerrBaseUrl;
 
     final sorted = matches.toList()..sort((a, b) => b.lastUsed.compareTo(a.lastUsed));
 
-    return sorted.first.seerrCredentials?.serverUrl;
+    return effectiveJmsSeerrCredentials(sorted.first.seerrCredentials).serverUrl;
   }
 
   void setTempSeerrUrl(String? url) {

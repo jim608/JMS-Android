@@ -15,3 +15,10 @@ After the user's specified JMS changes are complete, if a genuinely new version 
 - Preserve upstream remotes. Push only the checked source snapshot/history to the fixed JMS target; never blindly stage the worktree, push upstream, force-push or upload unrelated/private files.
 - Reuse unchanged signature/dependency evidence only after checking bound hashes. Unknown custody, incompatible licenses, missing corresponding source or failed tests remain blocking; authorization is not a waiver.
 - Resume interrupted runs from saved release state, without duplicate builds/uploads. See `docs/JMS_UPDATES.md` for the single entry point and evidence format.
+
+## Public release copy
+
+- Compare the previous public JMS release with the actual new APK/source. Record only that version's user-visible changes under `# JMS <version>` in `CHANGELOG.md`, using nonempty applicable sections from `新增`, `調整`, `修正`, `移除`, `已知問題`, `更新注意事項` in that order.
+- Write complete, factual Traditional Chinese sentences. Do not copy development status, chat instructions, PASS/FAIL/BLOCKED labels, local paths, secrets, placeholder text or old features into the new release description. Record historical errors as errata, without claiming older binaries were corrected.
+- Generate `docs/JMS_RELEASE_NOTES.zh-Hant.md` from the matching changelog entry with `python scripts/jms_release_notes.py --version <actual-version> --write`. The publisher checks exact equality and uses that one text for the GitHub Release body and packaged notes; the App reads the same GitHub body for update details. The title is `JMS <actual-version>` from APK metadata.
+- Keep `README.md` current for installation, update source, point/request setup, compatibility and licensing. A formal tone does not promote a Prerelease to stable or waive device validation.
