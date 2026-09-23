@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fladder/models/seerr_credentials_model.dart';
@@ -19,7 +20,8 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     storedSessions.clear();
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
       SeerrSessionStore.channel,
       (call) async {
         final key = call.arguments['key'] as String;
@@ -41,26 +43,37 @@ void main() {
         .setMockMethodCallHandler(SeerrSessionStore.channel, null);
   });
 
-  test('new installs and empty sources use correct default without carrying credentials', () {
+  test(
+      'new installs and empty sources use correct default without carrying credentials',
+      () {
     expect(effectiveJmsSeerrCredentials(null).serverUrl, jmsSeerrSource);
     final empty = effectiveJmsSeerrCredentials(
-      const SeerrCredentialsModel(apiKey: 'OLD_ONLY', customHeaders: {'Authorization': 'OLD_ONLY'}),
+      const SeerrCredentialsModel(
+          apiKey: 'OLD_ONLY', customHeaders: {'Authorization': 'OLD_ONLY'}),
     );
     expect(empty.serverUrl, jmsSeerrSource);
     expect(empty.apiKey, isEmpty);
     expect(empty.customHeaders, isEmpty);
-    expect(effectiveJmsSeerrCredentials(null, configuredSource: 'https://custom.invalid').serverUrl,
+    expect(
+        effectiveJmsSeerrCredentials(null,
+                configuredSource: 'https://custom.invalid')
+            .serverUrl,
         'https://custom.invalid');
     FladderConfig.seerrBaseUrl = legacyJmsSeerrSource;
     expect(FladderConfig.seerrBaseUrl, jmsSeerrSource);
-    FladderConfig.fromJson({'baseUrl': 'https://jellyfin.invalid', 'seerrBaseUrl': legacyJmsSeerrSource});
+    FladderConfig.fromJson({
+      'baseUrl': 'https://jellyfin.invalid',
+      'seerrBaseUrl': legacyJmsSeerrSource
+    });
     expect(FladderConfig.seerrBaseUrl, jmsSeerrSource);
     expect(FladderConfig.baseUrl, 'https://jellyfin.invalid');
     FladderConfig.seerrBaseUrl = null;
     FladderConfig.baseUrl = null;
   });
 
-  test('legacy source migrates once, removes old session and preserves other accounts', () async {
+  test(
+      'legacy source migrates once, removes old session and preserves other accounts',
+      () async {
     final preferences = await SharedPreferences.getInstance();
     final helper = SharedHelper(sharedPreferences: preferences);
     await preferences.setString('ambient-sentinel', 'unchanged');
@@ -75,14 +88,17 @@ void main() {
     );
     final customAccount = seerrFixtureAccount(id: 'custom-user').copyWith(
       seerrCredentials: const SeerrCredentialsModel(
-          serverUrl: 'https://custom.invalid', linkedServerId: 'fixture-server', apiKey: 'CUSTOM_ONLY'),
+          serverUrl: 'https://custom.invalid',
+          linkedServerId: 'fixture-server',
+          apiKey: 'CUSTOM_ONLY'),
     );
     await helper.saveAccounts([oldAccount, customAccount]);
     final store = SeerrSessionStore();
     await store.write(oldAccount, 'connect.sid=OLD_ONLY');
     await store.write(customAccount, 'connect.sid=CUSTOM_ONLY');
 
-    expect(helper.getAccounts().first.seerrCredentials?.serverUrl, jmsSeerrSource);
+    expect(
+        helper.getAccounts().first.seerrCredentials?.serverUrl, jmsSeerrSource);
     expect(helper.getAccounts().first.seerrCredentials?.apiKey, isEmpty);
     expect(await helper.migrateJmsSeerrAccounts(), 1);
     final migrated = helper.getAccounts().first;
@@ -95,9 +111,11 @@ void main() {
     expect(await store.read(oldAccount), isNull);
     expect(await store.read(migrated), isNull);
     expect(await store.read(customAccount), 'connect.sid=CUSTOM_ONLY');
-    expect(helper.getAccounts().last.seerrCredentials?.toJson(), customAccount.seerrCredentials?.toJson());
+    expect(helper.getAccounts().last.seerrCredentials?.toJson(),
+        customAccount.seerrCredentials?.toJson());
     expect(await helper.migrateJmsSeerrAccounts(), 0);
-    expect(jsonEncode(helper.getAccounts().first), isNot(contains(legacyJmsSeerrSource)));
+    expect(jsonEncode(helper.getAccounts().first),
+        isNot(contains(legacyJmsSeerrSource)));
     expect(preferences.getString('ambient-sentinel'), 'unchanged');
   });
 
@@ -105,6 +123,86 @@ void main() {
     expect(isLegacyJmsSeerrSource('$legacyJmsSeerrSource/'), isTrue);
     expect(isLegacyJmsSeerrSource('$legacyJmsSeerrSource/api'), isFalse);
     expect(isLegacyJmsSeerrSource('https://example.invalid'), isFalse);
-    expect(normalizeConfiguredSeerrSource('https://custom.invalid'), 'https://custom.invalid');
+    expect(normalizeConfiguredSeerrSource('https://custom.invalid'),
+        'https://custom.invalid');
+  });
+
+  test('startup scrubs plaintext legacy session without changing account data',
+      () async {
+    final preferences = await SharedPreferences.getInstance();
+    final helper = SharedHelper(sharedPreferences: preferences);
+    final account = seerrFixtureAccount().copyWith(
+      seerrCredentials: const SeerrCredentialsModel(
+        serverUrl: jmsSeerrSource,
+        linkedServerId: 'fixture-server',
+        apiKey: 'MAINTENANCE_ONLY',
+      ),
+    );
+    final encoded = jsonDecode(jsonEncode(account)) as Map<String, dynamic>;
+    (encoded['seerrCredentials'] as Map<String, dynamic>)['sessionCookie'] =
+        'connect.sid=PLAINTEXT_LEGACY';
+    await preferences
+        .setStringList('loginCredentialsKey', [jsonEncode(encoded)]);
+
+    expect(
+        helper.getAccounts().single.seerrCredentials?.sessionCookie, isEmpty);
+    expect(await helper.migrateJmsSeerrAccounts(), 0);
+    final saved = preferences.getStringList('loginCredentialsKey')!.single;
+    expect(saved, isNot(contains('PLAINTEXT_LEGACY')));
+    expect(
+        (jsonDecode(saved)['seerrCredentials'] as Map)
+            .containsKey('sessionCookie'),
+        isFalse);
+    expect(helper.getAccounts().single.credentials.toJson(),
+        account.credentials.toJson());
+    expect(helper.getAccounts().single.seerrCredentials?.apiKey,
+        'MAINTENANCE_ONLY');
+    expect(await helper.migrateJmsSeerrAccounts(), 0);
+  });
+
+  test('malformed saved entry does not block or erase another account scrub',
+      () async {
+    final preferences = await SharedPreferences.getInstance();
+    final helper = SharedHelper(sharedPreferences: preferences);
+    final encoded =
+        jsonDecode(jsonEncode(seerrFixtureAccount())) as Map<String, dynamic>;
+    (encoded['seerrCredentials'] as Map<String, dynamic>)['sessionCookie'] =
+        'connect.sid=PLAINTEXT_LEGACY';
+    await preferences.setStringList(
+        'loginCredentialsKey', ['{malformed', jsonEncode(encoded)]);
+
+    expect(await helper.migrateJmsSeerrAccounts(), 0);
+    final saved = preferences.getStringList('loginCredentialsKey')!;
+    expect(saved, hasLength(2));
+    expect(saved.first, '{malformed');
+    expect(saved.last, isNot(contains('PLAINTEXT_LEGACY')));
+    expect(helper.getAccounts(), hasLength(1));
+  });
+
+  test('plaintext cookie is scrubbed even when old secure scope cannot clear',
+      () async {
+    final preferences = await SharedPreferences.getInstance();
+    final helper = SharedHelper(sharedPreferences: preferences);
+    final account = seerrFixtureAccount().copyWith(
+      seerrCredentials: const SeerrCredentialsModel(
+          serverUrl: legacyJmsSeerrSource, linkedServerId: 'fixture-server'),
+    );
+    final encoded = jsonDecode(jsonEncode(account)) as Map<String, dynamic>;
+    (encoded['seerrCredentials'] as Map<String, dynamic>)['sessionCookie'] =
+        'connect.sid=PLAINTEXT_LEGACY';
+    await preferences
+        .setStringList('loginCredentialsKey', [jsonEncode(encoded)]);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+            SeerrSessionStore.channel,
+            (_) async =>
+                throw PlatformException(code: 'secure_store_unavailable'));
+
+    await expectLater(
+        helper.migrateJmsSeerrAccounts(), throwsA(isA<PlatformException>()));
+    final saved = preferences.getStringList('loginCredentialsKey')!.single;
+    expect(saved, isNot(contains('PLAINTEXT_LEGACY')));
+    expect((jsonDecode(saved)['seerrCredentials'] as Map)['serverUrl'],
+        legacyJmsSeerrSource);
   });
 }

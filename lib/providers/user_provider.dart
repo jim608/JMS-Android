@@ -24,8 +24,10 @@ part 'user_provider.g.dart';
 
 @riverpod
 bool showSyncButtonProvider(Ref ref) {
-  final userCanSync = ref.watch(userProvider.select((value) => value?.canDownload ?? false));
-  final hasSyncedItems = ref.watch(syncProvider.select((value) => value.items.isNotEmpty));
+  final userCanSync =
+      ref.watch(userProvider.select((value) => value?.canDownload ?? false));
+  final hasSyncedItems =
+      ref.watch(syncProvider.select((value) => value.items.isNotEmpty));
   return userCanSync || hasSyncedItems;
 }
 
@@ -41,7 +43,8 @@ class User extends _$User {
     }
   }
 
-  Future<Response<bool>> quickConnect(String pin) async => api.quickConnect(pin);
+  Future<Response<bool>> quickConnect(String pin) async =>
+      api.quickConnect(pin);
 
   Future<Response<AccountModel>?> updateInformation() async {
     if (state == null) return null;
@@ -52,7 +55,9 @@ class User extends _$User {
 
       final customConfig = await api.getCustomConfig();
 
-      var imageUrl = ref.read(imageUtilityProvider).getUserImageUrl(response.body?.id ?? "");
+      var imageUrl = ref
+          .read(imageUtilityProvider)
+          .getUserImageUrl(response.body?.id ?? "");
 
       final user = response.body;
       if (user == null) return null;
@@ -98,8 +103,8 @@ class User extends _$User {
 
     final normalizedLanguage = language?.trim().toLowerCase();
     final updated = currentUserConfiguration.copyWithWrapped(
-      subtitleLanguagePreference:
-          Wrapped<String?>.value((normalizedLanguage?.isEmpty ?? true) ? null : normalizedLanguage),
+      subtitleLanguagePreference: Wrapped<String?>.value(
+          (normalizedLanguage?.isEmpty ?? true) ? null : normalizedLanguage),
     );
     final newUserConfiguration = await api.updateUserConfiguration(updated);
     if (newUserConfiguration != null) {
@@ -119,14 +124,16 @@ class User extends _$User {
   }
 
   void setBackwardSpeed(int value) {
-    final userSettings = state?.userSettings?.copyWith(skipBackDuration: Duration(seconds: value));
+    final userSettings = state?.userSettings
+        ?.copyWith(skipBackDuration: Duration(seconds: value));
     if (userSettings != null) {
       updateCustomConfig(userSettings);
     }
   }
 
   void setForwardSpeed(int value) {
-    final userSettings = state?.userSettings?.copyWith(skipForwardDuration: Duration(seconds: value));
+    final userSettings = state?.userSettings
+        ?.copyWith(skipForwardDuration: Duration(seconds: value));
     if (userSettings != null) {
       updateCustomConfig(userSettings);
     }
@@ -172,7 +179,8 @@ class User extends _$User {
         .apiResult;
   }
 
-  Future<Response<UserData>?> setAsFavorite(bool favorite, String itemId) async {
+  Future<Response<UserData>?> setAsFavorite(
+      bool favorite, String itemId) async {
     final response = await (favorite
         ? api.usersUserIdFavoriteItemsItemIdPost(itemId: itemId)
         : api.usersUserIdFavoriteItemsItemIdDelete(itemId: itemId));
@@ -194,22 +202,35 @@ class User extends _$User {
   void clear() => userState = null;
   void updateUser(AccountModel? user) => userState = user;
   void loginUser(AccountModel? user) => state = user;
-  void setAuthMethod(Authentication method) => userState = state?.copyWith(authMethod: method);
+  void setAuthMethod(Authentication method) =>
+      userState = state?.copyWith(authMethod: method);
   void setLocalURL(String? value) {
     final user = state;
     if (user == null) return;
     state = user.copyWith(
-      credentials: user.credentials.copyWith(localUrl: value?.isEmpty == true ? null : value),
+      credentials: user.credentials
+          .copyWith(localUrl: value?.isEmpty == true ? null : value),
     );
     userState = state;
   }
 
-  void setSeerrServerUrl(String? value) {
+  Future<void> setSeerrServerUrl(String? value) async {
     final user = state;
     if (user == null) return;
     final previous = user.seerrCredentials ?? const SeerrCredentialsModel();
-    final nextUrl = (normalizeConfiguredSeerrSource(value) ?? '').replaceAll(RegExp(r'/+$'), '');
-    final changed = previous.serverUrl.replaceAll(RegExp(r'/+$'), '') != nextUrl;
+    final nextUrl = (normalizeConfiguredSeerrSource(value) ?? '')
+        .replaceAll(RegExp(r'/+$'), '');
+    final changed =
+        previous.serverUrl.replaceAll(RegExp(r'/+$'), '') != nextUrl;
+    if (changed) {
+      await ref.read(seerrSessionStoreProvider).write(user, null);
+      final current = state;
+      if (current == null ||
+          !current.sameIdentity(user) ||
+          current.seerrCredentials?.serverUrl != previous.serverUrl) {
+        return;
+      }
+    }
     final updated = previous.copyWith(
         serverUrl: nextUrl,
         linkedServerId: changed ? '' : previous.linkedServerId,
@@ -222,34 +243,43 @@ class User extends _$User {
   Future<void> logoutSeerr() async {
     final user = state;
     if (user == null) return;
-    final updated = (user.seerrCredentials ?? const SeerrCredentialsModel()).copyWith(
-      apiKey: "",
+    await ref.read(seerrSessionStoreProvider).write(user, null);
+    if (state?.sameIdentity(user) != true ||
+        state?.seerrCredentials?.serverUrl !=
+            user.seerrCredentials?.serverUrl) {
+      return;
+    }
+    final updated =
+        (state!.seerrCredentials ?? const SeerrCredentialsModel()).copyWith(
       sessionCookie: "",
     );
-    userState = user.copyWith(seerrCredentials: updated);
-    await ref.read(seerrSessionStoreProvider).write(user, null);
+    userState = state!.copyWith(seerrCredentials: updated);
   }
 
   void setSeerrApiKey(String? value) {
     final user = state;
     if (user == null) return;
-    final updated = (user.seerrCredentials ?? const SeerrCredentialsModel()).copyWith(
+    final updated =
+        (user.seerrCredentials ?? const SeerrCredentialsModel()).copyWith(
       apiKey: value?.trim() ?? "",
     );
     userState = user.copyWith(seerrCredentials: updated);
   }
 
-  Future<void> setSeerrSessionCookie(String? value) async {
+  Future<void> setSeerrSessionCookie(String? value,
+      {bool persist = true}) async {
     final user = state;
     if (user == null) return;
-    await ref.read(seerrSessionStoreProvider).write(user, value);
+    if (persist) await ref.read(seerrSessionStoreProvider).write(user, value);
     final current = state;
     if (current == null ||
         !current.sameIdentity(user) ||
-        current.seerrCredentials?.serverUrl != user.seerrCredentials?.serverUrl) {
+        current.seerrCredentials?.serverUrl !=
+            user.seerrCredentials?.serverUrl) {
       return;
     }
-    final updated = (current.seerrCredentials ?? const SeerrCredentialsModel()).copyWith(
+    final updated =
+        (current.seerrCredentials ?? const SeerrCredentialsModel()).copyWith(
       sessionCookie: value?.trim() ?? "",
     );
     userState = current.copyWith(seerrCredentials: updated);
@@ -262,8 +292,14 @@ class User extends _$User {
     userState = user.copyWith(
         seerrCredentials: SeerrCredentialsModel(
             serverUrl: source,
-            sessionCookie:
-                previous?.serverUrl == source && previous?.apiKey.isEmpty == true ? previous!.sessionCookie : '',
+            apiKey: previous?.serverUrl == source ? previous!.apiKey : '',
+            sessionCookie: previous?.serverUrl == source &&
+                    previous?.apiKey.isEmpty == true
+                ? previous!.sessionCookie
+                : '',
+            customHeaders: previous?.serverUrl == source
+                ? previous!.customHeaders
+                : const {},
             linkedServerId: user.credentials.serverId),
         seerrRequestsEnabled: true);
   }
@@ -271,7 +307,8 @@ class User extends _$User {
   void setSeerrCustomHeaders(Map<String, String> headers) {
     final user = state;
     if (user == null) return;
-    final updated = (user.seerrCredentials ?? const SeerrCredentialsModel()).copyWith(
+    final updated =
+        (user.seerrCredentials ?? const SeerrCredentialsModel()).copyWith(
       customHeaders: headers,
     );
     userState = user.copyWith(seerrCredentials: updated);
@@ -280,7 +317,8 @@ class User extends _$User {
   void clearSeerrCustomHeaders() {
     final user = state;
     if (user == null) return;
-    final updated = (user.seerrCredentials ?? const SeerrCredentialsModel()).copyWith(
+    final updated =
+        (user.seerrCredentials ?? const SeerrCredentialsModel()).copyWith(
       customHeaders: {},
     );
     userState = user.copyWith(seerrCredentials: updated);
@@ -354,8 +392,8 @@ class User extends _$User {
 
   void deleteAllFilters() => userState = state?.copyWith(libraryFilters: []);
 
-  String? createDownloadUrl(ItemBaseModel item) =>
-      Uri.encodeFull("${state?.credentials.url}/Items/${item.id}/Download?api_key=${state?.credentials.token}");
+  String? createDownloadUrl(ItemBaseModel item) => Uri.encodeFull(
+      "${state?.credentials.url}/Items/${item.id}/Download?api_key=${state?.credentials.token}");
 
   Future<void> createNewUser(
     String userName,
@@ -379,6 +417,7 @@ class User extends _$User {
 
   void toggleIncognitoMode() {
     final currentMode = state?.incognitoMode;
-    userState = state?.copyWith(incognitoMode: currentMode == true ? null : true);
+    userState =
+        state?.copyWith(incognitoMode: currentMode == true ? null : true);
   }
 }

@@ -1,26 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:iconsax_plus/iconsax_plus.dart';
 
-import 'package:fladder/models/item_base_model.dart';
+import 'package:fladder/providers/auth_provider.dart';
 import 'package:fladder/providers/seerr_api_provider.dart';
-import 'package:fladder/providers/seerr_dashboard_provider.dart';
-import 'package:fladder/providers/seerr_user_provider.dart';
+import 'package:fladder/providers/seerr_link_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
-import 'package:fladder/screens/settings/widgets/settings_message_box.dart';
+import 'package:fladder/screens/seerr/seerr_link_panel.dart';
+import 'package:fladder/screens/seerr/seerr_support_text.dart';
 import 'package:fladder/screens/shared/adaptive_dialog.dart';
-import 'package:fladder/screens/shared/animated_fade_size.dart';
-import 'package:fladder/screens/shared/fladder_notification_overlay.dart';
-import 'package:fladder/screens/shared/focused_outlined_text_field.dart';
-import 'package:fladder/screens/shared/outlined_text_field.dart';
-import 'package:fladder/seerr/seerr_models.dart';
 import 'package:fladder/seerr/seerr_connection.dart';
 import 'package:fladder/seerr/seerr_source.dart';
-import 'package:fladder/screens/seerr/seerr_support_text.dart';
-import 'package:fladder/screens/seerr/seerr_link_panel.dart';
-import 'package:fladder/util/fladder_config.dart';
-import 'package:fladder/util/localization_helper.dart';
 
 Future<void> showSeerrConnectionDialog(BuildContext context) {
   return showDialogAdaptive(
@@ -29,675 +20,300 @@ Future<void> showSeerrConnectionDialog(BuildContext context) {
   );
 }
 
-enum SeerrAuthTab {
-  jellyfin,
-  local,
-  apiKey;
-
-  String label(BuildContext context) => switch (this) {
-        SeerrAuthTab.apiKey => context.localized.seerrAuthApiKey,
-        SeerrAuthTab.local => context.localized.seerrAuthLocal,
-        SeerrAuthTab.jellyfin => context.localized.seerrAuthJellyfin,
-      };
-}
-
 class SeerrConnectionDialog extends ConsumerStatefulWidget {
   const SeerrConnectionDialog({super.key});
 
   @override
-  ConsumerState<ConsumerStatefulWidget> createState() => _SeerrConnectionDialogState();
+  ConsumerState<SeerrConnectionDialog> createState() =>
+      _SeerrConnectionDialogState();
 }
 
 class _SeerrConnectionDialogState extends ConsumerState<SeerrConnectionDialog> {
+  final passwordController = TextEditingController();
   late final TextEditingController apiKeyController;
-  late final TextEditingController serverController;
-  late final TextEditingController localEmailController;
-  late final TextEditingController localPasswordController;
-  late final TextEditingController jfUsernameController;
-  late final TextEditingController jfPasswordController;
-  late final TextEditingController headerKeyController;
-  late final TextEditingController headerValueController;
-
-  SeerrAuthTab selectedTab = SeerrAuthTab.jellyfin;
-  bool showAdvanced = false;
-  SeerrUserModel? seerrUser;
-  bool loading = true;
+  final headerNameController = TextEditingController();
+  final headerValueController = TextEditingController();
   bool processing = false;
-  String? error;
-  String? warning;
-  String? serviceVersion;
-
-  bool get _hasPresetSeerrBaseUrl =>
-      FladderConfig.seerrBaseUrl?.isNotEmpty == true &&
-      ref.read(userProvider)?.seerrCredentials?.serverUrl.isNotEmpty != true;
+  bool showAdvanced = false;
+  String? localError;
 
   @override
   void initState() {
     super.initState();
-    final creds = ref.read(userProvider)?.seerrCredentials;
-    apiKeyController = TextEditingController(text: creds?.apiKey ?? '');
-    serverController = TextEditingController(
-        text: creds?.serverUrl.isNotEmpty == true ? creds!.serverUrl : FladderConfig.seerrBaseUrl ?? jmsSeerrSource);
-    localEmailController = TextEditingController();
-    localPasswordController = TextEditingController();
-    jfUsernameController = TextEditingController();
-    jfPasswordController = TextEditingController();
-    headerKeyController = TextEditingController();
-    headerValueController = TextEditingController();
-    customHeaders.addAll(creds?.customHeaders ?? {});
-    Future.microtask(_refreshSession);
+    apiKeyController = TextEditingController(
+        text: ref.read(userProvider)?.seerrCredentials?.apiKey ?? '');
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        unawaited(ref.read(authProvider.notifier).beginSeerrSession());
+      }
+    });
   }
 
   @override
   void dispose() {
+    passwordController.dispose();
     apiKeyController.dispose();
-    serverController.dispose();
-    localEmailController.dispose();
-    localPasswordController.dispose();
-    jfUsernameController.dispose();
-    jfPasswordController.dispose();
-    headerKeyController.dispose();
+    headerNameController.dispose();
     headerValueController.dispose();
     super.dispose();
   }
 
-  final Map<String, String> customHeaders = {};
-
-  void _addHeader() {
-    final key = headerKeyController.text.trim();
-    final value = headerValueController.text.trim();
-    if (key.isEmpty) return;
-    setState(() {
-      customHeaders[key] = value;
-      headerKeyController.text = '';
-      headerValueController.text = '';
-    });
-    ref.read(userProvider.notifier).setSeerrCustomHeaders(customHeaders);
+  void _saveAdvanced() {
+    if (processing || ref.read(userProvider) == null) return;
+    final previous = ref.read(userProvider)!.seerrCredentials;
+    final headers = Map<String, String>.of(previous?.customHeaders ?? const {});
+    final name = headerNameController.text.trim();
+    if (name.isNotEmpty) {
+      headers[name] = headerValueController.text;
+      headerNameController.clear();
+      headerValueController.clear();
+    }
+    ref
+        .read(userProvider.notifier)
+        .setSeerrApiKey(apiKeyController.text.trim());
+    ref.read(userProvider.notifier).setSeerrCustomHeaders(headers);
+    setState(() => localError = null);
   }
 
-  void _removeHeader(String key) {
-    setState(() {
-      customHeaders.remove(key);
-    });
-    ref.read(userProvider.notifier).setSeerrCustomHeaders(customHeaders);
+  void _removeHeader(String name) {
+    final headers = Map<String, String>.of(
+        ref.read(userProvider)?.seerrCredentials?.customHeaders ?? const {});
+    headers.remove(name);
+    ref.read(userProvider.notifier).setSeerrCustomHeaders(headers);
   }
 
-  Future<void> _refreshSession() async {
-    final serverUrl = serverController.text.trim().isNotEmpty
-        ? serverController.text.trim()
-        : FladderConfig.seerrBaseUrl ?? jmsSeerrSource;
-    if (serverUrl.isNotEmpty) {
-      if (!_hasPresetSeerrBaseUrl) {
-        ref.read(userProvider.notifier).setSeerrServerUrl(serverUrl);
-      }
-      serverController.text = serverUrl;
-    }
+  String _statusLabel(String status) => switch (status) {
+        'connected' => seerrText(context, 'Connected', '已連接'),
+        'connecting' => seerrText(context, 'Connecting', '連接中'),
+        'needs_auth' ||
+        'session_missing' ||
+        'session_expired' ||
+        'authentication_failed' =>
+          seerrText(context, 'Verify your Jellyfin account', '需要重新驗證'),
+        'service_unavailable' =>
+          seerrText(context, 'Service unavailable', '服務不可用'),
+        'binding_required' =>
+          seerrText(context, 'Confirm Jellyseerr account link', '確認點片帳號連結'),
+        _ => seerrError(context, SeerrFailure(status)),
+      };
 
-    final creds = ref.read(userProvider)?.seerrCredentials;
-    final hasApiKey = creds?.apiKey.isNotEmpty == true;
-    final hasSessionCookie = creds?.sessionCookie.isNotEmpty == true;
-
-    if (!hasApiKey && !hasSessionCookie) {
-      if (!mounted) return;
-      setState(() {
-        seerrUser = null;
-        error = null;
-        loading = false;
-      });
-      return;
-    }
-
-    setState(() {
-      loading = true;
-      error = null;
-    });
-
-    try {
-      final user = await ref.read(seerrUserProvider.notifier).refreshUser();
-      if (!mounted) return;
-
-      seerrUser = user;
-      error = user == null ? context.localized.seerrUserFetchFailed : null;
-    } catch (e) {
-      if (!mounted) return;
-      seerrUser = null;
-      error = seerrError(context, e);
-    } finally {
-      if (mounted) {
-        loading = false;
-        setState(() {});
-      }
-    }
-  }
-
-  Future<bool> _applyServerUrl() async {
-    warning = null;
-    error = null;
-    final rawUrl = serverController.text.trim();
-    if (rawUrl.isEmpty) {
-      if (mounted) {
-        setState(() {
-          error = context.localized.seerrEnterServerUrlFirst;
-        });
-      }
-      return false;
-    }
-
-    try {
-      final uri = seerrBaseUri(normalizeConfiguredSeerrSource(rawUrl) ?? rawUrl);
-      serverController.text = uri.toString();
-      final before = ref.read(userProvider)?.seerrCredentials?.serverUrl;
-      ref.read(userProvider.notifier).setSeerrServerUrl(uri.toString());
-      if (before != uri.toString()) customHeaders.clear();
-      if (uri.scheme == 'http') {
-        warning = seerrText(
-            context,
-            'HTTP is unencrypted. Use only on a trusted private network; HTTPS is recommended.',
-            'HTTP 未加密，僅適用可信內網；建議使用 HTTPS。');
-      }
-    } catch (failure) {
-      setState(() => error = seerrError(context, failure));
-      return false;
-    }
-    if (mounted) setState(() {});
-    return true;
-  }
-
-  Future<bool> _beginProcessing() async {
-    if (processing) return false;
+  Future<void> _testConnection() async {
+    if (processing) return;
     setState(() {
       processing = true;
-      error = null;
-      warning = null;
+      localError = null;
     });
-    if (!await _applyServerUrl()) {
+    try {
+      await ref.read(authProvider.notifier).beginSeerrSession(manual: true);
+    } catch (_) {
+      if (mounted) localError = _statusLabel('service_unavailable');
+    } finally {
       if (mounted) setState(() => processing = false);
-      return false;
-    }
-    return true;
-  }
-
-  Future<void> _useApiKey() async {
-    if (!await _beginProcessing()) return;
-
-    final apiKey = apiKeyController.text.trim();
-    ref.read(userProvider.notifier).setSeerrApiKey(apiKey);
-    if (apiKey.isNotEmpty) {
-      await ref.read(userProvider.notifier).setSeerrSessionCookie('');
-    }
-
-    await _refreshSession();
-
-    if (mounted) {
-      FladderSnack.show(context.localized.seerrApiKeySaved, context: context);
-    }
-
-    if (mounted) {
-      setState(() {
-        processing = false;
-      });
-      ref.read(seerrDashboardProvider.notifier).clear();
     }
   }
 
-  Future<void> _loginLocal() async {
-    if (!await _beginProcessing()) return;
-    final service = ref.read(seerrApiProvider);
-
+  Future<void> _verify() async {
+    if (processing || passwordController.text.isEmpty) return;
+    final account = ref.read(userProvider);
+    if (account == null) return;
+    setState(() {
+      processing = true;
+      localError = null;
+    });
     try {
-      final cookie = await service.authenticateLocal(
-        email: localEmailController.text.trim(),
-        password: localPasswordController.text,
-        headers: customHeaders.isEmpty ? null : customHeaders,
-      );
-      if (!mounted || !identical(service, ref.read(seerrApiProvider))) return;
-      await ref.read(userProvider.notifier).setSeerrSessionCookie(cookie);
-      ref.read(userProvider.notifier).setSeerrApiKey('');
-      await _refreshSession();
-      if (mounted) {
-        FladderSnack.show(context.localized.seerrLoggedIn, context: context);
-      }
-    } catch (e) {
-      if (mounted) {
-        final message = seerrError(context, e);
-        error = message;
-        FladderSnack.show(message, context: context);
-      }
+      final pending = ref.read(authProvider.notifier).beginSeerrSession(
+          username: account.name,
+          password: passwordController.text,
+          manual: true);
+      passwordController.clear();
+      await pending;
+    } catch (_) {
+      if (mounted) localError = _statusLabel('service_unavailable');
     } finally {
-      if (mounted) {
-        localPasswordController.clear();
-        setState(() {
-          processing = false;
-        });
-        ref.read(seerrDashboardProvider.notifier).clear();
-      }
-    }
-  }
-
-  Future<void> _loginJellyfin() async {
-    if (!await _beginProcessing()) return;
-    final service = ref.read(seerrApiProvider);
-
-    try {
-      final cookie = await service.authenticateJellyfin(
-        username: jfUsernameController.text.trim(),
-        password: jfPasswordController.text,
-        headers: customHeaders.isEmpty ? null : customHeaders,
-      );
-      if (!mounted || !identical(service, ref.read(seerrApiProvider))) return;
-      await ref.read(userProvider.notifier).setSeerrSessionCookie(cookie);
-      ref.read(userProvider.notifier).setSeerrApiKey('');
-      await _refreshSession();
-      if (mounted) {
-        FladderSnack.show(context.localized.seerrLoggedIn, context: context);
-      }
-    } catch (e) {
-      if (mounted) {
-        final message = seerrError(context, e);
-        error = message;
-        FladderSnack.show(message, context: context);
-      }
-    } finally {
-      if (mounted) {
-        jfPasswordController.clear();
-        setState(() {
-          processing = false;
-        });
-        ref.read(seerrDashboardProvider.notifier).clear();
-      }
+      passwordController.clear();
+      if (mounted) setState(() => processing = false);
     }
   }
 
   Future<void> _logout() async {
     if (processing) return;
-    final serverUrl = serverController.text.trim();
-    if (serverUrl.isNotEmpty) {
-      ref.read(userProvider.notifier).setSeerrServerUrl(serverUrl);
-    }
+    final account = ref.read(userProvider);
+    if (account == null) return;
     setState(() {
       processing = true;
-      error = null;
-      warning = null;
+      localError = null;
     });
-
-    final service = ref.read(seerrApiProvider);
     try {
-      await service.logout();
-    } catch (e) {
-      if (mounted) {
-        final message = seerrError(context, e);
-        error = message;
-        FladderSnack.show(message, context: context);
+      if (ref.read(seerrLinkProvider) == 'connected' &&
+          account.seerrCredentials?.serverUrl == jmsSeerrSource &&
+          account.seerrCredentials?.linkedServerId ==
+              account.credentials.serverId) {
+        try {
+          await ref.read(seerrApiProvider).logout();
+        } catch (_) {}
+      }
+      if (ref.read(userProvider)?.sameIdentity(account) == true) {
+        await ref.read(userProvider.notifier).setSeerrSessionCookie('');
+        ref.invalidate(seerrLinkProvider);
       }
     } finally {
-      if (mounted && identical(service, ref.read(seerrApiProvider))) {
-        await ref.read(userProvider.notifier).logoutSeerr();
-        await _refreshSession();
-      }
-      if (mounted) {
-        setState(() {
-          processing = false;
-        });
-      }
-    }
-  }
-
-  Widget _header(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            context.localized.seerr,
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-        ),
-        IconButton(
-          onPressed: () => Navigator.of(context).pop(),
-          icon: const Icon(IconsaxPlusBold.close_circle),
-        ),
-      ],
-    );
-  }
-
-  Widget _errorBanner() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.errorContainer,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Icon(IconsaxPlusLinear.warning_2, color: Theme.of(context).colorScheme.onErrorContainer),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              error!,
-              maxLines: 4,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onErrorContainer,
-                  ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _loggedInContent() {
-    final serverUrl = ref.read(userProvider)?.seerrCredentials?.serverUrl ?? '';
-    final displayName =
-        seerrUser?.displayName ?? seerrUser?.username ?? seerrUser?.email ?? context.localized.seerrUnknownUser;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      spacing: 12,
-      children: [
-        if (error != null) _errorBanner(),
-        const SeerrDiagnosticButton(),
-        if (warning != null) SettingsMessageBox(warning!, messageType: MessageType.warning),
-        if (serverUrl.isNotEmpty)
-          Flexible(
-            child: Text(
-              context.localized.seerrConnectedToServer(serverUrl),
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ),
-        Row(
-          spacing: 8,
-          children: [
-            seerrUser?.avatar != null && seerrUser!.avatar!.isNotEmpty
-                ? CircleAvatar(backgroundImage: NetworkImage(seerrUser!.avatar!))
-                : CircleAvatar(child: Icon(FladderItemType.person.icon)),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(displayName),
-                Text(seerrUser?.email ?? seerrUser?.username ?? ''),
-              ],
-            )
-          ],
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            FilledButton(
-              onPressed: processing ? null : _logout,
-              child: Text(context.localized.logout),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _authContent() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      spacing: 12,
-      children: [
-        OutlinedButton.icon(
-            onPressed: processing
-                ? null
-                : () async {
-                    if (!await _beginProcessing()) return;
-                    try {
-                      final response = await ref.read(seerrApiProvider).status();
-                      seerrCheckStatus(response.statusCode);
-                      if (response.body?.version == null) {
-                        throw const SeerrFailure('invalid_response');
-                      }
-                      if (mounted) {
-                        setState(() => serviceVersion = response.body!.version);
-                      }
-                    } catch (failure) {
-                      if (mounted) {
-                        setState(() => error = seerrError(context, failure));
-                      }
-                    } finally {
-                      if (mounted) setState(() => processing = false);
-                    }
-                  },
-            icon: const Icon(Icons.network_check),
-            label: Text(seerrText(context, 'Test connection / version', '測試連線／版本'))),
-        if (serviceVersion != null) Text('Seerr $serviceVersion'),
-        if (error != null) _errorBanner(),
-        const SeerrDiagnosticButton(),
-        if (warning != null) SettingsMessageBox(warning!, messageType: MessageType.warning),
-        FocusedOutlinedTextField(
-          label: context.localized.seerrServer,
-          controller: serverController,
-          keyboardType: TextInputType.url,
-          textInputAction: TextInputAction.next,
-          enabled: !_hasPresetSeerrBaseUrl,
-          onSubmitted: (_) async {
-            await _applyServerUrl();
-            await _refreshSession();
-          },
-        ),
-        const SizedBox(height: 8),
-        TextButton(
-          onPressed: () => setState(() {
-            showAdvanced = !showAdvanced;
-            if (!showAdvanced) selectedTab = SeerrAuthTab.jellyfin;
-          }),
-          child: Text(seerrText(context, showAdvanced ? 'Hide advanced settings' : 'Advanced settings',
-              showAdvanced ? '收合進階設定' : '進階設定')),
-        ),
-        if (showAdvanced)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Text(
-                  context.localized.seerrCustomHeaders,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: OutlinedTextField(
-                      label: context.localized.seerrHeader,
-                      controller: headerKeyController,
-                      textInputAction: TextInputAction.next,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 4,
-                    child: OutlinedTextField(
-                      label: context.localized.seerrHeaderValue,
-                      controller: headerValueController,
-                      textInputAction: TextInputAction.done,
-                      onSubmitted: (_) {
-                        _addHeader();
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    onPressed: _addHeader,
-                    icon: const Icon(IconsaxPlusBold.add_circle),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              if (customHeaders.isNotEmpty)
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: customHeaders.entries
-                      .map(
-                        (e) => InputChip(
-                          label: Text('${e.key}: ${e.value}'),
-                          onDeleted: () => _removeHeader(e.key),
-                        ),
-                      )
-                      .toList(),
-                ),
-            ],
-          ),
-        if (showAdvanced)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: SegmentedButton<SeerrAuthTab>(
-              segments: SeerrAuthTab.values
-                  .map(
-                    (tab) => ButtonSegment(
-                      value: tab,
-                      label: Text(tab.label(context)),
-                    ),
-                  )
-                  .toList(),
-              selected: {selectedTab},
-              onSelectionChanged: (value) {
-                setState(() {
-                  selectedTab = value.first;
-                });
-              },
-              showSelectedIcon: false,
-            ),
-          ),
-        AnimatedFadeSize(child: _authForm()),
-      ],
-    );
-  }
-
-  Widget _authForm() {
-    switch (selectedTab) {
-      case SeerrAuthTab.apiKey:
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          spacing: 12,
-          children: [
-            FocusedOutlinedTextField(
-              label: context.localized.seerrAuthApiKey,
-              controller: apiKeyController,
-              keyboardType: TextInputType.visiblePassword,
-              onSubmitted: (_) => _useApiKey(),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                FilledButton(
-                  onPressed: processing ? null : _useApiKey,
-                  child: processing
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator())
-                      : Text(context.localized.save),
-                ),
-              ],
-            ),
-          ],
-        );
-      case SeerrAuthTab.local:
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          spacing: 12,
-          children: [
-            AutofillGroup(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                spacing: 12,
-                children: [
-                  OutlinedTextField(
-                    label: context.localized.emailUsername,
-                    controller: localEmailController,
-                    keyboardType: TextInputType.emailAddress,
-                    textInputAction: TextInputAction.next,
-                  ),
-                  OutlinedTextField(
-                    controller: localPasswordController,
-                    textInputAction: TextInputAction.done,
-                    keyboardType: TextInputType.visiblePassword,
-                    label: context.localized.password,
-                    onSubmitted: (_) => _loginLocal(),
-                  ),
-                ],
-              ),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                FilledButton(
-                  onPressed: processing ? null : _loginLocal,
-                  child: processing
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator())
-                      : Text(context.localized.login),
-                ),
-              ],
-            ),
-          ],
-        );
-      case SeerrAuthTab.jellyfin:
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          spacing: 12,
-          children: [
-            AutofillGroup(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                spacing: 12,
-                children: [
-                  OutlinedTextField(
-                    label: context.localized.username,
-                    controller: jfUsernameController,
-                    textInputAction: TextInputAction.next,
-                  ),
-                  OutlinedTextField(
-                    controller: jfPasswordController,
-                    textInputAction: TextInputAction.done,
-                    keyboardType: TextInputType.visiblePassword,
-                    label: context.localized.password,
-                    onSubmitted: (_) => _loginJellyfin(),
-                  ),
-                ],
-              ),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                FilledButton(
-                  onPressed: processing ? null : _loginJellyfin,
-                  child: processing
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator())
-                      : Text(context.localized.login),
-                ),
-              ],
-            ),
-          ],
-        );
+      if (mounted) setState(() => processing = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxWidth: 640,
-        maxHeight: MediaQuery.sizeOf(context).height * 0.85,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          spacing: 12,
-          children: [
-            _header(context),
-            if (loading)
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: CircularProgressIndicator(strokeCap: StrokeCap.round),
-              )
-            else
-              AnimatedFadeSize(child: seerrUser != null ? _loggedInContent() : _authContent()),
-          ],
+    final account = ref.watch(userProvider);
+    final status = ref.watch(seerrLinkProvider);
+    final credentials = account?.seerrCredentials;
+    final needsVerification = {
+      'needs_auth',
+      'session_missing',
+      'session_expired',
+      'authentication_failed'
+    }.contains(status);
+    final bound = account != null &&
+        credentials?.serverUrl == jmsSeerrSource &&
+        credentials?.linkedServerId == account.credentials.serverId;
+    final oldSource = credentials?.serverUrl;
+
+    return AlertDialog(
+      title: Text(seerrText(context, 'Jellyseerr', 'Jellyseerr')),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('${seerrText(context, 'Service', '服務')}：$jmsSeerrSource'),
+              const SizedBox(height: 8),
+              Text(
+                  '${seerrText(context, 'Account', '帳號')}：${account?.name ?? '—'}'),
+              const SizedBox(height: 8),
+              Text(
+                  '${seerrText(context, 'Status', '狀態')}：${_statusLabel(status)}'),
+              if (localError != null) ...[
+                const SizedBox(height: 8),
+                Text(localError!,
+                    style:
+                        TextStyle(color: Theme.of(context).colorScheme.error)),
+              ],
+              const SeerrDiagnosticButton(),
+              if (status == 'binding_required' && account != null) ...[
+                const SizedBox(height: 12),
+                FilledButton(
+                  onPressed: processing
+                      ? null
+                      : () => openSeerrAccountLink(context, ref),
+                  child: Text(seerrText(
+                      context, 'Link my Jellyfin account', '連結我的 Jellyfin 帳號')),
+                ),
+              ],
+              if (needsVerification && account != null) ...[
+                const SizedBox(height: 12),
+                Text(seerrText(
+                    context, 'Verify Jellyfin account', '驗證 Jellyfin 帳號')),
+                Text(account.name),
+                TextField(
+                  controller: passwordController,
+                  obscureText: true,
+                  enableSuggestions: false,
+                  autocorrect: false,
+                  enabled: !processing,
+                  decoration: InputDecoration(
+                      labelText: seerrText(
+                          context, 'Jellyfin password', 'Jellyfin 密碼')),
+                  onSubmitted: (_) => _verify(),
+                ),
+                const SizedBox(height: 8),
+                FilledButton(
+                  onPressed: processing ? null : _verify,
+                  child: Text(seerrText(context, 'Verify', '重新驗證')),
+                ),
+              ],
+              if (account != null) ...[
+                const SizedBox(height: 12),
+                TextButton(
+                  key: const Key('seerr-advanced-settings'),
+                  onPressed: () => setState(() => showAdvanced = !showAdvanced),
+                  child: Text(seerrText(context, 'Advanced settings', '進階設定')),
+                ),
+                if (showAdvanced) ...[
+                  Text(seerrText(
+                      context,
+                      'Existing API keys and custom headers remain saved but are not used for your Jellyfin session.',
+                      '既有 API Key 與自訂標頭保留，但不會用於 Jellyfin 本人 Session。')),
+                  TextField(
+                    key: const Key('seerr-maintenance-api-key'),
+                    controller: apiKeyController,
+                    obscureText: true,
+                    enableSuggestions: false,
+                    autocorrect: false,
+                    decoration: InputDecoration(
+                      labelText: seerrText(
+                          context,
+                          'Maintenance API key (not for personal sign-in)',
+                          '維護用 API Key（非本人登入）'),
+                    ),
+                  ),
+                  for (final name
+                      in credentials?.customHeaders.keys ?? <String>[])
+                    Row(children: [
+                      Expanded(child: Text(name)),
+                      IconButton(
+                        onPressed: () => _removeHeader(name),
+                        icon: const Icon(Icons.delete_outline),
+                      ),
+                    ]),
+                  TextField(
+                    controller: headerNameController,
+                    decoration: InputDecoration(
+                      labelText: seerrText(context, 'Header name', '標頭名稱'),
+                    ),
+                  ),
+                  TextField(
+                    controller: headerValueController,
+                    obscureText: true,
+                    enableSuggestions: false,
+                    autocorrect: false,
+                    decoration: InputDecoration(
+                      labelText: seerrText(context, 'Header value', '標頭內容'),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _saveAdvanced,
+                    child: Text(seerrText(
+                        context, 'Save maintenance settings', '儲存維護設定')),
+                  ),
+                  if (oldSource?.isNotEmpty == true &&
+                      oldSource != jmsSeerrSource)
+                    Text(seerrText(
+                        context,
+                        'The previous custom service remains saved. Editing its URL is disabled in personal sign-in; linking this JMS service requires explicit confirmation.',
+                        '先前的自訂服務設定仍保留。')),
+                ],
+              ],
+            ],
+          ),
         ),
       ),
+      actions: [
+        TextButton(
+          onPressed: processing || account == null ? null : _testConnection,
+          child: Text(seerrText(context, 'Test connection', '測試連線')),
+        ),
+        if (bound)
+          TextButton(
+            onPressed: processing ? null : _logout,
+            child: Text(
+                seerrText(context, 'Log out of request service', '登出點片服務')),
+          ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(seerrText(context, 'Close', '關閉')),
+        ),
+      ],
     );
   }
 }

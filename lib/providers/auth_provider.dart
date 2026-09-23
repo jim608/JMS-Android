@@ -15,11 +15,13 @@ import 'package:fladder/providers/image_provider.dart';
 import 'package:fladder/providers/library_screen_provider.dart';
 import 'package:fladder/providers/music_dashboard_provider.dart';
 import 'package:fladder/providers/seerr_api_provider.dart';
+import 'package:fladder/providers/seerr_link_provider.dart';
 import 'package:fladder/providers/seerr_dashboard_provider.dart';
 import 'package:fladder/providers/service_provider.dart';
 import 'package:fladder/providers/shared_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/seerr/seerr_source.dart';
+import 'package:fladder/seerr/seerr_session_store.dart';
 import 'package:fladder/providers/views_provider.dart';
 import 'package:fladder/screens/login/lock_screen.dart';
 import 'package:fladder/screens/shared/fladder_notification_overlay.dart';
@@ -28,7 +30,8 @@ import 'package:fladder/util/fladder_config.dart';
 import 'package:fladder/util/list_extensions.dart';
 import 'package:fladder/util/localization_helper.dart';
 
-final authProvider = StateNotifierProvider<AuthNotifier, LoginScreenModel>((ref) {
+final authProvider =
+    StateNotifierProvider<AuthNotifier, LoginScreenModel>((ref) {
   return AuthNotifier(ref);
 });
 
@@ -61,26 +64,31 @@ class AuthNotifier extends StateNotifier<LoginScreenModel> {
     }
     state = state.copyWith(
       accounts: currentAccounts,
-      screen: currentAccounts.isEmpty ? LoginScreenType.login : LoginScreenType.users,
+      screen: currentAccounts.isEmpty
+          ? LoginScreenType.login
+          : LoginScreenType.users,
     );
   }
 
   Future<void> _fetchServerInfo(String url) async {
     try {
-      final newCredentials = CredentialsModel.createNewCredentials().copyWith(url: url);
+      final newCredentials =
+          CredentialsModel.createNewCredentials().copyWith(url: url);
       final newLoginModel = ServerLoginModel(tempCredentials: newCredentials);
       state = state.copyWith(
         serverLoginModel: newLoginModel,
         loading: true,
       );
       final publicUsers = (await getPublicUsers())?.body ?? [];
-      final quickConnectStatus = (await api.quickConnectEnabled()).body ?? false;
+      final quickConnectStatus =
+          (await api.quickConnectEnabled()).body ?? false;
       final branding = await api.getBranding();
       final serverResponse = await api.systemInfoPublicGet();
       final serverId = serverResponse.body?.id ?? "";
       state = state.copyWith(
         errorMessage: null,
-        screen: quickConnectStatus ? LoginScreenType.code : LoginScreenType.login,
+        screen:
+            quickConnectStatus ? LoginScreenType.code : LoginScreenType.login,
         serverLoginModel: newLoginModel.copyWith(
           tempCredentials: newCredentials.copyWith(
             serverName: serverResponse.body?.serverName ?? "",
@@ -133,23 +141,49 @@ class AuthNotifier extends StateNotifier<LoginScreenModel> {
     return _createAccountModel(response).apiResult;
   }
 
-  Future<Response<AccountModel>?> authenticateByName(String userName, String password) async {
+  Future<Response<AccountModel>?> authenticateByName(
+      String userName, String password) async {
     clearAllProviders();
-    var response = await api.usersAuthenticateByNamePost(userName: userName, password: password);
+    var response = await api.usersAuthenticateByNamePost(
+        userName: userName, password: password);
     return _createAccountModel(response);
   }
 
-  Future<Response<AccountModel>> _createAccountModel(Response<AuthenticationResult> response) async {
+  Future<void> beginSeerrSession(
+      {String? username, String? password, bool manual = false}) {
+    final account = ref.read(userProvider);
+    if (account == null || account.credentials.serverId.isEmpty) {
+      return Future.value();
+    }
+    final autoBind = account.seerrCredentials == null ||
+        (account.seerrCredentials?.serverUrl == jmsSeerrSource &&
+            account.seerrCredentials?.linkedServerId.isEmpty == true);
+    if (autoBind) {
+      ref.read(userProvider.notifier).bindSeerrAccount(jmsSeerrSource);
+    }
+    return ref.read(seerrLinkProvider.notifier).ensure(
+        username: username,
+        password: password,
+        manual: manual,
+        requireServerProof: autoBind || password != null,
+        jellyfinAuthSuccess: password != null ? true : null);
+  }
+
+  Future<Response<AccountModel>> _createAccountModel(
+      Response<AuthenticationResult> response) async {
     CredentialsModel? credentials = state.serverLoginModel?.tempCredentials;
     if (credentials == null) return Response(response.base, null);
-    if (response.isSuccessful && (response.body?.accessToken?.isNotEmpty ?? false)) {
+    if (response.isSuccessful &&
+        (response.body?.accessToken?.isNotEmpty ?? false)) {
       var serverResponse = await api.systemInfoPublicGet();
       credentials = credentials.copyWith(
         token: response.body?.accessToken ?? "",
         serverId: response.body?.serverId ?? "",
         serverName: serverResponse.body?.serverName ?? "",
       );
-      var imageUrl = ref.read(imageUtilityProvider).getUserImageUrl(response.body?.user?.id ?? "");
+      var imageUrl = ref
+          .read(imageUtilityProvider)
+          .getUserImageUrl(response.body?.user?.id ?? "");
       AccountModel newUser = AccountModel(
         name: response.body?.user?.name ?? "",
         id: response.body?.user?.id ?? "",
@@ -159,7 +193,8 @@ class AuthNotifier extends StateNotifier<LoginScreenModel> {
       );
       ref.read(sharedUtilityProvider).addAccount(newUser);
       ref.read(userProvider.notifier).userState = newUser;
-      final currentAccounts = ref.read(authProvider.notifier).getSavedAccounts();
+      final currentAccounts =
+          ref.read(authProvider.notifier).getSavedAccounts();
 
       state = state.copyWith(
         accounts: currentAccounts,
@@ -173,21 +208,32 @@ class AuthNotifier extends StateNotifier<LoginScreenModel> {
   Future<Response?> logOutUser() async {
     final currentUser = ref.read(userProvider);
     state = state.copyWith(serverLoginModel: null);
-    await ref.read(sharedUtilityProvider).removeAccount(currentUser);
-
     try {
-      await ref.read(seerrApiProvider).logout();
-    } catch (e) {
-      // Ignore logout errors for seerr
-    }
-    try {
-      if (currentUser != null && ref.read(userProvider)?.sameIdentity(currentUser) == true) {
-        await ref.read(userProvider.notifier).logoutSeerr();
+      if (currentUser != null &&
+          ref.read(userProvider)?.sameIdentity(currentUser) == true &&
+          currentUser.seerrCredentials?.serverUrl == jmsSeerrSource &&
+          currentUser.seerrCredentials?.linkedServerId ==
+              currentUser.credentials.serverId &&
+          ref.read(seerrLinkProvider) == 'connected') {
+        try {
+          await ref.read(seerrApiProvider).logout();
+        } catch (_) {}
       }
     } finally {
-      if (currentUser != null && ref.read(userProvider)?.sameIdentity(currentUser) == true) {
-        clearAllProviders();
+      if (currentUser != null) {
+        await ref.read(seerrSessionStoreProvider).write(currentUser, null);
+        if (ref.read(userProvider)?.sameIdentity(currentUser) == true) {
+          await ref
+              .read(userProvider.notifier)
+              .setSeerrSessionCookie('', persist: false);
+        }
       }
+    }
+    await ref.read(sharedUtilityProvider).removeAccount(currentUser);
+    if (currentUser != null &&
+        (ref.read(userProvider) == null ||
+            ref.read(userProvider)?.sameIdentity(currentUser) == true)) {
+      clearAllProviders();
     }
     return null;
   }
@@ -222,7 +268,8 @@ class AuthNotifier extends StateNotifier<LoginScreenModel> {
   }
 
   List<AccountModel> getSavedAccounts() {
-    state = state.copyWith(accounts: ref.read(sharedUtilityProvider).getAccounts());
+    state =
+        state.copyWith(accounts: ref.read(sharedUtilityProvider).getAccounts());
     return state.accounts;
   }
 
@@ -250,21 +297,27 @@ class AuthNotifier extends StateNotifier<LoginScreenModel> {
     if (serverId == null || serverId.isEmpty) return FladderConfig.seerrBaseUrl;
     final matches = state.accounts.where(
       (account) =>
-          account.credentials.serverId == serverId && (account.seerrCredentials?.serverUrl.isNotEmpty ?? false),
+          account.credentials.serverId == serverId &&
+          (account.seerrCredentials?.serverUrl.isNotEmpty ?? false),
     );
 
     if (matches.isEmpty) return FladderConfig.seerrBaseUrl;
 
-    final sorted = matches.toList()..sort((a, b) => b.lastUsed.compareTo(a.lastUsed));
+    final sorted = matches.toList()
+      ..sort((a, b) => b.lastUsed.compareTo(a.lastUsed));
 
-    return effectiveJmsSeerrCredentials(sorted.first.seerrCredentials).serverUrl;
+    return effectiveJmsSeerrCredentials(sorted.first.seerrCredentials)
+        .serverUrl;
   }
 
   void setTempSeerrUrl(String? url) {
-    state = state.copyWith(tempSeerrUrl: url?.trim().isEmpty == true ? null : url?.trim());
+    state = state.copyWith(
+        tempSeerrUrl: url?.trim().isEmpty == true ? null : url?.trim());
   }
 
   void setTempSeerrSessionCookie(String? cookie) {
-    state = state.copyWith(tempSeerrSessionCookie: cookie?.trim().isEmpty == true ? null : cookie?.trim());
+    state = state.copyWith(
+        tempSeerrSessionCookie:
+            cookie?.trim().isEmpty == true ? null : cookie?.trim());
   }
 }

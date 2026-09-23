@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import tempfile
 import unittest
 
@@ -42,9 +43,14 @@ class ReleaseNotesTests(unittest.TestCase):
 
     def test_current_notes_are_exactly_one_version_from_changelog(self):
         root = Path(__file__).resolve().parents[1]
-        current = release_notes_for(root / 'CHANGELOG.md', '0.11.1-jms.12')
+        version = re.search(r'^version:\s*([^\s+]+)\+\d+$',
+                            (root / 'pubspec.yaml').read_text(encoding='utf-8'), re.MULTILINE)
+        self.assertIsNotNone(version)
+        current = release_notes_for(root / 'CHANGELOG.md', version.group(1))
         self.assertEqual(current, require_current_notes(
-            root / 'CHANGELOG.md', root / 'docs/JMS_RELEASE_NOTES.zh-Hant.md', '0.11.1-jms.12'))
+            root / 'CHANGELOG.md', root / 'docs/JMS_RELEASE_NOTES.zh-Hant.md', version.group(1)))
+        prior = release_notes_for(root / 'CHANGELOG.md', '0.11.1-jms.12')
+        self.assertTrue(prior.startswith('# JMS 0.11.1-jms.12\n'))
         historical = release_notes_for(root / 'CHANGELOG.md', '0.11.1-jms.11')
         self.assertTrue(historical.startswith('# JMS 0.11.1-jms.11\n'))
         self.assertIn('https://legacy-seerr.example.invalid', historical)

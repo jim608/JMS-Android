@@ -1,4 +1,3 @@
-
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:chopper/chopper.dart';
@@ -14,6 +13,8 @@ import 'package:fladder/seerr/seerr_chopper_service.dart';
 import 'package:fladder/seerr/seerr_models.dart';
 import 'package:fladder/seerr/seerr_issue_models.dart';
 import 'package:fladder/seerr/seerr_connection.dart';
+import 'package:fladder/seerr/seerr_cookie_jar.dart';
+import 'package:fladder/seerr/seerr_session_store.dart';
 
 part '../seerr/seerr_issue_service.dart';
 part '../seerr/seerr_link_service.dart';
@@ -22,7 +23,11 @@ const tmbdUrl = 'https://image.tmdb.org/t/p/original';
 const kBrowserManagedCookie = '__browser_managed__';
 
 final _seerrMutationsProvider = Provider((ref) {
-  ref.watch(userProvider.select((account) => (account?.id, account?.credentials.serverId, account?.seerrCredentials?.serverUrl)));
+  ref.watch(userProvider.select((account) => (
+        account?.id,
+        account?.credentials.serverId,
+        account?.seerrCredentials?.serverUrl
+      )));
   return _SeerrMutations();
 });
 
@@ -33,7 +38,8 @@ class _SeerrMutations {
 }
 
 class SeerrService {
-  SeerrService(this.ref, this._api) : _mutations = ref.read(_seerrMutationsProvider);
+  SeerrService(this.ref, this._api)
+      : _mutations = ref.read(_seerrMutationsProvider);
 
   final Ref ref;
   final SeerrChopperService _api;
@@ -815,7 +821,6 @@ class SeerrService {
       SeerrAuthJellyfinBody(username: username, password: password),
       headers: headers,
     );
-
   }
 
   String _requireSessionCookie(Response<dynamic> response,
@@ -835,7 +840,9 @@ class SeerrService {
     }
     final serverUrl = ref.read(userProvider)?.seerrCredentials?.serverUrl;
     final configuredUri = serverUrl == null ? null : Uri.tryParse(serverUrl);
-    final uri = configuredUri?.hasAuthority == true ? configuredUri! : _api.client.baseUrl;
+    final uri = configuredUri?.hasAuthority == true
+        ? configuredUri!
+        : _api.client.baseUrl;
     if (!uri.hasAuthority) return null;
     return seerrSessionCookieFromHeader(setCookie, uri.host,
         secureConnection: uri.scheme == 'https');

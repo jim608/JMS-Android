@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:intl/intl.dart';
+import 'package:fladder/seerr/seerr_cookie_jar.dart';
 
 class SeerrFailure implements Exception {
   final String code;
@@ -54,7 +54,8 @@ Future<T> seerrBounded<T>(Future<T> operation, {bool mutation = false}) async {
   } on SeerrFailure {
     rethrow;
   } on TimeoutException {
-    throw SeerrFailure(mutation ? 'timeout_check_history' : 'connection_timeout');
+    throw SeerrFailure(
+        mutation ? 'timeout_check_history' : 'connection_timeout');
   } catch (error) {
     final type = error.runtimeType.toString();
     if (type.contains('HandshakeException') || type.contains('TlsException')) {
@@ -82,36 +83,14 @@ String seerrTrackAttribute(String? value) =>
 
 String? seerrSessionCookieFromHeader(String header, String host,
     {bool secureConnection = true}) {
-  final match = RegExp(r'(?:^|,\s*)(connect\.sid=[^;,\s]+)(?=;|,|$)', caseSensitive: false).firstMatch(header);
-  if (match == null) return null;
-  var attributes = header.substring(match.end);
-  final next = RegExp(r',\s*[A-Za-z0-9_-]+=').firstMatch(attributes);
-  if (next != null) attributes = attributes.substring(0, next.start);
-  for (final attribute in attributes.split(';').skip(1)) {
-    final field = attribute.trim().split('=');
-    if (field.length < 2) continue;
-    final key = field.first.trim().toLowerCase();
-    final value = field.skip(1).join('=').trim();
-    if (key == 'max-age' && (int.tryParse(value) ?? 0) <= 0) return null;
-    if (key == 'domain') {
-      final domain = value.replaceFirst(RegExp(r'^\.'), '').toLowerCase();
-      if (host.toLowerCase() != domain && !host.toLowerCase().endsWith('.$domain')) return null;
-    }
-    if (key == 'path' && !(value.startsWith('/') &&
-        ['/api/v1/auth/me', '/api/v1/request', '/api/v1/issue']
-            .every((route) => route.startsWith(value)))) {
-      return null;
-    }
-    if (key == 'expires') {
-      try {
-        final expiry = DateFormat('EEE, dd MMM yyyy HH:mm:ss', 'en_US')
-            .parseUtc(value.replaceFirst(RegExp(r'\s+GMT$', caseSensitive: false), ''));
-        if (!expiry.isAfter(DateTime.now().toUtc())) return null;
-      } catch (_) {
-        return null;
-      }
-    }
-  }
-  if (!secureConnection && RegExp(r'(?:^|;)\s*Secure(?:;|$)', caseSensitive: false).hasMatch(attributes)) return null;
-  return match.group(1);
+  final uri = Uri(
+      scheme: secureConnection ? 'https' : 'http',
+      host: host,
+      path: '/api/v1/auth/jellyfin');
+  final jar = SeerrCookieJar(uri);
+  jar.ingest(uri, [header]);
+  final auth = jar.headerFor(uri.replace(path: '/api/v1/auth/me'));
+  final request = jar.headerFor(uri.replace(path: '/api/v1/request'));
+  final issue = jar.headerFor(uri.replace(path: '/api/v1/issue'));
+  return auth != null && auth == request && auth == issue ? auth : null;
 }
