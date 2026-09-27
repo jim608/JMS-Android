@@ -10,22 +10,21 @@ script:
   - rm -rf AppDir || true
   - cp -r build/linux/x64/release/bundle AppDir
   - mkdir -p AppDir/usr/share/icons/
-  - cp icons/production/fladder_icon_desktop.png AppDir/usr/share/icons/
+  - cp icons/jms/icon.png AppDir/usr/share/icons/
 AppDir:
   path: ./AppDir
   app_info:
-    id: nl.jknaapen.fladder
-    name: Fladder
-    icon: fladder_icon_desktop
+    id: com.jim608.jms
+    name: JMS
+    icon: icon
     version: latest
-    exec: fladder
+    exec: jms
     exec_args: $@
   files:
     include:
       - assets/fonts/rubik/Rubik-Italic-VariableFont_wght.ttf
       - assets/fonts/rubik/Rubik-VariableFont_wght.ttf
-      - icons/production/fladder_icon_desktop.png
+      - icons/jms/icon.png
 AppImage:
   arch: x86_64
-  update-information: gh-releases-zsync|DonutWare|Fladder|latest|Fladder-Linux-*.AppImage.zsync
-  file_name: Fladder_x86_64.AppImage
+  file_name: JMS_x86_64.AppImage

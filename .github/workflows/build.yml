@@ -1,4 +1,4 @@
-name: Build Fladder
+name: Build JMS
 
 on:
   push:
@@ -202,7 +202,7 @@ jobs:
       - name: Archive Android artifacts
         uses: actions/upload-artifact@v4.0.0
         with:
-          name: fladder-android
+          name: jms-android
           path: build/app/outputs/android_artifacts/
 
   build-windows:
@@ -232,19 +232,19 @@ jobs:
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
         with:
           path: windows/windows_setup.iss
-          options: /O+ /DFLADDER_VERSION="${{ needs.fetch-info.outputs.version_name }}"
+          options: /O+ /DJMS_VERSION="${{ needs.fetch-info.outputs.version_name }}"
 
       - name: Archive Windows portable artifact
         uses: actions/upload-artifact@v4.0.0
         with:
-          name: fladder-windows-portable
+          name: jms-windows-portable
           path: build\windows\x64\runner\Release\
 
       - name: Archive Windows installer artifact
         uses: actions/upload-artifact@v4.0.0
         with:
-          name: fladder-windows-installer
-          path: windows\Output\fladder_setup.exe
+          name: jms-windows-installer
+          path: windows\Output\jms_setup.exe
 
   build-ios:
     runs-on: macos-latest
@@ -282,7 +282,7 @@ jobs:
       - name: Archive iOS IPA artifact
         uses: actions/upload-artifact@v4.0.0
         with:
-          name: fladder-iOS
+          name: jms-iOS
           path: build/ios/archive/Runner.xcarchive/Products/Applications/iOS.ipa
 
   build-macos:
@@ -311,7 +311,7 @@ jobs:
       - name: Ensure correct app name casing
         run: |
           APP_DIR="build/macos/Build/Products/Release-production"
-          mv "$APP_DIR/fladder.app" "$APP_DIR/Fladder.app"
+          test -d "$APP_DIR/JMS.app"
 
       - name: Install create-dmg
         run: brew install create-dmg
@@ -322,7 +322,7 @@ jobs:
       - name: Archive macOS artifact
         uses: actions/upload-artifact@v4.0.0
         with:
-          name: fladder-macOS
+          name: jms-macOS
           path: build/macos/Build/Products/Release-production/macOS.dmg
 
   build-linux:
@@ -363,12 +363,12 @@ jobs:
             [[ -f "$lib" && -n "$(patchelf --print-rpath "$lib")" ]] && \
             patchelf --set-rpath '$ORIGIN' "$lib"
           done
-          patchelf --set-rpath '$ORIGIN/lib' "build/linux/x64/release/bundle/fladder"
+          patchelf --set-rpath '$ORIGIN/lib' "build/linux/x64/release/bundle/jms"
 
       - name: Archive Linux artifact
         uses: actions/upload-artifact@v4
         with:
-          name: fladder-linux
+          name: jms-linux
           path: build/linux/x64/release/bundle
 
       - name: Build AppImage
@@ -383,14 +383,14 @@ jobs:
       - name: Archive Linux artifact
         uses: actions/upload-artifact@v4
         with:
-          name: fladder-linux-appimage
+          name: jms-linux-appimage
           path: |
-            Fladder_x86_64.AppImage
-            Fladder_x86_64.AppImage.zsync
+            JMS_x86_64.AppImage
+            JMS_x86_64.AppImage.zsync
 
   build-linux-flatpak:
     runs-on: ubuntu-latest
-    if: needs.fetch-info.outputs.build_type == 'release' || needs.fetch-info.outputs.build_type == 'nightly'
+    if: vars.JMS_RELEASES_ENABLED == 'true' && (needs.fetch-info.outputs.build_type == 'release' || needs.fetch-info.outputs.build_type == 'nightly')
     needs: [fetch-info, build-linux]
     container:
       image: bilelmoussaoui/flatpak-github-actions:gnome-46
@@ -404,19 +404,19 @@ jobs:
       - name: Download Artifacts Linux
         uses: actions/download-artifact@v4
         with:
-          name: fladder-linux
+          name: jms-linux
           path: build/linux/x64/release/bundle
 
       - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
-          bundle: Fladder-Linux.flatpak
-          manifest-path: flatpak/nl.jknaapen.fladder.yaml
+          bundle: JMS-Linux.flatpak
+          manifest-path: flatpak/com.jim608.jms.yaml
 
       - name: Archive Linux Flatpak bundle
         uses: actions/upload-artifact@v4
         with:
-          name: fladder-linux-flatpak
-          path: Fladder-Linux.flatpak
+          name: jms-linux-flatpak
+          path: JMS-Linux.flatpak
 
   build-web:
     runs-on: ubuntu-latest
@@ -445,18 +445,18 @@ jobs:
       - name: Archive web artifact
         uses: actions/upload-artifact@v4.0.0
         with:
-          name: fladder-web
+          name: jms-web
           path: build/web
 
       - name: Build Github pages web
-        if: needs.fetch-info.outputs.build_type == 'release'
+        if: vars.JMS_RELEASES_ENABLED == 'true' && needs.fetch-info.outputs.build_type == 'release'
         run: flutter build web --base-href /${{ github.event.repository.name }}/ --release --build-number=$GITHUB_RUN_NUMBER
 
       - name: Archive web pages artifact
-        if: needs.fetch-info.outputs.build_type == 'release'
+        if: vars.JMS_RELEASES_ENABLED == 'true' && needs.fetch-info.outputs.build_type == 'release'
         uses: actions/upload-artifact@v4.0.0
         with:
-          name: fladder-web-pages
+          name: jms-web-pages
           path: build/web
 
   create_release:
@@ -471,7 +471,7 @@ jobs:
       - build-linux-flatpak
       - build-web
     runs-on: ubuntu-latest
-    if: needs.fetch-info.outputs.build_type == 'release' || needs.fetch-info.outputs.build_type == 'nightly'
+    if: vars.JMS_RELEASES_ENABLED == 'true' && (needs.fetch-info.outputs.build_type == 'release' || needs.fetch-info.outputs.build_type == 'nightly')
     permissions:
       contents: write
     steps:
@@ -561,96 +561,96 @@ jobs:
       - name: Download Artifacts Android
         uses: actions/download-artifact@v4
         with:
-          name: fladder-android
-          path: fladder-android
+          name: jms-android
+          path: jms-android
 
       - name: Move Android
         run: |
-          mv fladder-android/${{ needs.build-android.outputs.artifact_suffix }}-armeabi-v7a.apk Fladder-Android-${{ steps.version.outputs.version }}-armeabi-v7a.apk || true
-          mv fladder-android/${{ needs.build-android.outputs.artifact_suffix }}-arm64-v8a.apk Fladder-Android-${{ steps.version.outputs.version }}-arm64-v8a.apk || true
-          mv fladder-android/${{ needs.build-android.outputs.artifact_suffix }}-x86_64.apk Fladder-Android-${{ steps.version.outputs.version }}-x86_64.apk || true
-          mv fladder-android/${{ needs.build-android.outputs.artifact_suffix }}.aab Fladder-Android-${{ steps.version.outputs.version }}.aab
+          mv jms-android/${{ needs.build-android.outputs.artifact_suffix }}-armeabi-v7a.apk JMS-Android-${{ steps.version.outputs.version }}-armeabi-v7a.apk || true
+          mv jms-android/${{ needs.build-android.outputs.artifact_suffix }}-arm64-v8a.apk JMS-Android-${{ steps.version.outputs.version }}-arm64-v8a.apk || true
+          mv jms-android/${{ needs.build-android.outputs.artifact_suffix }}-x86_64.apk JMS-Android-${{ steps.version.outputs.version }}-x86_64.apk || true
+          mv jms-android/${{ needs.build-android.outputs.artifact_suffix }}.aab JMS-Android-${{ steps.version.outputs.version }}.aab
 
       - name: Download Windows portable artifact
         uses: actions/download-artifact@v4
         with:
-          name: fladder-windows-portable
-          path: fladder-windows-portable
+          name: jms-windows-portable
+          path: jms-windows-portable
 
       - name: Compress Windows
         run: |
-          cd fladder-windows-portable
-          zip -r ../Fladder-Windows-${{ steps.version.outputs.version }}.zip .
+          cd jms-windows-portable
+          zip -r ../JMS-Windows-${{ steps.version.outputs.version }}.zip .
 
       - name: Download Windows installer artifact
         uses: actions/download-artifact@v4
         with:
-          name: fladder-windows-installer
-          path: fladder-windows-installer
+          name: jms-windows-installer
+          path: jms-windows-installer
 
       - name: Rename Windows installer
-        run: mv fladder-windows-installer/fladder_setup.exe Fladder-Windows-${{ steps.version.outputs.version }}-Setup.exe
+        run: mv jms-windows-installer/jms_setup.exe JMS-Windows-${{ steps.version.outputs.version }}-Setup.exe
 
       - name: Download Artifacts iOS
         uses: actions/download-artifact@v4
         with:
-          name: fladder-iOS
-          path: fladder-iOS
+          name: jms-iOS
+          path: jms-iOS
 
       - name: Move iOS
-        run: mv fladder-iOS/iOS.ipa Fladder-iOS-${{ steps.version.outputs.version }}.ipa
+        run: mv jms-iOS/iOS.ipa JMS-iOS-${{ steps.version.outputs.version }}.ipa
 
       - name: Download Artifacts macOS
         uses: actions/download-artifact@v4
         with:
-          name: fladder-macOS
-          path: fladder-macOS
+          name: jms-macOS
+          path: jms-macOS
 
       - name: Move macOS
-        run: mv fladder-macOS/macOS.dmg Fladder-macOS-${{ steps.version.outputs.version }}.dmg
+        run: mv jms-macOS/macOS.dmg JMS-macOS-${{ steps.version.outputs.version }}.dmg
 
       - name: Download Artifacts Linux
         uses: actions/download-artifact@v4
         with:
-          name: fladder-linux
-          path: fladder-linux
+          name: jms-linux
+          path: jms-linux
 
       - name: Compress Linux
         run: |
-          cd fladder-linux
-          zip -r ../Fladder-Linux-${{ steps.version.outputs.version }}.zip .
+          cd jms-linux
+          zip -r ../JMS-Linux-${{ steps.version.outputs.version }}.zip .
 
       - name: Download Artifacts Linux Flatpak
-        if: needs.fetch-info.outputs.build_type == 'release'
+        if: vars.JMS_RELEASES_ENABLED == 'true' && needs.fetch-info.outputs.build_type == 'release'
         uses: actions/download-artifact@v4
         with:
-          name: fladder-linux-flatpak
-          path: fladder-linux-flatpak
+          name: jms-linux-flatpak
+          path: jms-linux-flatpak
 
       - name: Move Linux Flatpak
-        if: needs.fetch-info.outputs.build_type == 'release'
-        run: mv fladder-linux-flatpak/Fladder-Linux.flatpak Fladder-Linux-${{ steps.version.outputs.version }}.flatpak
+        if: vars.JMS_RELEASES_ENABLED == 'true' && needs.fetch-info.outputs.build_type == 'release'
+        run: mv jms-linux-flatpak/JMS-Linux.flatpak JMS-Linux-${{ steps.version.outputs.version }}.flatpak
 
       - name: Download Artifacts Linux AppImage
         uses: actions/download-artifact@v4
         with:
-          name: fladder-linux-appimage
-          path: fladder-linux-appimage
+          name: jms-linux-appimage
+          path: jms-linux-appimage
 
       - name: Move Linux AppImages
         run: |
-          mv fladder-linux-appimage/Fladder_x86_64.AppImage Fladder-Linux-${{ steps.version.outputs.version }}.AppImage
-          mv fladder-linux-appimage/Fladder_x86_64.AppImage.zsync Fladder-Linux-${{ steps.version.outputs.version }}.AppImage.zsync
+          mv jms-linux-appimage/JMS_x86_64.AppImage JMS-Linux-${{ steps.version.outputs.version }}.AppImage
+          mv jms-linux-appimage/JMS_x86_64.AppImage.zsync JMS-Linux-${{ steps.version.outputs.version }}.AppImage.zsync
       - name: Download Artifacts Web
         uses: actions/download-artifact@v4
         with:
-          name: fladder-web
-          path: fladder-web
+          name: jms-web
+          path: jms-web
 
       - name: Compress Web
         run: |
-          cd fladder-web
-          zip -r ../Fladder-Web-${{ steps.version.outputs.version }}.zip .
+          cd jms-web
+          zip -r ../JMS-Web-${{ steps.version.outputs.version }}.zip .
 
       - name: Create Release
         uses: softprops/action-gh-release@v2.2.2
@@ -664,23 +664,24 @@ jobs:
           generate_release_notes: ${{ needs.fetch-info.outputs.build_type == 'release' }}
           fail_on_unmatched_files: true
           files: |
-            Fladder-Android-${{ steps.version.outputs.version }}-arm64-v8a.apk
-            Fladder-Android-${{ steps.version.outputs.version }}-armeabi-v7a.apk
-            Fladder-Android-${{ steps.version.outputs.version }}-x86_64.apk
-            Fladder-Android-${{ steps.version.outputs.version }}.aab
-            Fladder-Windows-${{ steps.version.outputs.version }}-Setup.exe
-            Fladder-Windows-${{ steps.version.outputs.version }}.zip
-            Fladder-iOS-${{ steps.version.outputs.version }}.ipa
-            Fladder-macOS-${{ steps.version.outputs.version }}.dmg
-            Fladder-Web-${{ steps.version.outputs.version }}.zip
-            Fladder-Linux-${{ steps.version.outputs.version }}.zip
-            Fladder-Linux-${{ steps.version.outputs.version }}.AppImage
-            Fladder-Linux-${{ steps.version.outputs.version }}.AppImage.zsync
-            ${{ needs.fetch-info.outputs.build_type == 'release' && format('Fladder-Linux-{0}.flatpak', steps.version.outputs.version) || '' }}
+            JMS-Android-${{ steps.version.outputs.version }}-arm64-v8a.apk
+            JMS-Android-${{ steps.version.outputs.version }}-armeabi-v7a.apk
+            JMS-Android-${{ steps.version.outputs.version }}-x86_64.apk
+            JMS-Android-${{ steps.version.outputs.version }}.aab
+            JMS-Windows-${{ steps.version.outputs.version }}-Setup.exe
+            JMS-Windows-${{ steps.version.outputs.version }}.zip
+            JMS-iOS-${{ steps.version.outputs.version }}.ipa
+            JMS-macOS-${{ steps.version.outputs.version }}.dmg
+            JMS-Web-${{ steps.version.outputs.version }}.zip
+            JMS-Linux-${{ steps.version.outputs.version }}.zip
+            JMS-Linux-${{ steps.version.outputs.version }}.AppImage
+            JMS-Linux-${{ steps.version.outputs.version }}.AppImage.zsync
+            ${{ needs.fetch-info.outputs.build_type == 'release' && format('JMS-Linux-{0}.flatpak', steps.version.outputs.version) || '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release_play_console:
+    if: vars.JMS_RELEASES_ENABLED == 'true'
     name: Upload AAB to Google Play Console
     needs:
       - fetch-info
@@ -691,15 +692,15 @@ jobs:
       - name: Download Artifacts Android
         uses: actions/download-artifact@v4
         with:
-          name: fladder-android
-          path: fladder-android
+          name: jms-android
+          path: jms-android
 
       - name: Upload AAB to Google Play Console
         uses: r0adkll/upload-google-play@v1.1.3
         with:
           serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
-          packageName: "nl.jknaapen.fladder"
-          releaseFiles: "fladder-android/${{ needs.build-android.outputs.artifact_suffix }}.aab"
+          packageName: "com.jim608.jms"
+          releaseFiles: "jms-android/${{ needs.build-android.outputs.artifact_suffix }}.aab"
           track: ${{ needs.fetch-info.outputs.build_type == 'nightly' && 'internal' || 'production' }}
           status: ${{ needs.fetch-info.outputs.build_type == 'nightly' && 'completed' || 'draft' }}
           releaseName: "${{ github.run_number }} (${{ needs.fetch-info.outputs.version_name }})"
@@ -710,7 +711,7 @@ jobs:
       - fetch-info
       - create_release
     runs-on: ubuntu-latest
-    if: needs.fetch-info.outputs.build_type == 'release'
+    if: vars.JMS_RELEASES_ENABLED == 'true' && needs.fetch-info.outputs.build_type == 'release'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4.1.1
@@ -718,13 +719,13 @@ jobs:
       - name: Download Artifacts Web
         uses: actions/download-artifact@v4
         with:
-          name: fladder-web
+          name: jms-web
           path: build/web
 
       - name: Deploy to ghcr.io
         uses: mr-smithers-excellent/docker-build-push@v6
         with:
-          image: fladder
+          image: jms
           addLatest: true
           multiPlatform: true
           platform: linux/amd64,linux/arm64,linux/arm/v7
@@ -736,7 +737,7 @@ jobs:
         uses: mr-smithers-excellent/docker-build-push@v6
         with:
           dockerfile: Dockerfile-rootless
-          image: fladder-rootless
+          image: jms-rootless
           addLatest: true
           multiPlatform: true
           platform: linux/amd64,linux/arm64,linux/arm/v7
@@ -750,7 +751,7 @@ jobs:
       - name: Download Artifacts Web
         uses: actions/download-artifact@v4
         with:
-          name: fladder-web-pages
+          name: jms-web-pages
           path: build/web
 
       - name: Deploy to GitHub Pages
@@ -767,10 +768,10 @@ jobs:
   #     matrix:
   #       include:
   #         - build_type: release
-  #           identifier: DonutWare.Fladder
+  #           identifier: DonutWare.JMS
   #           max_versions: "0"
   #         - build_type: nightly
-  #           identifier: DonutWare.Fladder.Nightly
+  #           identifier: DonutWare.JMS.Nightly
   #           max_versions: "1"
   #   steps:
   #     - name: Submit to Winget (${{ matrix.build_type }})
@@ -778,7 +779,7 @@ jobs:
   #       uses: vedantmgoyal9/winget-releaser@19e706d4c9121098010096f9c495a70a7518b30f
   #       with:
   #         identifier: ${{ matrix.identifier }}
-  #         installers-regex: 'Fladder-Windows-.*-Setup\.exe$'
+  #         installers-regex: 'JMS-Windows-.*-Setup\.exe$'
   #         token: ${{ secrets.WINGET_TOKEN }}
   #         max-versions-to-keep: ${{ matrix.max_versions || '' }}
   #         release-tag: ${{ matrix.build_type == 'nightly' && env.NIGHTLY_TAG || github.ref_name }}

@@ -1,9 +1,9 @@
-id: nl.jknaapen.fladder
+id: com.jim608.jms
 runtime: org.gnome.Platform
 runtime-version: "48"
 sdk: org.gnome.Sdk
 
-command: fladder
+command: jms
 add-extensions:
   org.freedesktop.Platform.ffmpeg-full:
     directory: lib/ffmpeg
@@ -138,16 +138,16 @@ modules:
         tag: 4.0.3
         commit: 7f7ac1840cfd914dfac69d947f0849dc50b0f695
 
-  - name: fladder
+  - name: jms
     buildsystem: simple
     build-commands:
       - mkdir -p /app/bin
       - cp -r build/linux/x64/release/bundle/* /app/bin/
-      - chmod +x /app/bin/fladder
+      - chmod +x /app/bin/jms
       - mkdir -p /app/share/applications
       - mkdir -p /app/share/icons/hicolor/scalable/apps
-      - install -Dm644 flatpak/Fladder.desktop /app/share/applications/${FLATPAK_ID}.desktop
-      - install -Dm644 icons/fladder_icon.svg /app/share/icons/hicolor/scalable/apps/${FLATPAK_ID}.svg
+      - install -Dm644 flatpak/JMS.desktop /app/share/applications/${FLATPAK_ID}.desktop
+      - install -Dm644 icons/jms/mark.svg /app/share/icons/hicolor/scalable/apps/${FLATPAK_ID}.svg
     sources:
       - type: dir
         path: ..
