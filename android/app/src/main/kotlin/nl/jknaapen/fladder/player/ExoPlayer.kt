@@ -118,6 +118,7 @@ internal fun ExoPlayer(
                 context,
                 renderersFactory = renderersFactory,
                 extractorsFactory = extractorsFactory,
+                dataSourceFactory = dataSourceFactory,
                 renderType = AssRenderType.LEGACY
             )
     }

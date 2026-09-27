@@ -7,7 +7,6 @@ list(APPEND FLUTTER_PLUGIN_LIST
   desktop_drop
   desktop_multi_window
   dynamic_color
-  fvp
   local_auth_windows
   media_kit_libs_windows_video
   media_kit_video

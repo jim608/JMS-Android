@@ -92,7 +92,7 @@ class VideoPlayerImplementation(
                     .setSubtitleConfigurations(
                         subTitles.filter { it.external && !it.url.isNullOrEmpty() }.map { sub ->
                             MediaItem.SubtitleConfiguration.Builder(sub.url!!.toUri())
-                                .setMimeType(guessSubtitleMimeType(sub.url))
+                                .setMimeType(guessSubtitleMimeType(sub.url, sub.codec))
                                 .setLanguage(sub.languageCode)
                                 .setLabel(sub.name)
                                 .build()
@@ -167,11 +167,18 @@ class VideoPlayerImplementation(
     }
 }
 
-fun guessSubtitleMimeType(fileName: String): String = when {
-    fileName.contains(".srt", ignoreCase = true) -> MimeTypes.APPLICATION_SUBRIP
-    fileName.contains(".vtt", ignoreCase = true) -> MimeTypes.TEXT_VTT
-    fileName.contains(".ass", ignoreCase = true) -> MimeTypes.TEXT_SSA
-    else -> MimeTypes.APPLICATION_SUBRIP
+fun guessSubtitleMimeType(fileName: String, codec: String? = null): String {
+    val extension = fileName.toUri().path?.substringAfterLast('.', "")?.lowercase()
+    return when (extension) {
+        "ass", "ssa" -> MimeTypes.TEXT_SSA
+        "vtt" -> MimeTypes.TEXT_VTT
+        "srt" -> MimeTypes.APPLICATION_SUBRIP
+        else -> when (codec?.lowercase()) {
+            "ass", "ssa" -> MimeTypes.TEXT_SSA
+            "vtt", "webvtt" -> MimeTypes.TEXT_VTT
+            else -> MimeTypes.APPLICATION_SUBRIP
+        }
+    }
 }
 
 fun ExoPlayer.properlySetSubAndAudioTracks(playableData: PlayableData) {
