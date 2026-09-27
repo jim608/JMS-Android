@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+if [ -x .jms-tools/python/Scripts/python.exe ]; then
+    jms_python=.jms-tools/python/Scripts/python.exe
+else
+    jms_python=python3
+fi
+while read -r local_ref local_oid remote_ref remote_oid; do
+    case "$local_oid" in
+        0000000000000000000000000000000000000000) continue ;;
+    esac
+    "$jms_python" scripts/check_jms_git_privacy.py --tree "$local_oid"
+done

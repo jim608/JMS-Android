@@ -3,8 +3,10 @@ import io
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from check_jms_git_privacy import findings, main
 
@@ -40,6 +42,16 @@ class PrivacyTests(unittest.TestCase):
                 subprocess.run(['git', 'add', 'settings.txt'], check=True)
                 with contextlib.redirect_stdout(io.StringIO()):
                     self.assertEqual(0, main())
+                subprocess.run(['git', '-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid',
+                                'commit', '-qm', 'clean fixture'], check=True)
+                Path('settings.txt').write_text('https://service.private.example', encoding='utf-8')
+                subprocess.run(['git', 'add', 'settings.txt'], check=True)
+                with patch.object(sys, 'argv', ['checker', '--tree', 'HEAD']), contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(0, main())
+                subprocess.run(['git', '-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid',
+                                'commit', '-qm', 'private fixture'], check=True)
+                with patch.object(sys, 'argv', ['checker', '--tree', 'HEAD']), contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                    self.assertEqual(1, main())
             finally:
                 os.chdir(previous)
 
