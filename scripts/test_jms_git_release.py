@@ -6,7 +6,7 @@ import hashlib
 import unittest
 from unittest.mock import patch
 
-from jms_git_release import committed_source, push_release, verify_build_record, GitReleaseError
+from jms_git_release import committed_source, push_release, verify_build_record, check_upstream, GitReleaseError
 
 
 class GitReleaseTests(unittest.TestCase):
@@ -104,6 +104,12 @@ class GitReleaseTests(unittest.TestCase):
             committed_source()
         with self.assertRaises(GitReleaseError):
             verify_build_record({'sourceCommit': self.second, 'workspaceCommit': self.second}, self.second)
+
+    def test_shallow_history_is_not_treated_as_unrelated(self):
+        with patch('jms_git_release.git', return_value='true') as command:
+            with self.assertRaisesRegex(GitReleaseError, 'Shallow history'):
+                check_upstream()
+            command.assert_called_once_with('rev-parse', '--is-shallow-repository')
 
     def test_removed_secret_blocks_push(self):
         self.commit('fix: intermediate', 'https://service.private.example')

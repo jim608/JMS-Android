@@ -31,6 +31,8 @@ def refs(remote):
 
 
 def check_upstream():
+    if git('rev-parse', '--is-shallow-repository') == 'true':
+        raise GitReleaseError('Shallow history cannot establish upstream ancestry; complete the selected lineage first')
     # origin is the official upstream in this checkout; names alone are not trusted.
     official = 'https://github.com/DonutWare/Fladder.git'
     remotes = git('remote').splitlines()
@@ -46,7 +48,10 @@ def check_upstream():
     upstream = git('rev-parse', 'FETCH_HEAD')
     # Missing common ancestry and rewritten histories fail closed. Never auto-merge at publication.
     git('merge-base', 'HEAD', upstream)
-    git('merge-base', '--is-ancestor', upstream, 'HEAD')
+    try:
+        git('merge-base', '--is-ancestor', upstream, 'HEAD')
+    except GitReleaseError:
+        raise GitReleaseError('Official default branch has unintegrated commits; review the source branch before release') from None
     return remote, branch, upstream
 
 

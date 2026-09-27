@@ -3,6 +3,8 @@ import argparse
 from pathlib import Path
 import subprocess
 import sys
+import os
+import stat
 
 
 def main():
@@ -11,10 +13,17 @@ def main():
     args = parser.parse_args()
     if not args.check:
         subprocess.run(['git', 'config', '--local', 'core.hooksPath', '.githooks'], check=True)
+        for name in ('pre-commit', 'commit-msg', 'pre-push'):
+            path = Path('.githooks', name)
+            if path.is_file():
+                path.chmod(path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
     configured = subprocess.run(['git', 'config', '--get', 'core.hooksPath'], capture_output=True, text=True).stdout.strip()
-    hooks = all(Path('.githooks', name).is_file() for name in ('pre-commit', 'commit-msg', 'pre-push'))
+    hooks = all(Path('.githooks', name).is_file() and os.access(Path('.githooks', name), os.X_OK)
+                for name in ('pre-commit', 'commit-msg', 'pre-push'))
     policy = Path(subprocess.check_output(['git', 'rev-parse', '--git-path', 'jms-private-domains'], text=True).strip())
-    ready = configured == '.githooks' and hooks and policy.is_file() and bool(policy.read_text(encoding='utf-8').strip())
+    values = [line for line in policy.read_text(encoding='utf-8').splitlines()
+              if line.strip() and not line.lstrip().startswith('#')] if policy.is_file() else []
+    ready = configured == '.githooks' and hooks and bool(values)
     print('Hook installation: ' + ('PASS' if ready else 'BLOCKED; configure hooks and nonempty local privacy policy'))
     return 0 if ready else 1
 
