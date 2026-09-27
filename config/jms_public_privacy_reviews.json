@@ -33,5 +33,205 @@
       "matchedSelfTestKeys": 11,
       "distributionApproved": false
     }
+  },
+  {
+    "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/libgo/go/archive/tar/testdata/issue10968.tar",
+    "sha256": "a302db10909ff2822f09f362576eca6e1b4f0d70e34748f6fa1eea79e7d3713a",
+    "rules": [],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gcc-16.2.0-4.src.tar.zst",
+    "archiveSha256": "a1792a44764405bc365746e0e60f0daa122076cec0dddd35a781d141f94273cf",
+    "explanation": "ErrHeader regression case; fixed upstream libgo test sample, not a release container.",
+    "inspection": "raw-public-test-sample",
+    "testReference": "TestReader: testdata/issue10968.tar",
+    "rawContentReview": {
+      "scope": "raw-bytes-only",
+      "method": "All stored bytes checked by the current privacy rules and local private policy; source test expectations and physical sample length verified. No upstream test code executed.",
+      "conclusion": "No raw-byte privacy findings. Header fragments or sparse logical extents were not fully expanded; no claim of complete inner-content scanning."
+    },
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/libgo/go/archive/tar/reader_test.go",
+      "sha256": "4f7d97ca8f40d42b1de65cf0ad8c6b0ffaca92480531955ff7d01ecaa2b7eb90"
+    }
+  },
+  {
+    "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/libgo/go/archive/tar/testdata/issue11169.tar",
+    "sha256": "9c80a95a15edc3eef8fd6c506c4a92481f517bebd088d5db0eb260033a77c0f6",
+    "rules": [],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gcc-16.2.0-4.src.tar.zst",
+    "archiveSha256": "a1792a44764405bc365746e0e60f0daa122076cec0dddd35a781d141f94273cf",
+    "explanation": "ErrHeader regression case; fixed upstream libgo test sample, not a release container.",
+    "inspection": "raw-public-test-sample",
+    "testReference": "TestReader: testdata/issue11169.tar",
+    "rawContentReview": {
+      "scope": "raw-bytes-only",
+      "method": "All stored bytes checked by the current privacy rules and local private policy; source test expectations and physical sample length verified. No upstream test code executed.",
+      "conclusion": "No raw-byte privacy findings. Header fragments or sparse logical extents were not fully expanded; no claim of complete inner-content scanning."
+    },
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/libgo/go/archive/tar/reader_test.go",
+      "sha256": "4f7d97ca8f40d42b1de65cf0ad8c6b0ffaca92480531955ff7d01ecaa2b7eb90"
+    }
+  },
+  {
+    "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/libgo/go/archive/tar/testdata/issue12435.tar",
+    "sha256": "de7e983cc020b72b10819773e487c794e1269fc5a3793bc13d3c61ffacc553a5",
+    "rules": [],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gcc-16.2.0-4.src.tar.zst",
+    "archiveSha256": "a1792a44764405bc365746e0e60f0daa122076cec0dddd35a781d141f94273cf",
+    "explanation": "ErrHeader regression case; fixed upstream libgo test sample, not a release container.",
+    "inspection": "raw-public-test-sample",
+    "testReference": "TestReader: testdata/issue12435.tar",
+    "rawContentReview": {
+      "scope": "raw-bytes-only",
+      "method": "All stored bytes checked by the current privacy rules and local private policy; source test expectations and physical sample length verified. No upstream test code executed.",
+      "conclusion": "No raw-byte privacy findings. Header fragments or sparse logical extents were not fully expanded; no claim of complete inner-content scanning."
+    },
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/libgo/go/archive/tar/reader_test.go",
+      "sha256": "4f7d97ca8f40d42b1de65cf0ad8c6b0ffaca92480531955ff7d01ecaa2b7eb90"
+    }
+  },
+  {
+    "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/libgo/go/archive/tar/testdata/neg-size.tar",
+    "sha256": "831bd782db9d2b552cbcfcb87adfded0941762596e5d8fbd742dba03c6dc357b",
+    "rules": [],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gcc-16.2.0-4.src.tar.zst",
+    "archiveSha256": "a1792a44764405bc365746e0e60f0daa122076cec0dddd35a781d141f94273cf",
+    "explanation": "Negative-size header rejected with ErrHeader; fixed upstream libgo test sample, not a release container.",
+    "inspection": "raw-public-test-sample",
+    "testReference": "TestReader: testdata/neg-size.tar",
+    "rawContentReview": {
+      "scope": "raw-bytes-only",
+      "method": "All stored bytes checked by the current privacy rules and local private policy; source test expectations and physical sample length verified. No upstream test code executed.",
+      "conclusion": "No raw-byte privacy findings. Header fragments or sparse logical extents were not fully expanded; no claim of complete inner-content scanning."
+    },
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/libgo/go/archive/tar/reader_test.go",
+      "sha256": "4f7d97ca8f40d42b1de65cf0ad8c6b0ffaca92480531955ff7d01ecaa2b7eb90"
+    }
+  },
+  {
+    "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/libgo/go/archive/tar/testdata/pax-bad-hdr-file.tar",
+    "sha256": "63d5e53472b1ea35cd8814f9d4dee7597601c99eca367177bbaaab1e09d30468",
+    "rules": [],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gcc-16.2.0-4.src.tar.zst",
+    "archiveSha256": "a1792a44764405bc365746e0e60f0daa122076cec0dddd35a781d141f94273cf",
+    "explanation": "Malformed PAX header rejected with ErrHeader; fixed upstream libgo test sample, not a release container.",
+    "inspection": "raw-public-test-sample",
+    "testReference": "TestReader: testdata/pax-bad-hdr-file.tar",
+    "rawContentReview": {
+      "scope": "raw-bytes-only",
+      "method": "All stored bytes checked by the current privacy rules and local private policy; source test expectations and physical sample length verified. No upstream test code executed.",
+      "conclusion": "No raw-byte privacy findings. Header fragments or sparse logical extents were not fully expanded; no claim of complete inner-content scanning."
+    },
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/libgo/go/archive/tar/reader_test.go",
+      "sha256": "4f7d97ca8f40d42b1de65cf0ad8c6b0ffaca92480531955ff7d01ecaa2b7eb90"
+    }
+  },
+  {
+    "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/libgo/go/archive/tar/testdata/pax-path-hdr.tar",
+    "sha256": "2f434250f98a8aad5e77b8695d751b11bca1625d4d0264638113ad27ebeb11c7",
+    "rules": [],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gcc-16.2.0-4.src.tar.zst",
+    "archiveSha256": "a1792a44764405bc365746e0e60f0daa122076cec0dddd35a781d141f94273cf",
+    "explanation": "Header fragment concatenated into reader truncation test vectors; fixed upstream libgo test sample, not a release container.",
+    "inspection": "raw-public-test-sample",
+    "testReference": "TestReadTruncation: testdata/pax-path-hdr.tar",
+    "rawContentReview": {
+      "scope": "raw-bytes-only",
+      "method": "All stored bytes checked by the current privacy rules and local private policy; source test expectations and physical sample length verified. No upstream test code executed.",
+      "conclusion": "No raw-byte privacy findings. Header fragments or sparse logical extents were not fully expanded; no claim of complete inner-content scanning."
+    },
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/libgo/go/archive/tar/reader_test.go",
+      "sha256": "4f7d97ca8f40d42b1de65cf0ad8c6b0ffaca92480531955ff7d01ecaa2b7eb90"
+    }
+  },
+  {
+    "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/libgo/go/archive/tar/testdata/gnu-incremental.tar",
+    "sha256": "675b784cae33a0a4856b66b1752a3892455b983f505d3e27505b07a525d61055",
+    "rules": [],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gcc-16.2.0-4.src.tar.zst",
+    "archiveSha256": "a1792a44764405bc365746e0e60f0daa122076cec0dddd35a781d141f94273cf",
+    "explanation": "GNU incremental metadata and 512 MiB logical sparse-file fixture; fixed upstream libgo test sample, not a release container.",
+    "inspection": "raw-public-test-sample",
+    "testReference": "TestReader: testdata/gnu-incremental.tar",
+    "rawContentReview": {
+      "scope": "raw-bytes-only",
+      "method": "All stored bytes checked by the current privacy rules and local private policy; source test expectations and physical sample length verified. No upstream test code executed.",
+      "conclusion": "No raw-byte privacy findings. Header fragments or sparse logical extents were not fully expanded; no claim of complete inner-content scanning."
+    },
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/libgo/go/archive/tar/reader_test.go",
+      "sha256": "4f7d97ca8f40d42b1de65cf0ad8c6b0ffaca92480531955ff7d01ecaa2b7eb90"
+    }
+  },
+  {
+    "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/libgo/go/archive/tar/testdata/gnu-sparse-big.tar",
+    "sha256": "027bb1a0d7f778fde347be353b1920141bc4d4d2da6828ace084cb339787fd17",
+    "rules": [],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gcc-16.2.0-4.src.tar.zst",
+    "archiveSha256": "a1792a44764405bc365746e0e60f0daa122076cec0dddd35a781d141f94273cf",
+    "explanation": "GNU sparse 60 GB logical extent with fixed synthetic data segments; fixed upstream libgo test sample, not a release container.",
+    "inspection": "raw-public-test-sample",
+    "testReference": "TestWriter: testdata/gnu-sparse-big.tar",
+    "rawContentReview": {
+      "scope": "raw-bytes-only",
+      "method": "All stored bytes checked by the current privacy rules and local private policy; source test expectations and physical sample length verified. No upstream test code executed.",
+      "conclusion": "No raw-byte privacy findings. Header fragments or sparse logical extents were not fully expanded; no claim of complete inner-content scanning."
+    },
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/libgo/go/archive/tar/writer_test.go",
+      "sha256": "6c15a283e4415866ec79167beda81bfd4367cc47a495e11e97824a3df013952f"
+    }
+  },
+  {
+    "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/libgo/go/archive/tar/testdata/writer-big.tar",
+    "sha256": "5a0bee74a7bd0caa1d572ff1ae58c3c79310c8fc646a5e84fb5e1eea488ea4b5",
+    "rules": [],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gcc-16.2.0-4.src.tar.zst",
+    "archiveSha256": "a1792a44764405bc365746e0e60f0daa122076cec0dddd35a781d141f94273cf",
+    "explanation": "Deliberately truncated 16 GiB file header comparison; fixed upstream libgo test sample, not a release container.",
+    "inspection": "raw-public-test-sample",
+    "testReference": "TestWriter: testdata/writer-big.tar",
+    "rawContentReview": {
+      "scope": "raw-bytes-only",
+      "method": "All stored bytes checked by the current privacy rules and local private policy; source test expectations and physical sample length verified. No upstream test code executed.",
+      "conclusion": "No raw-byte privacy findings. Header fragments or sparse logical extents were not fully expanded; no claim of complete inner-content scanning."
+    },
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/libgo/go/archive/tar/writer_test.go",
+      "sha256": "6c15a283e4415866ec79167beda81bfd4367cc47a495e11e97824a3df013952f"
+    }
+  },
+  {
+    "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/libgo/go/archive/tar/testdata/writer-big-long.tar",
+    "sha256": "36edba10087c389ffab0200dbf56013237af1ec8867a2442187c7147d899e7e4",
+    "rules": [],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gcc-16.2.0-4.src.tar.zst",
+    "archiveSha256": "a1792a44764405bc365746e0e60f0daa122076cec0dddd35a781d141f94273cf",
+    "explanation": "Deliberately truncated 16 GiB PAX long-name header comparison; fixed upstream libgo test sample, not a release container.",
+    "inspection": "raw-public-test-sample",
+    "testReference": "TestWriter: testdata/writer-big-long.tar",
+    "rawContentReview": {
+      "scope": "raw-bytes-only",
+      "method": "All stored bytes checked by the current privacy rules and local private policy; source test expectations and physical sample length verified. No upstream test code executed.",
+      "conclusion": "No raw-byte privacy findings. Header fragments or sparse logical extents were not fully expanded; no claim of complete inner-content scanning."
+    },
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/libgo/go/archive/tar/writer_test.go",
+      "sha256": "6c15a283e4415866ec79167beda81bfd4367cc47a495e11e97824a3df013952f"
+    }
   }
 ]
