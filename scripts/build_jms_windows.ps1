@@ -25,7 +25,7 @@ if ($SourceCommit -ne '') {
     if ($LASTEXITCODE -ne 0) { throw 'Source snapshot does not match the current worktree' }
     $sourceId = $SourceCommit.Substring(0, 12)
 } else {
-    $hashInputs = Get-ChildItem -LiteralPath lib,assets,windows -File -Recurse |
+    $hashInputs = Get-ChildItem -LiteralPath lib,assets,windows,third_party/screen_brightness_windows -File -Recurse |
         Where-Object { $_.FullName -notmatch '[\\/]flutter[\\/]ephemeral[\\/]' } |
         Sort-Object FullName | Get-FileHash -Algorithm SHA256
     $fingerprint = ($hashInputs.Hash -join '') + (Get-FileHash pubspec.lock -Algorithm SHA256).Hash
@@ -71,6 +71,7 @@ Copy-Item -LiteralPath (Join-Path $projectRoot 'LICENSE') -Destination (Join-Pat
 $licenseDir = Join-Path $stageDir 'licenses'
 New-Item -ItemType Directory -Path $licenseDir -Force | Out-Null
 Copy-Item -LiteralPath (Join-Path $projectRoot 'third_party\fvp\LICENSE') -Destination (Join-Path $licenseDir 'fvp-LICENSE.txt')
+Copy-Item -LiteralPath (Join-Path $projectRoot 'third_party\screen_brightness_windows\LICENSE') -Destination (Join-Path $licenseDir 'screen_brightness_windows-LICENSE.txt')
 
 $buildInfo = [ordered]@{
     application = 'JMS'
