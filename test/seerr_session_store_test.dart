@@ -55,11 +55,32 @@ void main() {
     expect(stored, isEmpty);
   });
 
+  test('CSRF cookies alone never establish a login session', () async {
+    final login = Uri.parse(
+        '${account.seerrCredentials!.serverUrl}/api/v1/auth/jellyfin');
+    final me = login.replace(path: '/api/v1/auth/me');
+    await store.write(account, null);
+    expect(
+        await store.stageFromResponse(
+            account,
+            login,
+            [
+              '_csrf=synthetic-secret; Path=/; Secure',
+              'XSRF-TOKEN=synthetic-token; Path=/; Secure',
+            ],
+            replaceExisting: true),
+        isFalse);
+    expect(store.readStagedForRequest(account, me), isNull);
+    expect(await store.commitStaged(account, me), isFalse);
+    expect(stored, isEmpty);
+  });
+
   test('login cookie stays in memory until verified session is committed',
       () async {
-    final login =
-        Uri.parse('https://jellyseerr.jms.example.invalid/api/v1/auth/jellyfin');
-    final me = Uri.parse('https://jellyseerr.jms.example.invalid/api/v1/auth/me');
+    final login = Uri.parse(
+        'https://jellyseerr.jms.example.invalid/api/v1/auth/jellyfin');
+    final me =
+        Uri.parse('https://jellyseerr.jms.example.invalid/api/v1/auth/me');
     expect(
         await store.stageFromResponse(
             account, login, ['jms_session=FIRST; Path=/; Secure; HttpOnly'],
@@ -68,8 +89,8 @@ void main() {
     expect(store.readStagedForRequest(account, me), 'jms_session=FIRST');
     expect(await store.readForRequest(account, me), 'jms_session=FIRST');
     expect(
-        await store.readForRequest(
-            account, Uri.parse('https://jellyseerr.jms.example.invalid/api/v1/request')),
+        await store.readForRequest(account,
+            Uri.parse('https://jellyseerr.jms.example.invalid/api/v1/request')),
         isNull);
     expect(stored, isEmpty);
     expect(await SeerrSessionStore().readForRequest(account, me), isNull);
@@ -81,9 +102,10 @@ void main() {
 
   test('discarded login cookie never survives restart or crosses accounts',
       () async {
-    final login =
-        Uri.parse('https://jellyseerr.jms.example.invalid/api/v1/auth/jellyfin');
-    final me = Uri.parse('https://jellyseerr.jms.example.invalid/api/v1/auth/me');
+    final login = Uri.parse(
+        'https://jellyseerr.jms.example.invalid/api/v1/auth/jellyfin');
+    final me =
+        Uri.parse('https://jellyseerr.jms.example.invalid/api/v1/auth/me');
     await store.stageFromResponse(
         account, login, ['jms_session=UNVERIFIED; Path=/; Secure'],
         replaceExisting: true);
@@ -104,9 +126,10 @@ void main() {
 
   test('expired staged cookie cannot expose a previously stored session',
       () async {
-    final login =
-        Uri.parse('https://jellyseerr.jms.example.invalid/api/v1/auth/jellyfin');
-    final me = Uri.parse('https://jellyseerr.jms.example.invalid/api/v1/auth/me');
+    final login = Uri.parse(
+        'https://jellyseerr.jms.example.invalid/api/v1/auth/jellyfin');
+    final me =
+        Uri.parse('https://jellyseerr.jms.example.invalid/api/v1/auth/me');
     await store.write(account, 'jms_session=PREVIOUS');
     await store.stageFromResponse(
         account, login, ['jms_session=NEW; Path=/; Secure'],
@@ -115,16 +138,16 @@ void main() {
         account, me, ['jms_session=; Max-Age=0; Path=/; Secure']);
     expect(await store.readForRequest(account, me), isNull);
     expect(
-        await store.readForRequest(
-            account, Uri.parse('https://jellyseerr.jms.example.invalid/api/v1/request')),
+        await store.readForRequest(account,
+            Uri.parse('https://jellyseerr.jms.example.invalid/api/v1/request')),
         isNull);
     expect(await store.commitStaged(account, me), isFalse);
     expect(await SeerrSessionStore().readForRequest(account, me), isNull);
   });
 
   test('expired secure record is removed before use', () async {
-    stored[SeerrSessionStore.key(account)] =
-        jsonEncode({'expires': 0, 'cookie': 'connect.sid=fixture-credential-0'});
+    stored[SeerrSessionStore.key(account)] = jsonEncode(
+        {'expires': 0, 'cookie': 'connect.sid=fixture-credential-0'});
     expect(await store.read(account), isNull);
     expect(stored, isEmpty);
   });
@@ -143,10 +166,12 @@ void main() {
   test(
       'Set-Cookie metadata survives restart and is isolated by account and origin',
       () async {
-    final login =
-        Uri.parse('https://jellyseerr.jms.example.invalid/api/v1/auth/jellyfin');
-    final me = Uri.parse('https://jellyseerr.jms.example.invalid/api/v1/auth/me');
-    final request = Uri.parse('https://jellyseerr.jms.example.invalid/api/v1/request');
+    final login = Uri.parse(
+        'https://jellyseerr.jms.example.invalid/api/v1/auth/jellyfin');
+    final me =
+        Uri.parse('https://jellyseerr.jms.example.invalid/api/v1/auth/me');
+    final request =
+        Uri.parse('https://jellyseerr.jms.example.invalid/api/v1/request');
     expect(
         await store.writeFromResponse(account, login,
             ['jms_session=TEST_ONLY; Path=/; Secure; HttpOnly; SameSite=Lax']),
@@ -186,9 +211,10 @@ void main() {
 
   test('clearing an old source leaves another source and user intact',
       () async {
-    final oldLogin =
-        Uri.parse('https://jellyseerr.jms.example.invalid/api/v1/auth/jellyfin');
-    final oldMe = Uri.parse('https://jellyseerr.jms.example.invalid/api/v1/auth/me');
+    final oldLogin = Uri.parse(
+        'https://jellyseerr.jms.example.invalid/api/v1/auth/jellyfin');
+    final oldMe =
+        Uri.parse('https://jellyseerr.jms.example.invalid/api/v1/auth/me');
     final newAccount = account.copyWith(
         seerrCredentials: account.seerrCredentials!
             .copyWith(serverUrl: 'https://another.invalid'));
