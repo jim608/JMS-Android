@@ -6,6 +6,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:fladder/util/brand.dart';
 import 'package:fladder/util/update_checker.dart';
 import 'package:fladder/util/update_controller.dart';
+import 'package:fladder/util/update_source.dart';
 import 'package:fladder/util/windows_update_bridge_io.dart';
 
 UpdateBridge createLinuxUpdateBridge() => LinuxUpdateBridge();
@@ -27,6 +28,9 @@ bool validLinuxPackageMetadata(String value, UpdateManifest manifest) {
 
 class LinuxUpdateBridge extends WindowsUpdateBridge {
   LinuxUpdateBridge({super.clientFactory, super.directory});
+  @override
+  UpdateSource get source =>
+      const UpdateSource(owner: 'jim608', repo: 'JMS-Linux');
   @override
   String get targetPlatform => 'linux-x64';
   @override

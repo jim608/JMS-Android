@@ -17,9 +17,7 @@ final updateProvider = ChangeNotifierProvider<UpdateController>((ref) {
   final linux = !kIsWeb && defaultTargetPlatform == TargetPlatform.linux;
   final controller = UpdateController(
     checker: UpdateChecker(
-        source: windows || linux
-            ? const UpdateSource(owner: 'jim608', repo: 'JMS-Desktop')
-            : const UpdateSource()),
+        source: UpdateSource.forPlatform(defaultTargetPlatform.name)),
     bridge: windows
         ? createWindowsUpdateBridge()
         : linux

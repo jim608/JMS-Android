@@ -11,7 +11,7 @@ import 'package:http/testing.dart';
 import 'package:fladder/util/update_checker.dart';
 import 'package:fladder/util/windows_update_bridge_io.dart';
 
-const desktopSource = WindowsUpdateBridge.source;
+final desktopSource = WindowsUpdateBridge().source;
 const desktopDevice = UpdateDevice('com.jim608.jms', 15, 22631, ['x86_64'],
     platform: 'windows-x64');
 final installerBytes = utf8.encode('synthetic-installer-not-executable');

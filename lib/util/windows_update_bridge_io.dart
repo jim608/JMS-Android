@@ -23,7 +23,8 @@ class WindowsUpdateBridge extends UpdateBridge {
   @override
   bool get isDesktop => true;
   static const channel = MethodChannel('com.jim608.jms/desktop_updates');
-  static const source = UpdateSource(owner: 'jim608', repo: 'JMS-Desktop');
+  UpdateSource get source =>
+      const UpdateSource(owner: 'jim608', repo: 'JMS-Desktop');
   final http.Client Function() clientFactory;
   final Future<Directory> Function() directory;
   bool _allowed = true;

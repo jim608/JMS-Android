@@ -68,7 +68,7 @@ def main():
         f'builddate = {int(time.time())}\npackager = JMS maintainers\n'
         f'size = {sum(path.stat().st_size for path in stage.rglob("*") if path.is_file())}\n'
         'pkgdesc = Jim608 Media Server desktop client\n'
-        'url = https://github.com/jim608/JMS-Desktop\n'
+        'url = https://github.com/jim608/JMS-Linux\n'
         'arch = x86_64\nlicense = GPL-3.0-only\n'
         + ''.join(f'depend = {dependency}\n' for dependency in
                   ['glibc>=2.36', 'gcc-libs', 'gtk3', 'mpv', 'alsa-lib', 'sqlite', 'polkit', 'libarchive', 'xdg-user-dirs']))

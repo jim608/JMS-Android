@@ -12,7 +12,7 @@ import 'package:flutter/foundation.dart';
 
 const linuxDevice =
     UpdateDevice('com.jim608.jms', 20, 36, ['x86_64'], platform: 'linux-x64');
-const source = UpdateSource(owner: 'jim608', repo: 'JMS-Desktop');
+const source = UpdateSource(owner: 'jim608', repo: 'JMS-Linux');
 Map<String, dynamic> linuxManifest() => {
       'schemaVersion': 1,
       'applicationId': 'com.jim608.jms',
@@ -89,7 +89,7 @@ void main() {
           'state': 'uploaded',
           'size': size,
           'browser_download_url':
-              'https://github.com/jim608/JMS-Desktop/releases/download/v19/$name'
+              'https://github.com/jim608/JMS-Linux/releases/download/v19/$name'
         };
     final checker = UpdateChecker(
         source: source,

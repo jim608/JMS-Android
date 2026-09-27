@@ -1,4 +1,9 @@
 class UpdateSource {
+  static UpdateSource forPlatform(String platform) => switch (platform) {
+        'windows' => const UpdateSource(owner: 'jim608', repo: 'JMS-Desktop'),
+        'linux' => const UpdateSource(owner: 'jim608', repo: 'JMS-Linux'),
+        _ => const UpdateSource(),
+      };
   final String owner;
   final String repo;
   const UpdateSource({
@@ -12,7 +17,8 @@ class UpdateSource {
       RegExp(r'^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$').hasMatch(repo) &&
       '$owner/$repo'.toLowerCase() != 'donutware/fladder';
   String get identity => '$owner/$repo';
-  Uri get releases => Uri.https('api.github.com', '/repos/$owner/$repo/releases', {'per_page': '20'});
+  Uri get releases => Uri.https(
+      'api.github.com', '/repos/$owner/$repo/releases', {'per_page': '20'});
 
   bool ownsAsset(Uri uri) =>
       valid &&
@@ -32,5 +38,8 @@ class UpdateSource {
       uri.scheme == 'https' &&
       uri.port == 443 &&
       uri.userInfo.isEmpty &&
-      const {'release-assets.githubusercontent.com', 'objects.githubusercontent.com'}.contains(uri.host);
+      const {
+        'release-assets.githubusercontent.com',
+        'objects.githubusercontent.com'
+      }.contains(uri.host);
 }
