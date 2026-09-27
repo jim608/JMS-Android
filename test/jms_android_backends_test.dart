@@ -25,10 +25,12 @@ void main() {
     expect(VideoPlayerSettingsModel(playerOptions: PlayerOptions.nativePlayer).wantedPlayer, PlayerOptions.nativePlayer);
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
-  testWidgets('Desktop MDK preference remains available and unchanged', (tester) async {
-    expect(PlayerOptions.available, contains(PlayerOptions.libMDK));
+  testWidgets('Linux uses distribution MPV without erasing legacy MDK preferences', (tester) async {
+    expect(PlayerOptions.available, {PlayerOptions.libMPV});
     final saved = VideoPlayerSettingsModel(playerOptions: PlayerOptions.libMDK);
-    expect(saved.wantedPlayer, PlayerOptions.libMDK);
+    expect(saved.wantedPlayer, PlayerOptions.libMPV);
+    expect(saved.playerOptions, PlayerOptions.libMDK);
+    expect(VideoPlayerSettingsModel.fromJson(saved.toJson()).playerOptions, PlayerOptions.libMDK);
     expect(saved.androidMdkUnavailable, isFalse);
   }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
 }
