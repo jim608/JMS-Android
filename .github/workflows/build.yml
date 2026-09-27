@@ -471,7 +471,8 @@ jobs:
       - build-linux-flatpak
       - build-web
     runs-on: ubuntu-latest
-    if: vars.JMS_RELEASES_ENABLED == 'true' && (needs.fetch-info.outputs.build_type == 'release' || needs.fetch-info.outputs.build_type == 'nightly')
+    # JMS 使用受審查的平台發布器；此混合平台流程僅保留給上游。
+    if: github.repository == 'DonutWare/Fladder' && vars.JMS_RELEASES_ENABLED == 'true' && (needs.fetch-info.outputs.build_type == 'release' || needs.fetch-info.outputs.build_type == 'nightly')
     permissions:
       contents: write
     steps:
