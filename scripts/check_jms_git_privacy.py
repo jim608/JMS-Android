@@ -105,7 +105,9 @@ def matching_reviews(data, contexts, reviews):
     digest = hashlib.sha256(data).hexdigest()
     return [review for review in reviews
             if review.get('sha256') == digest
-            and (review.get('archiveSha256'), review.get('member')) in contexts
+            and ((review.get('archiveSha256'), review.get('member')) in contexts
+                 or any((item.get('archiveSha256'), item.get('member')) in contexts
+                        for item in review.get('distributions', [])))
             and review.get('source', '').startswith('https://')
             and review.get('explanation') and valid_evidence(review)]
 
@@ -162,9 +164,19 @@ class ArchiveScan:
         self.used_reviews = []
         self.stream_bytes = 0
         self.current_member = None
+        self.expected_evidence = set()
+        for review in self.reviews:
+            evidence = review.get('evidence', {})
+            if isinstance(evidence, dict):
+                self.expected_evidence.add((evidence.get('archiveSha256', review.get('archiveSha256')),
+                                           evidence.get('member'), evidence.get('sha256')))
+            self.expected_evidence.add((review.get('archiveSha256'), review.get('member'), review.get('sha256')))
 
     def finish(self):
         for review in self.used_reviews:
+            origin = (review['archiveSha256'], review['member'], review['sha256'])
+            if origin not in self.seen:
+                raise ValueError('Public review origin was not verified in inspected materials')
             evidence = review['evidence']
             identity = (evidence.get('archiveSha256', review['archiveSha256']),
                         evidence['member'], evidence['sha256'])
@@ -210,7 +222,8 @@ class ArchiveScan:
         results = [(name, problems)]
         approvals = matching_reviews(data, contexts, self.reviews)
         digest = hashlib.sha256(data).hexdigest()
-        self.seen.update((archive, member, digest) for archive, member in contexts)
+        self.seen.update(identity for archive, member in contexts
+                         if (identity := (archive, member, digest)) in self.expected_evidence)
         self.used_reviews.extend(approvals)
         raw = [r for r in approvals if r.get('inspection') == 'raw-public-test-sample'
                and r.get('testReference') and r.get('rawContentReview')]
@@ -314,6 +327,55 @@ def scan_package_cached(path, domains, cache_directory=None):
     return report
 
 
+def scan_packages_cached(paths, domains, cache_directory=None):
+    """Verify exact origins and test references across the complete release asset set."""
+    paths = [Path(path) for path in paths]
+    materials = []
+    for path in paths:
+        if path.stat().st_size > MAX_ARCHIVE_MEMBER_BYTES:
+            raise ValueError('Package exceeds privacy inspection limit')
+        with path.open('rb') as stream:
+            materials.append({'name': path.name, 'sha256': hashlib.file_digest(stream, 'sha256').hexdigest()})
+    reviews = load_public_reviews()
+    inputs = {'materials': materials,
+              'scanner': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+              'reviews': hashlib.sha256(json.dumps(reviews, sort_keys=True).encode()).hexdigest(),
+              'policy': hashlib.sha256(json.dumps(sorted(domains)).encode()).hexdigest(),
+              'settings': [4 * 1024**3, 200000, 1800, 6, MAX_ARCHIVE_MEMBER_BYTES]}
+    key = hashlib.sha256(json.dumps(inputs, sort_keys=True).encode()).hexdigest()
+    cache = Path(cache_directory) / ('release-' + key + '.json') if cache_directory is not None else None
+    if cache is not None and cache.is_file():
+        try:
+            saved = json.loads(cache.read_text(encoding='utf-8'))
+        except (OSError, ValueError):
+            saved = {}
+        if saved.get('inputs') == inputs and saved.get('accepted') is True and saved.get('complete') is True:
+            return saved
+    scanners = []
+    rejected = []
+    for path, material in zip(paths, materials):
+        data = path.read_bytes()
+        if hashlib.sha256(data).hexdigest() != material['sha256']:
+            raise ValueError('Package changed during privacy inspection')
+        scanner = ArchiveScan(domains, reviews)
+        results = scanner.scan(path.name, data)
+        rejected.extend((name, reasons) for name, reasons in results if reasons)
+        scanners.append(scanner)
+    verified = set().union(*(scanner.seen for scanner in scanners))
+    for scanner in scanners:
+        scanner.seen = verified
+        scanner.finish()
+    report = {'inputs': inputs, 'accepted': not rejected, 'complete': True,
+              'rejected': rejected, 'items': sum(scanner.members for scanner in scanners),
+              'rawSamples': [sample for scanner in scanners for sample in scanner.raw_samples]}
+    if cache is not None and report['accepted']:
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        temporary = cache.with_suffix('.tmp')
+        temporary.write_text(json.dumps(report, ensure_ascii=False), encoding='utf-8')
+        temporary.replace(cache)
+    return report
+
+
 def outgoing_findings(head, bases, domains):
     commits = git('rev-list', head, '--not', *bases).decode().splitlines()
     results = []
@@ -351,13 +413,16 @@ def main():
         return 1
     if arguments.outgoing or arguments.package or arguments.message_file:
         results = []
+        package_items = 0
+        package_records = 0
         if arguments.outgoing:
             results.extend(outgoing_findings(arguments.outgoing, arguments.base, domains))
-        for filename in arguments.package:
-            path = Path(filename)
+        if arguments.package:
             cache = git('rev-parse', '--git-path', 'jms-privacy-cache').decode().strip()
-            report = scan_package_cached(path, domains, cache)
-            results.extend(report['rejected'] or [(path.name, [])])
+            report = scan_packages_cached(arguments.package, domains, cache)
+            package_items = report['items']
+            package_records = len(report['rejected'])
+            results.extend(report['rejected'])
         if arguments.message_file:
             results.append(('commit message', findings('message', Path(arguments.message_file).read_bytes(), domains)))
             emails = git('var', 'GIT_AUTHOR_IDENT') + git('var', 'GIT_COMMITTER_IDENT')
@@ -369,7 +434,8 @@ def main():
             # Paths themselves can contain a private value.
             safe = name if not findings('name', name.encode(), domains) else '[redacted location]'
             print(f'{safe}: {", ".join(problems)}', file=sys.stderr)
-        print(f'Privacy check: {len(results)} items checked; {len(rejected)} rejected.')
+        checked = len(results) + package_items - package_records
+        print(f'Privacy check: {checked} items checked; {len(rejected)} rejected.')
         return int(bool(rejected))
     if arguments.tree:
         tree = git('rev-parse', '--verify', arguments.tree + '^{tree}').decode().strip()

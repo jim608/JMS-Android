@@ -10,7 +10,7 @@ from pathlib import Path
 
 from jms_publication import (ROOT, Github, ReleaseError, sha256, save_json,
                              upload_complete_release, anonymous_download)
-from check_jms_git_privacy import load_policy, scan_package_cached, tree_entries
+from check_jms_git_privacy import load_policy, scan_packages_cached, tree_entries
 
 REPOSITORIES = {'windows': 'jim608/JMS-Desktop', 'linux': 'jim608/JMS-Linux'}
 
@@ -63,10 +63,11 @@ def validate_inventory(directory, platform):
         path = directory / name
         if not path.is_file() or path.stat().st_size != entry['size'] or sha256(path) != entry['sha256']:
             raise ReleaseError('Prepared asset changed: ' + name)
-        privacy = scan_package_cached(path, policy, ROOT / git('rev-parse', '--git-path', 'jms-privacy-cache'))
-        if not privacy['accepted']:
-            raise ReleaseError('Asset privacy review required: ' + name)
         files[name] = {'path': str(path), 'size': entry['size'], 'sha256': entry['sha256']}
+    privacy = scan_packages_cached([entry['path'] for entry in files.values()], policy,
+                                   ROOT / git('rev-parse', '--git-path', 'jms-privacy-cache'))
+    if not privacy['accepted']:
+        raise ReleaseError('Release asset privacy review required')
     update_name = 'update.json' if platform == 'windows' else 'update-linux.json'
     if update_name not in files or 'SHA256SUMS.txt' not in files:
         raise ReleaseError('Missing platform update metadata/checksums')

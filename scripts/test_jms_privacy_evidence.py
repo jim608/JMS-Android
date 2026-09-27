@@ -74,6 +74,24 @@ class PublicEvidenceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'reference'):
             self.scan(archive, [approval])
 
+    def test_distribution_requires_exact_origin_and_reference_assets(self):
+        payload = b'synthetic key fixture'
+        reference = b'test consumes fixture.key'
+        upstream = container({'fixture.key': payload, 'test.txt': reference})
+        release = container({'app/fixture.key': payload})
+        approval = review(upstream, 'fixture.key', payload, 'test.txt', reference)
+        approval['distributions'] = [{'archiveSha256': digest(release), 'member': 'app/fixture.key'}]
+        with tempfile.TemporaryDirectory() as directory, patch.object(privacy, 'load_public_reviews', return_value=[approval]):
+            root = Path(directory)
+            (root / 'upstream.zip').write_bytes(upstream)
+            (root / 'release.zip').write_bytes(release)
+            paths = [root / 'upstream.zip', root / 'release.zip']
+            self.assertTrue(privacy.scan_packages_cached(paths, [], root / 'cache')['accepted'])
+            with self.assertRaisesRegex(ValueError, 'origin'):
+                privacy.scan_packages_cached(paths[1:], [], root / 'cache')
+            (root / 'release.zip').write_bytes(container({'app/fixture.key': payload + b'x'}))
+            self.assertFalse(privacy.scan_packages_cached(paths, [], root / 'cache')['accepted'])
+
     def test_raw_sample_requires_independent_reference_and_explicit_scope(self):
         payload = b'intentionally invalid tar fixture'
         reference = b'test expects archive parsing to raise an error for broken.tar'
