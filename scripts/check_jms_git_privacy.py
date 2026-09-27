@@ -8,6 +8,7 @@ import subprocess
 import sys
 import io
 import zipfile
+import tarfile
 
 
 def git(*arguments):
@@ -101,6 +102,13 @@ def scan_archive(name, data, domains, depth=0):
             for member in archive.infolist():
                 if not member.is_dir():
                     results.extend(scan_archive(name + '/' + member.filename, archive.read(member), domains, depth + 1))
+    elif name.lower().endswith(('.tar.gz', '.tgz', '.tar.xz', '.tar', '.tar.bz2')):
+        if depth >= 6:
+            raise ValueError('Archive nesting limit exceeded')
+        with tarfile.open(fileobj=io.BytesIO(data), mode='r:*') as archive:
+            for member in archive:
+                if member.isfile():
+                    results.extend(scan_archive(name + '/' + member.name, archive.extractfile(member).read(), domains, depth + 1))
     return results
 
 

@@ -7,6 +7,7 @@ import sys
 import tempfile
 import unittest
 import zipfile
+import tarfile
 import shutil
 from unittest.mock import patch
 
@@ -14,6 +15,16 @@ from check_jms_git_privacy import findings, main, outgoing_findings, scan_archiv
 
 
 class PrivacyTests(unittest.TestCase):
+    def test_linux_tar_package_contents_are_scanned(self):
+        stream = io.BytesIO()
+        with tarfile.open(fileobj=stream, mode='w:gz') as archive:
+            payload = b'https://private.example.invalid'
+            member = tarfile.TarInfo('JMS/data/settings.txt')
+            member.size = len(payload)
+            archive.addfile(member, io.BytesIO(payload))
+        results = scan_archive('portable.tar.gz', stream.getvalue(), ['private.example.invalid'])
+        self.assertIn(('portable.tar.gz/JMS/data/settings.txt', ['private domain']), results)
+
     def setUp(self):
         argv = patch.object(sys, 'argv', ['checker'])
         argv.start()

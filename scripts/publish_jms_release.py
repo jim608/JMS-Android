@@ -350,9 +350,15 @@ def main():
     parser = argparse.ArgumentParser(description='Explicit, gated JMS release entry; default publishes when all checks pass')
     parser.add_argument('--dry-run', action='store_true')
     parser.add_argument('--channel', choices=['prerelease', 'stable'], default='prerelease')
+    parser.add_argument('--platform', choices=['android', 'windows', 'linux'], default='android')
+    parser.add_argument('--artifact-directory')
     args = parser.parse_args()
     try:
-        publish(args)
+        if args.platform == 'android':
+            publish(args)
+        else:
+            from jms_desktop_publication import publish_desktop
+            publish_desktop(args)
     except (ReleaseError, GitReleaseError, OSError, KeyError, ValueError) as error:
         print('PUBLICATION STOPPED: ' + str(error), file=sys.stderr)
         return 1
