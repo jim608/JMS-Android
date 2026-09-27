@@ -1,5 +1,5 @@
 name: fladder
-description: A simple cross-platform Jellyfin client.
+description: JMS - Jim608 Media Server, a cross-platform Jellyfin client.
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
@@ -16,7 +16,7 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.11.1+1
+version: 0.11.1-jms.14+14
 
 environment:
   sdk: ">=3.1.3 <4.0.0"
@@ -28,6 +28,7 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  crypto: 3.0.7
   flutter:
     sdk: flutter
   flutter_localizations:
@@ -150,6 +151,8 @@ dependencies:
 dependency_overrides:
   screen_brightness_windows:
     path: third_party/screen_brightness_windows
+  fvp:
+    path: third_party/fvp
   pip:
     git:
       url: https://github.com/DonutWare/pip.git
@@ -221,11 +224,15 @@ flutter:
   generate: true
 
   assets:
-    - icons/
+    - icons/jms/
+    - icons/tomato.svg
+    - icons/popcorn_bucket.svg
+    - LICENSE
     - assets/fonts/
-    - config/
-    - assets/mp-font.ttf
-    - assets/
+    - config/config.json
+    - assets/licenses/
+    - assets/subtitle_fonts/
+    - assets/gradient.png
 
   fonts:
     - family: Rubik
@@ -243,10 +250,10 @@ flutter:
           style: italic
 
 flutter_native_splash:
-  color: "#210000"
-  color_dark: "#210000"
-  image: icons/production/fladder_icon.png
-  image_dark: icons/production/fladder_icon.png
+  color: "#101827"
+  color_dark: "#101827"
+  image: icons/jms/icon.png
+  image_dark: icons/jms/icon.png
   android: true
-  ios: false
+  ios: true
   web: false

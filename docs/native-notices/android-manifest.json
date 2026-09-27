@@ -1,0 +1,466 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "origin": "ass-android-2e7f6a6116b4.zip",
+      "entry": "libass-android-2e7f6a6116b401414352f18e72ced73640ca886e/LICENSE",
+      "sha256": "eede2bf250a8d39c3d25f1af6cabd310ca0322c4fb160bc0cd8538682dba49de"
+    },
+    {
+      "origin": "ass-cmake-d3f00a43ca66.zip",
+      "entry": "libass-cmake-d3f00a43ca66e42a2c34de964b1a7dbbfa9dbc8b/LICENSE",
+      "sha256": "50b2cd540b02ed7c2016ecdcb35243a81134cec0a9969fc7f206cd35b5eea64c"
+    },
+    {
+      "origin": "jellyfin-ffmpeg-d388c347d41e.zip",
+      "entry": "FFmpeg-d388c347d41e4eb516dec05910551c5461e65615/COPYING.GPLv2",
+      "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+    },
+    {
+      "origin": "jellyfin-ffmpeg-d388c347d41e.zip",
+      "entry": "FFmpeg-d388c347d41e4eb516dec05910551c5461e65615/COPYING.GPLv3",
+      "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+    },
+    {
+      "origin": "jellyfin-ffmpeg-d388c347d41e.zip",
+      "entry": "FFmpeg-d388c347d41e4eb516dec05910551c5461e65615/COPYING.LGPLv2.1",
+      "sha256": "b634ab5640e258563c536e658cad87080553df6f34f62269a21d554844e58bfe"
+    },
+    {
+      "origin": "jellyfin-ffmpeg-d388c347d41e.zip",
+      "entry": "FFmpeg-d388c347d41e4eb516dec05910551c5461e65615/COPYING.LGPLv3",
+      "sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768"
+    },
+    {
+      "origin": "jellyfin-ffmpeg-d388c347d41e.zip",
+      "entry": "FFmpeg-d388c347d41e4eb516dec05910551c5461e65615/LICENSE.md",
+      "sha256": "cb48bf09a11f5fb576cddb0431c8f5ed0a60157a9ec942adffc13907cbe083f2"
+    },
+    {
+      "origin": "jellyfin-media3-84ef4b7201a9.zip",
+      "entry": "jellyfin-androidx-media-84ef4b7201a9e1edfc699c31acbc505511a4af1f/LICENSE",
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+    },
+    {
+      "origin": "media-kit-helper-42054e5d479f.zip",
+      "entry": "media-kit-android-helper-42054e5d479f39ccbb0ae604862e2bcaf59b74c2/LICENSE",
+      "sha256": "2e3000f38718f050869d57540c288c661a446f64df1ba4ea4764df552b04a331"
+    },
+    {
+      "origin": "mpv-78d43740f52d.zip",
+      "entry": "mpv-78d43740f52db817d98bcf24fb30a76ab6fa13ff/Copyright",
+      "sha256": "ca8f78358716ff15098bf681e07d508007e4e5f1bbcbefc5d859bef55559d00d"
+    },
+    {
+      "origin": "mpv-78d43740f52d.zip",
+      "entry": "mpv-78d43740f52db817d98bcf24fb30a76ab6fa13ff/LICENSE.GPL",
+      "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+    },
+    {
+      "origin": "mpv-78d43740f52d.zip",
+      "entry": "mpv-78d43740f52db817d98bcf24fb30a76ab6fa13ff/LICENSE.LGPL",
+      "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551"
+    },
+    {
+      "origin": "mpv-build-23d81c8a50c6.zip",
+      "entry": "libmpv-android-video-build-23d81c8a50c6c9c662ce612422b850016ae54dc6/LICENSE",
+      "sha256": "8f25da1621b9e063833aaae0d4a28c6b83c3e70176aad0fae5e4893e219ae799"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "androidMain/androidx/datastore/core/FileMoves.android.kt copyright header",
+      "sha256": "85d89e90bd56722f8d3a5386d12bacfc7eb6c0bb83e87d1f8e29d7f0ea871bf5"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "androidMain/androidx/datastore/core/MultiProcessCoordinator.android.kt copyright header",
+      "sha256": "ffbf3b8a42860b5eaa8228cca1c1f328305ad749737bef00ef43520d8f5e48b7"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "androidMain/androidx/datastore/core/MultiProcessDataStoreFactory.android.kt copyright header",
+      "sha256": "098ca21a7be9224c03b2c4966bbec5c1b3c7511f391545373c2b450fae6541e4"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "androidMain/androidx/datastore/core/MulticastFileObserver.android.kt copyright header",
+      "sha256": "ffbf3b8a42860b5eaa8228cca1c1f328305ad749737bef00ef43520d8f5e48b7"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "androidMain/androidx/datastore/core/SharedCounter.android.kt copyright header",
+      "sha256": "098ca21a7be9224c03b2c4966bbec5c1b3c7511f391545373c2b450fae6541e4"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonJvmMain/androidx/datastore/core/Actual.jvm.kt copyright header",
+      "sha256": "098ca21a7be9224c03b2c4966bbec5c1b3c7511f391545373c2b450fae6541e4"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonJvmMain/androidx/datastore/core/DataStoreFactory.jvm.kt copyright header",
+      "sha256": "575ee5739171b0a546eb044c10ef188f605a1e8c975a728a6072f61ed2658e94"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonJvmMain/androidx/datastore/core/FileMoves.kt copyright header",
+      "sha256": "85d89e90bd56722f8d3a5386d12bacfc7eb6c0bb83e87d1f8e29d7f0ea871bf5"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonJvmMain/androidx/datastore/core/FileStorage.kt copyright header",
+      "sha256": "098ca21a7be9224c03b2c4966bbec5c1b3c7511f391545373c2b450fae6541e4"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonJvmMain/androidx/datastore/core/InterProcessCoordinator.jvm.kt copyright header",
+      "sha256": "ffbf3b8a42860b5eaa8228cca1c1f328305ad749737bef00ef43520d8f5e48b7"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonJvmMain/androidx/datastore/core/Serializer.kt copyright header",
+      "sha256": "575ee5739171b0a546eb044c10ef188f605a1e8c975a728a6072f61ed2658e94"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonJvmMain/androidx/datastore/core/UncloseableOutputStream.kt copyright header",
+      "sha256": "098ca21a7be9224c03b2c4966bbec5c1b3c7511f391545373c2b450fae6541e4"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonJvmMain/androidx/datastore/core/handlers/NoOpCorruptionHandler.jvm.kt copyright header",
+      "sha256": "575ee5739171b0a546eb044c10ef188f605a1e8c975a728a6072f61ed2658e94"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonJvmMain/androidx/datastore/core/handlers/ReplaceFileCorruptionHandler.jvm.kt copyright header",
+      "sha256": "575ee5739171b0a546eb044c10ef188f605a1e8c975a728a6072f61ed2658e94"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonMain/androidx/datastore/core/Closeable.kt copyright header",
+      "sha256": "098ca21a7be9224c03b2c4966bbec5c1b3c7511f391545373c2b450fae6541e4"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonMain/androidx/datastore/core/CorruptionException.kt copyright header",
+      "sha256": "098ca21a7be9224c03b2c4966bbec5c1b3c7511f391545373c2b450fae6541e4"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonMain/androidx/datastore/core/CorruptionHandler.kt copyright header",
+      "sha256": "575ee5739171b0a546eb044c10ef188f605a1e8c975a728a6072f61ed2658e94"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonMain/androidx/datastore/core/DataMigration.kt copyright header",
+      "sha256": "575ee5739171b0a546eb044c10ef188f605a1e8c975a728a6072f61ed2658e94"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonMain/androidx/datastore/core/DataMigrationInitializer.kt copyright header",
+      "sha256": "575ee5739171b0a546eb044c10ef188f605a1e8c975a728a6072f61ed2658e94"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonMain/androidx/datastore/core/DataStore.kt copyright header",
+      "sha256": "575ee5739171b0a546eb044c10ef188f605a1e8c975a728a6072f61ed2658e94"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonMain/androidx/datastore/core/DataStoreFactory.kt copyright header",
+      "sha256": "098ca21a7be9224c03b2c4966bbec5c1b3c7511f391545373c2b450fae6541e4"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonMain/androidx/datastore/core/DataStoreImpl.kt copyright header",
+      "sha256": "ffbf3b8a42860b5eaa8228cca1c1f328305ad749737bef00ef43520d8f5e48b7"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonMain/androidx/datastore/core/DataStoreInMemoryCache.kt copyright header",
+      "sha256": "ffbf3b8a42860b5eaa8228cca1c1f328305ad749737bef00ef43520d8f5e48b7"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonMain/androidx/datastore/core/Expect.kt copyright header",
+      "sha256": "098ca21a7be9224c03b2c4966bbec5c1b3c7511f391545373c2b450fae6541e4"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonMain/androidx/datastore/core/InitializerApi.kt copyright header",
+      "sha256": "575ee5739171b0a546eb044c10ef188f605a1e8c975a728a6072f61ed2658e94"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonMain/androidx/datastore/core/InterProcessCoordinator.kt copyright header",
+      "sha256": "ffbf3b8a42860b5eaa8228cca1c1f328305ad749737bef00ef43520d8f5e48b7"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonMain/androidx/datastore/core/Message.kt copyright header",
+      "sha256": "098ca21a7be9224c03b2c4966bbec5c1b3c7511f391545373c2b450fae6541e4"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonMain/androidx/datastore/core/MutexUtils.kt copyright header",
+      "sha256": "ffbf3b8a42860b5eaa8228cca1c1f328305ad749737bef00ef43520d8f5e48b7"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonMain/androidx/datastore/core/SimpleActor.kt copyright header",
+      "sha256": "098ca21a7be9224c03b2c4966bbec5c1b3c7511f391545373c2b450fae6541e4"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonMain/androidx/datastore/core/SingleProcessCoordinator.kt copyright header",
+      "sha256": "ffbf3b8a42860b5eaa8228cca1c1f328305ad749737bef00ef43520d8f5e48b7"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonMain/androidx/datastore/core/State.kt copyright header",
+      "sha256": "098ca21a7be9224c03b2c4966bbec5c1b3c7511f391545373c2b450fae6541e4"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonMain/androidx/datastore/core/Storage.kt copyright header",
+      "sha256": "098ca21a7be9224c03b2c4966bbec5c1b3c7511f391545373c2b450fae6541e4"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonMain/androidx/datastore/core/StorageConnection.kt copyright header",
+      "sha256": "098ca21a7be9224c03b2c4966bbec5c1b3c7511f391545373c2b450fae6541e4"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonMain/androidx/datastore/core/handlers/NoOpCorruptionHandler.kt copyright header",
+      "sha256": "575ee5739171b0a546eb044c10ef188f605a1e8c975a728a6072f61ed2658e94"
+    },
+    {
+      "origin": "datastore-core-android-1.1.7-sources.jar",
+      "entry": "commonMain/androidx/datastore/core/handlers/ReplaceFileCorruptionHandler.kt copyright header",
+      "sha256": "575ee5739171b0a546eb044c10ef188f605a1e8c975a728a6072f61ed2658e94"
+    },
+    {
+      "origin": "graphics-path-1.0.1-native.zip",
+      "entry": "graphics/graphics-path/src/main/cpp/Conic.cpp copyright header",
+      "sha256": "834cbe127c5f5778b47be214202c1d4ca4e617f741ee08e23006597ffbee2d55"
+    },
+    {
+      "origin": "graphics-path-1.0.1-native.zip",
+      "entry": "graphics/graphics-path/src/main/cpp/Conic.h copyright header",
+      "sha256": "6c40ee3deaf15a78289380c60cd7d2d451884bf82d3da178d33b89ae50aacd59"
+    },
+    {
+      "origin": "graphics-path-1.0.1-native.zip",
+      "entry": "graphics/graphics-path/src/main/cpp/Path.h copyright header",
+      "sha256": "6c40ee3deaf15a78289380c60cd7d2d451884bf82d3da178d33b89ae50aacd59"
+    },
+    {
+      "origin": "graphics-path-1.0.1-native.zip",
+      "entry": "graphics/graphics-path/src/main/cpp/PathIterator.cpp copyright header",
+      "sha256": "6c40ee3deaf15a78289380c60cd7d2d451884bf82d3da178d33b89ae50aacd59"
+    },
+    {
+      "origin": "graphics-path-1.0.1-native.zip",
+      "entry": "graphics/graphics-path/src/main/cpp/PathIterator.h copyright header",
+      "sha256": "6c40ee3deaf15a78289380c60cd7d2d451884bf82d3da178d33b89ae50aacd59"
+    },
+    {
+      "origin": "graphics-path-1.0.1-native.zip",
+      "entry": "graphics/graphics-path/src/main/cpp/pathway.cpp copyright header",
+      "sha256": "6c40ee3deaf15a78289380c60cd7d2d451884bf82d3da178d33b89ae50aacd59"
+    },
+    {
+      "origin": "graphics-path-1.0.1-native.zip",
+      "entry": "graphics/graphics-path/src/main/cpp/scalar.h copyright header",
+      "sha256": "6c40ee3deaf15a78289380c60cd7d2d451884bf82d3da178d33b89ae50aacd59"
+    },
+    {
+      "origin": "graphics-path-1.0.1-native.zip",
+      "entry": "graphics/graphics-path/src/main/cpp/math/TVecHelpers.h copyright header",
+      "sha256": "aaace0d971b7f7ccf1feafea861a01f2be8c496e9c06d8c9405f294501fd0a3f"
+    },
+    {
+      "origin": "graphics-path-1.0.1-native.zip",
+      "entry": "graphics/graphics-path/src/main/cpp/math/compiler.h copyright header",
+      "sha256": "75dbadc0b3159a276c67a0bf4f5e7fb11b02fec4223eae12aa3a64e195a4fca6"
+    },
+    {
+      "origin": "graphics-path-1.0.1-native.zip",
+      "entry": "graphics/graphics-path/src/main/cpp/math/vec2.h copyright header",
+      "sha256": "aaace0d971b7f7ccf1feafea861a01f2be8c496e9c06d8c9405f294501fd0a3f"
+    },
+    {
+      "origin": "graphics-path-1.0.1-sources.jar",
+      "entry": "androidx/graphics/path/ConicConverter.kt copyright header",
+      "sha256": "098ca21a7be9224c03b2c4966bbec5c1b3c7511f391545373c2b450fae6541e4"
+    },
+    {
+      "origin": "graphics-path-1.0.1-sources.jar",
+      "entry": "androidx/graphics/path/PathIterator.kt copyright header",
+      "sha256": "6c40ee3deaf15a78289380c60cd7d2d451884bf82d3da178d33b89ae50aacd59"
+    },
+    {
+      "origin": "graphics-path-1.0.1-sources.jar",
+      "entry": "androidx/graphics/path/PathIteratorImpl.kt copyright header",
+      "sha256": "098ca21a7be9224c03b2c4966bbec5c1b3c7511f391545373c2b450fae6541e4"
+    },
+    {
+      "origin": "graphics-path-1.0.1-sources.jar",
+      "entry": "androidx/graphics/path/PathSegment.kt copyright header",
+      "sha256": "098ca21a7be9224c03b2c4966bbec5c1b3c7511f391545373c2b450fae6541e4"
+    },
+    {
+      "origin": "mpv-dav1d-1.2.0.tar.xz",
+      "entry": "dav1d-1.2.0/COPYING",
+      "sha256": "b327887de263238deaa80c34cdd2ff3e0ba1d35db585ce14a37ce3e74ee389e9"
+    },
+    {
+      "origin": "mpv-ffmpeg-6.0.zip",
+      "entry": "FFmpeg-n6.0/COPYING.GPLv2",
+      "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+    },
+    {
+      "origin": "mpv-ffmpeg-6.0.zip",
+      "entry": "FFmpeg-n6.0/COPYING.GPLv3",
+      "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+    },
+    {
+      "origin": "mpv-ffmpeg-6.0.zip",
+      "entry": "FFmpeg-n6.0/COPYING.LGPLv2.1",
+      "sha256": "b634ab5640e258563c536e658cad87080553df6f34f62269a21d554844e58bfe"
+    },
+    {
+      "origin": "mpv-ffmpeg-6.0.zip",
+      "entry": "FFmpeg-n6.0/COPYING.LGPLv3",
+      "sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768"
+    },
+    {
+      "origin": "mpv-ffmpeg-6.0.zip",
+      "entry": "FFmpeg-n6.0/LICENSE.md",
+      "sha256": "cb48bf09a11f5fb576cddb0431c8f5ed0a60157a9ec942adffc13907cbe083f2"
+    },
+    {
+      "origin": "mpv-freetype-2.13.0.zip",
+      "entry": "freetype-VER-2-13-0/LICENSE.TXT",
+      "sha256": "2e3bbb7d7c5c396368dd0853a790ec29ce5b8647163dde42a0493fb0d6556b2b"
+    },
+    {
+      "origin": "mpv-freetype-2.13.0.zip",
+      "entry": "freetype-VER-2-13-0/docs/FTL.TXT",
+      "sha256": "08c135755dd589039470f1fdbb400daaabaaa50d0b366d19cebff4d22986baa1"
+    },
+    {
+      "origin": "mpv-fribidi-1.0.12.zip",
+      "entry": "fribidi-1.0.12/COPYING",
+      "sha256": "32434afcc8666ba060e111d715bfdb6c2d5dd8a35fa4d3ab8ad67d8f850d2f2b"
+    },
+    {
+      "origin": "mpv-harfbuzz-7.2.0.zip",
+      "entry": "harfbuzz-7.2.0/COPYING",
+      "sha256": "ba8f810f2455c2f08e2d56bb49b72f37fcf68f1f4fade38977cfd7372050ad64"
+    },
+    {
+      "origin": "mpv-harfbuzz-7.2.0.zip",
+      "entry": "harfbuzz-7.2.0/src/ms-use/COPYING",
+      "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+    },
+    {
+      "origin": "mpv-harfbuzz-7.2.0.zip",
+      "entry": "harfbuzz-7.2.0/test/COPYING",
+      "sha256": "9b35b8485f69cd298fccbb3c40a827dc06cf1185553bef827903497d2944a8d7"
+    },
+    {
+      "origin": "mpv-libass-0.17.1.zip",
+      "entry": "libass-0.17.1/COPYING",
+      "sha256": "f7e30699d02798351e7f839e3d3bfeb29ce65e44efa7735c225464c4fd7dfe9c"
+    },
+    {
+      "origin": "mpv-libxml2-2.10.3.tar.xz",
+      "entry": "libxml2-2.10.3/Copyright",
+      "sha256": "c5c63674f8a83c4d2e385d96d1c670a03cb871ba2927755467017317878574bd"
+    },
+    {
+      "origin": "mpv-mbedtls-3.4.0.zip",
+      "entry": "mbedtls-3.4.0/LICENSE",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "origin": "native-ass-bbb3c7f1570a.zip",
+      "entry": "libass-bbb3c7f1570a4a021e52683f3fbdf74fe492ae84/COPYING",
+      "sha256": "f7e30699d02798351e7f839e3d3bfeb29ce65e44efa7735c225464c4fd7dfe9c"
+    },
+    {
+      "origin": "native-expat-f9a3eeb3e09f.zip",
+      "entry": "libexpat-f9a3eeb3e09fbea04b1c451ffc422ab2f1e45744/COPYING",
+      "sha256": "31b15de82aa19a845156169a17a5488bf597e561b2c318d159ed583139b25e87"
+    },
+    {
+      "origin": "native-expat-f9a3eeb3e09f.zip",
+      "entry": "libexpat-f9a3eeb3e09fbea04b1c451ffc422ab2f1e45744/expat/COPYING",
+      "sha256": "31b15de82aa19a845156169a17a5488bf597e561b2c318d159ed583139b25e87"
+    },
+    {
+      "origin": "native-fontconfig-daa175d234b8.tar.gz",
+      "entry": "fontconfig-daa175d234b8a362eedd4c18c33537cc2d19cd98/COPYING",
+      "sha256": "51a51aa9823704fd90bccc616cdd17ebabb5b2b3e9cbde886ca02c7002288067"
+    },
+    {
+      "origin": "native-freetype-42608f77f207.zip",
+      "entry": "freetype-42608f77f20749dd6ddc9e0536788eaad70ea4b5/LICENSE.TXT",
+      "sha256": "2e3bbb7d7c5c396368dd0853a790ec29ce5b8647163dde42a0493fb0d6556b2b"
+    },
+    {
+      "origin": "native-freetype-42608f77f207.zip",
+      "entry": "freetype-42608f77f20749dd6ddc9e0536788eaad70ea4b5/docs/FTL.TXT",
+      "sha256": "08c135755dd589039470f1fdbb400daaabaaa50d0b366d19cebff4d22986baa1"
+    },
+    {
+      "origin": "native-fribidi-68162babff4f.zip",
+      "entry": "fribidi-68162babff4f39c4e2dc164a5e825af93bda9983/COPYING",
+      "sha256": "32434afcc8666ba060e111d715bfdb6c2d5dd8a35fa4d3ab8ad67d8f850d2f2b"
+    },
+    {
+      "origin": "native-harfbuzz-c3fcbffa651c.zip",
+      "entry": "harfbuzz-c3fcbffa651cea70400552f2a8bd695ad11023c1/COPYING",
+      "sha256": "ba8f810f2455c2f08e2d56bb49b72f37fcf68f1f4fade38977cfd7372050ad64"
+    },
+    {
+      "origin": "native-harfbuzz-c3fcbffa651c.zip",
+      "entry": "harfbuzz-c3fcbffa651cea70400552f2a8bd695ad11023c1/src/ms-use/COPYING",
+      "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+    },
+    {
+      "origin": "native-harfbuzz-c3fcbffa651c.zip",
+      "entry": "harfbuzz-c3fcbffa651cea70400552f2a8bd695ad11023c1/test/COPYING",
+      "sha256": "9b35b8485f69cd298fccbb3c40a827dc06cf1185553bef827903497d2944a8d7"
+    },
+    {
+      "origin": "sky-engine-035316565ad7.zip",
+      "entry": "LICENSE.zip_old_location.md",
+      "sha256": "a271d5b69d8edcb9419e5a584302bea9666361affd9b27d867d9662dbe35f4fa"
+    },
+    {
+      "origin": "sky-engine-035316565ad7.zip",
+      "entry": "sky_engine/LICENSE",
+      "sha256": "ef0973379d881edb3688e98bc55d2185881eda7cfb343806e5dc21ca8ce4ec1b"
+    },
+    {
+      "origin": "Android NDK 27.0.12077973",
+      "entry": "NDK-27.0.12077973-NOTICE.toolchain.txt",
+      "sha256": "cbe3237be53c0a819f8df6aac5358fdee848eee3b6571b4e2ca20767ebd7465e"
+    },
+    {
+      "origin": "Android NDK 27.0.12077973",
+      "entry": "NDK-27.0.12077973-NOTICE.txt",
+      "sha256": "4d5224d1c0b54ffa88b0dc0088191638fdbb7227835095dfb98f7f66b416a323"
+    },
+    {
+      "origin": "Flutter engine 035316565ad77281a75305515e4682e6c4c6f7ca",
+      "entry": "LICENSE",
+      "sha256": "ef0973379d881edb3688e98bc55d2185881eda7cfb343806e5dc21ca8ce4ec1b"
+    }
+  ],
+  "assetSha256": "3d19adf03572a4ea675d3ca0f4ed20bf4f682a8aa0fded6edeaeb156ec865097"
+}
