@@ -15,9 +15,11 @@ JMS 是以 [Fladder](https://github.com/DonutWare/Fladder) 為基礎的 Jellyfin
 
 在 App 的「設定 → 關於 → JMS Android 線上更新」可手動檢查更新；要接收 Prerelease，先開啟「接收測試版」。更新器不會靜默安裝，也不會清除既有 App 資料。各版變更與已知問題見[版本紀錄](CHANGELOG.md)。
 
+桌面版使用獨立發布渠道：[Windows 安裝程式與 Portable ZIP](https://github.com/jim608/JMS-Desktop/releases)、[EndeavourOS／Arch Linux x64 套件與可攜式封裝](https://github.com/jim608/JMS-Linux/releases)。兩者共用本倉庫 `jms` 分支的 Flutter 原始碼，不互相作為更新備援。Linux 不宣稱支援其他發行版；Seerr 工作階段需可解鎖的 Secret Service 金鑰圈。
+
 ## 點片與問題回報
 
-JMS 的預設點片服務來源為 `https://jellyseerr.jms.example.invalid`。只有確認 Jellyfin 與該服務相符後，才應啟用本人帳號連動；其他部署可在 App 的 Seerr 連線設定使用自己的服務網址。JMS 不以共用管理員 API 密鑰替使用者點片。
+JMS 不內建私人點片服務網址。只有確認 Jellyfin 與該服務相符後，才應啟用本人帳號連動；其他部署可在 App 的 Seerr 連線設定使用自己的服務網址。JMS 不以共用管理員 API 密鑰替使用者點片。
 
 從「點片」可搜尋、查看申請狀態及「我的紀錄」；媒體詳情與播放選單可開啟原生回報表單。Seerr 本人登入、申請、留言及回報是否可用，仍取決於部署版本與帳號權限。舊版保存的錯誤預設網址會於新版定向遷移，舊 Seerr 工作階段不會帶到新來源，可能需要重新確認服務綁定。
 

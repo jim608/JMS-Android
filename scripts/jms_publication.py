@@ -162,7 +162,10 @@ def publication_gates(policy, baseline_apk, signer=SIGNER):
 
 
 class Github:
-    def __init__(self, executable=None):
+    def __init__(self, executable=None, *, repository=REPOSITORY):
+        if repository not in {'jim608/JMS-Android', 'jim608/JMS-Desktop', 'jim608/JMS-Linux'}:
+            raise ReleaseError('Repository is not an authorized JMS release target')
+        self.repository = repository
         self.executable = executable or ROOT / '.jms-tools/gh/bin/gh.exe'
         self.environment = dict(os.environ, GH_HOST='github.com', GH_PROMPT_DISABLED='1', GIT_TERMINAL_PROMPT='0', GCM_INTERACTIVE='Never')
         for name in ('GH_DEBUG', 'GIT_TRACE', 'GIT_TRACE_CURL', 'GIT_CURL_VERBOSE'):
@@ -172,7 +175,7 @@ class Github:
         return execute([self.executable, *arguments], environment=self.environment, data=data, timeout=timeout)
 
     def api(self, endpoint, method='GET', payload=None):
-        prefix = 'repos/' + REPOSITORY
+        prefix = 'repos/' + self.repository
         if endpoint != 'user' and endpoint != prefix and not endpoint.startswith(prefix + '/'):
             raise ReleaseError('GitHub endpoint outside authorized repository')
         arguments = ['api', endpoint, '--method', method]
@@ -195,8 +198,8 @@ class Github:
             account = self.api('user')
         if account.get('login') != 'jim608':
             raise ReleaseError('Authenticated account is not jim608; no automatic account switching')
-        repository = self.api('repos/' + REPOSITORY)
-        if repository.get('full_name') != REPOSITORY or repository.get('private') is not False:
+        repository = self.api('repos/' + self.repository)
+        if repository.get('full_name') != self.repository or repository.get('private') is not False:
             raise ReleaseError('Confirmed public JMS repository does not match')
         if repository.get('archived') or repository.get('permissions', {}).get('push') is not True:
             raise ReleaseError('Repository is archived or write permission is unavailable')
@@ -205,7 +208,7 @@ class Github:
     def releases(self):
         result = []
         for page in range(1, 11):
-            rows = self.api(f'repos/{REPOSITORY}/releases?per_page=100&page={page}')
+            rows = self.api(f'repos/{self.repository}/releases?per_page=100&page={page}')
             result.extend(rows)
             if len(rows) < 100:
                 return result
@@ -216,13 +219,13 @@ class Github:
             raise ReleaseError('Remote asset incomplete or too large')
         with Path(destination).open('wb') as output:
             result = subprocess.run(['rtk', 'proxy', str(self.executable), 'api',
-                f'repos/{REPOSITORY}/releases/assets/{asset["id"]}', '-H', 'Accept: application/octet-stream'],
+                f'repos/{self.repository}/releases/assets/{asset["id"]}', '-H', 'Accept: application/octet-stream'],
                 cwd=ROOT, env=self.environment, stdout=output, stderr=subprocess.PIPE, timeout=600)
         if result.returncode or Path(destination).stat().st_size != asset['size']:
             raise ReleaseError('Authenticated draft asset download/size verification failed')
 
 
-def allowed_url(url, *, redirect=False):
+def allowed_url(url, *, redirect=False, repository=REPOSITORY):
     parsed = urllib.parse.urlsplit(url)
     if parsed.scheme != 'https' or parsed.username or parsed.password or parsed.port not in (None, 443):
         return False
@@ -230,7 +233,7 @@ def allowed_url(url, *, redirect=False):
         return True
     segments = parsed.path.split('/')[1:]
     return (parsed.hostname == 'github.com' and not parsed.query and not parsed.fragment
-            and len(segments) == 6 and segments[:4] == ['jim608', 'JMS-Android', 'releases', 'download']
+            and len(segments) == 6 and segments[:4] == repository.split('/') + ['releases', 'download']
             and all(segment and urllib.parse.unquote(segment) not in {'.', '..'} for segment in segments))
 
 
@@ -242,8 +245,8 @@ class SafeRedirect(urllib.request.HTTPRedirectHandler):
         return super().redirect_request(request, file_pointer, code, message, headers, new_url)
 
 
-def anonymous_download(url, destination, size, digest):
-    if not allowed_url(url) or not 0 < size <= MAX_ASSET:
+def anonymous_download(url, destination, size, digest, *, repository=REPOSITORY):
+    if not allowed_url(url, repository=repository) or not 0 < size <= MAX_ASSET:
         raise ReleaseError('Invalid anonymous asset URL/size')
     destination = Path(destination)
     if destination.is_file() and destination.stat().st_size == size and sha256(destination) == digest:
@@ -285,7 +288,8 @@ def match_assets(release, files):
 
 
 def upload_complete_release(github, state, files, save, verification_directory):
-    release = github.api(f'repos/{REPOSITORY}/releases/{state["releaseId"]}')
+    repository = getattr(github, 'repository', REPOSITORY)
+    release = github.api(f'repos/{repository}/releases/{state["releaseId"]}')
     if release['tag_name'] != state['tag'] or release['prerelease'] != state['prerelease']:
         raise ReleaseError('Existing release tag/channel differs; never overwrite a published release')
     if release.get('name') != 'JMS ' + state['version']:
@@ -297,8 +301,8 @@ def upload_complete_release(github, state, files, save, verification_directory):
         raise ReleaseError('Published release is incomplete/different; mutation refused')
     for name, expected in files.items():
         if name not in actual:
-            github.call('release', 'upload', state['tag'], expected['path'], '--repo', REPOSITORY)
-            release = github.api(f'repos/{REPOSITORY}/releases/{state["releaseId"]}')
+            github.call('release', 'upload', state['tag'], expected['path'], '--repo', repository)
+            release = github.api(f'repos/{repository}/releases/{state["releaseId"]}')
             actual = match_assets(release, files)
         destination = Path(verification_directory) / name
         github.asset_bytes(actual[name], destination)
@@ -307,6 +311,6 @@ def upload_complete_release(github, state, files, save, verification_directory):
         state.setdefault('verifiedAssets', {})[name] = expected['sha256']
         save()
     if release['draft']:
-        github.api(f'repos/{REPOSITORY}/releases/{state["releaseId"]}', 'PATCH', {'draft': False, 'make_latest': 'false'})
+        github.api(f'repos/{repository}/releases/{state["releaseId"]}', 'PATCH', {'draft': False, 'make_latest': 'false'})
     state['published'] = True
     save()
