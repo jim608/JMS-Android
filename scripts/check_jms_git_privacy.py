@@ -9,6 +9,8 @@ import sys
 import io
 import zipfile
 import tarfile
+import hashlib
+import json
 
 
 def git(*arguments):
@@ -93,8 +95,22 @@ def load_policy():
     return values
 
 
+def reviewed_archive_findings(name, data, domains):
+    problems = findings(name, data, domains)
+    registry = Path(__file__).resolve().parents[1] / 'config/jms_public_privacy_reviews.json'
+    if not registry.is_file():
+        return problems
+    for review in json.loads(registry.read_text(encoding='utf-8')):
+        if (name.endswith('/' + review['member']) and
+                hashlib.sha256(data).hexdigest() == review['sha256'] and
+                review['reason'] == 'personal filesystem path' and
+                review['source'].startswith('https://')):
+            problems = [reason for reason in problems if reason != review['reason']]
+    return problems
+
+
 def scan_archive(name, data, domains, depth=0):
-    results = [(name, findings(name, data, domains))]
+    results = [(name, reviewed_archive_findings(name, data, domains))]
     if name.lower().endswith(('.zip', '.apk', '.jar', '.aar')):
         if depth >= 6:
             raise ValueError('Archive nesting limit exceeded')

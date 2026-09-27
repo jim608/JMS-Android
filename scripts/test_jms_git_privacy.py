@@ -138,5 +138,18 @@ class PrivacyTests(unittest.TestCase):
                 os.chdir(previous)
 
 
+class PublicSourceReviewTests(unittest.TestCase):
+    def test_exact_public_document_and_private_policy_remain_separate(self):
+        import tarfile
+        from pathlib import Path
+        from check_jms_git_privacy import reviewed_archive_findings
+        with tarfile.open(Path(__file__).resolve().parents[1] / 'flatpak/uchardet-0.0.8.tar.xz') as archive:
+            data = archive.extractfile('uchardet-0.0.8/INSTALL').read()
+        name = 'source.zip/uchardet-0.0.8/INSTALL'
+        self.assertEqual(reviewed_archive_findings(name, data, []), [])
+        self.assertIn('personal filesystem path', reviewed_archive_findings(name, data + b'changed', []))
+        self.assertIn('private domain', reviewed_archive_findings(name, data, ['cmake']))
+
+
 if __name__ == '__main__':
     unittest.main()
