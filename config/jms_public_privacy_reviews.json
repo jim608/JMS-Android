@@ -11,5 +11,27 @@
       "member": "uchardet-0.0.8/INSTALL",
       "sha256": "2b7cd1cf2b71a49662771a4f5758ba777619efb0f575b1d69edb35f06f752a83"
     }
+  },
+  {
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/lib/crypto-selftests-pk.c",
+    "sha256": "6e596be00754107fd7f7d1f132c2dc8cd0ff12bbdfc6de08c162a1dd5eedc7e8",
+    "rules": [
+      "credential pattern"
+    ],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "explanation": "GnuTLS gnutls_pk_self_test uses fixed private-key arrays for known-signature cryptographic self-tests. All 11 complete embedded private-key blocks in the matching binary were byte-compared with these arrays; no service authentication was attempted. This approval applies only to this source member and rule.",
+    "evidence": {
+      "kind": "upstream-cryptographic-self-test",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/lib/crypto-selftests-pk.c",
+      "sha256": "6e596be00754107fd7f7d1f132c2dc8cd0ff12bbdfc6de08c162a1dd5eedc7e8"
+    },
+    "testReference": "gnutls_pk_self_test -> test_known_sig/test_sig",
+    "relatedBinary": {
+      "name": "libgnutls-30.dll",
+      "sha256": "f7f05c96572506c81f2ffa89b518234afa4af2603aad8903db257a4f1e97e9e6",
+      "matchedSelfTestKeys": 11,
+      "distributionApproved": false
+    }
   }
 ]
