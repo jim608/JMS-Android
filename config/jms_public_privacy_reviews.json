@@ -5363,5 +5363,55 @@
       "member": "mingw-w64-xz/xz-5.8.4.tar.xz/xz-5.8.4/m4/libtool.m4",
       "sha256": "3ab7a300db14a3aa7d1986dcec78ec21fbaaea614ca7d82c2f39a73ba0552c4a"
     }
+  },
+  {
+    "member": "mingw-w64-python/Python-3.14.7.tar.xz/Python-3.14.7/Lib/test/archivetestdata/recursion.tar",
+    "sha256": "d80f55ac66a2570c8a19d2b1dad7c057cf4c944d9c2f8adaf5bf6c8539881e13",
+    "rules": [],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-python-3.14.7-1.src.tar.zst",
+    "archiveSha256": "0c37a34be1c2ae9d6aae9a41cc581675a324ebe826a992edc3bd8aa11eae3e70",
+    "explanation": "CPython test_length_zero_header expects ReadError for this zero-length PAX header; regression fixture for bpo-39017 (CVE-2019-20907).",
+    "inspection": "raw-public-test-sample",
+    "testReference": "test_length_zero_header",
+    "rawContentReview": {
+      "scope": "raw-bytes-only",
+      "method": "All stored bytes checked against privacy rules and local policy; fixed archive/member hashes and the explicit assertRaisesRegex test reference verified without executing upstream code.",
+      "conclusion": "No raw-byte privacy findings. Deliberately invalid zero-length PAX header; nested content not expanded."
+    },
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-python/Python-3.14.7.tar.xz/Python-3.14.7/Lib/test/test_tarfile.py",
+      "sha256": "b62f90a503cf2a6038940e9c75f750360cfa6ec45fb190172286893b4f90d96e"
+    }
+  },
+  {
+    "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/include/libssh/pki_priv.h",
+    "sha256": "6f9c784d9bd2b4255e112d83be9ccda0697e1ede5453af70f8e7c915999451af",
+    "rules": [
+      "credential pattern"
+    ],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-libssh-0.12.2-1.src.tar.zst",
+    "archiveSha256": "b935d915b5392e573f65855c491e476ae38860d3929d2b564e507aa660c3e05b",
+    "explanation": "PEM boundary string constants used by libssh import/parsing code. RSA_HEADER_BEGIN, ECDSA_HEADER_BEGIN and OPENSSH_HEADER_BEGIN are format delimiters, not private-key payloads. The consuming pki.c compares these constants with strstr/strncmp.",
+    "evidence": {
+      "kind": "upstream-format-parser",
+      "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/src/pki.c",
+      "sha256": "73da13289d79ad1e6b0e7ac348376d1925ad5449113c714cc712a5b05377e6ff"
+    }
+  },
+  {
+    "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/src/pki_gcrypt.c",
+    "sha256": "e091eeec2525612b65c43ec528efa721c1584fc2d5dd050288ac1499f191c2c5",
+    "rules": [
+      "credential pattern"
+    ],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-libssh-0.12.2-1.src.tar.zst",
+    "archiveSha256": "b935d915b5392e573f65855c491e476ae38860d3929d2b564e507aa660c3e05b",
+    "explanation": "PEM boundary string constants used by libssh import/parsing code. RSA_HEADER_BEGIN, ECDSA_HEADER_BEGIN and OPENSSH_HEADER_BEGIN are format delimiters, not private-key payloads. The consuming pki.c compares these constants with strstr/strncmp.",
+    "evidence": {
+      "kind": "upstream-format-parser",
+      "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/src/pki.c",
+      "sha256": "73da13289d79ad1e6b0e7ac348376d1925ad5449113c714cc712a5b05377e6ff"
+    }
   }
 ]
