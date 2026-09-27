@@ -1,151 +1,28 @@
+# JMS — Jim608 Media Server
 
-<h1 align="center">
-  <br>
-    <a href="https://github.com/DonutWare/Fladder"><img src="https://raw.githubusercontent.com/DonutWare/Fladder/refs/heads/develop/icons/production/fladder_macos_icon.png" alt="Fladder" width="200"></a>
-  <br>
-  Fladder
-  <br>
-</h1>
+JMS 是以 [Fladder](https://github.com/DonutWare/Fladder) 為基礎的 Jellyfin 用戶端，保留媒體瀏覽、搜尋、播放、字幕與音軌選擇、下載及離線播放等既有功能。Android 為主要驗收平台；各平台的實測範圍與限制見[開發狀態](docs/JMS_STATUS.md)。
 
-<h4 align="center">A cross-platform Jellyfin Frontend built on top of <a href="https://flutter.dev/" target="_blank">Flutter</a>.</h4>
+## 主要功能
 
-<p align="center">
-  <a href="#key-features">Key Features</a> •
-  <a href="#screenshots">Screenshots</a> •
-  <a href="#planned-features">Planned Features</a> •
-  <a href="#download">Download</a> •
-  <a href="#how-to-contribute">Contributing</a> •
-  <a href="#credits">Credits</a> •
-  <a href="#license">License</a>
-</p>
+- 媒體庫瀏覽、帳號切換、影片播放、字幕與音軌選擇。
+- 可調整強度與擴散範圍的播放環境光，以及睡眠計時與非敏感設定備份。
+- 原生點片、申請紀錄與影片問題回報介面，使用現有 Jellyseerr／Seerr 服務；登入與提交仍須依服務權限確認。
+- 透過 [JMS Android Releases](https://github.com/jim608/JMS-Android/releases) 手動檢查、下載並由 Android 系統確認安裝更新。
 
-<div align="center">
-  
-  [![Build](https://github.com/DonutWare/Fladder/actions/workflows/build.yml/badge.svg?branch=develop)](https://github.com/DonutWare/Fladder/actions/workflows/build.yml)
-  [![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/DonutWare/fladder/total)](https://github.com/DonutWare/Fladder/releases/latest)
-  [![GitHub Release](https://img.shields.io/github/v/release/DonutWare/fladder?display_name=tag)](https://github.com/DonutWare/Fladder/releases/latest)
-  [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-%23FE5196?logo=conventionalcommits&logoColor=white)](https://conventionalcommits.org)
-  
-</div>
+## 安裝與更新
 
+從 [GitHub Releases](https://github.com/jim608/JMS-Android/releases) 下載符合裝置 ABI 的完整 APK。目前提供 Android ARM64 測試版，套件識別碼為 `com.jim608.jms`，可與原版並存，但不會自動繼承原版的登入資料。測試版使用既有相容簽章；請勿將 Prerelease 視為已通過穩定版手機驗收。
 
+在 App 的「設定 → 關於 → JMS Android 線上更新」可手動檢查更新；要接收 Prerelease，先開啟「接收測試版」。更新器不會靜默安裝，也不會清除既有 App 資料。各版變更與已知問題見[版本紀錄](CHANGELOG.md)。
 
-## Key Features
+## 點片與問題回報
 
-* Play media – Stream or sync content locally to your device
-* Manage your library – Refresh content and edit metadata
-* Multiple profiles – add multiple users or different servers easily switching between
-* Direct, Transcode and Offline playback
-* Media segments skipping (Intro/Credits etc.)
-* Trickplay support (timeline scrubbing)
-* Dark/Light mode and multiple color styles to pick
-* Simple comic book format reading support (.cbz, .cbr)
-* Sync items for all platforms
-* Download items and keep progress in sync
-* Keyboard shortcuts
-* Adaptive layout for all platforms
-* Next-up overview when watching a queue
-* Server management
-* Seerr/Jellyseerr integration
-* Platforms
-  - Android + TV
-  - Web + Docker
-  - macOS
-  - Windows 
-  - iOS 
-  - Linux 
- 
-## Screenshots
-<details close>
-  <summary>Mobile</summary>
-   <img src="https://github.com/DonutWare/Fladder/blob/develop/assets/marketing/screenshots/Mobile/Dashboard.png?raw=true" alt="Fladder" width="200">  
-   <img src="https://github.com/DonutWare/Fladder/blob/develop/assets/marketing/screenshots/Mobile/Details.png?raw=true" alt="Fladder" width="200">  
-   <img src="https://github.com/DonutWare/Fladder/blob/develop/assets/marketing/screenshots/Mobile/Details_2.png?raw=true" alt="Fladder" width="200">  
-   <img src="https://github.com/DonutWare/Fladder/blob/develop/assets/marketing/screenshots/Mobile/Favourites.png?raw=true" alt="Fladder" width="200">  
-   <img src="https://github.com/DonutWare/Fladder/blob/develop/assets/marketing/screenshots/Mobile/Library.png?raw=true" alt="Fladder" width="200">  
-   <img src="https://github.com/DonutWare/Fladder/blob/develop/assets/marketing/screenshots/Mobile/Library_Search.png?raw=true" alt="Fladder" width="200">  
-   <img src="https://github.com/DonutWare/Fladder/blob/develop/assets/marketing/screenshots/Mobile/Resume_Tab.png?raw=true" alt="Fladder" width="200">  
-   <img src="https://github.com/DonutWare/Fladder/blob/develop/assets/marketing/screenshots/Mobile/Sync.png?raw=true" alt="Fladder" width="200">  
-   <img src="https://github.com/DonutWare/Fladder/blob/develop/assets/marketing/screenshots/Mobile/Settings.png?raw=true" alt="Fladder" width="200">  
-   <img src="https://github.com/DonutWare/Fladder/blob/develop/assets/marketing/screenshots/Mobile/Player.png?raw=true" alt="Fladder" width="1280">  
-</details>
+JMS 的預設點片服務來源為 `https://jellyseerr.jms.example.invalid`。只有確認 Jellyfin 與該服務相符後，才應啟用本人帳號連動；其他部署可在 App 的 Seerr 連線設定使用自己的服務網址。JMS 不以共用管理員 API 密鑰替使用者點片。
 
-<details close>
-  <summary>Tablet</summary>
-   <img src="https://github.com/DonutWare/Fladder/blob/develop/assets/marketing/screenshots/Tablet/Dashboard.png?raw=true" alt="Fladder" width="1280">  
-   <img src="https://github.com/DonutWare/Fladder/blob/develop/assets/marketing/screenshots/Tablet/Details.png?raw=true" alt="Fladder" width="1280">  
-   <img src="https://github.com/DonutWare/Fladder/blob/develop/assets/marketing/screenshots/Tablet/Details_2.png?raw=true" alt="Fladder" width="1280">  
-   <img src="https://github.com/DonutWare/Fladder/blob/develop/assets/marketing/screenshots/Tablet/Favourites.png?raw=true" alt="Fladder" width="1280">  
-   <img src="https://github.com/DonutWare/Fladder/blob/develop/assets/marketing/screenshots/Tablet/Library.png?raw=true" alt="Fladder" width="1280">  
-   <img src="https://github.com/DonutWare/Fladder/blob/develop/assets/marketing/screenshots/Tablet/Library_Search.png?raw=true" alt="Fladder" width="1280">  
-   <img src="https://github.com/DonutWare/Fladder/blob/develop/assets/marketing/screenshots/Tablet/Resume_Tab.png?raw=true" alt="Fladder" width="1280">  
-   <img src="https://github.com/DonutWare/Fladder/blob/develop/assets/marketing/screenshots/Tablet/Sync.png?raw=true" alt="Fladder" width="1280">  
-   <img src="https://github.com/DonutWare/Fladder/blob/develop/assets/marketing/screenshots/Tablet/Settings.png?raw=true" alt="Fladder" width="1280">  
-   <img src="https://github.com/DonutWare/Fladder/blob/develop/assets/marketing/screenshots/Tablet/Player.png?raw=true" alt="Fladder" width="1280">   
-</details>
+從「點片」可搜尋、查看申請狀態及「我的紀錄」；媒體詳情與播放選單可開啟原生回報表單。Seerr 本人登入、申請、留言及回報是否可用，仍取決於部署版本與帳號權限。舊版保存的錯誤預設網址會於新版定向遷移，舊 Seerr 工作階段不會帶到新來源，可能需要重新確認服務綁定。
 
-<details close>
-  <summary>Television</summary>
-   <img src="https://github.com/DonutWare/Fladder/blob/develop/assets/marketing/screenshots/Television/Dashboard.png?raw=true" alt="Fladder" width="1280">  
-   <img src="https://github.com/DonutWare/Fladder/blob/develop/assets/marketing/screenshots/Television/Details.png?raw=true" alt="Fladder" width="1280">  
-   <img src="https://github.com/DonutWare/Fladder/blob/develop/assets/marketing/screenshots/Television/Favourites.png?raw=true" alt="Fladder" width="1280">  
-   <img src="https://github.com/DonutWare/Fladder/blob/develop/assets/marketing/screenshots/Television/Library.png?raw=true" alt="Fladder" width="1280">  
-   <img src="https://github.com/DonutWare/Fladder/blob/develop/assets/marketing/screenshots/Television/Library_Search.png?raw=true" alt="Fladder" width="1280">  
-   <img src="https://github.com/DonutWare/Fladder/blob/develop/assets/marketing/screenshots/Television/Sync.png?raw=true" alt="Fladder" width="1280">  
-   <img src="https://github.com/DonutWare/Fladder/blob/develop/assets/marketing/screenshots/Television/Settings.png?raw=true" alt="Fladder" width="1280">  
-   <img src="https://github.com/DonutWare/Fladder/blob/develop/assets/marketing/screenshots/Television/Player.png?raw=true" alt="Fladder" width="1280">   
-</details>
+## 建置與授權
 
-Web/Desktop [try out the web build!](https://DonutWare.github.io/Fladder)
-> [!NOTE]
-> The GitHub hosted web build only allows `https` connections. This is a limitation on GitHub's end, for self-hosted versions `http` works fine.
+使用 Flutter **3.35.7**、Dart **3.9.2**、JDK **21**、Android API **37** 及鎖定的依賴版本；建置步驟見 [DEVELOPEMENT.md](DEVELOPEMENT.md) 與 [INSTALL.md](INSTALL.md)。發布流程與來源材料見 [JMS_UPDATES.md](docs/JMS_UPDATES.md)、[JMS_SOURCES.md](docs/JMS_SOURCES.md)。
 
-## Planned Features
-
-* Chromecast support
-* Improved dPad navigation for non-tv devices
-* [And more???](https://github.com/DonutWare/Fladder/discussions/categories/ideas)
-
-## Download
-
-The latest executables for Windows, macOS, Linux, iOS, Android and Web can be found on the [releases page](https://github.com/DonutWare/Fladder/releases).
-
-You can pull the Docker version using the following tags: ```ghcr.io/donutware/fladder:latest```. or ```ghcr.io/donutware/fladder-rootless:latest```
-
-*Platform-specific installation and usage instructions can be found [here](https://github.com/DonutWare/Fladder/blob/develop/INSTALL.md).*
-
-<a href='https://play.google.com/store/apps/details?id=nl.jknaapen.fladder&pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1'><img alt='Get it on Google Play' src='https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png' width=250 align='middle'/></a>
-<a href='https://flathub.org/apps/nl.jknaapen.fladder'><img alt='Get it on Flathub' src='https://flathub.org/api/badge?locale=en' width=192 align='middle'/></a>
-
-> [!WARNING]
-> (Windows) Some flutter applications are marked as false positives by windows defender for more info see [this issue](https://github.com/DonutWare/Fladder/issues/197#issuecomment-2568906874).
-
-## How to Contribute
-Interested in contributing? Here are a couple of ways you can help:
-
-### 🐛 Reporting Bugs
-- Before reporting a bug, **please ensure** that the issue hasn't been reported already.
-- When submitting a bug report, provide detailed steps on how the bug can be reproduced. This will help us to understand and fix the issue faster.
-- Bug reports are appreciated and very helpful!
-
-### 🚀 Submitting Pull Requests
-- **Pull requests are always welcome!** 
-- For new features or large changes, please open a discussion or issue first to ensure that no one else is already working on it.
-- **Keep pull requests short and focused**: try to avoid fixing multiple issues in a single pull request. This helps make the review process smoother and quicker.
-
-### 🌐 Translations 
-<a href="https://hosted.weblate.org/engage/fladder/">
-<img src="https://hosted.weblate.org/widget/fladder/fladder/multi-auto.svg" alt="Translation status" />
-</a>
-
-Thank you for helping to make this project better! 🙌
-
-
-## Credits
-
-This software uses the following open source packages:
-- [Flutter](https://flutter.dev/)
-
-## License
-
-This project is licensed under the GNU General Public License v3.0. More information about the license can be found in [this file](https://github.com/DonutWare/Fladder/blob/develop/LICENSE).
+本專案源自 DonutWare 與貢獻者的 Fladder，保留原作者署名、[GPLv3 授權](LICENSE)及必要第三方授權。JMS 修改版及原生依賴的對應來源材料隨發布版提供；上游連結僅供來源署名，不是 JMS 更新來源。
