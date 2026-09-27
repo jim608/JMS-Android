@@ -111,6 +111,18 @@ class PublicEvidenceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'decompression'):
             scanner.scan('fixture.tar.gz', stream.getvalue())
 
+    def test_link_targets_and_directory_names_are_inspected(self):
+        stream = io.BytesIO()
+        with tarfile.open(fileobj=stream, mode='w:gz') as archive:
+            link = tarfile.TarInfo('link')
+            link.type = tarfile.SYMTYPE
+            link.linkname = 'https://private.example.invalid/target'
+            archive.addfile(link)
+        scanner = privacy.ArchiveScan(['private.example.invalid'], [])
+        self.assertTrue(any(rules for _, rules in scanner.scan('fixture.tar.gz', stream.getvalue())))
+        _, rejected = self.scan(container({'private.example.invalid/': b''}), [], ['private.example.invalid'])
+        self.assertTrue(rejected)
+
     def test_cache_is_bound_to_policy_evidence_scanner_settings_and_material(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

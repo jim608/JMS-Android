@@ -161,6 +161,7 @@ class ArchiveScan:
         self.seen = set()
         self.used_reviews = []
         self.stream_bytes = 0
+        self.current_member = None
 
     def finish(self):
         for review in self.used_reviews:
@@ -201,6 +202,7 @@ class ArchiveScan:
             raise ValueError('Archive privacy inspection time limit exceeded')
 
     def scan(self, name, data, depth=0, contexts=()):
+        self.current_member = name
         self.check_budget(len(data))
         self.expanded += len(data)
         self.members += 1
@@ -233,12 +235,14 @@ class ArchiveScan:
         if is_zip:
             with zipfile.ZipFile(io.BytesIO(data)) as archive:
                 for member in archive.infolist():
+                    self.current_member = name + '/' + member.filename
                     self.check_budget()
                     if not member.is_dir():
                         self.check_budget(member.file_size)
                         results.extend(child(member.filename, archive.read(member)))
                     else:
                         self.members += 1
+                        results.append((self.current_member, findings(member.filename, b'', self.domains)))
         else:
             stream = io.BytesIO(data)
             if lower.endswith('.tar.zst'):
@@ -255,12 +259,14 @@ class ArchiveScan:
                 stream = bz2.BZ2File(stream)
             with stream, tarfile.open(fileobj=self.bounded_stream(stream), mode='r|') as archive:
                 for member in archive:
+                    self.current_member = name + '/' + member.name
                     self.check_budget()
                     if member.isfile():
                         self.check_budget(member.size)
                         results.extend(child(member.name, archive.extractfile(member).read()))
                     else:
                         self.members += 1
+                        results.append((self.current_member, findings(member.name, member.linkname.encode(), self.domains)))
         return results
 
 
@@ -406,6 +412,6 @@ def main():
 if __name__ == '__main__':
     try:
         sys.exit(main())
-    except (OSError, ValueError, subprocess.CalledProcessError, zipfile.BadZipFile):
+    except Exception:
         print('Privacy check could not complete; inspect local policy, Git objects or archive integrity.', file=sys.stderr)
         sys.exit(1)
