@@ -77,8 +77,15 @@ if ($PrivateConfig) {
 }
 & rtk proxy $flutterPath pub get --enforce-lockfile
 if ($LASTEXITCODE -ne 0) { throw 'Dependency lock validation failed' }
-& rtk proxy $flutterPath build windows --release --no-pub "--build-name=$version" "--build-number=$versionCode" "--dart-define=JMS_BUILD_ID=$buildId" @privateDefines
-if ($LASTEXITCODE -ne 0) { throw 'Windows x64 build failed' }
+. (Join-Path $PSScriptRoot 'jms_windows_rust_flags.ps1')
+$previousRustFlags = $env:CARGO_ENCODED_RUSTFLAGS
+try {
+    $env:CARGO_ENCODED_RUSTFLAGS = Get-JmsWindowsRustFlags -ProjectRoot $projectRoot
+    & rtk proxy $flutterPath build windows --release --no-pub "--build-name=$version" "--build-number=$versionCode" "--dart-define=JMS_BUILD_ID=$buildId" @privateDefines
+    if ($LASTEXITCODE -ne 0) { throw 'Windows x64 build failed' }
+} finally {
+    $env:CARGO_ENCODED_RUSTFLAGS = $previousRustFlags
+}
 
 foreach ($required in @('jms.exe', 'flutter_windows.dll', 'data\flutter_assets')) {
     if (-not (Test-Path -LiteralPath (Join-Path $bundleDir $required))) {
@@ -111,6 +118,7 @@ $buildInfo = [ordered]@{
     sourceCommit = $SourceCommit
     signing = 'unsigned'
     privateConfiguration = [bool]$PrivateConfig
+    rustSourcePathPolicy = 'canonical-build-roots-v1'
 }
 $buildInfo | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $stageDir 'JMS_BUILD_INFO.json') -Encoding UTF8
 Compress-Archive -LiteralPath $stageDir -DestinationPath $zipPath -CompressionLevel Optimal
