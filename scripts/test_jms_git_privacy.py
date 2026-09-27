@@ -6,15 +6,53 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import zipfile
 from unittest.mock import patch
 
-from check_jms_git_privacy import findings, main
+from check_jms_git_privacy import findings, main, outgoing_findings, scan_archive
 
 
 class PrivacyTests(unittest.TestCase):
+    def setUp(self):
+        argv = patch.object(sys, 'argv', ['checker'])
+        argv.start()
+        self.addCleanup(argv.stop)
+
+    def test_credentials_and_binary_archive(self):
+        for field in ('password', 'Cookie', 'Token', 'api_key'):
+            key = 'access_token' if field == 'Token' else field
+            data = (key + ' = "' + 'x' * 32 + '"').encode()
+            self.assertTrue(findings('fixture.txt', data, []))
+        payload = io.BytesIO()
+        with zipfile.ZipFile(payload, 'w') as archive:
+            archive.writestr('lib.so', b'\x00https://service.private.example\x00')
+        self.assertTrue(any(problems for _, problems in scan_archive('fixture.apk', payload.getvalue(), ['private.example'])))
+
+    def test_removed_secret_and_commit_message_are_checked(self):
+        previous = Path.cwd()
+        with tempfile.TemporaryDirectory() as folder:
+            try:
+                os.chdir(folder)
+                subprocess.run(['git', 'init', '-q', '-b', 'jms'], check=True)
+                def commit(message):
+                    subprocess.run(['git', 'add', 'settings.txt'], check=True)
+                    subprocess.run(['git', '-c', 'user.name=fixture', '-c', 'user.email=fixture@users.noreply.github.com', 'commit', '-qm', message], check=True)
+                Path('settings.txt').write_text('clean')
+                commit('chore: baseline')
+                base = subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode().strip()
+                Path('settings.txt').write_text('https://service.private.example')
+                commit('fix: https://service.private.example')
+                Path('settings.txt').write_text('clean again')
+                commit('fix: remove value')
+                results = outgoing_findings('HEAD', [base], ['private.example'])
+                self.assertTrue(any('/message' in name and problems for name, problems in results))
+                self.assertTrue(any('/settings.txt' in name and problems for name, problems in results))
+            finally:
+                os.chdir(previous)
+
     def test_private_subdomain_and_personal_path_are_rejected(self):
         self.assertIn('private domain', findings('config.txt', b'https://service.private.example/api', ['private.example']))
-        self.assertIn('personal filesystem path', findings('notes.md', b'C:' + b'/Users/fixture/file', []))
+        self.assertIn('personal filesystem path', findings('notes.md', str(Path.home() / 'fixture').encode(), []))
 
     def test_public_links_and_similar_domain_are_allowed(self):
         self.assertEqual([], findings('README.md', b'https://github.com/example/project https://notprivate.example', ['private.example']))
