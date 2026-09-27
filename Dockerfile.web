@@ -1,0 +1,51 @@
+FROM debian:bookworm-slim AS build
+
+ARG FLUTTER_VERSION=3.35.7
+ARG FLUTTER_REVISION=adc901062556672b4138e18a4dc62a4be8f4b3c2
+ARG JMS_BUILD_ID=LOCAL-UNSTAMPED
+
+ENV FLUTTER_SUPPRESS_ANALYTICS=true \
+    PUB_CACHE=/root/.pub-cache \
+    PATH=/opt/flutter/bin:${PATH}
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates curl git unzip xz-utils zip && \
+    rm -rf /var/lib/apt/lists/* && \
+    git clone --depth 1 --branch "$FLUTTER_VERSION" \
+      https://github.com/flutter/flutter.git /opt/flutter && \
+    test "$(git -C /opt/flutter rev-parse HEAD)" = "$FLUTTER_REVISION"
+
+WORKDIR /workspace
+COPY . .
+RUN flutter pub get --enforce-lockfile && \
+    flutter build web --release --no-wasm-dry-run \
+      --dart-define="JMS_BUILD_ID=$JMS_BUILD_ID"
+
+FROM nginx:1.28-alpine
+
+ARG JMS_VERSION=unknown
+ARG JMS_SOURCE_COMMIT=unknown
+LABEL org.opencontainers.image.title="JMS Web" \
+      org.opencontainers.image.description="Jim608 Media Server Web" \
+      org.opencontainers.image.version="$JMS_VERSION" \
+      org.opencontainers.image.revision="$JMS_SOURCE_COMMIT" \
+      org.opencontainers.image.source="https://github.com/jim608/JMS-Android"
+
+RUN apk add --no-cache jq && \
+    mkdir -p /usr/share/nginx/html/assets/config && \
+    chown -R nginx:nginx /usr/share/nginx/html /tmp
+
+COPY --from=build --chown=nginx:nginx /workspace/build/web/ /usr/share/nginx/html/
+COPY --chown=nginx:nginx web/nginx.conf /etc/nginx/nginx.conf
+COPY --chown=nginx:nginx web/jms-entrypoint.sh /docker-entrypoint.sh
+RUN chmod 755 /docker-entrypoint.sh
+
+ENV BASE_URL="" \
+    SEERR_BASE_URL="" \
+    JMS_WEBPATH="/"
+
+USER nginx
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s \
+    CMD wget -q -O /dev/null http://127.0.0.1:8080/healthz || exit 1
+ENTRYPOINT ["/docker-entrypoint.sh"]

@@ -1,0 +1,18 @@
+services:
+  jms-web-canary:
+    image: ghcr.io/jim608/jms-web:${JMS_VERSION:?Set a tested JMS_VERSION}
+    container_name: jms-web-canary
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:18081:8080"
+    environment:
+      BASE_URL: ${JELLYFIN_BASE_URL:-}
+      SEERR_BASE_URL: ${SEERR_BASE_URL:-}
+      JMS_WEBPATH: /
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

@@ -1,0 +1,4 @@
+web/jms-entrypoint.sh text eol=lf
+web/nginx.conf text eol=lf
+Dockerfile.web text eol=lf
+Dockerfile.web.dockerignore text eol=lf
