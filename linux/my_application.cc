@@ -1,4 +1,5 @@
 #include "my_application.h"
+#include "seerr_session_bridge.h"
 
 #include <flutter_linux/flutter_linux.h>
 #ifdef GDK_WINDOWING_X11
@@ -65,6 +66,7 @@ static void my_application_activate(GApplication *application)
 	gtk_container_add(GTK_CONTAINER(window), GTK_WIDGET(view));
 
 	fl_register_plugins(FL_PLUGIN_REGISTRY(view));
+	jms_register_seerr_session(fl_engine_get_binary_messenger(fl_view_get_engine(view)));
 
 	gtk_widget_grab_focus(GTK_WIDGET(view));
 }

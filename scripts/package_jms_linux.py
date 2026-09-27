@@ -71,7 +71,7 @@ def main():
         'url = https://github.com/jim608/JMS-Linux\n'
         'arch = x86_64\nlicense = GPL-3.0-only\n'
         + ''.join(f'depend = {dependency}\n' for dependency in
-                  ['glibc>=2.36', 'gcc-libs', 'gtk3', 'mpv', 'alsa-lib', 'sqlite', 'polkit', 'libarchive', 'xdg-user-dirs']))
+                  ['glibc>=2.36', 'gcc-libs', 'gtk3', 'mpv', 'alsa-lib', 'sqlite', 'polkit', 'libarchive', 'xdg-user-dirs', 'libsecret', 'gnome-keyring']))
     package = args.output / f'JMS-Linux-{version}-x86_64.pkg.tar.xz'
     subprocess.run(['tar', '--owner=0', '--group=0', '-cJf', str(package), '-C', str(stage), '.PKGINFO', 'opt', 'usr'], check=True)
     portable = args.output / f'JMS-Linux-{version}-x64.tar.gz'

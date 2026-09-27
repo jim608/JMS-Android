@@ -36,6 +36,15 @@ void main() {
         .setMockMethodCallHandler(SeerrSessionStore.channel, null);
   });
 
+  test('Linux restores a persisted session and clears it on logout', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+    await store.write(account, 'connect.sid=TEST_ONLY');
+    expect(await SeerrSessionStore().read(account), 'connect.sid=TEST_ONLY');
+    await store.write(account, null);
+    expect(await SeerrSessionStore().read(account), isNull);
+    expect(stored, isEmpty);
+  });
+
   test('secure bridge roundtrip is scoped to server user and Seerr source',
       () async {
     await store.write(account, 'connect.sid=TEST_ONLY');
