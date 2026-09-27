@@ -109,6 +109,9 @@ def reviewed_archive_findings(name, data, domains):
     return problems
 
 
+MAX_ARCHIVE_MEMBER_BYTES = 512 * 1024 * 1024
+
+
 def scan_archive(name, data, domains, depth=0):
     results = [(name, reviewed_archive_findings(name, data, domains))]
     if name.lower().endswith(('.zip', '.apk', '.jar', '.aar')):
@@ -117,6 +120,8 @@ def scan_archive(name, data, domains, depth=0):
         with zipfile.ZipFile(io.BytesIO(data)) as archive:
             for member in archive.infolist():
                 if not member.is_dir():
+                    if member.file_size > MAX_ARCHIVE_MEMBER_BYTES:
+                        raise ValueError('Archive member exceeds privacy inspection limit')
                     results.extend(scan_archive(name + '/' + member.filename, archive.read(member), domains, depth + 1))
     elif name.lower().endswith(('.tar.gz', '.tgz', '.tar.xz', '.tar', '.tar.bz2', '.tar.zst')):
         if depth >= 6:
@@ -130,6 +135,8 @@ def scan_archive(name, data, domains, depth=0):
         with stream, tarfile.open(fileobj=stream, mode=mode) as archive:
             for member in archive:
                 if member.isfile():
+                    if member.size > MAX_ARCHIVE_MEMBER_BYTES:
+                        raise ValueError('Archive member exceeds privacy inspection limit')
                     results.extend(scan_archive(name + '/' + member.name, archive.extractfile(member).read(), domains, depth + 1))
     return results
 

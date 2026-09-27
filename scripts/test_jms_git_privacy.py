@@ -139,6 +139,18 @@ class PrivacyTests(unittest.TestCase):
 
 
 class PublicSourceReviewTests(unittest.TestCase):
+    def test_oversized_sparse_fixture_fails_closed(self):
+        import io
+        import tarfile
+        from check_jms_git_privacy import scan_archive, MAX_ARCHIVE_MEMBER_BYTES
+        stream = io.BytesIO()
+        with tarfile.open(fileobj=stream, mode='w') as archive:
+            info = tarfile.TarInfo('fixture-large.txt')
+            info.size = MAX_ARCHIVE_MEMBER_BYTES + 1
+            archive.addfile(info)
+        with self.assertRaisesRegex(ValueError, 'inspection limit'):
+            scan_archive('source.tar', stream.getvalue(), [])
+
     def test_zstandard_source_archive_is_inspected(self):
         import io
         import tarfile

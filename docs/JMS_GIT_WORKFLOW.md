@@ -74,6 +74,6 @@ flutter test test/jms_seerr_private_source_test.dart --no-pub
 
 ### 桌面來源封存檢查
 
-Windows 原生相應來源包含 `.src.tar.zst`；發布環境需安裝 `zstandard==0.25.0`，檢查器以串流展開並遞迴掃描內容。缺少解壓套件、格式損壞或巢狀封存超過限制時應停止發布，不得將未展開的封存視為已檢查。
+Windows 原生相應來源包含 `.src.tar.zst`；發布環境需安裝 `zstandard==0.25.0`，檢查器以串流展開並遞迴掃描內容。缺少解壓套件、格式損壞、展開成員超過 512 MiB 或巢狀封存超過限制時應停止發布，不得將未展開的封存視為已檢查。
 
 公開上游文件的精確核對記錄位於 `config/jms_public_privacy_reviews.json`，必須同時符合檔名、內容 SHA256 與核對類型。私人網域比對仍採本機清單，不能被公開文件核對記錄豁免。
