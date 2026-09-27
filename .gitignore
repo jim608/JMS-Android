@@ -1,4 +1,10 @@
 # Miscellaneous
+/.jms-tools/
+/artifacts/
+/.playwright-cli/
+/.serena/
+/third_party/fvp/windows/mdk-sdk/
+/third_party/fvp/windows/mdk-sdk-*.7z
 *.class
 *.log
 *.pyc
@@ -51,6 +57,7 @@ app.*.map.json
 **/android/gradlew.bat
 **/android/**/GeneratedPluginRegistrant.java
 **/android/key.properties
+**/key.properties
 *.jks
 local.properties
 **/.cxx/
