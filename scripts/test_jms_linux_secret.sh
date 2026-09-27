@@ -15,10 +15,23 @@ dbus-run-session -- bash -euo pipefail -c '
   /tmp/jms-secret-test-bin write
   /tmp/jms-secret-test-bin read
   /tmp/jms-secret-test-bin isolated
+  if grep -RaFq fixture-session-only "$HOME/.local/share/keyrings"; then
+    echo "Unexpected plaintext before logout" >&2
+    exit 1
+  fi
+  before=$(pgrep -u "$(id -u)" -x gnome-keyring-d | sort)
+  test -n "$before"
   pkill -u "$(id -u)" -x gnome-keyring-d || true
   sleep 1
   printf "%s" "fixture-keyring-passphrase" | gnome-keyring-daemon --unlock --components=secrets >/dev/null
   /tmp/jms-secret-test-bin read
+  after=$(pgrep -u "$(id -u)" -x gnome-keyring-d | sort)
+  test -n "$after"
+  test "$before" != "$after"
+  if grep -RaFq fixture-session-only "$HOME/.local/share/keyrings"; then
+    echo "Unexpected plaintext after restart" >&2
+    exit 1
+  fi
   /tmp/jms-secret-test-bin clear
   /tmp/jms-secret-test-bin empty
   /tmp/jms-secret-test-bin clear
