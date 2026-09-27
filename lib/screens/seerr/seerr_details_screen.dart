@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fladder/screens/seerr/seerr_media_actions.dart';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -55,8 +56,9 @@ class SeerrDetailsScreen extends ConsumerWidget {
     final notifier = ref.read(provider.notifier);
 
     final currentPoster = state.poster;
-    final wrapAlignment =
-        AdaptiveLayout.viewSizeOf(context) != ViewSize.phone ? WrapAlignment.start : WrapAlignment.center;
+    final wrapAlignment = AdaptiveLayout.viewSizeOf(context) != ViewSize.phone
+        ? WrapAlignment.start
+        : WrapAlignment.center;
 
     final radius = BorderRadius.circular(16);
     final theme = Theme.of(context);
@@ -68,13 +70,17 @@ class SeerrDetailsScreen extends ConsumerWidget {
 
     final hasKnownStatus = currentPoster?.hasDisplayStatus ?? false;
     final requests = state.poster?.mediaInfo?.requests ?? [];
-    final pendingRequests = requests.where((request) => request.requestStatus == SeerrRequestStatus.pending).toList();
+    final pendingRequests = requests
+        .where((request) => request.requestStatus == SeerrRequestStatus.pending)
+        .toList();
 
     final rottenTomatoes = state.ratings?.rt;
 
     final canManageRequest = state.currentUser?.canManageRequests ?? false;
-    final hasUsersRequests = requests.any((request) => request.requestedBy?.id == state.currentUser?.id);
-    final hasVisibleRequests = (canManageRequest || hasUsersRequests) && requests.isNotEmpty;
+    final hasUsersRequests = requests
+        .any((request) => request.requestedBy?.id == state.currentUser?.id);
+    final hasVisibleRequests =
+        (canManageRequest || hasUsersRequests) && requests.isNotEmpty;
 
     final canRequestMore = hasKnownStatus
         ? switch (currentPoster?.type) {
@@ -86,7 +92,9 @@ class SeerrDetailsScreen extends ConsumerWidget {
 
     final mainButtonLabel = currentPoster?.type == SeerrMediaType.movie
         ? context.localized.request
-        : (canRequestMore ? context.localized.requestMore : context.localized.request);
+        : (canRequestMore
+            ? context.localized.requestMore
+            : context.localized.request);
 
     return DetailScaffold(
       label: currentPoster?.title ?? context.localized.request,
@@ -121,7 +129,10 @@ class SeerrDetailsScreen extends ConsumerWidget {
                                   child: AspectRatio(
                                     aspectRatio: 2 / 3,
                                     child: FocusButton(
-                                      onTap: itemBaseModel != null ? () => itemBaseModel.navigateTo(context) : null,
+                                      onTap: itemBaseModel != null
+                                          ? () =>
+                                              itemBaseModel.navigateTo(context)
+                                          : null,
                                       onFocusChanged: (focus) {
                                         if (focus) {
                                           context.ensureVisible();
@@ -129,9 +140,12 @@ class SeerrDetailsScreen extends ConsumerWidget {
                                       },
                                       child: Container(
                                         decoration: BoxDecoration(
-                                          borderRadius: FladderTheme.defaultPosterDecoration.borderRadius,
+                                          borderRadius: FladderTheme
+                                              .defaultPosterDecoration
+                                              .borderRadius,
                                         ),
-                                        foregroundDecoration: FladderTheme.defaultPosterDecoration,
+                                        foregroundDecoration: FladderTheme
+                                            .defaultPosterDecoration,
                                         clipBehavior: Clip.hardEdge,
                                         child: FladderImage(
                                           image: currentPoster.images.primary,
@@ -141,7 +155,8 @@ class SeerrDetailsScreen extends ConsumerWidget {
                                     ),
                                   ),
                                 ),
-                                if (hasKnownStatus) DownloadStatusLabel(poster: currentPoster)
+                                if (hasKnownStatus)
+                                  DownloadStatusLabel(poster: currentPoster)
                               ],
                             ),
                           )
@@ -160,7 +175,8 @@ class SeerrDetailsScreen extends ConsumerWidget {
                               'icons/tomato.svg',
                               width: 16,
                               height: 16,
-                              colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                              colorFilter: const ColorFilter.mode(
+                                  Colors.white, BlendMode.srcIn),
                             ),
                             iconColor: Colors.white,
                             color: Colors.redAccent.shade700,
@@ -172,20 +188,27 @@ class SeerrDetailsScreen extends ConsumerWidget {
                                 'icons/popcorn_bucket.svg',
                                 width: 16,
                                 height: 16,
-                                colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                                colorFilter: const ColorFilter.mode(
+                                    Colors.white, BlendMode.srcIn),
                               ),
                               iconColor: Colors.white,
                               color: Colors.orange.shade700,
                             ),
                         ],
                     ],
-                    genres:
-                        state.genres.map((e) => GenreItems(id: e.id?.toString() ?? "", name: e.name ?? "")).toList(),
+                    genres: state.genres
+                        .map((e) => GenreItems(
+                            id: e.id?.toString() ?? "", name: e.name ?? ""))
+                        .toList(),
                     mainButton: Builder(
                       builder: (context) {
                         return FocusButton(
-                          autoFocus: AdaptiveLayout.inputDeviceOf(context) == InputDevice.dPad,
-                          onTap: canRequestMore ? () => openSeerrRequestPopup(context, currentPoster) : null,
+                          autoFocus: AdaptiveLayout.inputDeviceOf(context) ==
+                              InputDevice.dPad,
+                          onTap: canRequestMore
+                              ? () =>
+                                  openSeerrRequestPopup(context, currentPoster)
+                              : null,
                           borderRadius: radius,
                           onFocusChanged: (value) {
                             if (value) {
@@ -196,7 +219,8 @@ class SeerrDetailsScreen extends ConsumerWidget {
                           },
                           child: Container(
                             decoration: BoxDecoration(
-                              color: theme.colorScheme.primaryContainer.withAlpha(canRequestMore ? 255 : 100),
+                              color: theme.colorScheme.primaryContainer
+                                  .withAlpha(canRequestMore ? 255 : 100),
                               borderRadius: radius,
                             ),
                             child: Padding(
@@ -212,16 +236,20 @@ class SeerrDetailsScreen extends ConsumerWidget {
                                       mainButtonLabel,
                                       maxLines: 1,
                                       overflow: TextOverflow.fade,
-                                      style: theme.textTheme.titleMedium?.copyWith(
+                                      style:
+                                          theme.textTheme.titleMedium?.copyWith(
                                         fontWeight: FontWeight.w700,
-                                        color:
-                                            theme.colorScheme.onPrimaryContainer.withAlpha(canRequestMore ? 255 : 100),
+                                        color: theme
+                                            .colorScheme.onPrimaryContainer
+                                            .withAlpha(
+                                                canRequestMore ? 255 : 100),
                                       ),
                                     ),
                                   ),
                                   Icon(
                                     IconsaxPlusLinear.add,
-                                    color: theme.colorScheme.onPrimaryContainer.withAlpha(canRequestMore ? 255 : 100),
+                                    color: theme.colorScheme.onPrimaryContainer
+                                        .withAlpha(canRequestMore ? 255 : 100),
                                   ),
                                 ],
                               ),
@@ -230,144 +258,158 @@ class SeerrDetailsScreen extends ConsumerWidget {
                         );
                       },
                     ),
-                    centerButtons: (hasVisibleRequests || state.hasTrailerAction)
-                        ? Builder(
-                            builder: (context) {
-                              return Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                alignment: wrapAlignment,
-                                crossAxisAlignment: WrapCrossAlignment.center,
-                                children: [
-                                  if (hasVisibleRequests)
-                                    FocusButton(
-                                      autoFocus: false,
-                                      onTap: () async {
-                                        await showSeerrRequestsSheet(
-                                          context: context,
-                                          poster: currentPoster,
-                                          requests: requests,
-                                          onApprove: notifier.approveRequest,
-                                          onDecline: notifier.declineRequest,
-                                        );
-                                      },
-                                      borderRadius: radius,
-                                      onFocusChanged: (value) {
-                                        if (value) {
-                                          context.ensureVisible(
-                                            alignment: 1.0,
-                                          );
-                                        }
-                                      },
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: theme.colorScheme.tertiaryContainer,
-                                          borderRadius: radius,
-                                        ),
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            spacing: 8,
-                                            children: [
-                                              Text(
-                                                context.localized.pendingRequests(pendingRequests.length),
-                                                style: theme.textTheme.titleMedium?.copyWith(
-                                                  fontWeight: FontWeight.w700,
-                                                  color: theme.colorScheme.onTertiaryContainer,
-                                                ),
-                                              ),
-                                            ],
+                    centerButtons: Builder(
+                      builder: (context) {
+                        return Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          alignment: wrapAlignment,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            SeerrMediaActions(
+                                tmdbId: currentPoster.tmdbId,
+                                isTv: currentPoster.type ==
+                                    SeerrMediaType.tvshow),
+                            if (hasVisibleRequests)
+                              FocusButton(
+                                autoFocus: false,
+                                onTap: () async {
+                                  await showSeerrRequestsSheet(
+                                    context: context,
+                                    poster: currentPoster,
+                                    requests: requests,
+                                    onApprove: notifier.approveRequest,
+                                    onDecline: notifier.declineRequest,
+                                  );
+                                },
+                                borderRadius: radius,
+                                onFocusChanged: (value) {
+                                  if (value) {
+                                    context.ensureVisible(
+                                      alignment: 1.0,
+                                    );
+                                  }
+                                },
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.tertiaryContainer,
+                                    borderRadius: radius,
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 10),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      spacing: 8,
+                                      children: [
+                                        Text(
+                                          context.localized.pendingRequests(
+                                              pendingRequests.length),
+                                          style: theme.textTheme.titleMedium
+                                              ?.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                            color: theme.colorScheme
+                                                .onTertiaryContainer,
                                           ),
                                         ),
-                                      ),
+                                      ],
                                     ),
-                                  if (state.hasTrailerAction)
-                                    FocusButton(
-                                      autoFocus: false,
-                                      onTap: () async {
-                                        if (officialTrailerUrl == null) return;
-                                        await launchUrl(context, officialTrailerUrl);
-                                      },
-                                      borderRadius: radius,
-                                      onFocusChanged: (value) {
-                                        if (value) {
-                                          context.ensureVisible(
-                                            alignment: 1.0,
-                                          );
-                                        }
-                                      },
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: theme.colorScheme.tertiaryContainer,
-                                          borderRadius: radius,
-                                        ),
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            spacing: 8,
-                                            children: [
-                                              Text(
-                                                context.localized.viewTrailer,
-                                                style: theme.textTheme.titleMedium?.copyWith(
-                                                  fontWeight: FontWeight.w700,
-                                                  color: theme.colorScheme.onTertiaryContainer,
-                                                ),
-                                              ),
-                                              Icon(
-                                                IconsaxPlusLinear.video_play,
-                                                color: theme.colorScheme.onTertiaryContainer,
-                                              ),
-                                            ],
+                                  ),
+                                ),
+                              ),
+                            if (state.hasTrailerAction)
+                              FocusButton(
+                                autoFocus: false,
+                                onTap: () async {
+                                  if (officialTrailerUrl == null) return;
+                                  await launchUrl(context, officialTrailerUrl);
+                                },
+                                borderRadius: radius,
+                                onFocusChanged: (value) {
+                                  if (value) {
+                                    context.ensureVisible(
+                                      alignment: 1.0,
+                                    );
+                                  }
+                                },
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.tertiaryContainer,
+                                    borderRadius: radius,
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 10),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      spacing: 8,
+                                      children: [
+                                        Text(
+                                          context.localized.viewTrailer,
+                                          style: theme.textTheme.titleMedium
+                                              ?.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                            color: theme.colorScheme
+                                                .onTertiaryContainer,
                                           ),
                                         ),
-                                      ),
-                                    ),
-                                  if (hasVisibleRequests && currentPoster.mediaInfo != null)
-                                    FocusButton(
-                                      autoFocus: false,
-                                      onTap: () async {
-                                        await showMediaManagementSheet(
-                                          context: context,
-                                          mediaInfo: currentPoster,
-                                          onActionComplete: () => context.refreshData(),
-                                        );
-                                      },
-                                      borderRadius: radius,
-                                      onFocusChanged: (value) {
-                                        if (value) {
-                                          context.ensureVisible(
-                                            alignment: 1.0,
-                                          );
-                                        }
-                                      },
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: theme.colorScheme.tertiaryContainer,
-                                          borderRadius: radius,
+                                        Icon(
+                                          IconsaxPlusLinear.video_play,
+                                          color: theme
+                                              .colorScheme.onTertiaryContainer,
                                         ),
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(10.0),
-                                          child: Icon(
-                                            IconsaxPlusLinear.setting_4,
-                                            color: theme.colorScheme.onTertiaryContainer,
-                                          ),
-                                        ),
-                                      ),
+                                      ],
                                     ),
-                                ],
-                              );
-                            },
-                          )
-                        : null,
+                                  ),
+                                ),
+                              ),
+                            if (hasVisibleRequests &&
+                                currentPoster.mediaInfo != null)
+                              FocusButton(
+                                autoFocus: false,
+                                onTap: () async {
+                                  await showMediaManagementSheet(
+                                    context: context,
+                                    mediaInfo: currentPoster,
+                                    onActionComplete: () =>
+                                        context.refreshData(),
+                                  );
+                                },
+                                borderRadius: radius,
+                                onFocusChanged: (value) {
+                                  if (value) {
+                                    context.ensureVisible(
+                                      alignment: 1.0,
+                                    );
+                                  }
+                                },
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.tertiaryContainer,
+                                    borderRadius: radius,
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(10.0),
+                                    child: Icon(
+                                      IconsaxPlusLinear.setting_4,
+                                      color:
+                                          theme.colorScheme.onTertiaryContainer,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
+                    ),
                   ),
                   ExpandingText(
                     text: currentPoster.overview.trim().isEmpty
                         ? context.localized.noOverviewAvailable
                         : currentPoster.overview,
                   ).padding(padding),
-                  if (currentPoster.type == SeerrMediaType.tvshow && (currentPoster.seasons?.isNotEmpty ?? false))
+                  if (currentPoster.type == SeerrMediaType.tvshow &&
+                      (currentPoster.seasons?.isNotEmpty ?? false))
                     _SeerrSeasonsSection(
                       state: state,
                       notifier: notifier,
@@ -384,13 +426,15 @@ class SeerrDetailsScreen extends ConsumerWidget {
                   if (state.recommended.isNotEmpty)
                     SeerrPosterRow(
                       posters: state.recommended,
-                      label: "${context.localized.discover} ${context.localized.recommended.toLowerCase()}",
+                      label:
+                          "${context.localized.discover} ${context.localized.recommended.toLowerCase()}",
                       contentPadding: padding,
                     ),
                   if (state.similar.isNotEmpty)
                     SeerrPosterRow(
                       posters: state.similar,
-                      label: "${context.localized.discover} ${context.localized.related.toLowerCase()}",
+                      label:
+                          "${context.localized.discover} ${context.localized.related.toLowerCase()}",
                       contentPadding: padding,
                     ),
                   if (externalUrls.isNotEmpty)
@@ -427,7 +471,10 @@ class _SeerrSeasonsSection extends StatelessWidget {
       children: [
         Text(
           context.localized.season(seasons.length),
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(context)
+              .textTheme
+              .titleMedium
+              ?.copyWith(fontWeight: FontWeight.bold),
         ),
         ...seasons.map((season) {
           final seasonNumber = season.seasonNumber;
@@ -472,11 +519,18 @@ class _SeasonCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final standardDownloads =
-        poster?.mediaInfo?.downloadStatus?.where((d) => d.episode?.seasonNumber == seasonNumber).toList() ?? [];
-    final fourKDownloads =
-        poster?.mediaInfo?.downloadStatus4k?.where((d) => d.episode?.seasonNumber == seasonNumber).toList() ?? [];
-    final seasonDownloads = <SeerrDownloadStatus>[...standardDownloads, ...fourKDownloads];
+    final standardDownloads = poster?.mediaInfo?.downloadStatus
+            ?.where((d) => d.episode?.seasonNumber == seasonNumber)
+            .toList() ??
+        [];
+    final fourKDownloads = poster?.mediaInfo?.downloadStatus4k
+            ?.where((d) => d.episode?.seasonNumber == seasonNumber)
+            .toList() ??
+        [];
+    final seasonDownloads = <SeerrDownloadStatus>[
+      ...standardDownloads,
+      ...fourKDownloads
+    ];
 
     return Container(
       decoration: BoxDecoration(
@@ -500,18 +554,23 @@ class _SeasonCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (status != null && status != SeerrMediaStatus.unknown)
+                        if (status != null &&
+                            status != SeerrMediaStatus.unknown)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 4),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
                                 color: status!.color.withAlpha(200),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 status!.label(context),
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -520,18 +579,28 @@ class _SeasonCard extends StatelessWidget {
                           ),
                         Text(
                           "${context.localized.season(1)} $seasonNumber",
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         if (season.episodeCount != null)
                           Text(
                             '${season.episodeCount} ${context.localized.episode(season.episodeCount ?? 0)}',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant
+                                      .withValues(alpha: 0.7),
                                 ),
                           ),
                         if (seasonDownloads.isNotEmpty) ...[
                           const SizedBox(height: 8),
-                          SeasonDownloadProgressWidget(downloads: seasonDownloads),
+                          SeasonDownloadProgressWidget(
+                              downloads: seasonDownloads),
                         ],
                       ],
                     ),
@@ -575,10 +644,14 @@ class _EpisodeCard extends StatelessWidget {
     final posterUrl = episode.stillUrl;
     final posterImage = posterUrl == null
         ? null
-        : ImageData(path: posterUrl, key: 'seerr_episode_${episode.id ?? episode.episodeNumber}');
+        : ImageData(
+            path: posterUrl,
+            key: 'seerr_episode_${episode.id ?? episode.episodeNumber}');
 
     return FocusButton(
-      onTap: AdaptiveLayout.inputDeviceOf(context) == InputDevice.dPad ? () {} : null,
+      onTap: AdaptiveLayout.inputDeviceOf(context) == InputDevice.dPad
+          ? () {}
+          : null,
       onFocusChanged: (focus) {
         if (focus) {
           context.ensureVisible();
@@ -606,24 +679,31 @@ class _EpisodeCard extends StatelessWidget {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.primaryContainer,
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
                           'E${episode.episodeNumber}',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.onPrimaryContainer,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onPrimaryContainer,
+                                  ),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           episode.name ?? 'Episode ${episode.episodeNumber}',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w600),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -634,7 +714,10 @@ class _EpisodeCard extends StatelessWidget {
                     Text(
                       episode.overview!,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant
+                                .withValues(alpha: 0.8),
                           ),
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
@@ -645,11 +728,14 @@ class _EpisodeCard extends StatelessWidget {
                         color: Theme.of(context).colorScheme.surfaceContainer,
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
                       child: Text(
                         episode.airDate!,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
                             ),
                       ),
                     ),
@@ -659,7 +745,8 @@ class _EpisodeCard extends StatelessWidget {
             if (posterImage != null)
               Container(
                 decoration: BoxDecoration(
-                  borderRadius: FladderTheme.defaultPosterDecoration.borderRadius,
+                  borderRadius:
+                      FladderTheme.defaultPosterDecoration.borderRadius,
                 ),
                 foregroundDecoration: FladderTheme.defaultPosterDecoration,
                 clipBehavior: Clip.hardEdge,
@@ -675,7 +762,8 @@ class _EpisodeCard extends StatelessWidget {
                         child: Center(
                           child: Icon(
                             IconsaxPlusLinear.video,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                             size: 32,
                           ),
                         ),

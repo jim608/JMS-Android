@@ -1,6 +1,7 @@
 import 'package:chopper/chopper.dart';
 
 import 'seerr_models.dart';
+import 'seerr_issue_models.dart';
 
 part 'seerr_chopper_service.chopper.dart';
 
@@ -13,8 +14,39 @@ abstract class SeerrChopperService extends ChopperService {
   @GET(path: '/status')
   Future<Response<SeerrStatus>> getStatus();
 
+  @GET(path: '/settings/public')
+  Future<Response<Map<String, dynamic>>> publicSettings();
+
+  @POST(path: '/auth/jellyfin/quickconnect/initiate')
+  Future<Response<Map<String, dynamic>>> initiateLink();
+
+  @GET(path: '/auth/jellyfin/quickconnect/check')
+  Future<Response<Map<String, dynamic>>> checkLink(@Query('secret') String secret);
+
+  @POST(path: '/auth/jellyfin/quickconnect/authenticate')
+  Future<Response<SeerrUserModel>> finishLink(@Body() Map<String, dynamic> body);
+
+  @GET(path: '/issue')
+  Future<Response<SeerrIssuesResponse>> getIssues({@Query('take') int? take, @Query('skip') int? skip,
+    @Query('createdBy') int? createdBy, @Query('filter') String? filter, @Query('sort') String? sort});
+
+  @GET(path: '/issue/{issueId}')
+  Future<Response<SeerrIssue>> getIssue(@Path('issueId') int issueId);
+
+  @POST(path: '/issue')
+  Future<Response<SeerrIssue>> createIssue(@Body() Map<String, dynamic> body);
+
+  @POST(path: '/issue/{issueId}/comment')
+  Future<Response<SeerrIssue>> commentIssue(@Path('issueId') int issueId, @Body() Map<String, dynamic> body);
+
+  @POST(path: '/issue/{issueId}/{status}')
+  Future<Response<SeerrIssue>> setIssueStatus(@Path('issueId') int issueId, @Path('status') String status);
+
   @GET(path: '/auth/me')
   Future<Response<SeerrUserModel>> getMe();
+
+  @GET(path: '/auth/me')
+  Future<Response<SeerrUserModel>> verifyLinkedCookie(@Header('Cookie') String cookie);
 
   @POST(path: '/auth/local')
   Future<Response<SeerrUserModel>> authenticateLocal(

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:fladder/screens/seerr/seerr_support_text.dart';
+import 'package:auto_route/auto_route.dart';
+import 'package:fladder/routes/auto_router.gr.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
@@ -6,7 +9,6 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:fladder/models/seerr/seerr_dashboard_model.dart';
 import 'package:fladder/providers/seerr_api_provider.dart';
 import 'package:fladder/providers/seerr_user_provider.dart';
-import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/screens/shared/fladder_notification_overlay.dart';
 import 'package:fladder/screens/shared/media/external_urls.dart';
 import 'package:fladder/seerr/seerr_models.dart';
@@ -91,15 +93,12 @@ class _MediaManagementActionsState extends ConsumerState<_MediaManagementActions
     final actions = [
       ItemActionButton(
         icon: const Icon(IconsaxPlusBold.discover),
-        label: Text(context.localized.openInSeerr),
+        label: Text(seerrText(context, 'Details', '詳情')),
         backgroundColor: Colors.deepPurpleAccent.shade700,
         action: () {
-          final seerrUrl = ref.read(userProvider.select((value) => value?.seerrCredentials?.serverUrl));
-          if (isTvSeries) {
-            launchUrl(context, '$seerrUrl/tv/${widget.poster.tmdbId}');
-          } else {
-            launchUrl(context, '$seerrUrl/movie/${widget.poster.tmdbId}');
-          }
+          final router = context.router;
+          Navigator.of(context).pop();
+          router.push(SeerrDetailsRoute(mediaType: isTvSeries ? 'tv' : 'movie', tmdbId: widget.poster.tmdbId));
         },
       ),
       if (itemModel != null)

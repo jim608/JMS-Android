@@ -12,18 +12,26 @@ part 'seerr_search_provider.g.dart';
 
 @riverpod
 class SeerrSearch extends _$SeerrSearch {
+  int _generation = 0;
   @override
-  SeerrSearchModel build() => SeerrSearchModel();
+  SeerrSearchModel build() {
+    ref.watch(seerrApiProvider);
+    _generation++;
+    ref.onDispose(() => _generation++);
+    return SeerrSearchModel();
+  }
 
   Future<void> init() async {
     if (state.initialized) return;
+    final generation = _generation;
 
-    state = state.copyWith(isLoading: true);
+    state = state.copyWith(isLoading: true, failed: false);
 
     try {
       final api = ref.read(seerrApiProvider);
 
       final watchRegionsResponse = await api.getWatchProviderRegions();
+      if (generation != _generation) return;
       final watchRegions = watchRegionsResponse.body ?? [];
 
       final currentUser = ref.read(seerrUserProvider);
@@ -36,14 +44,20 @@ class SeerrSearch extends _$SeerrSearch {
         isLoading: false,
       );
     } catch (error) {
+      if (generation != _generation) return;
       state = state.copyWith(isLoading: false, initialized: true);
     }
   }
 
   Future<void> setSearchMode(SeerrSearchMode mode) async {
+    final generation = ++_generation;
     final query = mode != SeerrSearchMode.search ? '' : state.query;
 
-    (Map<SeerrGenre, bool>, Map<SeerrWatchProvider, bool>, Map<SeerrCertification, bool>) currentFilters =
+    (
+      Map<SeerrGenre, bool>,
+      Map<SeerrWatchProvider, bool>,
+      Map<SeerrCertification, bool>
+    ) currentFilters =
         (state.genres, state.watchProviders, state.certifications);
 
     if (mode == SeerrSearchMode.discoverMovies) {
@@ -52,6 +66,7 @@ class SeerrSearch extends _$SeerrSearch {
       currentFilters = await _fetchTvData();
     }
 
+    if (generation != _generation) return;
     state = state.copyWith(
       searchMode: mode,
       query: query,
@@ -70,29 +85,35 @@ class SeerrSearch extends _$SeerrSearch {
   }
 
   void setQuery(String value) {
-    state = state.copyWith(query: value);
+    _generation++;
+    state =
+        state.copyWith(query: value, isLoading: false, isLoadingMore: false);
   }
 
   Future<void> submit([String? value]) async {
+    _generation++;
     final query = (value ?? state.query);
 
     if (query.isNotEmpty && state.searchMode != SeerrSearchMode.search) {
       state = state.copyWith(searchMode: SeerrSearchMode.search);
     }
 
-    state = state.copyWith(query: query, currentPage: 1, totalPages: null);
+    state = state.copyWith(
+        query: query, currentPage: 1, totalPages: null, isLoadingMore: false);
 
     if (state.searchMode == SeerrSearchMode.search && query.isEmpty) {
       state = state.copyWith(results: []);
       return;
     }
 
-    state = state.copyWith(isLoading: true);
+    state = state.copyWith(isLoading: true, failed: false);
     await _fetchResults(page: 1, isLoadingMore: false);
   }
 
   Future<void> loadMore() async {
-    if (state.isLoadingMore || state.totalPages == null || state.currentPage >= state.totalPages!) {
+    if (state.isLoadingMore ||
+        state.totalPages == null ||
+        state.currentPage >= state.totalPages!) {
       return;
     }
 
@@ -100,7 +121,9 @@ class SeerrSearch extends _$SeerrSearch {
     await _fetchResults(page: state.currentPage + 1, isLoadingMore: true);
   }
 
-  Future<void> _fetchResults({required int page, required bool isLoadingMore}) async {
+  Future<void> _fetchResults(
+      {required int page, required bool isLoadingMore}) async {
+    final generation = _generation;
     try {
       final api = ref.read(seerrApiProvider);
       List<SeerrDashboardPosterModel> items = [];
@@ -109,6 +132,7 @@ class SeerrSearch extends _$SeerrSearch {
       switch (state.searchMode) {
         case SeerrSearchMode.search:
           final response = await api.search(query: state.query, page: page);
+          if (!response.isSuccessful || response.body == null) throw StateError('Seerr search unavailable');
           final results = response.body?.results ?? [];
           totalPages = response.body?.totalPages;
           for (final result in results) {
@@ -131,7 +155,8 @@ class SeerrSearch extends _$SeerrSearch {
           final codes = _buildCertificationFilter();
           final response = await api.discoverMovies(
             page: page,
-            sortBy: state.filters.sortBy.valueForMode(SeerrSearchMode.discoverMovies),
+            sortBy: state.filters.sortBy
+                .valueForMode(SeerrSearchMode.discoverMovies),
             genre: _getGenreIds(),
             studio: state.filters.studio?.id,
             primaryReleaseDateGte: _getYearGte(),
@@ -157,7 +182,8 @@ class SeerrSearch extends _$SeerrSearch {
         case SeerrSearchMode.discoverTv:
           final response = await api.discoverTv(
             page: page,
-            sortBy: state.filters.sortBy.valueForMode(SeerrSearchMode.discoverTv),
+            sortBy:
+                state.filters.sortBy.valueForMode(SeerrSearchMode.discoverTv),
             genre: _getGenreIds(),
             firstAirDateGte: _getYearGte(),
             firstAirDateLte: _getYearLte(),
@@ -175,6 +201,7 @@ class SeerrSearch extends _$SeerrSearch {
           break;
       }
 
+      if (generation != _generation) return;
       if (isLoadingMore) {
         state = state.copyWith(
           results: [...state.results, ...items],
@@ -190,10 +217,11 @@ class SeerrSearch extends _$SeerrSearch {
         );
       }
     } catch (error) {
+      if (generation != _generation) return;
       if (isLoadingMore) {
-        state = state.copyWith(isLoadingMore: false);
+        state = state.copyWith(isLoadingMore: false, failed: true);
       } else {
-        state = state.copyWith(results: [], isLoading: false);
+        state = state.copyWith(results: [], isLoading: false, failed: true);
       }
     }
   }
@@ -205,17 +233,23 @@ class SeerrSearch extends _$SeerrSearch {
     );
   }
 
-  Future<(Map<SeerrGenre, bool>, Map<SeerrWatchProvider, bool>, Map<SeerrCertification, bool>)>
-      _fetchMovieData() async {
+  Future<
+      (
+        Map<SeerrGenre, bool>,
+        Map<SeerrWatchProvider, bool>,
+        Map<SeerrCertification, bool>
+      )> _fetchMovieData() async {
     try {
       final api = ref.read(seerrApiProvider);
       final movieGenresResponse = await api.getMovieGenres();
-      final movieWatchProvidersResponse = await api.getMovieWatchProviders(watchRegion: state.filters.watchRegion);
+      final movieWatchProvidersResponse = await api.getMovieWatchProviders(
+          watchRegion: state.filters.watchRegion);
       final movieCertificationsResponse = await api.getMovieCertifications();
 
       final movieGenres = movieGenresResponse.body ?? [];
       final movieWatchProviders = movieWatchProvidersResponse.body ?? [];
-      final movieCertifications = movieCertificationsResponse.body?.certifications?['US'] ?? [];
+      final movieCertifications =
+          movieCertificationsResponse.body?.certifications?['US'] ?? [];
 
       final movieGenresMap = <SeerrGenre, bool>{};
       for (var genre in movieGenres) {
@@ -235,20 +269,31 @@ class SeerrSearch extends _$SeerrSearch {
       return (movieGenresMap, movieWatchProvidersMap, movieCertificationsMap);
     } catch (error) {
       state = state.copyWith(isLoading: false);
-      return (const <SeerrGenre, bool>{}, const <SeerrWatchProvider, bool>{}, const <SeerrCertification, bool>{});
+      return (
+        const <SeerrGenre, bool>{},
+        const <SeerrWatchProvider, bool>{},
+        const <SeerrCertification, bool>{}
+      );
     }
   }
 
-  Future<(Map<SeerrGenre, bool>, Map<SeerrWatchProvider, bool>, Map<SeerrCertification, bool>)> _fetchTvData() async {
+  Future<
+      (
+        Map<SeerrGenre, bool>,
+        Map<SeerrWatchProvider, bool>,
+        Map<SeerrCertification, bool>
+      )> _fetchTvData() async {
     try {
       final api = ref.read(seerrApiProvider);
       final tvGenresResponse = await api.getTvGenres();
-      final tvWatchProvidersResponse = await api.getTvWatchProviders(watchRegion: state.filters.watchRegion);
+      final tvWatchProvidersResponse =
+          await api.getTvWatchProviders(watchRegion: state.filters.watchRegion);
       final tvCertificationsResponse = await api.getTvCertifications();
 
       final tvGenres = tvGenresResponse.body ?? [];
       final tvWatchProviders = tvWatchProvidersResponse.body ?? [];
-      final tvCertifications = tvCertificationsResponse.body?.certifications?['US'] ?? [];
+      final tvCertifications =
+          tvCertificationsResponse.body?.certifications?['US'] ?? [];
 
       final tvGenresMap = <SeerrGenre, bool>{};
       for (var genre in tvGenres) {
@@ -268,7 +313,11 @@ class SeerrSearch extends _$SeerrSearch {
       return (tvGenresMap, tvWatchProvidersMap, tvCertificationsMap);
     } catch (error) {
       state = state.copyWith(isLoading: false);
-      return (const <SeerrGenre, bool>{}, const <SeerrWatchProvider, bool>{}, const <SeerrCertification, bool>{});
+      return (
+        const <SeerrGenre, bool>{},
+        const <SeerrWatchProvider, bool>{},
+        const <SeerrCertification, bool>{}
+      );
     }
   }
 
@@ -295,18 +344,21 @@ class SeerrSearch extends _$SeerrSearch {
     await _setWatchRegionInternal(watchRegion, withSubmit: false);
   }
 
-  Future<void> _setWatchRegionInternal(String? watchRegion, {required bool withSubmit}) async {
+  Future<void> _setWatchRegionInternal(String? watchRegion,
+      {required bool withSubmit}) async {
     final targetRegion = watchRegion ?? 'US';
     if (state.filters.watchRegion == targetRegion) return;
 
-    state = state.copyWith(isLoading: true);
+    state = state.copyWith(isLoading: true, failed: false);
 
     try {
       final api = ref.read(seerrApiProvider);
 
       // Only fetch for modes that have already been loaded (non-empty genres)
-      if (state.searchMode == SeerrSearchMode.discoverMovies && state.genres.isNotEmpty) {
-        final movieWatchProvidersResponse = await api.getMovieWatchProviders(watchRegion: targetRegion);
+      if (state.searchMode == SeerrSearchMode.discoverMovies &&
+          state.genres.isNotEmpty) {
+        final movieWatchProvidersResponse =
+            await api.getMovieWatchProviders(watchRegion: targetRegion);
         final movieWatchProviders = movieWatchProvidersResponse.body ?? [];
 
         final movieWatchProvidersMap = <SeerrWatchProvider, bool>{};
@@ -321,8 +373,10 @@ class SeerrSearch extends _$SeerrSearch {
           ),
           watchProviders: movieWatchProvidersMap,
         );
-      } else if (state.searchMode == SeerrSearchMode.discoverTv && state.genres.isNotEmpty) {
-        final tvWatchProvidersResponse = await api.getTvWatchProviders(watchRegion: targetRegion);
+      } else if (state.searchMode == SeerrSearchMode.discoverTv &&
+          state.genres.isNotEmpty) {
+        final tvWatchProvidersResponse =
+            await api.getTvWatchProviders(watchRegion: targetRegion);
         final tvWatchProviders = tvWatchProvidersResponse.body ?? [];
 
         final tvWatchProvidersMap = <SeerrWatchProvider, bool>{};
@@ -399,9 +453,13 @@ class SeerrSearch extends _$SeerrSearch {
   }
 
   String? _buildCertificationFilter() {
-    final selected = state.filters.certifications.entries.where((e) => e.value).map((e) => e.key).toList()
+    final selected = state.filters.certifications.entries
+        .where((e) => e.value)
+        .map((e) => e.key)
+        .toList()
       ..sort((a, b) => (a.order ?? 0).compareTo(b.order ?? 0));
-    final codes = selected.map((c) => c.certification).whereType<String>().toList();
+    final codes =
+        selected.map((c) => c.certification).whereType<String>().toList();
     if (codes.isEmpty) return null;
     return codes.join('|');
   }
@@ -426,12 +484,18 @@ class SeerrSearch extends _$SeerrSearch {
   }
 
   String? _getGenreIds() {
-    final selected = state.filters.genres.included.map((g) => g.id).whereType<int>().toList();
+    final selected = state.filters.genres.included
+        .map((g) => g.id)
+        .whereType<int>()
+        .toList();
     return selected.isEmpty ? null : selected.join(',');
   }
 
   String? _getWatchProviderIds() {
-    final selected = state.filters.watchProviders.included.map((p) => p.providerId).whereType<int>().toList();
+    final selected = state.filters.watchProviders.included
+        .map((p) => p.providerId)
+        .whereType<int>()
+        .toList();
     return selected.isEmpty ? null : selected.join('|');
   }
 
@@ -457,6 +521,7 @@ abstract class SeerrSearchModel with _$SeerrSearchModel {
     @Default([]) List<SeerrDashboardPosterModel> results,
     @Default(false) bool isLoading,
     @Default(false) bool isLoadingMore,
+    @Default(false) bool failed,
     @Default(false) bool initialized,
     @Default(SeerrSearchMode.search) SeerrSearchMode searchMode,
     @Default(SeerrFilterModel()) SeerrFilterModel filters,
@@ -468,7 +533,11 @@ abstract class SeerrSearchModel with _$SeerrSearchModel {
     int? totalPages,
   }) = _SeerrSearchModel;
 
-  bool get canLoadMore => !isLoading && !isLoadingMore && totalPages != null && currentPage < totalPages!;
+  bool get canLoadMore =>
+      !isLoading &&
+      !isLoadingMore &&
+      totalPages != null &&
+      currentPage < totalPages!;
 
   bool get hasFilters =>
       filters.genres.values.any((v) => v) ||

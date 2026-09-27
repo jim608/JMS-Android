@@ -12,15 +12,21 @@ part 'seerr_dashboard_provider.g.dart';
 
 @riverpod
 class SeerrDashboard extends _$SeerrDashboard {
+  int _generation = 0;
   @override
   SeerrDashboardModel build() {
+    ref.watch(seerrApiProvider);
+    _generation++;
+    ref.onDispose(() => _generation++);
     return const SeerrDashboardModel();
   }
 
   SeerrService get api => ref.read(seerrApiProvider);
 
   Future<void> fetchDashboard() async {
+    final generation = _generation;
     await ref.read(seerrUserProvider.notifier).refreshUser();
+    if (generation != _generation) return;
     await Future.wait([
       fetchRecentlyAdded(),
       fetchRecentRequests(),
@@ -33,6 +39,7 @@ class SeerrDashboard extends _$SeerrDashboard {
   }
 
   Future<void> fetchRecentlyAdded() async {
+    final generation = _generation;
     try {
       final user = ref.read(seerrUserProvider);
       if (user != null && !user.canViewRecent) {
@@ -53,7 +60,7 @@ class SeerrDashboard extends _$SeerrDashboard {
 
       final media = response.body?.results ?? const <SeerrMedia>[];
       final posters = await _postersFrom(media, _posterForMedia);
-
+      if (generation != _generation) return;
       state = state.copyWith(recentlyAdded: posters);
     } catch (_) {
       return;
@@ -61,6 +68,7 @@ class SeerrDashboard extends _$SeerrDashboard {
   }
 
   Future<void> fetchRecentRequests() async {
+    final generation = _generation;
     try {
       final response = await api.listRequests(
         filter: RequestFilter.all,
@@ -76,27 +84,31 @@ class SeerrDashboard extends _$SeerrDashboard {
 
       final requests = response.body?.results ?? const [];
       final items = await _postersFrom(requests, _posterForRequest);
-
+      if (generation != _generation) return;
       state = state.copyWith(recentRequests: items);
     } catch (_) {
       return;
     }
   }
 
-  Future<void> fetchTrending() async =>
-      _safeSet(() => api.discoverTrending(), (items) => state.copyWith(trending: items));
+  Future<void> fetchTrending() async => _safeSet(
+      () => api.discoverTrending(), (items) => state.copyWith(trending: items));
 
-  Future<void> fetchPopularMovies() async =>
-      _safeSet(() => api.discoverPopularMovies(), (items) => state.copyWith(popularMovies: items));
+  Future<void> fetchPopularMovies() async => _safeSet(
+      () => api.discoverPopularMovies(),
+      (items) => state.copyWith(popularMovies: items));
 
-  Future<void> fetchPopularSeries() async =>
-      _safeSet(() => api.discoverPopularSeries(), (items) => state.copyWith(popularSeries: items));
+  Future<void> fetchPopularSeries() async => _safeSet(
+      () => api.discoverPopularSeries(),
+      (items) => state.copyWith(popularSeries: items));
 
-  Future<void> fetchExpectedMovies() async =>
-      _safeSet(() => api.discoverExpectedMovies(), (items) => state.copyWith(expectedMovies: items));
+  Future<void> fetchExpectedMovies() async => _safeSet(
+      () => api.discoverExpectedMovies(),
+      (items) => state.copyWith(expectedMovies: items));
 
-  Future<void> fetchExpectedSeries() async =>
-      _safeSet(() => api.discoverExpectedSeries(), (items) => state.copyWith(expectedSeries: items));
+  Future<void> fetchExpectedSeries() async => _safeSet(
+      () => api.discoverExpectedSeries(),
+      (items) => state.copyWith(expectedSeries: items));
 
   Future<SeerrDashboardPosterModel?> _posterForMedia(SeerrMedia media) async {
     final tmdbId = media.tmdbId;
@@ -105,20 +117,24 @@ class SeerrDashboard extends _$SeerrDashboard {
     return api.fetchDashboardPosterFromIds(tmdbId: tmdbId, tvdbId: tvdbId);
   }
 
-  Future<SeerrDashboardPosterModel?> _posterForRequest(SeerrMediaRequest request) async {
+  Future<SeerrDashboardPosterModel?> _posterForRequest(
+      SeerrMediaRequest request) async {
     final media = request.media;
     if (media == null) return null;
     final tmdbId = media.tmdbId;
     final tvdbId = media.tvdbId;
     if (tmdbId == null && tvdbId == null) return null;
 
-    final poster = await api.fetchDashboardPosterFromIds(tmdbId: tmdbId, tvdbId: tvdbId);
+    final poster =
+        await api.fetchDashboardPosterFromIds(tmdbId: tmdbId, tvdbId: tvdbId);
     if (poster == null) return null;
 
     List<int>? requestedSeasons;
     if (poster.mediaInfo?.seasons != null) {
       requestedSeasons = poster.mediaInfo!.seasons!
-          .where((season) => season.seasonNumber != null && request.seasons?.contains(season.seasonNumber) == true)
+          .where((season) =>
+              season.seasonNumber != null &&
+              request.seasons?.contains(season.seasonNumber) == true)
           .map((season) => season.seasonNumber!)
           .toList();
     }
@@ -130,9 +146,12 @@ class SeerrDashboard extends _$SeerrDashboard {
       final avatar = requestedByUser.avatar;
       if (avatar != null && avatar.isNotEmpty) {
         final serverUrl = ref.read(userProvider)?.seerrCredentials?.serverUrl;
-        final resolvedAvatar = resolveServerUrl(path: avatar, serverUrl: serverUrl);
+        final resolvedAvatar =
+            resolveServerUrl(path: avatar, serverUrl: serverUrl);
 
-        processedUser = resolvedAvatar != avatar ? requestedByUser.copyWith(avatar: resolvedAvatar) : requestedByUser;
+        processedUser = resolvedAvatar != avatar
+            ? requestedByUser.copyWith(avatar: resolvedAvatar)
+            : requestedByUser;
       } else {
         processedUser = requestedByUser;
       }
@@ -148,8 +167,10 @@ class SeerrDashboard extends _$SeerrDashboard {
     Future<List<SeerrDashboardPosterModel>> Function() load,
     SeerrDashboardModel Function(List<SeerrDashboardPosterModel>) apply,
   ) async {
+    final generation = _generation;
     try {
       final items = await load();
+      if (generation != _generation) return;
       state = apply(items);
     } catch (_) {
       return;
@@ -162,8 +183,13 @@ class SeerrDashboard extends _$SeerrDashboard {
   ) async {
     final futures = items.map((item) => mapper(item)).toList();
     final results = await Future.wait(futures);
-    return results.whereType<SeerrDashboardPosterModel>().toList(growable: false);
+    return results
+        .whereType<SeerrDashboardPosterModel>()
+        .toList(growable: false);
   }
 
-  void clear() => state = const SeerrDashboardModel();
+  void clear() {
+    _generation++;
+    state = const SeerrDashboardModel();
+  }
 }

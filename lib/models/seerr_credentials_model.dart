@@ -12,7 +12,8 @@ abstract class SeerrCredentialsModel with _$SeerrCredentialsModel {
   const factory SeerrCredentialsModel({
     @Default("") String serverUrl,
     @Default("") String apiKey,
-    @Default("") String sessionCookie,
+    @JsonKey(includeToJson: false) @Default("") String sessionCookie,
+    @Default("") String linkedServerId,
     @Default({}) Map<String, String> customHeaders,
   }) = _SeerrCredentialsModel;
 

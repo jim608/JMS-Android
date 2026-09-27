@@ -18,6 +18,7 @@ mixin _$SeerrSearchModel {
   List<SeerrDashboardPosterModel> get results;
   bool get isLoading;
   bool get isLoadingMore;
+  bool get failed;
   bool get initialized;
   SeerrSearchMode get searchMode;
   SeerrFilterModel get filters;
@@ -38,7 +39,7 @@ mixin _$SeerrSearchModel {
 
   @override
   String toString() {
-    return 'SeerrSearchModel(query: $query, results: $results, isLoading: $isLoading, isLoadingMore: $isLoadingMore, initialized: $initialized, searchMode: $searchMode, filters: $filters, currentPage: $currentPage, watchProviderRegions: $watchProviderRegions, genres: $genres, watchProviders: $watchProviders, certifications: $certifications, totalPages: $totalPages)';
+    return 'SeerrSearchModel(query: $query, results: $results, isLoading: $isLoading, isLoadingMore: $isLoadingMore, failed: $failed, initialized: $initialized, searchMode: $searchMode, filters: $filters, currentPage: $currentPage, watchProviderRegions: $watchProviderRegions, genres: $genres, watchProviders: $watchProviders, certifications: $certifications, totalPages: $totalPages)';
   }
 }
 
@@ -53,6 +54,7 @@ abstract mixin class $SeerrSearchModelCopyWith<$Res> {
       List<SeerrDashboardPosterModel> results,
       bool isLoading,
       bool isLoadingMore,
+      bool failed,
       bool initialized,
       SeerrSearchMode searchMode,
       SeerrFilterModel filters,
@@ -83,6 +85,7 @@ class _$SeerrSearchModelCopyWithImpl<$Res>
     Object? results = null,
     Object? isLoading = null,
     Object? isLoadingMore = null,
+    Object? failed = null,
     Object? initialized = null,
     Object? searchMode = null,
     Object? filters = null,
@@ -109,6 +112,10 @@ class _$SeerrSearchModelCopyWithImpl<$Res>
       isLoadingMore: null == isLoadingMore
           ? _self.isLoadingMore
           : isLoadingMore // ignore: cast_nullable_to_non_nullable
+              as bool,
+      failed: null == failed
+          ? _self.failed
+          : failed // ignore: cast_nullable_to_non_nullable
               as bool,
       initialized: null == initialized
           ? _self.initialized
@@ -258,6 +265,7 @@ extension SeerrSearchModelPatterns on SeerrSearchModel {
             List<SeerrDashboardPosterModel> results,
             bool isLoading,
             bool isLoadingMore,
+            bool failed,
             bool initialized,
             SeerrSearchMode searchMode,
             SeerrFilterModel filters,
@@ -278,6 +286,7 @@ extension SeerrSearchModelPatterns on SeerrSearchModel {
             _that.results,
             _that.isLoading,
             _that.isLoadingMore,
+            _that.failed,
             _that.initialized,
             _that.searchMode,
             _that.filters,
@@ -312,6 +321,7 @@ extension SeerrSearchModelPatterns on SeerrSearchModel {
             List<SeerrDashboardPosterModel> results,
             bool isLoading,
             bool isLoadingMore,
+            bool failed,
             bool initialized,
             SeerrSearchMode searchMode,
             SeerrFilterModel filters,
@@ -331,6 +341,7 @@ extension SeerrSearchModelPatterns on SeerrSearchModel {
             _that.results,
             _that.isLoading,
             _that.isLoadingMore,
+            _that.failed,
             _that.initialized,
             _that.searchMode,
             _that.filters,
@@ -364,6 +375,7 @@ extension SeerrSearchModelPatterns on SeerrSearchModel {
             List<SeerrDashboardPosterModel> results,
             bool isLoading,
             bool isLoadingMore,
+            bool failed,
             bool initialized,
             SeerrSearchMode searchMode,
             SeerrFilterModel filters,
@@ -383,6 +395,7 @@ extension SeerrSearchModelPatterns on SeerrSearchModel {
             _that.results,
             _that.isLoading,
             _that.isLoadingMore,
+            _that.failed,
             _that.initialized,
             _that.searchMode,
             _that.filters,
@@ -406,6 +419,7 @@ class _SeerrSearchModel extends SeerrSearchModel {
       final List<SeerrDashboardPosterModel> results = const [],
       this.isLoading = false,
       this.isLoadingMore = false,
+      this.failed = false,
       this.initialized = false,
       this.searchMode = SeerrSearchMode.search,
       this.filters = const SeerrFilterModel(),
@@ -440,6 +454,9 @@ class _SeerrSearchModel extends SeerrSearchModel {
   @override
   @JsonKey()
   final bool isLoadingMore;
+  @override
+  @JsonKey()
+  final bool failed;
   @override
   @JsonKey()
   final bool initialized;
@@ -502,7 +519,7 @@ class _SeerrSearchModel extends SeerrSearchModel {
 
   @override
   String toString() {
-    return 'SeerrSearchModel(query: $query, results: $results, isLoading: $isLoading, isLoadingMore: $isLoadingMore, initialized: $initialized, searchMode: $searchMode, filters: $filters, currentPage: $currentPage, watchProviderRegions: $watchProviderRegions, genres: $genres, watchProviders: $watchProviders, certifications: $certifications, totalPages: $totalPages)';
+    return 'SeerrSearchModel(query: $query, results: $results, isLoading: $isLoading, isLoadingMore: $isLoadingMore, failed: $failed, initialized: $initialized, searchMode: $searchMode, filters: $filters, currentPage: $currentPage, watchProviderRegions: $watchProviderRegions, genres: $genres, watchProviders: $watchProviders, certifications: $certifications, totalPages: $totalPages)';
   }
 }
 
@@ -519,6 +536,7 @@ abstract mixin class _$SeerrSearchModelCopyWith<$Res>
       List<SeerrDashboardPosterModel> results,
       bool isLoading,
       bool isLoadingMore,
+      bool failed,
       bool initialized,
       SeerrSearchMode searchMode,
       SeerrFilterModel filters,
@@ -550,6 +568,7 @@ class __$SeerrSearchModelCopyWithImpl<$Res>
     Object? results = null,
     Object? isLoading = null,
     Object? isLoadingMore = null,
+    Object? failed = null,
     Object? initialized = null,
     Object? searchMode = null,
     Object? filters = null,
@@ -576,6 +595,10 @@ class __$SeerrSearchModelCopyWithImpl<$Res>
       isLoadingMore: null == isLoadingMore
           ? _self.isLoadingMore
           : isLoadingMore // ignore: cast_nullable_to_non_nullable
+              as bool,
+      failed: null == failed
+          ? _self.failed
+          : failed // ignore: cast_nullable_to_non_nullable
               as bool,
       initialized: null == initialized
           ? _self.initialized

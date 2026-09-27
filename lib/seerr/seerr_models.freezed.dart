@@ -20,6 +20,7 @@ mixin _$SeerrUserModel {
   String? get displayName;
   String? get plexToken;
   String? get plexUsername;
+  String? get jellyfinUserId;
   int? get permissions;
   String? get avatar;
   SeerrUserSettings? get settings;
@@ -41,7 +42,7 @@ mixin _$SeerrUserModel {
 
   @override
   String toString() {
-    return 'SeerrUserModel(id: $id, email: $email, username: $username, displayName: $displayName, plexToken: $plexToken, plexUsername: $plexUsername, permissions: $permissions, avatar: $avatar, settings: $settings, movieQuotaLimit: $movieQuotaLimit, movieQuotaDays: $movieQuotaDays, tvQuotaLimit: $tvQuotaLimit, tvQuotaDays: $tvQuotaDays)';
+    return 'SeerrUserModel(id: $id, email: $email, username: $username, displayName: $displayName, plexToken: $plexToken, plexUsername: $plexUsername, jellyfinUserId: $jellyfinUserId, permissions: $permissions, avatar: $avatar, settings: $settings, movieQuotaLimit: $movieQuotaLimit, movieQuotaDays: $movieQuotaDays, tvQuotaLimit: $tvQuotaLimit, tvQuotaDays: $tvQuotaDays)';
   }
 }
 
@@ -58,6 +59,7 @@ abstract mixin class $SeerrUserModelCopyWith<$Res> {
       String? displayName,
       String? plexToken,
       String? plexUsername,
+      String? jellyfinUserId,
       int? permissions,
       String? avatar,
       SeerrUserSettings? settings,
@@ -86,6 +88,7 @@ class _$SeerrUserModelCopyWithImpl<$Res>
     Object? displayName = freezed,
     Object? plexToken = freezed,
     Object? plexUsername = freezed,
+    Object? jellyfinUserId = freezed,
     Object? permissions = freezed,
     Object? avatar = freezed,
     Object? settings = freezed,
@@ -118,6 +121,10 @@ class _$SeerrUserModelCopyWithImpl<$Res>
       plexUsername: freezed == plexUsername
           ? _self.plexUsername
           : plexUsername // ignore: cast_nullable_to_non_nullable
+              as String?,
+      jellyfinUserId: freezed == jellyfinUserId
+          ? _self.jellyfinUserId
+          : jellyfinUserId // ignore: cast_nullable_to_non_nullable
               as String?,
       permissions: freezed == permissions
           ? _self.permissions
@@ -251,6 +258,7 @@ extension SeerrUserModelPatterns on SeerrUserModel {
             String? displayName,
             String? plexToken,
             String? plexUsername,
+            String? jellyfinUserId,
             int? permissions,
             String? avatar,
             SeerrUserSettings? settings,
@@ -271,6 +279,7 @@ extension SeerrUserModelPatterns on SeerrUserModel {
             _that.displayName,
             _that.plexToken,
             _that.plexUsername,
+            _that.jellyfinUserId,
             _that.permissions,
             _that.avatar,
             _that.settings,
@@ -305,6 +314,7 @@ extension SeerrUserModelPatterns on SeerrUserModel {
             String? displayName,
             String? plexToken,
             String? plexUsername,
+            String? jellyfinUserId,
             int? permissions,
             String? avatar,
             SeerrUserSettings? settings,
@@ -324,6 +334,7 @@ extension SeerrUserModelPatterns on SeerrUserModel {
             _that.displayName,
             _that.plexToken,
             _that.plexUsername,
+            _that.jellyfinUserId,
             _that.permissions,
             _that.avatar,
             _that.settings,
@@ -357,6 +368,7 @@ extension SeerrUserModelPatterns on SeerrUserModel {
             String? displayName,
             String? plexToken,
             String? plexUsername,
+            String? jellyfinUserId,
             int? permissions,
             String? avatar,
             SeerrUserSettings? settings,
@@ -376,6 +388,7 @@ extension SeerrUserModelPatterns on SeerrUserModel {
             _that.displayName,
             _that.plexToken,
             _that.plexUsername,
+            _that.jellyfinUserId,
             _that.permissions,
             _that.avatar,
             _that.settings,
@@ -399,6 +412,7 @@ class _SeerrUserModel implements SeerrUserModel {
       this.displayName,
       this.plexToken,
       this.plexUsername,
+      this.jellyfinUserId,
       this.permissions,
       this.avatar,
       this.settings,
@@ -421,6 +435,8 @@ class _SeerrUserModel implements SeerrUserModel {
   final String? plexToken;
   @override
   final String? plexUsername;
+  @override
+  final String? jellyfinUserId;
   @override
   final int? permissions;
   @override
@@ -453,7 +469,7 @@ class _SeerrUserModel implements SeerrUserModel {
 
   @override
   String toString() {
-    return 'SeerrUserModel(id: $id, email: $email, username: $username, displayName: $displayName, plexToken: $plexToken, plexUsername: $plexUsername, permissions: $permissions, avatar: $avatar, settings: $settings, movieQuotaLimit: $movieQuotaLimit, movieQuotaDays: $movieQuotaDays, tvQuotaLimit: $tvQuotaLimit, tvQuotaDays: $tvQuotaDays)';
+    return 'SeerrUserModel(id: $id, email: $email, username: $username, displayName: $displayName, plexToken: $plexToken, plexUsername: $plexUsername, jellyfinUserId: $jellyfinUserId, permissions: $permissions, avatar: $avatar, settings: $settings, movieQuotaLimit: $movieQuotaLimit, movieQuotaDays: $movieQuotaDays, tvQuotaLimit: $tvQuotaLimit, tvQuotaDays: $tvQuotaDays)';
   }
 }
 
@@ -472,6 +488,7 @@ abstract mixin class _$SeerrUserModelCopyWith<$Res>
       String? displayName,
       String? plexToken,
       String? plexUsername,
+      String? jellyfinUserId,
       int? permissions,
       String? avatar,
       SeerrUserSettings? settings,
@@ -500,6 +517,7 @@ class __$SeerrUserModelCopyWithImpl<$Res>
     Object? displayName = freezed,
     Object? plexToken = freezed,
     Object? plexUsername = freezed,
+    Object? jellyfinUserId = freezed,
     Object? permissions = freezed,
     Object? avatar = freezed,
     Object? settings = freezed,
@@ -532,6 +550,10 @@ class __$SeerrUserModelCopyWithImpl<$Res>
       plexUsername: freezed == plexUsername
           ? _self.plexUsername
           : plexUsername // ignore: cast_nullable_to_non_nullable
+              as String?,
+      jellyfinUserId: freezed == jellyfinUserId
+          ? _self.jellyfinUserId
+          : jellyfinUserId // ignore: cast_nullable_to_non_nullable
               as String?,
       permissions: freezed == permissions
           ? _self.permissions
@@ -3799,6 +3821,7 @@ class __$SeerrRootFolderCopyWithImpl<$Res>
 mixin _$SeerrMediaInfo {
   int? get id;
   int? get tmdbId;
+  String? get mediaType;
   int? get tvdbId;
   int? get status;
   String? get jellyfinMediaId;
@@ -3822,7 +3845,7 @@ mixin _$SeerrMediaInfo {
 
   @override
   String toString() {
-    return 'SeerrMediaInfo(id: $id, tmdbId: $tmdbId, tvdbId: $tvdbId, status: $status, jellyfinMediaId: $jellyfinMediaId, jellyfinMediaId4k: $jellyfinMediaId4k, serviceUrl: $serviceUrl, requests: $requests, seasons: $seasons, downloadStatus: $downloadStatus, downloadStatus4k: $downloadStatus4k)';
+    return 'SeerrMediaInfo(id: $id, tmdbId: $tmdbId, mediaType: $mediaType, tvdbId: $tvdbId, status: $status, jellyfinMediaId: $jellyfinMediaId, jellyfinMediaId4k: $jellyfinMediaId4k, serviceUrl: $serviceUrl, requests: $requests, seasons: $seasons, downloadStatus: $downloadStatus, downloadStatus4k: $downloadStatus4k)';
   }
 }
 
@@ -3835,6 +3858,7 @@ abstract mixin class $SeerrMediaInfoCopyWith<$Res> {
   $Res call(
       {int? id,
       int? tmdbId,
+      String? mediaType,
       int? tvdbId,
       int? status,
       String? jellyfinMediaId,
@@ -3861,6 +3885,7 @@ class _$SeerrMediaInfoCopyWithImpl<$Res>
   $Res call({
     Object? id = freezed,
     Object? tmdbId = freezed,
+    Object? mediaType = freezed,
     Object? tvdbId = freezed,
     Object? status = freezed,
     Object? jellyfinMediaId = freezed,
@@ -3880,6 +3905,10 @@ class _$SeerrMediaInfoCopyWithImpl<$Res>
           ? _self.tmdbId
           : tmdbId // ignore: cast_nullable_to_non_nullable
               as int?,
+      mediaType: freezed == mediaType
+          ? _self.mediaType
+          : mediaType // ignore: cast_nullable_to_non_nullable
+              as String?,
       tvdbId: freezed == tvdbId
           ? _self.tvdbId
           : tvdbId // ignore: cast_nullable_to_non_nullable
@@ -4016,6 +4045,7 @@ extension SeerrMediaInfoPatterns on SeerrMediaInfo {
     TResult Function(
             int? id,
             int? tmdbId,
+            String? mediaType,
             int? tvdbId,
             int? status,
             String? jellyfinMediaId,
@@ -4034,6 +4064,7 @@ extension SeerrMediaInfoPatterns on SeerrMediaInfo {
         return $default(
             _that.id,
             _that.tmdbId,
+            _that.mediaType,
             _that.tvdbId,
             _that.status,
             _that.jellyfinMediaId,
@@ -4066,6 +4097,7 @@ extension SeerrMediaInfoPatterns on SeerrMediaInfo {
     TResult Function(
             int? id,
             int? tmdbId,
+            String? mediaType,
             int? tvdbId,
             int? status,
             String? jellyfinMediaId,
@@ -4083,6 +4115,7 @@ extension SeerrMediaInfoPatterns on SeerrMediaInfo {
         return $default(
             _that.id,
             _that.tmdbId,
+            _that.mediaType,
             _that.tvdbId,
             _that.status,
             _that.jellyfinMediaId,
@@ -4114,6 +4147,7 @@ extension SeerrMediaInfoPatterns on SeerrMediaInfo {
     TResult? Function(
             int? id,
             int? tmdbId,
+            String? mediaType,
             int? tvdbId,
             int? status,
             String? jellyfinMediaId,
@@ -4131,6 +4165,7 @@ extension SeerrMediaInfoPatterns on SeerrMediaInfo {
         return $default(
             _that.id,
             _that.tmdbId,
+            _that.mediaType,
             _that.tvdbId,
             _that.status,
             _that.jellyfinMediaId,
@@ -4152,6 +4187,7 @@ class _SeerrMediaInfo extends SeerrMediaInfo {
   _SeerrMediaInfo(
       {this.id,
       this.tmdbId,
+      this.mediaType,
       this.tvdbId,
       this.status,
       this.jellyfinMediaId,
@@ -4173,6 +4209,8 @@ class _SeerrMediaInfo extends SeerrMediaInfo {
   final int? id;
   @override
   final int? tmdbId;
+  @override
+  final String? mediaType;
   @override
   final int? tvdbId;
   @override
@@ -4241,7 +4279,7 @@ class _SeerrMediaInfo extends SeerrMediaInfo {
 
   @override
   String toString() {
-    return 'SeerrMediaInfo(id: $id, tmdbId: $tmdbId, tvdbId: $tvdbId, status: $status, jellyfinMediaId: $jellyfinMediaId, jellyfinMediaId4k: $jellyfinMediaId4k, serviceUrl: $serviceUrl, requests: $requests, seasons: $seasons, downloadStatus: $downloadStatus, downloadStatus4k: $downloadStatus4k)';
+    return 'SeerrMediaInfo(id: $id, tmdbId: $tmdbId, mediaType: $mediaType, tvdbId: $tvdbId, status: $status, jellyfinMediaId: $jellyfinMediaId, jellyfinMediaId4k: $jellyfinMediaId4k, serviceUrl: $serviceUrl, requests: $requests, seasons: $seasons, downloadStatus: $downloadStatus, downloadStatus4k: $downloadStatus4k)';
   }
 }
 
@@ -4256,6 +4294,7 @@ abstract mixin class _$SeerrMediaInfoCopyWith<$Res>
   $Res call(
       {int? id,
       int? tmdbId,
+      String? mediaType,
       int? tvdbId,
       int? status,
       String? jellyfinMediaId,
@@ -4282,6 +4321,7 @@ class __$SeerrMediaInfoCopyWithImpl<$Res>
   $Res call({
     Object? id = freezed,
     Object? tmdbId = freezed,
+    Object? mediaType = freezed,
     Object? tvdbId = freezed,
     Object? status = freezed,
     Object? jellyfinMediaId = freezed,
@@ -4301,6 +4341,10 @@ class __$SeerrMediaInfoCopyWithImpl<$Res>
           ? _self.tmdbId
           : tmdbId // ignore: cast_nullable_to_non_nullable
               as int?,
+      mediaType: freezed == mediaType
+          ? _self.mediaType
+          : mediaType // ignore: cast_nullable_to_non_nullable
+              as String?,
       tvdbId: freezed == tvdbId
           ? _self.tvdbId
           : tvdbId // ignore: cast_nullable_to_non_nullable

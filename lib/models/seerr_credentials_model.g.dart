@@ -12,6 +12,7 @@ _SeerrCredentialsModel _$SeerrCredentialsModelFromJson(
       serverUrl: json['serverUrl'] as String? ?? "",
       apiKey: json['apiKey'] as String? ?? "",
       sessionCookie: json['sessionCookie'] as String? ?? "",
+      linkedServerId: json['linkedServerId'] as String? ?? "",
       customHeaders: (json['customHeaders'] as Map<String, dynamic>?)?.map(
             (k, e) => MapEntry(k, e as String),
           ) ??
@@ -23,6 +24,6 @@ Map<String, dynamic> _$SeerrCredentialsModelToJson(
     <String, dynamic>{
       'serverUrl': instance.serverUrl,
       'apiKey': instance.apiKey,
-      'sessionCookie': instance.sessionCookie,
+      'linkedServerId': instance.linkedServerId,
       'customHeaders': instance.customHeaders,
     };

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:fladder/screens/seerr/seerr_link_panel.dart';
+import 'package:fladder/screens/seerr/seerr_support_text.dart';
+import 'package:fladder/seerr/seerr_connection.dart';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -250,7 +253,11 @@ class _SeerrSearchScreenState extends ConsumerState<SeerrSearchScreen> {
                     ),
                   ),
                 ),
-                if (searchResults.isEmpty && !searchState.isLoading)
+                const SliverToBoxAdapter(child: SeerrLinkPanel()),
+                if (searchState.failed)
+                  SliverToBoxAdapter(child: ListTile(title: Text(seerrError(context, const SeerrFailure('network_error'))),
+                    trailing: IconButton(onPressed: _refreshSearch, icon: const Icon(Icons.refresh)))),
+                if (searchResults.isEmpty && !searchState.isLoading && !searchState.failed)
                   SliverFillRemaining(
                     hasScrollBody: false,
                     child: Center(

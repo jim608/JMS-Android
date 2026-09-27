@@ -4,12 +4,15 @@ import 'dart:convert';
 import 'package:chopper/chopper.dart';
 
 import 'seerr_models.dart';
+import 'seerr_issue_models.dart';
 
 class SeerrJsonConverter extends JsonConverter {
   const SeerrJsonConverter();
 
   static Map<Type, Function> get _typeDeserializers => {
         SeerrStatus: SeerrStatus.fromJson,
+        SeerrIssue: SeerrIssue.fromJson,
+        SeerrIssuesResponse: SeerrIssuesResponse.fromJson,
         SeerrUserModel: SeerrUserModel.fromJson,
         SeerrUserSettings: SeerrUserSettings.fromJson,
         SeerrSonarrServer: SeerrSonarrServer.fromJson,
@@ -57,7 +60,7 @@ class SeerrJsonConverter extends JsonConverter {
   FutureOr<Response<ResultType>> convertResponse<ResultType, Item>(
     Response response,
   ) async {
-    if (response.bodyString.isEmpty) return response.copyWith();
+    if (response.bodyString.isEmpty) return Response<ResultType>(response.base, null);
 
     try {
       final dynamic decodedBody = response.body is String ? jsonDecode(response.body as String) : response.body;
@@ -70,9 +73,8 @@ class SeerrJsonConverter extends JsonConverter {
       }
 
       return response.copyWith<ResultType>(body: convertedData);
-    } catch (e, stackTrace) {
-      print('Serialization Error: $e\n$stackTrace');
-      return response.copyWith<ResultType>(body: null, bodyError: e);
+    } catch (_) {
+      return Response<ResultType>(response.base, null, error: 'Seerr invalid response');
     }
   }
 
