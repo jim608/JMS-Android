@@ -24,6 +24,13 @@ class ReleaseToolTests(unittest.TestCase):
         self.assertIsNotNone(tool.SECRET.search(b"-----BEGIN " + b"PRIVATE KEY-----"))
         self.assertIsNone(tool.SECRET.search(b"public source without credentials"))
 
+    def test_multiplatform_build_materials_are_included(self):
+        for name in ['Dockerfile.web', '.dockerignore', 'docker-compose.yml',
+                     'docker-entrypoint.sh', 'DEVELOPEMENT.md', 'INSTALL.md']:
+            self.assertTrue(tool.validate_source_name(name))
+        self.assertFalse(tool.validate_source_name('AGENTS.md'))
+        self.assertFalse(tool.validate_source_name('docs/JMS_STATUS.md'))
+
     def test_publication_guard(self):
         record = {"signerSha256": tool.TEST_CERT, "testSigning": True, "repository": "", "nativeSourceAudit": "BLOCKED"}
         with self.assertRaises(ValueError):

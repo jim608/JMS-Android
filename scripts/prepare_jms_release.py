@@ -16,7 +16,8 @@ ALLOWED_ROOTS = {"lib", "assets", "icons", "android", "ios", "linux", "macos", "
                  "web", "test", "integration_test", "pigeons", "scripts", "docs", "config", "third_party", ".github", ".githooks"}
 ALLOWED_FILES = {"pubspec.yaml", "pubspec.lock", "l10n.yaml", "analysis_options.yaml", "build.yaml",
                  "LICENSE", "README.md", "CHANGELOG.md", "NOTICE", ".metadata", ".gitignore",
-                 "build.jms_ambient.yaml", ".fvmrc"}
+                 "build.jms_ambient.yaml", ".fvmrc", "Dockerfile.web", "Dockerfile", "Dockerfile-rootless",
+                 ".dockerignore", "docker-compose.yml", "docker-entrypoint.sh", "DEVELOPEMENT.md", "INSTALL.md"}
 PRIVATE_NAMES = {"key.properties", "local.properties", ".env", "credentials.json", "google-services.json"}
 SECRET = re.compile(rb"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}")
 

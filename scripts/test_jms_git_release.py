@@ -118,6 +118,39 @@ class GitReleaseTests(unittest.TestCase):
             push_release(self.remote, head, 'vfixture')
         self.assertNotIn('refs/heads/jms', self.run_git('ls-remote', self.remote))
 
+    def test_selected_lineage_does_not_follow_remote_default(self):
+        Path('config').mkdir()
+        Path('config/jms_upstream.json').write_text(
+            '{"repository":"https://github.com/DonutWare/Fladder.git","branch":"refs/heads/main"}')
+        calls = []
+        def selected(*args):
+            calls.append(args)
+            return {('rev-parse', '--is-shallow-repository'): 'false',
+                    ('remote',): 'origin',
+                    ('remote', 'get-url', 'origin'): 'https://github.com/DonutWare/Fladder.git',
+                    ('ls-remote', 'origin', 'refs/heads/main'): self.base + '\trefs/heads/main',
+                    ('rev-parse', 'FETCH_HEAD'): self.base}.get(args, '')
+        with patch('jms_git_release.git', side_effect=selected):
+            self.assertEqual(('origin', 'refs/heads/main', self.base), check_upstream())
+        self.assertIn(('merge-base', '--is-ancestor', self.base, 'HEAD'), calls)
+        self.assertFalse(any('refs/heads/develop' in command for command in calls))
+
+    def test_selected_lineage_still_rejects_unmerged_updates(self):
+        Path('config').mkdir()
+        Path('config/jms_upstream.json').write_text(
+            '{"repository":"https://github.com/DonutWare/Fladder.git","branch":"refs/heads/main"}')
+        def divergent(*args):
+            if '--is-ancestor' in args:
+                raise GitReleaseError('not integrated')
+            return {('rev-parse', '--is-shallow-repository'): 'false',
+                    ('remote',): 'origin',
+                    ('remote', 'get-url', 'origin'): 'https://github.com/DonutWare/Fladder.git',
+                    ('ls-remote', 'origin', 'refs/heads/main'): self.base + '\trefs/heads/main',
+                    ('rev-parse', 'FETCH_HEAD'): self.base}.get(args, '')
+        with patch('jms_git_release.git', side_effect=divergent):
+            with self.assertRaisesRegex(GitReleaseError, 'unintegrated'):
+                check_upstream()
+
 
 if __name__ == '__main__':
     unittest.main()

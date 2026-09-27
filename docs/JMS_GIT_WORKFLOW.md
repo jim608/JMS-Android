@@ -54,7 +54,7 @@ flutter test test/jms_seerr_private_source_test.dart --no-pub
 
 既有入口 `scripts/publish_jms_android.ps1` 呼叫發布器：
 
-1. 要求乾淨的 `jms` HEAD、index 和非忽略工作檔；核對官方預設分支和祖先關係，必要更新尚未合併就停止。
+1. 要求乾淨的 `jms` HEAD、index 和非忽略工作檔；依 `config/jms_upstream.json` 核對已選定的官方 `main` 分支及祖先關係，必要更新尚未合併就停止。上游預設 `develop` 不會在發布時自動取代既有來源線；變更追蹤線需另行審查。
 2. 在建置前檢查 outgoing history、tag 和非快轉條件。測試、簽章、原生授權及版本 gate 保留。
 3. 使用真實 HEAD 建置；build record 的 sourceCommit、workspaceCommit 與 gitSourceVerified 必須一致，逐一核對建置輸入雜湊。舊 dirty APK 不得重新綁定乾淨 commit；換行轉換造成輸入 bytes 不符也必須停止，不能偽稱同一來源。
 4. 保留完整核准來源 ZIP、輸入 manifest、Build ID 與 APK metadata；來源包直接讀該 commit，不生成 commit-tree 或另一條 snapshot 歷史。ZIP 包含 hooks；不附帶可能重現被刪秘密的歷史 patch。

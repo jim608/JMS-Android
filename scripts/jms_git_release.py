@@ -1,5 +1,7 @@
 """Release Git operations preserve existing JMS commits and never update main."""
 import subprocess
+import json
+from pathlib import Path
 
 from check_jms_git_privacy import load_policy, outgoing_findings, tree_entries, blob_findings
 
@@ -40,10 +42,13 @@ def check_upstream():
     if len(matches) != 1:
         raise GitReleaseError('Expected one verified official upstream remote')
     remote = matches[0]
-    advertised = git('ls-remote', '--symref', remote, 'HEAD')
-    branch = next((line.split()[1] for line in advertised.splitlines() if line.startswith('ref: ')), None)
-    if not branch or not branch.startswith('refs/heads/'):
-        raise GitReleaseError('Upstream default branch is not advertised')
+    policy = json.loads(Path('config/jms_upstream.json').read_text(encoding='utf-8'))
+    branch = policy.get('branch')
+    if policy.get('repository') != official or branch not in ('refs/heads/main', 'refs/heads/develop'):
+        raise GitReleaseError('Invalid reviewed upstream lineage policy')
+    advertised = git('ls-remote', remote, branch)
+    if not any(line.split()[1] == branch for line in advertised.splitlines()):
+        raise GitReleaseError('Reviewed upstream branch is not advertised')
     git('fetch', '--no-tags', remote, branch)
     upstream = git('rev-parse', 'FETCH_HEAD')
     # Missing common ancestry and rewritten histories fail closed. Never auto-merge at publication.
@@ -51,7 +56,7 @@ def check_upstream():
     try:
         git('merge-base', '--is-ancestor', upstream, 'HEAD')
     except GitReleaseError:
-        raise GitReleaseError('Official default branch has unintegrated commits; review the source branch before release') from None
+        raise GitReleaseError('Reviewed upstream branch has unintegrated commits; merge it before release') from None
     return remote, branch, upstream
 
 
