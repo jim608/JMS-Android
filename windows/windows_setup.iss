@@ -8,10 +8,17 @@
   #define JMS_VERSION "latest"
 #endif
 
+#ifndef JMS_VERSION_CODE
+  #define JMS_VERSION_CODE 1
+#endif
+
 [Setup]
 AppId={{F5D9A17D-C069-4C53-A7AB-BD37E15BE558}
 AppName="JMS"
 AppVersion={#JMS_VERSION}
+VersionInfoVersion=0.11.1.{#JMS_VERSION_CODE}
+VersionInfoProductTextVersion={#JMS_VERSION}
+VersionInfoProductName=JMS
 AppPublisher="Jim608"
 DefaultDirName={localappdata}\Programs\JMS
 ArchitecturesAllowed=x64compatible

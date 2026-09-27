@@ -1,6 +1,7 @@
 param(
     [string]$SourceCommit = '',
     [string]$Version = '',
+    [int]$BuildNumber = 0,
     [string]$PrivateConfig = '',
     [switch]$PortableOnly
 )
@@ -15,6 +16,8 @@ if (-not $versionMatch.Success) { throw 'pubspec.yaml must declare versionName+v
 if (-not $Version) { $Version = $versionMatch.Groups[1].Value }
 if ($Version -cnotmatch '^[0-9]+\.[0-9]+\.[0-9]+(?:-[a-zA-Z0-9.-]+)?$') { throw 'Invalid version' }
 $versionCode = [int]$versionMatch.Groups[2].Value
+if ($BuildNumber -gt 0) { $versionCode = $BuildNumber }
+if ($versionCode -lt 1 -or $versionCode -gt 65535) { throw 'Windows build number must be 1..65535' }
 $flutterPath = Join-Path $projectRoot '.jms-tools\flutter\bin\flutter.bat'
 if (-not (Test-Path -LiteralPath $flutterPath)) { throw 'Pinned Flutter SDK is missing' }
 
@@ -98,6 +101,7 @@ $buildInfo = [ordered]@{
     platform = 'windows-x64'
     sourceCommit = $SourceCommit
     signing = 'unsigned'
+    privateConfiguration = [bool]$PrivateConfig
 }
 $buildInfo | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $stageDir 'JMS_BUILD_INFO.json') -Encoding UTF8
 Compress-Archive -LiteralPath $stageDir -DestinationPath $zipPath -CompressionLevel Optimal
@@ -110,7 +114,7 @@ if (-not $PortableOnly) {
         }
     }
     if (-not $iscc) { throw "Portable ZIP is ready at $zipPath; Inno Setup 6 is required for the installer" }
-    & rtk proxy $iscc "/DJMS_VERSION=$version" "/DJMS_BUNDLE=$stageDir" "/O$artifactDir" "/F$setupBase" 'windows/windows_setup.iss'
+    & rtk proxy $iscc "/DJMS_VERSION=$version" "/DJMS_VERSION_CODE=$versionCode" "/DJMS_BUNDLE=$stageDir" "/O$artifactDir" "/F$setupBase" 'windows/windows_setup.iss'
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $setupPath)) { throw 'Inno Setup installer build failed' }
 }
 

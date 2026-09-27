@@ -26,6 +26,10 @@ bool FlutterWindow::OnCreate() {
     return false;
   }
   RegisterPlugins(flutter_controller_->engine());
+  desktop_update_bridge_ = std::make_unique<DesktopUpdateBridge>(
+      flutter_controller_->engine()->messenger());
+  seerr_session_bridge_ = std::make_unique<SeerrSessionBridge>(
+      flutter_controller_->engine()->messenger());
   DesktopMultiWindowSetWindowCreatedCallback([](void *controller) {
     auto *flutter_view_controller =
         +reinterpret_cast<flutter::FlutterViewController *>(controller);
@@ -48,6 +52,8 @@ bool FlutterWindow::OnCreate() {
 }
 
 void FlutterWindow::OnDestroy() {
+  desktop_update_bridge_ = nullptr;
+  seerr_session_bridge_ = nullptr;
   if (flutter_controller_) {
     flutter_controller_ = nullptr;
   }

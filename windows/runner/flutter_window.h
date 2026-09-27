@@ -7,6 +7,8 @@
 #include <memory>
 
 #include "win32_window.h"
+#include "seerr_session_bridge.h"
+#include "desktop_update_bridge.h"
 
 // A window that does nothing but host a Flutter view.
 class FlutterWindow : public Win32Window {
@@ -28,6 +30,8 @@ class FlutterWindow : public Win32Window {
 
   // The Flutter instance hosted by this window.
   std::unique_ptr<flutter::FlutterViewController> flutter_controller_;
+  std::unique_ptr<SeerrSessionBridge> seerr_session_bridge_;
+  std::unique_ptr<DesktopUpdateBridge> desktop_update_bridge_;
 };
 
 #endif  // RUNNER_FLUTTER_WINDOW_H_
