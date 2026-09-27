@@ -1,9 +1,10 @@
-# JMS 0.11.1-jms.20
+# JMS 0.11.1-jms.21
 
 ## 調整
 - Windows 更新來源獨立為 JMS-Desktop，EndeavourOS／Arch Linux x64 更新來源獨立為 JMS-Linux，下載時核對對應倉庫與平台。
 
 ## 修正
+- Linux 啟動時不再呼叫平台未提供的通知啟動資訊 API。
 - Linux 的 Seerr 工作階段改用桌面 Secret Service 持久金鑰圈，支援重新啟動後還原及登出清除，金鑰圈不可用時不使用明文替代。
 
 ## 已知問題

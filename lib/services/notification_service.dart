@@ -66,6 +66,8 @@ class NotificationService {
   }
 
   static Future<String?> getInitialNotificationPayload() async {
+    // Linux delivers notification actions only while the process is running.
+    if (kIsWeb || defaultTargetPlatform == TargetPlatform.linux) return null;
     final details = await _plugin.getNotificationAppLaunchDetails();
     return details?.notificationResponse?.payload;
   }
