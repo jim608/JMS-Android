@@ -756,7 +756,7 @@ class FakeHelper {
 
   static AuthenticationResult fakeAuthResult = AuthenticationResult(
     user: fakeCorrectUser,
-    accessToken: 'A_TOTALLY_REAL_TOKEN',
+    accessToken: 'fixture-access-token',
     serverId: "1",
   );
 

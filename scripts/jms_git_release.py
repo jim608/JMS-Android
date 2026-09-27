@@ -1,7 +1,7 @@
 """Release Git operations preserve existing JMS commits and never update main."""
 import subprocess
 
-from check_jms_git_privacy import load_policy, outgoing_findings, findings
+from check_jms_git_privacy import load_policy, outgoing_findings, tree_entries, blob_findings
 
 
 class GitReleaseError(RuntimeError):
@@ -50,7 +50,7 @@ def check_upstream():
     return remote, branch, upstream
 
 
-def push_release(remote, commit, tag, *, git_options=(), environment=None):
+def push_release(remote, commit, tag, *, git_options=(), environment=None, dry_run=False):
     if 'DonutWare/Fladder' in remote:
         raise GitReleaseError('Official upstream is read-only')
     if not tag.startswith('v') or git('check-ref-format', 'refs/tags/' + tag):
@@ -72,12 +72,10 @@ def push_release(remote, commit, tag, *, git_options=(), environment=None):
         git('merge-base', '--is-ancestor', current['refs/heads/main'], commit)
         bases = [current['refs/heads/main']]
     issues = outgoing_findings(commit, bases, domains)
-    for name in git('ls-tree', '-r', '--name-only', commit).splitlines():
-        data = subprocess.check_output(['git', 'show', commit + ':' + name])
-        issues.append((name, findings(name, data, domains)))
+    issues.extend(blob_findings(tree_entries(commit), domains))
     if any(problems for _, problems in issues):
         raise GitReleaseError('Privacy rejected outgoing commits or release tree; run the local checker')
-    if branch == commit and tagged == commit:
+    if dry_run or (branch == commit and tagged == commit):
         return
     result = subprocess.run(['git', *git_options, 'push', '--atomic', remote,
                              commit + ':refs/heads/jms', commit + ':refs/tags/' + tag],

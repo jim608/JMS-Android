@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import subprocess
 import tempfile
+import hashlib
 import unittest
 from unittest.mock import patch
 
@@ -41,12 +42,31 @@ class GitReleaseTests(unittest.TestCase):
         return self.run_git('rev-parse', 'HEAD')
 
     def test_order_main_tag_and_idempotent_resume(self):
+        push_release(self.remote, self.second, 'vfixture', dry_run=True)
+        self.assertNotIn('refs/heads/jms', self.run_git('ls-remote', self.remote))
         push_release(self.remote, self.second, 'vfixture')
         # Simulate interruption after atomic push, before local state was saved.
         push_release(self.remote, self.second, 'vfixture')
         self.assertEqual(self.base, self.run_git('--git-dir=' + self.remote, 'rev-parse', 'main'))
         self.assertEqual(self.second, self.run_git('--git-dir=' + self.remote, 'rev-parse', 'refs/tags/vfixture'))
         self.assertEqual([self.first, self.second], self.run_git('--git-dir=' + self.remote, 'rev-list', '--reverse', self.base + '..jms').splitlines())
+
+    def test_build_inputs_bind_to_real_commit_bytes(self):
+        from verify_jms_snapshot import verify_snapshot
+        import jms_publication
+        inputs = [{'path': 'source.txt', 'sha256': hashlib.sha256(b'second').hexdigest()}]
+        with patch.object(jms_publication, 'ROOT', self.work):
+            verify_snapshot(self.second, inputs)
+            with self.assertRaises(jms_publication.ReleaseError):
+                verify_snapshot(self.first, inputs)
+
+    def test_gitlink_is_a_pointer_and_does_not_hide_blob_findings(self):
+        from check_jms_git_privacy import blob_findings, tree_entries
+        self.run_git('update-index', '--add', '--cacheinfo', '160000,' + self.base + ',external-source')
+        self.run_git('commit', '-qm', 'chore: pin external source')
+        entries = tree_entries('HEAD')
+        self.assertEqual('commit', entries['external-source'][0])
+        self.assertEqual([('source.txt', [])], blob_findings(entries, ['private.example']))
 
     def test_non_fast_forward_and_existing_tag_refused(self):
         push_release(self.remote, self.second, 'vfixture')

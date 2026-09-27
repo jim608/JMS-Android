@@ -254,6 +254,7 @@ class PublisherTests(unittest.TestCase):
              patch.object(publisher, 'verify_legacy_checker'), \
              patch.object(publisher, 'committed_source', return_value='fixture'), \
              patch.object(publisher, 'check_upstream'), \
+             patch.object(publisher, 'push_release'), \
              patch.object(publisher, 'Github', return_value=github), \
              patch.object(publisher, 'source_files', return_value={}), \
              patch.object(publisher, 'quality_checks', return_value={'status': 'PASS'}), \

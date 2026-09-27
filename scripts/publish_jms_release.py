@@ -201,6 +201,7 @@ def publish(args):
         files = source_files()
         fingerprint = source_fingerprint({name: digest for name, digest in files.items() if name != 'docs/JMS_STATUS.md'})
         version, code = version_info()
+        push_release('https://github.com/' + REPOSITORY + '.git', commit, 'v' + version, dry_run=True)
         candidate = ROOT / f'artifacts/JMS-Android-{version}-release-arm64-test-signed.apk'
         quality = quality_checks(files)
         review_apk = candidate if candidate.exists() else baseline

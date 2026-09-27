@@ -52,7 +52,7 @@ Future<void> openSimpleTextInput(
   String title,
   String description, {
   TextInputType keyboardType = TextInputType.url,
-  String placeHolder = "http://192.168.1.1:8096, 192.168.1.1:8096",
+  String placeHolder = "https://media.example.invalid, 192.168.1.1:8096",
 }) {
   return showDialog(
     context: context,

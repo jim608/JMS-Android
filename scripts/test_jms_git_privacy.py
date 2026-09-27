@@ -88,6 +88,7 @@ class PrivacyTests(unittest.TestCase):
 
     def test_public_links_and_similar_domain_are_allowed(self):
         self.assertEqual([], findings('README.md', b'https://github.com/example/project https://notprivate.example', ['private.example']))
+        self.assertEqual([], findings('sentinel.dart', b"const kBrowserManagedCookie = 'browser-managed-cookie';", []))
 
     def test_private_network_and_key_file_are_rejected(self):
         self.assertIn('private network endpoint', findings('config.txt', b'https://' + b'192.168.1.2:8096', []))

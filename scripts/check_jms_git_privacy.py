@@ -11,16 +11,46 @@ import zipfile
 
 
 def git(*arguments):
-    return subprocess.check_output(['git', *arguments])
+    return subprocess.check_output(['git', *arguments], stderr=subprocess.PIPE)
+
+
+def tree_entries(tree):
+    result = {}
+    for entry in git('ls-tree', '-r', '-z', tree).split(b'\0'):
+        if entry:
+            meta, name = entry.split(b'\t', 1)
+            mode, kind, oid = meta.decode().split()
+            result[name.decode()] = (kind, oid)
+    return result
+
+
+def blob_findings(entries, domains):
+    blobs = [(name, oid) for name, (kind, oid) in entries.items() if kind == 'blob']
+    if not blobs:
+        return []
+    output = subprocess.run(['git', 'cat-file', '--batch'],
+                            input=('\n'.join(oid for _, oid in blobs) + '\n').encode(),
+                            capture_output=True, check=True).stdout
+    stream = io.BytesIO(output)
+    result = []
+    for name, oid in blobs:
+        header = stream.readline().split()
+        if len(header) != 3 or header[0].decode() != oid or header[1] != b'blob':
+            raise ValueError('Git blob verification failed')
+        data = stream.read(int(header[2]))
+        stream.read(1)
+        result.append((name, findings(name, data, domains)))
+    return result
 
 
 def findings(name, data, domains):
     problems = []
     path = Path(name)
-    if (path.suffix.lower() in {'.jks', '.keystore', '.p12', '.pfx', '.pem'}
+    if (path.suffix.lower() in {'.jks', '.keystore', '.p12', '.pfx', '.pem', '.key'}
+            or path.name.startswith('.env.')
             or path.name in {'.env', 'key.properties', 'id_rsa', 'id_ed25519'}):
         problems.append('private file type')
-    text = data.replace(b'\x00', b'').decode('utf-8', errors='replace')
+    text = name + '\n' + data.replace(b'\x00', b'').decode('utf-8', errors='replace')
     for domain in domains:
         if re.search(r'(?<![a-z0-9-])' + re.escape(domain) + r'(?![a-z0-9.-])', text, re.I):
             problems.append('private domain')
@@ -31,7 +61,7 @@ def findings(name, data, domains):
         problems.append('personal filesystem path')
     if re.search(r'https?://[^\s/:]+:[^\s/@]+@|\bBearer\s+[A-Za-z0-9_.-]{16,}', text, re.I):
         problems.append('credential URL/header')
-    assignments = re.findall(r'''(?i)["']?(?:password|passwd|api[_-]?key|access[_-]?token|refresh[_-]?token|sessionCookie|cookie|set-cookie)["']?\s*[:=]\s*["']([A-Za-z0-9_./+=:;-]{16,})["']''', text)
+    assignments = re.findall(r'''(?i)(?<![A-Za-z0-9_])["']?(?:password|passwd|api[_-]?key|access[_-]?token|refresh[_-]?token|sessionCookie|cookie|set-cookie)["']?\s*[:=]\s*["']([A-Za-z0-9_./+=:;-]{16,})["']''', text)
     for value in assignments:
         # Explicitly synthetic credentials are permitted in public tests, never private policy matches.
         if not re.fullmatch(r'(?:connect\.sid=)?(?:fixture[-_][A-Za-z0-9_-]+|[A-Z_]*(?:ONLY|LEGACY))', value):
@@ -85,9 +115,10 @@ def outgoing_findings(head, bases, domains):
             results.append((commit + '/identity', ['non-noreply identity']))
         # Every newly introduced version, including secrets removed in a later commit.
         names = git('diff-tree', '--root', '-m', '--no-commit-id', '--name-only', '-r', '-z', '--diff-filter=ACMR', commit).split(b'\0')
-        for raw in set(names) - {b''}:
-            name = raw.decode()
-            results.append((commit + '/' + name, findings(name, git('show', commit + ':' + name), domains)))
+        entries = tree_entries(commit)
+        changed = {raw.decode() for raw in names if raw}
+        results.extend((commit + '/' + name, problems) for name, problems in
+                       blob_findings({name: value for name, value in entries.items() if name in changed}, domains))
     return results
 
 
@@ -130,7 +161,17 @@ def main():
         return int(bool(rejected))
     if arguments.tree:
         tree = git('rev-parse', '--verify', arguments.tree + '^{tree}').decode().strip()
-        names = git('ls-tree', '-r', '--name-only', '-z', tree).split(b'\0')
+        entries = tree_entries(tree)
+        results = blob_findings(entries, domains)
+        failures = 0
+        for name, problems in results:
+            if problems:
+                failures += 1
+                safe = name if not findings('name', name.encode(), domains) else '[redacted location]'
+                print(f'{safe}: {", ".join(problems)}', file=sys.stderr)
+        external = sum(kind == 'commit' for kind, _ in entries.values())
+        print(f'Privacy check: {len(results)} blobs checked; {failures} rejected; {external} external gitlinks not expanded.')
+        return int(bool(failures))
     else:
         if git('branch', '--show-current').decode().strip() != 'jms':
             print('New JMS commits must be made on the jms branch.', file=sys.stderr)
@@ -143,6 +184,8 @@ def main():
         if not raw_name:
             continue
         name = raw_name.decode('utf-8')
+        if git('ls-files', '--stage', '--', name).startswith(b'160000 '):
+            continue  # Only the external commit pointer is stored in this repository.
         data = git('show', f'{tree}:{name}')
         problems = findings(name, data, domains)
         checked += 1
@@ -155,4 +198,8 @@ def main():
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except (OSError, ValueError, subprocess.CalledProcessError, zipfile.BadZipFile):
+        print('Privacy check could not complete; inspect local policy, Git objects or archive integrity.', file=sys.stderr)
+        sys.exit(1)
