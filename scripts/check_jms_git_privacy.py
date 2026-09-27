@@ -121,6 +121,10 @@ def valid_evidence(review):
         return False
     if not re.fullmatch(r'[0-9a-f]{64}', evidence['sha256']):
         return False
+    for item in review.get('additionalEvidence', []):
+        if (not isinstance(item, dict) or not item.get('member')
+                or not re.fullmatch(r'[0-9a-f]{64}', item.get('sha256', ''))):
+            return False
     if review.get('inspection') == 'raw-public-test-sample':
         return (evidence['kind'] == 'upstream-test-reference'
                 and evidence['member'] != review.get('member')
@@ -166,10 +170,10 @@ class ArchiveScan:
         self.current_member = None
         self.expected_evidence = set()
         for review in self.reviews:
-            evidence = review.get('evidence', {})
-            if isinstance(evidence, dict):
-                self.expected_evidence.add((evidence.get('archiveSha256', review.get('archiveSha256')),
-                                           evidence.get('member'), evidence.get('sha256')))
+            for evidence in [review.get('evidence', {})] + review.get('additionalEvidence', []):
+                if isinstance(evidence, dict):
+                    self.expected_evidence.add((evidence.get('archiveSha256', review.get('archiveSha256')),
+                                               evidence.get('member'), evidence.get('sha256')))
             self.expected_evidence.add((review.get('archiveSha256'), review.get('member'), review.get('sha256')))
 
     def finish(self):
@@ -177,11 +181,11 @@ class ArchiveScan:
             origin = (review['archiveSha256'], review['member'], review['sha256'])
             if origin not in self.seen:
                 raise ValueError('Public review origin was not verified in inspected materials')
-            evidence = review['evidence']
-            identity = (evidence.get('archiveSha256', review['archiveSha256']),
-                        evidence['member'], evidence['sha256'])
-            if identity not in self.seen:
-                raise ValueError('Public review reference was not verified in inspected materials')
+            for evidence in [review['evidence']] + review.get('additionalEvidence', []):
+                identity = (evidence.get('archiveSha256', review['archiveSha256']),
+                            evidence['member'], evidence['sha256'])
+                if identity not in self.seen:
+                    raise ValueError('Public review reference was not verified in inspected materials')
 
     def bounded_stream(self, stream):
         owner = self

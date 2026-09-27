@@ -92,6 +92,14 @@ class PublicEvidenceTests(unittest.TestCase):
             (root / 'release.zip').write_bytes(container({'app/fixture.key': payload + b'x'}))
             self.assertFalse(privacy.scan_packages_cached(paths, [], root / 'cache')['accepted'])
 
+    def test_all_additional_references_must_be_verified(self):
+        payload = b'synthetic public fixture'
+        archive = container({'fixture.key': payload, 'first.txt': b'reference'})
+        approval = review(archive, 'fixture.key', payload, 'first.txt', b'reference')
+        approval['additionalEvidence'] = [{'member': 'missing.txt', 'sha256': digest(b'missing')}]
+        with self.assertRaisesRegex(ValueError, 'reference'):
+            self.scan(archive, [approval])
+
     def test_raw_sample_requires_independent_reference_and_explicit_scope(self):
         payload = b'intentionally invalid tar fixture'
         reference = b'test expects archive parsing to raise an error for broken.tar'
