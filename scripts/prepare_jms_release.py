@@ -13,7 +13,7 @@ from jms_release_notes import require_current_notes
 ROOT = Path(__file__).resolve().parents[1]
 TEST_CERT = "4327eedb953fbf51d82b70e2e56c23122c85304d55a67fbbdb37a8f1ffd5f399"
 ALLOWED_ROOTS = {"lib", "assets", "icons", "android", "ios", "linux", "macos", "windows",
-                 "web", "test", "integration_test", "pigeons", "scripts", "docs", "config", "third_party", ".github"}
+                 "web", "test", "integration_test", "pigeons", "scripts", "docs", "config", "third_party", ".github", ".githooks"}
 ALLOWED_FILES = {"pubspec.yaml", "pubspec.lock", "l10n.yaml", "analysis_options.yaml", "build.yaml",
                  "LICENSE", "README.md", "CHANGELOG.md", "NOTICE", ".metadata", ".gitignore",
                  "build.jms_ambient.yaml", ".fvmrc"}
@@ -33,7 +33,7 @@ def run(*command):
 
 def validate_source_name(name):
     path = Path(name)
-    if path.name == "AGENTS.md":
+    if path.name == "AGENTS.md" or name == 'docs/JMS_STATUS.md':
         return False
     if path.is_absolute() or ".." in path.parts or path.name in PRIVATE_NAMES or path.name.startswith(".env"):
         raise ValueError("Private or unsafe source path: " + name)

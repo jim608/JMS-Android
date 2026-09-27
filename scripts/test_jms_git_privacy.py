@@ -7,6 +7,7 @@ import sys
 import tempfile
 import unittest
 import zipfile
+import shutil
 from unittest.mock import patch
 
 from check_jms_git_privacy import findings, main, outgoing_findings, scan_archive
@@ -27,6 +28,37 @@ class PrivacyTests(unittest.TestCase):
         with zipfile.ZipFile(payload, 'w') as archive:
             archive.writestr('lib.so', b'\x00https://service.private.example\x00')
         self.assertTrue(any(problems for _, problems in scan_archive('fixture.apk', payload.getvalue(), ['private.example'])))
+
+    def test_real_hooks_reject_secret_blob_and_message_in_new_clone(self):
+        source = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            subprocess.run(['git', 'init', '-q', '-b', 'jms', folder], check=True)
+            (root / 'scripts').mkdir()
+            shutil.copy2(source / 'scripts/check_jms_git_privacy.py', root / 'scripts')
+            shutil.copy2(source / 'scripts/install_jms_git_hooks.py', root / 'scripts')
+            shutil.copytree(source / '.githooks', root / '.githooks')
+            (root / 'bin').mkdir()
+            launcher = root / 'bin/python3'
+            launcher.write_text('#!/bin/sh\nexec "' + sys.executable.replace('\\', '/') + '" "$@"\n')
+            launcher.chmod(0o755)
+            env = dict(os.environ, PATH=str(root / 'bin') + os.pathsep + os.environ['PATH'])
+            installer = [sys.executable, 'scripts/install_jms_git_hooks.py']
+            self.assertEqual(1, subprocess.run(installer, cwd=root, capture_output=True).returncode)
+            (root / '.git/jms-private-domains').write_text('private.example\n')
+            self.assertEqual(0, subprocess.run(installer + ['--check'], cwd=root, capture_output=True).returncode)
+            def commit(message):
+                return subprocess.run(['git', '-c', 'user.name=fixture', '-c', 'user.email=fixture@users.noreply.github.com', 'commit', '-qm', message], cwd=root, env=env, capture_output=True)
+            (root / 'settings.txt').write_text('https://service.private.example')
+            subprocess.run(['git', 'add', 'settings.txt'], cwd=root, check=True)
+            result = commit('fix: fixture')
+            self.assertNotEqual(0, result.returncode)
+            self.assertIn(b'private domain', result.stderr)
+            self.assertNotIn(b'service.private.example', result.stderr)
+            (root / 'settings.txt').write_text('public fixture')
+            subprocess.run(['git', 'add', 'settings.txt'], cwd=root, check=True)
+            self.assertNotEqual(0, commit('fix: service.private.example').returncode)
+            self.assertEqual(0, commit('fix: public fixture').returncode)
 
     def test_removed_secret_and_commit_message_are_checked(self):
         previous = Path.cwd()

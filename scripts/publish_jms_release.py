@@ -53,7 +53,9 @@ def quality_checks(files):
     previous = read_json(quality_path) if quality_path.exists() else {}
     logs = []
     commands = [
-        ('flutter-tests', [FLUTTER, 'test', '--no-pub']),
+        ('flutter-tests', [FLUTTER, 'test', '--no-pub',
+                           '--dart-define=JMS_SEERR_SOURCE=https://jellyseerr.jms.example.invalid',
+                           '--dart-define=JMS_LEGACY_SEERR_SOURCE=https://jellyseer.jms.example.invalid']),
         ('flutter-analyze', [FLUTTER, 'analyze', '--no-pub']),
         ('publication-tests', [sys.executable, '-m', 'unittest', 'discover', '-s', 'scripts', '-p', 'test_jms*.py']),
     ]

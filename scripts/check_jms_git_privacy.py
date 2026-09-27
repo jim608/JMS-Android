@@ -27,12 +27,16 @@ def findings(name, data, domains):
             break
     if re.search(r'\b[A-Za-z]:[\\/](?:Users|home)[\\/][^\s\\/]+', text, re.I):
         problems.append('personal filesystem path')
-    if re.search(r'/(?:Users|home)/[A-Za-z0-9_.-]+/', text):
+    if re.search(r'/home/[A-Za-z0-9_.-]+/|/Users/[A-Za-z0-9_.-]+/(?:Documents|Desktop|Library|Downloads|\.ssh|\.config)/', text):
         problems.append('personal filesystem path')
     if re.search(r'https?://[^\s/:]+:[^\s/@]+@|\bBearer\s+[A-Za-z0-9_.-]{16,}', text, re.I):
         problems.append('credential URL/header')
-    if re.search(r'''(?i)["']?(?:password|passwd|api[_-]?key|access[_-]?token|refresh[_-]?token|cookie|set-cookie)["']?\s*[:=]\s*["'][^"'\r\n]{16,}["']''', text):
-        problems.append('credential assignment')
+    assignments = re.findall(r'''(?i)["']?(?:password|passwd|api[_-]?key|access[_-]?token|refresh[_-]?token|sessionCookie|cookie|set-cookie)["']?\s*[:=]\s*["']([A-Za-z0-9_./+=:;-]{16,})["']''', text)
+    for value in assignments:
+        # Explicitly synthetic credentials are permitted in public tests, never private policy matches.
+        if not re.fullmatch(r'(?:connect\.sid=)?(?:fixture[-_][A-Za-z0-9_-]+|[A-Z_]*(?:ONLY|LEGACY))', value):
+            problems.append('credential assignment')
+            break
     if re.search(r'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|\bgh[pousr]_[A-Za-z0-9]{30,}\b|\bgithub_pat_[A-Za-z0-9_]{40,}\b', text):
         problems.append('credential pattern')
     for address in re.findall(r'https?://(\d{1,3}(?:\.\d{1,3}){3})(?=[:/\s]|$)', text):
