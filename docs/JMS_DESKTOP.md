@@ -34,4 +34,5 @@ JMS（Jim608 Media Server）桌面版與 Android、Web 共用同一份 Flutter �
 
 - Windows 原生依賴的對應材料仍在核對；已有本機測試安裝包不代表已可公開發布。
 - Linux 的登入、GPU 播放、ASS 特效及安裝後設定保留需要 EndeavourOS 實機驗證。
+- Linux 的 Seerr 安全工作階段儲存尚未接通，不能宣稱已支援與 Android／Windows 相同的本人連動及重啟還原；此缺口解除前不提供完整功能版 Release。
 - Linux 使用系統 MPV，實際編碼器與硬體解碼能力依已安裝的系統套件及驅動而定。
