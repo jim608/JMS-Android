@@ -17,6 +17,7 @@ from jms_release_notes import require_current_notes
 from jms_git_release import committed_source, check_upstream, push_release, verify_build_record, GitReleaseError
 from prepare_jms_release import apk_info, require_bound_sources
 from verify_jms_snapshot import verify_snapshot
+from jms_legacy_verifier import prepare_legacy_verifier
 
 PUBLICATION = ROOT / 'artifacts/publication'
 SDK = ROOT / '.jms-tools/android-sdk/build-tools/35.0.0'
@@ -41,11 +42,11 @@ def verify_legacy_checker(policy):
     with zipfile.ZipFile(ROOT / policy['baselineApk']) as archive:
         if baseline['buildId'].encode() not in archive.read('lib/arm64-v8a/libapp.so'):
             raise ReleaseError('.8 source record is not bound to baseline APK build ID')
-    files = {entry['path']: entry['sha256'] for entry in baseline['inputs']}
-    names = ['lib/util/update_checker.dart', 'lib/util/update_source.dart', 'lib/util/brand.dart']
-    for name in names:
-        if name not in files or sha256(ROOT / name) != files[name]:
-            raise ReleaseError('.8 checker dependency changed; preserve/test a frozen legacy verifier before publishing: ' + name)
+    packages = prepare_legacy_verifier(ROOT, baseline)
+    fixture = ROOT / 'artifacts/releases' / baseline['buildId'] / 'update.json'
+    execute([ROOT / '.jms-tools/flutter/bin/dart.bat', '--packages=' + str(packages),
+             'scripts/check_jms_legacy_feed.dart', '--fixture=' + str(fixture), '--expected-code=2008'],
+            log=PUBLICATION / 'legacy-checker-fixture.log', timeout=120)
 
 
 def quality_checks(files):
@@ -155,6 +156,10 @@ def verify_remote(github, state, files, state_directory, policy):
         environment.pop(name, None)
     for attempt in range(3):
         try:
+            execute([ROOT / '.jms-tools/flutter/bin/dart.bat',
+                     '--packages=' + str(PUBLICATION / 'legacy-checker/package_config.json'),
+                     'scripts/check_jms_legacy_feed.dart', f'--expected-code={state["versionCode"]}'],
+                    environment=environment, log=state_directory / 'legacy-anonymous-check.log', timeout=120)
             execute([ROOT / '.jms-tools/flutter/bin/dart.bat', 'run', 'scripts/check_jms_feed.dart',
                      '--prerelease' if state['prerelease'] else '--stable', f'--expected-code={state["versionCode"]}'],
                     environment=environment, log=state_directory / 'anonymous-check.log', timeout=120)
