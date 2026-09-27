@@ -24,6 +24,21 @@ SeerrAssessment assess(String path, int status, Object body,
 }
 
 void main() {
+  test('CSRF rejection is distinct from an incorrect password', () {
+    expect(
+        assess('/api/v1/auth/jellyfin', 403, {'message': 'invalid csrf token'})
+            .failureCode,
+        'csrf_rejected');
+    expect(
+        assess('/api/v1/auth/jellyfin', 403, {'code': 'EBADCSRFTOKEN'})
+            .failureCode,
+        'csrf_rejected');
+    expect(
+        assess('/api/v1/auth/jellyfin', 403, {'message': 'Invalid credentials'})
+            .failureCode,
+        'authentication_failed');
+  });
+
   const authError = {
     'status': 403,
     'error': 'You do not have permission to access this endpoint'
@@ -215,14 +230,16 @@ void main() {
     final header =
         'csrf=ignored; Expires=Wed, 21 Oct 2037 07:28:00 GMT; Path=/, '
         'connect.sid=TEST_ONLY; Path=/; Domain=jellyseerr.jms.example.invalid; Secure; HttpOnly';
-    expect(seerrSessionCookieFromHeader(header, 'jellyseerr.jms.example.invalid'),
+    expect(
+        seerrSessionCookieFromHeader(header, 'jellyseerr.jms.example.invalid'),
         'csrf=ignored; connect.sid=TEST_ONLY');
     expect(
         seerrSessionCookieFromHeader(
             'jms_session=TEST_ONLY; Path=/; Secure; HttpOnly',
             'jellyseerr.jms.example.invalid'),
         'jms_session=TEST_ONLY');
-    expect(seerrSessionCookieFromHeader(header, 'jellyseer.jms.example.invalid'),
+    expect(
+        seerrSessionCookieFromHeader(header, 'jellyseer.jms.example.invalid'),
         'csrf=ignored');
     expect(
         seerrSessionCookieFromHeader('connect.sid=TEST_ONLY; Max-Age=0; Path=/',
@@ -234,8 +251,8 @@ void main() {
             'jellyseerr.jms.example.invalid'),
         isNull);
     expect(
-        seerrSessionCookieFromHeader(
-            'connect.sid=TEST_ONLY; Path=/other', 'jellyseerr.jms.example.invalid'),
+        seerrSessionCookieFromHeader('connect.sid=TEST_ONLY; Path=/other',
+            'jellyseerr.jms.example.invalid'),
         isNull);
     expect(
         seerrSessionCookieFromHeader('connect.sid=TEST_ONLY; Path=/api/v1/auth',
