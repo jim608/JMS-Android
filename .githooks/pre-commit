@@ -1,0 +1,6 @@
+#!/bin/sh
+set -eu
+if [ -x .jms-tools/python/Scripts/python.exe ]; then
+    exec .jms-tools/python/Scripts/python.exe scripts/check_jms_git_privacy.py
+fi
+exec python3 scripts/check_jms_git_privacy.py
