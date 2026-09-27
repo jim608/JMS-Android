@@ -1,4 +1,4 @@
-FROM debian:bookworm-slim AS build
+FROM debian:bookworm-slim@sha256:3783cc01769c7b2b1b83a5c5ad96c815348e28ed7da68e2e3687004faa906251 AS build
 
 ARG FLUTTER_VERSION=3.35.7
 ARG FLUTTER_REVISION=adc901062556672b4138e18a4dc62a4be8f4b3c2
@@ -21,7 +21,7 @@ RUN flutter pub get --enforce-lockfile && \
     flutter build web --release --no-wasm-dry-run \
       --dart-define="JMS_BUILD_ID=$JMS_BUILD_ID"
 
-FROM nginx:1.28-alpine
+FROM nginx:1.28-alpine@sha256:a8b39bd9cf0f83869a2162827a0caf6137ddf759d50a171451b335cecc87d236
 
 ARG JMS_VERSION=unknown
 ARG JMS_SOURCE_COMMIT=unknown
