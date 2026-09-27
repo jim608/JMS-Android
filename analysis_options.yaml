@@ -5,7 +5,7 @@ analyzer:
     - build/**
     - .dart_tool/**
     - .fvm/**
-    - artifacts/multiplatform-paused/**
+    - artifacts/**
     - pubspec.yaml
     - packages/**
     - lib/jellyfin/**
