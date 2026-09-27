@@ -34,4 +34,4 @@ final updateProvider = ChangeNotifierProvider<UpdateController>((ref) {
 });
 
 final hasNewUpdateProvider =
-    Provider<bool>((ref) => ref.watch(updateProvider).hasNewUpdate);
+    Provider<bool>((ref) => !kIsWeb && ref.watch(updateProvider).hasNewUpdate);

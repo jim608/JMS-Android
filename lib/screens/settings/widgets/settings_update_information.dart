@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fladder/providers/update_provider.dart';
@@ -10,6 +11,7 @@ class SettingsUpdateInformation extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (kIsWeb) return const SizedBox.shrink();
     final updates = ref.watch(updateProvider);
     final labels = context.localized;
     final release = updates.latestRelease;
