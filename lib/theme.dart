@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:chinese_font_library/chinese_font_library.dart';
@@ -207,6 +208,7 @@ class FladderTheme {
     required ThemeData lightTheme,
     required ThemeData darkTheme,
   }) {
+    if (kIsWeb) return lightTheme;
     return lightTheme.copyWith(
       textTheme: lightTheme.textTheme.useSystemChineseFont(Brightness.light),
       primaryTextTheme: lightTheme.primaryTextTheme.useSystemChineseFont(
@@ -217,6 +219,7 @@ class FladderTheme {
 
   /// Apply Chinese system font to a dark theme (for Windows, macOS, Android, iOS)
   static ThemeData applyChineseFontToDarkTheme({required ThemeData darkTheme}) {
+    if (kIsWeb) return darkTheme;
     return darkTheme.copyWith(
       textTheme: darkTheme.textTheme.useSystemChineseFont(Brightness.dark),
       primaryTextTheme: darkTheme.primaryTextTheme.useSystemChineseFont(

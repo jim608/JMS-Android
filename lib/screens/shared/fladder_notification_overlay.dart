@@ -48,7 +48,7 @@ class FladderSnack {
   }) {
     final effectiveContext = context ?? _storedContext;
     if (effectiveContext == null || !effectiveContext.mounted) {
-      debugPrint('FladderNotificationManager: No valid context available');
+      debugPrint('JMS notification manager: No valid context available');
       return;
     }
 

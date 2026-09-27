@@ -14,9 +14,9 @@ const String updateTaskName = 'nl.jknaapen.fladder.update_notifications_check';
 const String updateTaskNameDebug = 'nl.jknaapen.fladder.update_notifications_check_debug';
 
 class NotificationHelpers {
-  static String buildDetailsDeepLink(String id) => 'fladder:///details?id=${Uri.encodeComponent(id)}';
+  static String buildDetailsDeepLink(String id) => 'jms:///details?id=${Uri.encodeComponent(id)}';
 
-  static String buildSeerrDeepLink(String mediaType, int tmdbId) => 'fladder:///seerr/$mediaType/$tmdbId';
+  static String buildSeerrDeepLink(String mediaType, int tmdbId) => 'jms:///seerr/$mediaType/$tmdbId';
 
   static List<LastSeenModel> replaceOrAppendLastSeen(List<LastSeenModel> servers, LastSeenModel saved) {
     final exists = servers.any((s) => s.userId == saved.userId);

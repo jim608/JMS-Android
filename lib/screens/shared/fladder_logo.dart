@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fladder/screens/shared/fladder_icon.dart';
 import 'package:fladder/util/application_info.dart';
-import 'package:fladder/util/string_extensions.dart';
 import 'package:fladder/util/theme_extensions.dart';
 
 class FladderLogo extends ConsumerWidget {
@@ -13,7 +12,7 @@ class FladderLogo extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Hero(
-      tag: "Fladder_Logo_Tag",
+      tag: "JMS_Logo_Tag",
       child: Wrap(
         runAlignment: WrapAlignment.center,
         crossAxisAlignment: WrapCrossAlignment.center,
@@ -23,7 +22,7 @@ class FladderLogo extends ConsumerWidget {
         children: [
           const FladderIcon(),
           Text(
-            ref.read(applicationInfoProvider).name.capitalize(),
+            ref.read(applicationInfoProvider).name,
             style: context.textTheme.displayLarge,
             textAlign: TextAlign.center,
           )

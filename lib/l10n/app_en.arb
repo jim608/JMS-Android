@@ -1,5 +1,6 @@
 {
   "jmsAndroidMdkUnavailable": "MDK is not included in JMS Android. MPV is used instead; your saved preference is retained. You can also select Native.",
+  "jmsWindowsMdkUnavailable": "MDK is no longer included in JMS Windows. MPV is used instead; your saved preference and other settings are retained.",
   "jmsSearchError": "Search failed. Tap to retry.",
   "jmsSleepTitle": "Sleep timer / stop after this item",
   "jmsSleepState": "{state, select, off{Off} countdown{Countdown active} episode{Stop at the end of this item} expired{Timer finished — automatic next item is blocked} failed{Pause failed — pause playback manually} unsupported{This backend does not expose a supported completion event} other{Off}}",

@@ -1,4 +1,5 @@
 {
+  "jmsWindowsMdkUnavailable": "JMS Windows 不再包含 MDK，改用 MPV 播放；原後端偏好及其他設定保持不變。",
   "jmsAndroidMdkUnavailable": "JMS Android 不含 MDK，已改用 MPV；原有偏好仍保留。也可选择 Native 后端。",
   "jmsSearchError": "搜尋失敗，點此重試。",
   "jmsSleepTitle": "睡眠計時／播完本集停止",
