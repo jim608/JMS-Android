@@ -4,6 +4,14 @@ import 'package:fladder/models/seerr_credentials_model.dart';
 const jmsSeerrSource = String.fromEnvironment('JMS_SEERR_SOURCE');
 const legacyJmsSeerrSource = String.fromEnvironment('JMS_LEGACY_SEERR_SOURCE');
 
+String? seerrSourceForLogin(AccountModel account,
+    {String? loginSource, String? configuredSource}) {
+  return normalizeConfiguredSeerrSource(account.seerrCredentials?.serverUrl) ??
+      normalizeConfiguredSeerrSource(loginSource) ??
+      normalizeConfiguredSeerrSource(configuredSource) ??
+      normalizeConfiguredSeerrSource(jmsSeerrSource);
+}
+
 bool isLegacyJmsSeerrSource(String value) {
   final source = value.trim().replaceAll(RegExp(r'/+$'), '');
   return jmsSeerrSource.isNotEmpty &&

@@ -155,11 +155,13 @@ class AuthNotifier extends StateNotifier<LoginScreenModel> {
     if (account == null || account.credentials.serverId.isEmpty) {
       return Future.value();
     }
-    final autoBind = account.seerrCredentials == null ||
-        (account.seerrCredentials?.serverUrl == jmsSeerrSource &&
-            account.seerrCredentials?.linkedServerId.isEmpty == true);
-    if (autoBind && jmsSeerrSource.isNotEmpty) {
-      ref.read(userProvider.notifier).bindSeerrAccount(jmsSeerrSource);
+    final source = seerrSourceForLogin(account,
+        loginSource: state.tempSeerrUrl,
+        configuredSource: FladderConfig.seerrBaseUrl);
+    final autoBind = source != null &&
+        account.seerrCredentials?.linkedServerId.isNotEmpty != true;
+    if (autoBind) {
+      ref.read(userProvider.notifier).bindSeerrAccount(source);
     }
     return ref.read(seerrLinkProvider.notifier).ensure(
         username: username,

@@ -1,6 +1,7 @@
 param(
     [string]$SourceCommit = '',
     [string]$Version = '',
+    [string]$PrivateConfig = '',
     [switch]$PortableOnly
 )
 
@@ -54,9 +55,25 @@ if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($visualStudio)) {
 }
 
 $env:FLUTTER_SUPPRESS_ANALYTICS = 'true'
+$privateDefines = @()
+if ($PrivateConfig) {
+    $privateSettings = Get-Content -LiteralPath $PrivateConfig -Raw | ConvertFrom-Json
+    foreach ($setting in $privateSettings.PSObject.Properties) {
+        if ($setting.Name -notin @('JMS_SEERR_SOURCE', 'JMS_LEGACY_SEERR_SOURCE')) {
+            throw 'Unsupported private build configuration key'
+        }
+        $uri = $null
+        if ($setting.Value -isnot [string] -or
+            -not [Uri]::TryCreate($setting.Value, [UriKind]::Absolute, [ref]$uri) -or
+            $uri.Scheme -ne 'https' -or $uri.UserInfo -or $uri.Query -or $uri.Fragment) {
+            throw 'Private service configuration requires an HTTPS URL without credentials, query or fragment'
+        }
+    }
+    $privateDefines = @("--dart-define-from-file=$((Resolve-Path -LiteralPath $PrivateConfig).Path)")
+}
 & rtk proxy $flutterPath pub get --enforce-lockfile
 if ($LASTEXITCODE -ne 0) { throw 'Dependency lock validation failed' }
-& rtk proxy $flutterPath build windows --release --no-pub "--build-name=$version" "--build-number=$versionCode" "--dart-define=JMS_BUILD_ID=$buildId"
+& rtk proxy $flutterPath build windows --release --no-pub "--build-name=$version" "--build-number=$versionCode" "--dart-define=JMS_BUILD_ID=$buildId" @privateDefines
 if ($LASTEXITCODE -ne 0) { throw 'Windows x64 build failed' }
 
 foreach ($required in @('jms.exe', 'flutter_windows.dll', 'data\flutter_assets')) {

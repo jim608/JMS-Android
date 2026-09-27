@@ -28,6 +28,7 @@ import 'package:fladder/services/local_network_permission.dart';
 import 'package:fladder/util/auth_service.dart';
 import 'package:fladder/util/deep_link_helper.dart';
 import 'package:fladder/util/fladder_config.dart';
+import 'package:fladder/seerr/seerr_source.dart';
 import 'package:fladder/util/localization_helper.dart';
 
 class LoginScreenCredentials extends ConsumerStatefulWidget {
@@ -95,15 +96,25 @@ class _LoginScreenCredentialsState extends ConsumerState<LoginScreenCredentials>
 
   @override
   Widget build(BuildContext context) {
-    final existingUsers = ref.watch(authProvider.select((value) => value.accounts));
+    final linkedSource = normalizeConfiguredSeerrSource(
+            ref.watch(authProvider.select((value) => value.tempSeerrUrl))) ??
+        normalizeConfiguredSeerrSource(FladderConfig.seerrBaseUrl) ??
+        normalizeConfiguredSeerrSource(jmsSeerrSource);
+    final linkedUri = Uri.tryParse(linkedSource ?? '');
+    final existingUsers =
+        ref.watch(authProvider.select((value) => value.accounts));
     final otherCredentials = existingUsers.map((e) => e.credentials).toList();
-    final serverCredentials = ref.watch(authProvider.select((value) => value.serverLoginModel));
+    final serverCredentials =
+        ref.watch(authProvider.select((value) => value.serverLoginModel));
     final users = serverCredentials?.accounts ?? [];
     final provider = ref.read(authProvider.notifier);
     final loading = ref.watch(authProvider.select((value) => value.loading));
-    final hasBaseUrl = ref.watch(authProvider.select((value) => value.hasBaseUrl));
-    final urlError = ref.watch(authProvider.select((value) => value.errorMessage));
-    final hasQuickConnect = ref.watch(authProvider.select((value) => value.serverLoginModel?.hasQuickConnect ?? false));
+    final hasBaseUrl =
+        ref.watch(authProvider.select((value) => value.hasBaseUrl));
+    final urlError =
+        ref.watch(authProvider.select((value) => value.errorMessage));
+    final hasQuickConnect = ref.watch(authProvider
+        .select((value) => value.serverLoginModel?.hasQuickConnect ?? false));
 
     ref.listen(
       authProvider.select((value) => value.serverLoginModel),
@@ -253,6 +264,13 @@ class _LoginScreenCredentialsState extends ConsumerState<LoginScreenCredentials>
                     indent: 32,
                     endIndent: 32,
                   ),
+                  if (linkedUri?.hasAuthority == true)
+                    Text(
+                      Localizations.localeOf(context).languageCode == 'zh'
+                          ? '此登入同時連接 Jellyfin 媒體庫與點片服務（${linkedUri!.host}）。僅在確認服務綁定後驗證本人，不保存密碼。'
+                          : 'This login also connects the request service (${linkedUri!.host}). Your identity is verified after checking the server binding. Your password is not saved.',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                   Row(
                     spacing: 8,
                     children: [
