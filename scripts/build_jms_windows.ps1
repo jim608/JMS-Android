@@ -29,7 +29,7 @@ if ($SourceCommit -ne '') {
     if ($LASTEXITCODE -ne 0) { throw 'Source snapshot does not match the current worktree' }
     $sourceId = $SourceCommit.Substring(0, 12)
 } else {
-    $hashInputs = Get-ChildItem -LiteralPath lib,assets,windows,third_party/screen_brightness_windows -File -Recurse |
+    $hashInputs = Get-ChildItem -LiteralPath lib,assets,windows,third_party/screen_brightness_windows,third_party/fvp -File -Recurse |
         Where-Object { $_.FullName -notmatch '[\\/]flutter[\\/]ephemeral[\\/]' } |
         Sort-Object FullName | Get-FileHash -Algorithm SHA256
     $fingerprint = ($hashInputs.Hash -join '') + (Get-FileHash pubspec.lock -Algorithm SHA256).Hash
@@ -85,6 +85,11 @@ foreach ($required in @('jms.exe', 'flutter_windows.dll', 'data\flutter_assets')
     }
 }
 
+$excludedLibraries = Get-ChildItem -LiteralPath $bundleDir -File -Recurse |
+    Where-Object { $_.Name -match '^(mdk(?:-.*)?|fvp_plugin|ffmpeg-\d+|libass)\.dll$' }
+if ($excludedLibraries) {
+    throw 'Excluded MDK SDK libraries remain in the Windows bundle. Preserve and regenerate the Windows build directory before packaging.'
+}
 New-Item -ItemType Directory -Path $stageDir -Force | Out-Null
 Get-ChildItem -LiteralPath $bundleDir -Force | Copy-Item -Destination $stageDir -Recurse
 Copy-Item -LiteralPath (Join-Path $projectRoot 'LICENSE') -Destination (Join-Path $stageDir 'LICENSE')
