@@ -13,6 +13,7 @@ import 'package:fladder/providers/auth_provider.dart';
 import 'package:fladder/providers/connectivity_provider.dart';
 import 'package:fladder/providers/service_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
+import 'package:fladder/util/seerr_http_client.dart' if (dart.library.html) 'package:fladder/util/seerr_http_client_web.dart';
 part 'api_provider.g.dart';
 
 final serverUrlProvider = StateProvider<String?>((ref) {
@@ -49,12 +50,13 @@ class JellyApi extends _$JellyApi {
       );
 }
 
-JellyfinOpenApi createJellyfinApiForAccount(Ref ref, String baseUrl, Map<String, String> headers) {
+JellyfinOpenApi createJellyfinApiForAccount(Ref ref, String baseUrl, Map<String, String> headers, {bool privateLink = false}) {
   return JellyfinOpenApi.create(
+    httpClient: privateLink ? createSeerrHttpClient() : null,
     interceptors: [
       _TempJellyRequest(baseUrl: baseUrl, headers: headers),
-      JellyResponse(ref),
-      HttpLoggingInterceptor(level: Level.basic),
+      if (!privateLink) JellyResponse(ref),
+      if (!privateLink) HttpLoggingInterceptor(level: Level.basic),
     ],
   );
 }

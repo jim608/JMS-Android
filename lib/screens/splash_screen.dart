@@ -27,7 +27,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((value) async {
       await Future.delayed(const Duration(milliseconds: 500));
-      final AccountModel? lastUsedAccount = ref.read(sharedUtilityProvider).getActiveAccount();
+      final shared = ref.read(sharedUtilityProvider);
+      try {
+        await shared.migrateJmsSeerrAccounts();
+      } catch (error) {
+        debugPrint('Seerr source migration will retry: ${error.runtimeType}');
+      }
+      final AccountModel? lastUsedAccount = shared.getActiveAccount();
       ref.read(userProvider.notifier).updateUser(lastUsedAccount);
 
       if (context.mounted) {

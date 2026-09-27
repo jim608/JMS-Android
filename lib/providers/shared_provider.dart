@@ -22,6 +22,9 @@ import 'package:fladder/providers/settings/subtitle_settings_provider.dart';
 import 'package:fladder/providers/settings/video_player_settings_provider.dart';
 import 'package:fladder/providers/update_notifications_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
+import 'package:fladder/seerr/seerr_session_store.dart';
+import 'package:fladder/seerr/seerr_source.dart';
+import 'package:fladder/util/settings_backup.dart';
 
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
   throw UnimplementedError();
@@ -35,7 +38,8 @@ final sharedUtilityProvider = Provider<SharedUtility>((ref) {
   return SharedUtility(ref: ref, sharedPreferences: sharedPrefs)..init();
 });
 
-SharedHelper get sharedHelper => SharedHelper(sharedPreferences: SharedPreferences.getInstance() as SharedPreferences);
+SharedHelper get sharedHelper => SharedHelper(
+    sharedPreferences: SharedPreferences.getInstance() as SharedPreferences);
 
 class SharedUtility extends SharedHelper {
   SharedUtility({
@@ -52,7 +56,8 @@ class SharedUtility extends SharedHelper {
       await Future.delayed(const Duration(milliseconds: 500));
       switch (key) {
         case SharedKeys.lastSeenNotificationsKey:
-          _ref.read(notificationsProvider.notifier).state = lastSeenNotifications;
+          _ref.read(notificationsProvider.notifier).state =
+              lastSeenNotifications;
           break;
       }
     });
@@ -62,7 +67,8 @@ class SharedUtility extends SharedHelper {
     try {
       _ref.read(clientSettingsProvider.notifier).initialize(clientSettings);
       _ref.read(homeSettingsProvider.notifier).state = homeSettings;
-      _ref.read(videoPlayerSettingsProvider.notifier).state = videoPlayerSettings;
+      _ref.read(videoPlayerSettingsProvider.notifier).state =
+          videoPlayerSettings;
       _ref.read(subtitleSettingsProvider.notifier).state = subtitleSettings;
       _ref.read(bookViewerSettingsProvider.notifier).state = bookViewSettings;
       _ref.read(photoViewSettingsProvider.notifier).state = photoViewSettings;
@@ -129,12 +135,15 @@ class SharedHelper {
 
   Future<bool?> removeAccount(AccountModel? account) async {
     if (account == null) return null;
+    if (ref != null) {
+      await ref!.read(seerrSessionStoreProvider).write(account, null);
+    }
 
     try {
       //Try to logout user
       await ref?.read(userProvider.notifier).forceLogoutUser(account);
-    } catch (e) {
-      log('Unable to log-out user forcing anyway $e');
+    } catch (error) {
+      log('Unable to log-out user forcing anyway ${error.runtimeType}');
     }
 
     //Remove from local database
@@ -146,23 +155,95 @@ class SharedHelper {
   }
 
   List<AccountModel> getAccounts() {
-    final savedAccounts = sharedPreferences.getStringList(SharedKeys._loginCredentialsKey);
-    try {
-      return savedAccounts != null ? savedAccounts.map((e) => AccountModel.fromJson(jsonDecode(e))).toList() : [];
-    } catch (_, stacktrace) {
-      log(stacktrace.toString());
-      return [];
+    return _storedAccounts().map(migrateJmsSeerrSource).toList();
+  }
+
+  List<AccountModel> _storedAccounts() {
+    final savedAccounts =
+        sharedPreferences.getStringList(SharedKeys._loginCredentialsKey) ?? [];
+    final accounts = <AccountModel>[];
+    for (final entry in savedAccounts) {
+      try {
+        final account = AccountModel.fromJson(jsonDecode(entry));
+        final credentials = account.seerrCredentials;
+        accounts.add(credentials == null
+            ? account
+            : account.copyWith(
+                seerrCredentials: credentials.copyWith(sessionCookie: '')));
+      } catch (error) {
+        log('Unable to read saved account: ${error.runtimeType}');
+      }
     }
+    return accounts;
+  }
+
+  Future<int> migrateJmsSeerrAccounts() async {
+    final rawAccounts =
+        sharedPreferences.getStringList(SharedKeys._loginCredentialsKey) ?? [];
+    final scrubbedAccounts = <String>[];
+    final savedAccounts = <String>[];
+    final affected = <AccountModel>[];
+    var changed = false;
+    var hasPlaintextCookie = false;
+    for (final entry in rawAccounts) {
+      var scrubbedEntry = entry;
+      var nextEntry = entry;
+      try {
+        final decoded = jsonDecode(entry);
+        if (decoded is Map<String, dynamic>) {
+          final seerr = decoded['seerrCredentials'];
+          if (seerr is Map && seerr.containsKey('sessionCookie')) {
+            seerr.remove('sessionCookie');
+            scrubbedEntry = jsonEncode(decoded);
+            nextEntry = scrubbedEntry;
+            changed = true;
+            hasPlaintextCookie = true;
+          }
+          try {
+            final account = AccountModel.fromJson(decoded);
+            if (needsJmsSeerrSourceMigration(account)) {
+              affected.add(account);
+              nextEntry = jsonEncode(migrateJmsSeerrSource(account));
+              changed = true;
+            }
+          } catch (_) {}
+        }
+      } catch (_) {}
+      scrubbedAccounts.add(scrubbedEntry);
+      savedAccounts.add(nextEntry);
+    }
+    if (!changed) return 0;
+    if (hasPlaintextCookie &&
+        await sharedPreferences.setStringList(
+                SharedKeys._loginCredentialsKey, scrubbedAccounts) !=
+            true) {
+      throw StateError('Unable to scrub legacy Seerr session');
+    }
+    if (affected.isEmpty) return 0;
+    final store = SeerrSessionStore();
+    for (final account in affected) {
+      if (account.seerrCredentials != null) await store.write(account, null);
+    }
+    if (await sharedPreferences.setStringList(
+            SharedKeys._loginCredentialsKey, savedAccounts) !=
+        true) {
+      throw StateError('Unable to save Seerr source migration');
+    }
+    return affected.length;
   }
 
   AccountModel? getActiveAccount() {
     try {
       final accounts = getAccounts();
       AccountModel recentUsedAccount = accounts.reduce((lastLoggedIn, element) {
-        return (element.lastUsed.compareTo(lastLoggedIn.lastUsed)) > 0 ? element : lastLoggedIn;
+        return (element.lastUsed.compareTo(lastLoggedIn.lastUsed)) > 0
+            ? element
+            : lastLoggedIn;
       });
 
-      if (recentUsedAccount.authMethod == Authentication.autoLogin) return recentUsedAccount;
+      if (recentUsedAccount.authMethod == Authentication.autoLogin) {
+        return recentUsedAccount;
+      }
       return null;
     } catch (e) {
       log(e.toString());
@@ -171,35 +252,46 @@ class SharedHelper {
   }
 
   Future<bool?> saveAccounts(List<AccountModel> accounts) async =>
-      sharedPreferences.setStringList(SharedKeys._loginCredentialsKey, accounts.map((e) => jsonEncode(e)).toList());
+      sharedPreferences.setStringList(SharedKeys._loginCredentialsKey,
+          accounts.map((e) => jsonEncode(e)).toList());
 
   ClientSettingsModel get clientSettings {
     try {
-      return ClientSettingsModel.fromJson(jsonDecode(sharedPreferences.getString(SharedKeys._clientSettingsKey) ?? ""));
+      return ClientSettingsModel.fromJson(
+          SettingsBundleStore(sharedPreferences).section('client') ??
+              jsonDecode(
+                  sharedPreferences.getString(SharedKeys._clientSettingsKey) ??
+                      ""));
     } catch (e) {
-      log(e.toString());
+      log('Unable to load client settings');
       return ClientSettingsModel.defaultModel();
     }
   }
 
+  Future<bool> saveClientSettings(ClientSettingsModel settings) =>
+      SettingsBundleStore(sharedPreferences).writeSection(
+          'client', settings.toJson(), SharedKeys._clientSettingsKey);
+
   set clientSettings(ClientSettingsModel settings) =>
-      sharedPreferences.setString(SharedKeys._clientSettingsKey, jsonEncode(settings.toJson()));
+      unawaited(saveClientSettings(settings));
 
   HomeSettingsModel get homeSettings {
     try {
-      return HomeSettingsModel.fromJson(jsonDecode(sharedPreferences.getString(SharedKeys._homeSettingsKey) ?? ""));
+      return HomeSettingsModel.fromJson(jsonDecode(
+          sharedPreferences.getString(SharedKeys._homeSettingsKey) ?? ""));
     } catch (e) {
       log(e.toString());
       return HomeSettingsModel.defaultModel();
     }
   }
 
-  set homeSettings(HomeSettingsModel settings) =>
-      sharedPreferences.setString(SharedKeys._homeSettingsKey, jsonEncode(settings.toJson()));
+  set homeSettings(HomeSettingsModel settings) => sharedPreferences.setString(
+      SharedKeys._homeSettingsKey, jsonEncode(settings.toJson()));
 
   BookViewerSettingsModel get bookViewSettings {
     try {
-      return BookViewerSettingsModel.fromJson(sharedPreferences.getString(SharedKeys._bookViewSettingsKey) ?? "");
+      return BookViewerSettingsModel.fromJson(
+          sharedPreferences.getString(SharedKeys._bookViewSettingsKey) ?? "");
     } catch (e) {
       log(e.toString());
       return BookViewerSettingsModel();
@@ -207,7 +299,8 @@ class SharedHelper {
   }
 
   set bookViewSettings(BookViewerSettingsModel settings) {
-    sharedPreferences.setString(SharedKeys._bookViewSettingsKey, settings.toJson());
+    sharedPreferences.setString(
+        SharedKeys._bookViewSettingsKey, settings.toJson());
   }
 
   Future<void> updateAccountInfo(AccountModel account) async {
@@ -227,22 +320,26 @@ class SharedHelper {
 
   LastSeenNotificationsModel get lastSeenNotifications {
     try {
-      return LastSeenNotificationsModel.fromJson(
-          jsonDecode(sharedPreferences.getString(SharedKeys.lastSeenNotificationsKey) ?? ""));
+      return LastSeenNotificationsModel.fromJson(jsonDecode(
+          sharedPreferences.getString(SharedKeys.lastSeenNotificationsKey) ??
+              ""));
     } catch (e) {
       log(e.toString());
       return const LastSeenNotificationsModel();
     }
   }
 
-  Future<void> setLastSeenNotifications(LastSeenNotificationsModel serverLastSeen) async {
-    await sharedPreferences.setString(SharedKeys.lastSeenNotificationsKey, jsonEncode(serverLastSeen.toJson()));
+  Future<void> setLastSeenNotifications(
+      LastSeenNotificationsModel serverLastSeen) async {
+    await sharedPreferences.setString(SharedKeys.lastSeenNotificationsKey,
+        jsonEncode(serverLastSeen.toJson()));
     SharedKeys.instance._keyChanged.add(SharedKeys.lastSeenNotificationsKey);
   }
 
   SubtitleSettingsModel get subtitleSettings {
     try {
-      return SubtitleSettingsModel.fromJson(sharedPreferences.getString(SharedKeys._subtitleSettingsKey) ?? "");
+      return SubtitleSettingsModel.fromJson(
+          sharedPreferences.getString(SharedKeys._subtitleSettingsKey) ?? "");
     } catch (e) {
       log(e.toString());
       return const SubtitleSettingsModel();
@@ -250,26 +347,32 @@ class SharedHelper {
   }
 
   set subtitleSettings(SubtitleSettingsModel settings) {
-    sharedPreferences.setString(SharedKeys._subtitleSettingsKey, settings.toJson());
+    sharedPreferences.setString(
+        SharedKeys._subtitleSettingsKey, settings.toJson());
   }
 
   VideoPlayerSettingsModel get videoPlayerSettings {
     try {
       return VideoPlayerSettingsModel.fromJson(
-          jsonDecode(sharedPreferences.getString(SharedKeys._videoPlayerSettingsKey) ?? ""));
+          SettingsBundleStore(sharedPreferences).section('player') ??
+              jsonDecode(sharedPreferences
+                      .getString(SharedKeys._videoPlayerSettingsKey) ??
+                  ""));
     } catch (e) {
-      log(e.toString());
+      log('Unable to load player settings');
       return VideoPlayerSettingsModel();
     }
   }
 
   set videoPlayerSettings(VideoPlayerSettingsModel settings) {
-    sharedPreferences.setString(SharedKeys._videoPlayerSettingsKey, jsonEncode(settings.toJson()));
+    unawaited(SettingsBundleStore(sharedPreferences).writeSection(
+        'player', settings.toJson(), SharedKeys._videoPlayerSettingsKey));
   }
 
   PhotoViewSettingsModel get photoViewSettings {
     try {
-      return PhotoViewSettingsModel.fromJson(sharedPreferences.getString(SharedKeys._photoViewSettingsKey) ?? "");
+      return PhotoViewSettingsModel.fromJson(
+          sharedPreferences.getString(SharedKeys._photoViewSettingsKey) ?? "");
     } catch (e) {
       log(e.toString());
       return PhotoViewSettingsModel();
@@ -277,6 +380,7 @@ class SharedHelper {
   }
 
   set photoViewSettings(PhotoViewSettingsModel settings) {
-    sharedPreferences.setString(SharedKeys._photoViewSettingsKey, settings.toJson());
+    sharedPreferences.setString(
+        SharedKeys._photoViewSettingsKey, settings.toJson());
   }
 }

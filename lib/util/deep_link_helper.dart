@@ -42,7 +42,7 @@ class AuthLinkData {
       );
 
   static AuthLinkData? parse(String encoded) {
-    String removeUrlPrefix = encoded.replaceFirst(RegExp(r'^fladder:\/\/\/login\?authLink='), '');
+    String removeUrlPrefix = encoded.replaceFirst(RegExp(r'^jms:\/\/\/login\?authLink='), '');
     try {
       final pad = removeUrlPrefix.length % 4;
       if (pad != 0) {
@@ -53,7 +53,7 @@ class AuthLinkData {
       final map = jsonDecode(jsonStr) as Map<String, dynamic>;
       return AuthLinkData.fromJson(map);
     } catch (e) {
-      log("Failed to parse auth link data: $e");
+      log("Failed to parse auth link data");
       return null;
     }
   }
@@ -74,7 +74,7 @@ String encodeAuthLink(AuthLinkData data) {
 
 String buildAuthUrl(AuthLinkData data) {
   final payload = encodeAuthLink(data);
-  return 'fladder:///login?authLink=$payload';
+  return 'jms:///login?authLink=$payload';
 }
 
 PageRouteInfo? payloadToRoute(Uri? payload) {
@@ -83,10 +83,9 @@ PageRouteInfo? payloadToRoute(Uri? payload) {
   if (payload.path.contains('/login')) {
     final authLink = payload.queryParameters['authLink'];
     if (authLink != null && authLink.isNotEmpty) {
-      log("Parsing auth link from payload: $authLink");
       return LoginRoute(authLink: authLink);
     }
-    return LoginRoute(authLink: "sdflkj");
+    return LoginRoute();
   }
 
   if (payload.path.contains('/seerr')) {
@@ -99,7 +98,8 @@ PageRouteInfo? payloadToRoute(Uri? payload) {
     return const SeerrRoute();
   }
   if (payload.path.contains('/details')) {
-    return DetailsRoute(id: payload.queryParameters['id']!);
+    final id = payload.queryParameters['id'];
+    return id == null || id.isEmpty ? null : DetailsRoute(id: id);
   }
   return null;
 }

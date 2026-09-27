@@ -40,7 +40,7 @@ abstract class NotificationModel with _$NotificationModel {
     final mediaTypeRaw = (media?.mediaType ?? '').toLowerCase();
     final mediaType = mediaTypeRaw.contains('tv') ? 'tvshow' : 'movie';
     final payload = detailedPayload ??
-        (tmdbId != null ? NotificationHelpers.buildSeerrDeepLink(mediaType, tmdbId) : 'fladder:///seerr');
+        (tmdbId != null ? NotificationHelpers.buildSeerrDeepLink(mediaType, tmdbId) : 'jms:///seerr');
 
     String defaultTitle() {
       if (media?.tmdbId != null) {

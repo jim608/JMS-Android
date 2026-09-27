@@ -1,4 +1,7 @@
+import 'package:fladder/util/brand.dart';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'package:auto_route/auto_route.dart';
@@ -111,7 +114,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final quickConnectAvailable =
         ref.watch(userProvider.select((value) => value?.serverConfiguration?.quickConnectAvailable ?? false));
 
-    final newRelease = ref.watch(updateProvider.select((value) => value.latestRelease));
+    final newRelease = kIsWeb ? null : ref.watch(updateProvider.select((value) => value.latestRelease));
 
     final hasNewUpdate = ref.watch(hasNewUpdateProvider);
 
@@ -171,7 +174,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             SettingsListTile(
               label: Text(context.localized.about),
-              subLabel: Text("Fladder, ${context.localized.latestReleases}"),
+              subLabel: const Text(Brand.fullName),
               selected: containsRoute(const AboutSettingsRoute()),
               leading: Opacity(
                 opacity: 1,

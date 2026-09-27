@@ -27,7 +27,8 @@ mixin _$LibraryFiltersModel {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @pragma('vm:prefer-inline')
   $LibraryFiltersModelCopyWith<LibraryFiltersModel> get copyWith =>
-      _$LibraryFiltersModelCopyWithImpl<LibraryFiltersModel>(this as LibraryFiltersModel, _$identity);
+      _$LibraryFiltersModelCopyWithImpl<LibraryFiltersModel>(
+          this as LibraryFiltersModel, _$identity);
 
   /// Serializes this LibraryFiltersModel to a JSON map.
   Map<String, dynamic> toJson();
@@ -40,7 +41,8 @@ mixin _$LibraryFiltersModel {
 
 /// @nodoc
 abstract mixin class $LibraryFiltersModelCopyWith<$Res> {
-  factory $LibraryFiltersModelCopyWith(LibraryFiltersModel value, $Res Function(LibraryFiltersModel) _then) =
+  factory $LibraryFiltersModelCopyWith(
+          LibraryFiltersModel value, $Res Function(LibraryFiltersModel) _then) =
       _$LibraryFiltersModelCopyWithImpl;
   @useResult
   $Res call(
@@ -56,7 +58,8 @@ abstract mixin class $LibraryFiltersModelCopyWith<$Res> {
 }
 
 /// @nodoc
-class _$LibraryFiltersModelCopyWithImpl<$Res> implements $LibraryFiltersModelCopyWith<$Res> {
+class _$LibraryFiltersModelCopyWithImpl<$Res>
+    implements $LibraryFiltersModelCopyWith<$Res> {
   _$LibraryFiltersModelCopyWithImpl(this._self, this._then);
 
   final LibraryFiltersModel _self;
@@ -211,16 +214,22 @@ extension LibraryFiltersModelPatterns on LibraryFiltersModel {
 
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>(
-    TResult Function(String id, String name, bool isFavourite, bool showInSideBar, List<String> ids,
-            List<String> viewNames, LibraryFilterModel filter)?
+    TResult Function(
+            String id,
+            String name,
+            bool isFavourite,
+            bool showInSideBar,
+            List<String> ids,
+            List<String> viewNames,
+            LibraryFilterModel filter)?
         $default, {
     required TResult orElse(),
   }) {
     final _that = this;
     switch (_that) {
       case _LibraryFiltersModel() when $default != null:
-        return $default(
-            _that.id, _that.name, _that.isFavourite, _that.showInSideBar, _that.ids, _that.viewNames, _that.filter);
+        return $default(_that.id, _that.name, _that.isFavourite,
+            _that.showInSideBar, _that.ids, _that.viewNames, _that.filter);
       case _:
         return orElse();
     }
@@ -241,15 +250,21 @@ extension LibraryFiltersModelPatterns on LibraryFiltersModel {
 
   @optionalTypeArgs
   TResult when<TResult extends Object?>(
-    TResult Function(String id, String name, bool isFavourite, bool showInSideBar, List<String> ids,
-            List<String> viewNames, LibraryFilterModel filter)
+    TResult Function(
+            String id,
+            String name,
+            bool isFavourite,
+            bool showInSideBar,
+            List<String> ids,
+            List<String> viewNames,
+            LibraryFilterModel filter)
         $default,
   ) {
     final _that = this;
     switch (_that) {
       case _LibraryFiltersModel():
-        return $default(
-            _that.id, _that.name, _that.isFavourite, _that.showInSideBar, _that.ids, _that.viewNames, _that.filter);
+        return $default(_that.id, _that.name, _that.isFavourite,
+            _that.showInSideBar, _that.ids, _that.viewNames, _that.filter);
       case _:
         throw StateError('Unexpected subclass');
     }
@@ -269,15 +284,21 @@ extension LibraryFiltersModelPatterns on LibraryFiltersModel {
 
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>(
-    TResult? Function(String id, String name, bool isFavourite, bool showInSideBar, List<String> ids,
-            List<String> viewNames, LibraryFilterModel filter)?
+    TResult? Function(
+            String id,
+            String name,
+            bool isFavourite,
+            bool showInSideBar,
+            List<String> ids,
+            List<String> viewNames,
+            LibraryFilterModel filter)?
         $default,
   ) {
     final _that = this;
     switch (_that) {
       case _LibraryFiltersModel() when $default != null:
-        return $default(
-            _that.id, _that.name, _that.isFavourite, _that.showInSideBar, _that.ids, _that.viewNames, _that.filter);
+        return $default(_that.id, _that.name, _that.isFavourite,
+            _that.showInSideBar, _that.ids, _that.viewNames, _that.filter);
       case _:
         return null;
     }
@@ -298,7 +319,8 @@ class _LibraryFiltersModel extends LibraryFiltersModel {
       : _ids = ids,
         _viewNames = viewNames,
         super._();
-  factory _LibraryFiltersModel.fromJson(Map<String, dynamic> json) => _$LibraryFiltersModelFromJson(json);
+  factory _LibraryFiltersModel.fromJson(Map<String, dynamic> json) =>
+      _$LibraryFiltersModelFromJson(json);
 
   @override
   final String id;
@@ -337,7 +359,8 @@ class _LibraryFiltersModel extends LibraryFiltersModel {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @pragma('vm:prefer-inline')
   _$LibraryFiltersModelCopyWith<_LibraryFiltersModel> get copyWith =>
-      __$LibraryFiltersModelCopyWithImpl<_LibraryFiltersModel>(this, _$identity);
+      __$LibraryFiltersModelCopyWithImpl<_LibraryFiltersModel>(
+          this, _$identity);
 
   @override
   Map<String, dynamic> toJson() {
@@ -353,8 +376,10 @@ class _LibraryFiltersModel extends LibraryFiltersModel {
 }
 
 /// @nodoc
-abstract mixin class _$LibraryFiltersModelCopyWith<$Res> implements $LibraryFiltersModelCopyWith<$Res> {
-  factory _$LibraryFiltersModelCopyWith(_LibraryFiltersModel value, $Res Function(_LibraryFiltersModel) _then) =
+abstract mixin class _$LibraryFiltersModelCopyWith<$Res>
+    implements $LibraryFiltersModelCopyWith<$Res> {
+  factory _$LibraryFiltersModelCopyWith(_LibraryFiltersModel value,
+          $Res Function(_LibraryFiltersModel) _then) =
       __$LibraryFiltersModelCopyWithImpl;
   @override
   @useResult
@@ -372,7 +397,8 @@ abstract mixin class _$LibraryFiltersModelCopyWith<$Res> implements $LibraryFilt
 }
 
 /// @nodoc
-class __$LibraryFiltersModelCopyWithImpl<$Res> implements _$LibraryFiltersModelCopyWith<$Res> {
+class __$LibraryFiltersModelCopyWithImpl<$Res>
+    implements _$LibraryFiltersModelCopyWith<$Res> {
   __$LibraryFiltersModelCopyWithImpl(this._self, this._then);
 
   final _LibraryFiltersModel _self;

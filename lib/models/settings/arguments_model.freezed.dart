@@ -24,7 +24,8 @@ mixin _$ArgumentsModel {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @pragma('vm:prefer-inline')
   $ArgumentsModelCopyWith<ArgumentsModel> get copyWith =>
-      _$ArgumentsModelCopyWithImpl<ArgumentsModel>(this as ArgumentsModel, _$identity);
+      _$ArgumentsModelCopyWithImpl<ArgumentsModel>(
+          this as ArgumentsModel, _$identity);
 
   @override
   String toString() {
@@ -34,14 +35,20 @@ mixin _$ArgumentsModel {
 
 /// @nodoc
 abstract mixin class $ArgumentsModelCopyWith<$Res> {
-  factory $ArgumentsModelCopyWith(ArgumentsModel value, $Res Function(ArgumentsModel) _then) =
+  factory $ArgumentsModelCopyWith(
+          ArgumentsModel value, $Res Function(ArgumentsModel) _then) =
       _$ArgumentsModelCopyWithImpl;
   @useResult
-  $Res call({bool htpcMode, bool leanBackMode, bool newWindow, bool skipNotifications});
+  $Res call(
+      {bool htpcMode,
+      bool leanBackMode,
+      bool newWindow,
+      bool skipNotifications});
 }
 
 /// @nodoc
-class _$ArgumentsModelCopyWithImpl<$Res> implements $ArgumentsModelCopyWith<$Res> {
+class _$ArgumentsModelCopyWithImpl<$Res>
+    implements $ArgumentsModelCopyWith<$Res> {
   _$ArgumentsModelCopyWithImpl(this._self, this._then);
 
   final ArgumentsModel _self;
@@ -171,13 +178,16 @@ extension ArgumentsModelPatterns on ArgumentsModel {
 
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>(
-    TResult Function(bool htpcMode, bool leanBackMode, bool newWindow, bool skipNotifications)? $default, {
+    TResult Function(bool htpcMode, bool leanBackMode, bool newWindow,
+            bool skipNotifications)?
+        $default, {
     required TResult orElse(),
   }) {
     final _that = this;
     switch (_that) {
       case _ArgumentsModel() when $default != null:
-        return $default(_that.htpcMode, _that.leanBackMode, _that.newWindow, _that.skipNotifications);
+        return $default(_that.htpcMode, _that.leanBackMode, _that.newWindow,
+            _that.skipNotifications);
       case _:
         return orElse();
     }
@@ -198,12 +208,15 @@ extension ArgumentsModelPatterns on ArgumentsModel {
 
   @optionalTypeArgs
   TResult when<TResult extends Object?>(
-    TResult Function(bool htpcMode, bool leanBackMode, bool newWindow, bool skipNotifications) $default,
+    TResult Function(bool htpcMode, bool leanBackMode, bool newWindow,
+            bool skipNotifications)
+        $default,
   ) {
     final _that = this;
     switch (_that) {
       case _ArgumentsModel():
-        return $default(_that.htpcMode, _that.leanBackMode, _that.newWindow, _that.skipNotifications);
+        return $default(_that.htpcMode, _that.leanBackMode, _that.newWindow,
+            _that.skipNotifications);
       case _:
         throw StateError('Unexpected subclass');
     }
@@ -223,12 +236,15 @@ extension ArgumentsModelPatterns on ArgumentsModel {
 
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>(
-    TResult? Function(bool htpcMode, bool leanBackMode, bool newWindow, bool skipNotifications)? $default,
+    TResult? Function(bool htpcMode, bool leanBackMode, bool newWindow,
+            bool skipNotifications)?
+        $default,
   ) {
     final _that = this;
     switch (_that) {
       case _ArgumentsModel() when $default != null:
-        return $default(_that.htpcMode, _that.leanBackMode, _that.newWindow, _that.skipNotifications);
+        return $default(_that.htpcMode, _that.leanBackMode, _that.newWindow,
+            _that.skipNotifications);
       case _:
         return null;
     }
@@ -239,7 +255,10 @@ extension ArgumentsModelPatterns on ArgumentsModel {
 
 class _ArgumentsModel extends ArgumentsModel {
   _ArgumentsModel(
-      {this.htpcMode = false, this.leanBackMode = false, this.newWindow = false, this.skipNotifications = false})
+      {this.htpcMode = false,
+      this.leanBackMode = false,
+      this.newWindow = false,
+      this.skipNotifications = false})
       : super._();
 
   @override
@@ -270,16 +289,23 @@ class _ArgumentsModel extends ArgumentsModel {
 }
 
 /// @nodoc
-abstract mixin class _$ArgumentsModelCopyWith<$Res> implements $ArgumentsModelCopyWith<$Res> {
-  factory _$ArgumentsModelCopyWith(_ArgumentsModel value, $Res Function(_ArgumentsModel) _then) =
+abstract mixin class _$ArgumentsModelCopyWith<$Res>
+    implements $ArgumentsModelCopyWith<$Res> {
+  factory _$ArgumentsModelCopyWith(
+          _ArgumentsModel value, $Res Function(_ArgumentsModel) _then) =
       __$ArgumentsModelCopyWithImpl;
   @override
   @useResult
-  $Res call({bool htpcMode, bool leanBackMode, bool newWindow, bool skipNotifications});
+  $Res call(
+      {bool htpcMode,
+      bool leanBackMode,
+      bool newWindow,
+      bool skipNotifications});
 }
 
 /// @nodoc
-class __$ArgumentsModelCopyWithImpl<$Res> implements _$ArgumentsModelCopyWith<$Res> {
+class __$ArgumentsModelCopyWithImpl<$Res>
+    implements _$ArgumentsModelCopyWith<$Res> {
   __$ArgumentsModelCopyWithImpl(this._self, this._then);
 
   final _ArgumentsModel _self;

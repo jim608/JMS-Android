@@ -29,6 +29,13 @@ class ClientSettingsNotifier extends StateNotifier<ClientSettingsModel> {
 
   final Debouncer _debouncer = Debouncer(const Duration(seconds: 1));
 
+  Future<bool> flushForRestore() {
+    _debouncer.cancel();
+    return ref.read(sharedUtilityProvider).saveClientSettings(state);
+  }
+
+  void applyRestoredSettings(ClientSettingsModel value) => super.state = value;
+
   @override
   set state(ClientSettingsModel value) {
     super.state = value;

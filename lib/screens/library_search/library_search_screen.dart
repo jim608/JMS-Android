@@ -1,5 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:fladder/providers/seerr_search_provider.dart';
+import 'package:fladder/seerr/seerr_models.dart';
+import 'package:fladder/screens/seerr/seerr_support_text.dart';
 import 'package:flutter/services.dart';
 
 import 'package:auto_route/auto_route.dart';
@@ -181,6 +184,11 @@ class _LibrarySearchScreenState extends ConsumerState<LibrarySearchScreen> {
     );
 
     List<ItemAction> menuActions = [
+      ItemActionButton(label: Text(seerrText(context, 'Request search (Seerr)', '點片搜尋（Seerr）')),
+        icon: const Icon(Icons.movie_filter_outlined), action: () {
+          ref.read(seerrSearchProvider.notifier).setQuery(librarySearchResults.filters.searchQuery);
+          context.pushRoute(SeerrSearchRoute(mode: SeerrSearchMode.search));
+        }),
       ItemActionButton(
         label: Text(context.localized.itemCount(librarySearchResults.totalItemCount)),
         icon: const Icon(IconsaxPlusBold.document_1),

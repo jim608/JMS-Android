@@ -27,6 +27,7 @@ import 'package:fladder/screens/settings/widgets/settings_message_box.dart';
 import 'package:fladder/screens/shared/authenticate_button_options.dart';
 import 'package:fladder/screens/shared/input_fields.dart';
 import 'package:fladder/seerr/seerr_models.dart';
+import 'package:fladder/screens/seerr/seerr_support_text.dart';
 import 'package:fladder/services/battery_optimization.dart';
 import 'package:fladder/services/notification_service.dart';
 import 'package:fladder/util/jellyfin_extension.dart';
@@ -321,10 +322,10 @@ class _UserSettingsPageState extends ConsumerState<ProfileSettingsPage> with Wid
         const SizedBox(height: 16),
         ...settingsListGroup(
           context,
-          const SettingsLabelDivider(label: "Seerr"),
+          SettingsLabelDivider(label: seerrText(context, 'Service integrations', '服務整合')),
           [
             SettingsListTile(
-              label: Text(context.localized.seerr),
+              label: const Text('Jellyseerr / Seerr'),
               subLabel: Text(_seerrStatusLabel(context, user?.seerrCredentials, seerrUser)),
               onTap: () => showSeerrConnectionDialog(context),
             ),
