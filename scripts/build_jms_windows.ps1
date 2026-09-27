@@ -3,6 +3,7 @@ param(
     [string]$Version = '',
     [int]$BuildNumber = 0,
     [string]$PrivateConfig = '',
+    [string]$NativeMaterials = '',
     [switch]$PortableOnly
 )
 
@@ -92,6 +93,9 @@ if ($excludedLibraries) {
 }
 New-Item -ItemType Directory -Path $stageDir -Force | Out-Null
 Get-ChildItem -LiteralPath $bundleDir -Force | Copy-Item -Destination $stageDir -Recurse
+if (-not $NativeMaterials) { throw 'Hash-pinned Windows native materials are required' }
+& rtk proxy (Join-Path $projectRoot '.jms-tools/python/Scripts/python.exe') 'scripts/stage_jms_windows_native.py' --materials $NativeMaterials --destination $stageDir
+if ($LASTEXITCODE -ne 0) { throw 'Windows native material verification failed' }
 Copy-Item -LiteralPath (Join-Path $projectRoot 'LICENSE') -Destination (Join-Path $stageDir 'LICENSE')
 $licenseDir = Join-Path $stageDir 'licenses'
 New-Item -ItemType Directory -Path $licenseDir -Force | Out-Null
