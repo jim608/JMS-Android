@@ -173,9 +173,10 @@ class PublicSourceReviewTests(unittest.TestCase):
         with tarfile.open(Path(__file__).resolve().parents[1] / 'flatpak/uchardet-0.0.8.tar.xz') as archive:
             data = archive.extractfile('uchardet-0.0.8/INSTALL').read()
         name = 'source.zip/uchardet-0.0.8/INSTALL'
-        self.assertEqual(reviewed_archive_findings(name, data, []), [])
-        self.assertIn('personal filesystem path', reviewed_archive_findings(name, data + b'changed', []))
-        self.assertIn('private domain', reviewed_archive_findings(name, data, ['cmake']))
+        contexts = [('e97a60cfc00a1c147a674b097bb1422abd9fa78a2d9ce3f3fdcc2e78a34ac5f0', 'uchardet-0.0.8/INSTALL')]
+        self.assertEqual(reviewed_archive_findings(name, data, [], contexts), [])
+        self.assertIn('personal filesystem path', reviewed_archive_findings(name, data + b'changed', [], contexts))
+        self.assertIn('private domain', reviewed_archive_findings(name, data, ['cmake'], contexts))
 
 
 if __name__ == '__main__':

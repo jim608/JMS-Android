@@ -5,6 +5,11 @@
     "reason": "personal filesystem path",
     "source": "https://www.freedesktop.org/software/uchardet/releases/uchardet-0.0.8.tar.xz",
     "archiveSha256": "e97a60cfc00a1c147a674b097bb1422abd9fa78a2d9ce3f3fdcc2e78a34ac5f0",
-    "explanation": "上游安裝文件的作者家目錄範例；官方封存逐位元核對相同，非 JMS 使用者資料。"
+    "explanation": "上游安裝文件的作者家目錄範例；官方封存逐位元核對相同，非 JMS 使用者資料。",
+    "evidence": {
+      "kind": "upstream-installation-document",
+      "member": "uchardet-0.0.8/INSTALL",
+      "sha256": "2b7cd1cf2b71a49662771a4f5758ba777619efb0f575b1d69edb35f06f752a83"
+    }
   }
 ]

@@ -11,6 +11,7 @@ import zipfile
 import tarfile
 import hashlib
 import json
+import time
 
 
 def git(*arguments):
@@ -95,50 +96,216 @@ def load_policy():
     return values
 
 
-def reviewed_archive_findings(name, data, domains):
-    problems = findings(name, data, domains)
+def load_public_reviews():
     registry = Path(__file__).resolve().parents[1] / 'config/jms_public_privacy_reviews.json'
-    if not registry.is_file():
-        return problems
-    for review in json.loads(registry.read_text(encoding='utf-8')):
-        if (name.endswith('/' + review['member']) and
-                hashlib.sha256(data).hexdigest() == review['sha256'] and
-                review['reason'] == 'personal filesystem path' and
-                review['source'].startswith('https://')):
-            problems = [reason for reason in problems if reason != review['reason']]
+    return json.loads(registry.read_text(encoding='utf-8')) if registry.is_file() else []
+
+
+def matching_reviews(data, contexts, reviews):
+    digest = hashlib.sha256(data).hexdigest()
+    return [review for review in reviews
+            if review.get('sha256') == digest
+            and (review.get('archiveSha256'), review.get('member')) in contexts
+            and review.get('source', '').startswith('https://')
+            and review.get('explanation') and valid_evidence(review)]
+
+
+def valid_evidence(review):
+    evidence = review.get('evidence')
+    if not isinstance(evidence, dict):
+        return False
+    if not all(isinstance(evidence.get(field), str) and evidence[field]
+               for field in ('kind', 'member', 'sha256')):
+        return False
+    if not re.fullmatch(r'[0-9a-f]{64}', evidence['sha256']):
+        return False
+    if review.get('inspection') == 'raw-public-test-sample':
+        return (evidence['kind'] == 'upstream-test-reference'
+                and evidence['member'] != review.get('member')
+                and isinstance(review.get('testReference'), str)
+                and bool(review.get('testReference'))
+                and isinstance(review.get('rawContentReview'), dict)
+                and review['rawContentReview'].get('scope') == 'raw-bytes-only'
+                and bool(review['rawContentReview'].get('method'))
+                and bool(review['rawContentReview'].get('conclusion')))
+    return True
+
+
+def reviewed_archive_findings(name, data, domains, contexts=(), reviews=None):
+    problems = findings(name, data, domains)
+    for review in matching_reviews(data, contexts, load_public_reviews() if reviews is None else reviews):
+        permitted = review.get('rules', [review.get('reason')])
+        # The local private policy always wins, including for byte-identical public fixtures.
+        problems = [reason for reason in problems
+                    if reason == 'private domain' or reason not in permitted]
     return problems
 
 
 MAX_ARCHIVE_MEMBER_BYTES = 512 * 1024 * 1024
 
 
+class ArchiveScan:
+    def __init__(self, domains, reviews=None, *, max_bytes=4 * 1024**3,
+                 max_members=200000, max_seconds=1800, max_depth=6):
+        import time
+        self.domains = domains
+        self.reviews = load_public_reviews() if reviews is None else reviews
+        self.max_bytes = max_bytes
+        self.max_members = max_members
+        self.max_seconds = max_seconds
+        self.max_depth = max_depth
+        self.started = time.monotonic()
+        self.expanded = 0
+        self.members = 0
+        self.raw_samples = []
+        self.seen = set()
+        self.used_reviews = []
+        self.stream_bytes = 0
+
+    def finish(self):
+        for review in self.used_reviews:
+            evidence = review['evidence']
+            identity = (evidence.get('archiveSha256', review['archiveSha256']),
+                        evidence['member'], evidence['sha256'])
+            if identity not in self.seen:
+                raise ValueError('Public review reference was not verified in inspected materials')
+
+    def bounded_stream(self, stream):
+        owner = self
+
+        class Reader(io.RawIOBase):
+            def readable(self):
+                return True
+
+            def read(self, size=-1):
+                owner.check_budget()
+                remaining = owner.max_bytes - owner.stream_bytes
+                if size < 0:
+                    size = min(remaining + 1, 1024 * 1024)
+                content = stream.read(min(size, remaining + 1))
+                owner.stream_bytes += len(content)
+                if owner.stream_bytes > owner.max_bytes:
+                    raise ValueError('Archive decompression limit exceeded')
+                owner.check_budget()
+                return content
+
+        return Reader()
+
+    def check_budget(self, size=0):
+        import time
+        if size > MAX_ARCHIVE_MEMBER_BYTES:
+            raise ValueError('Archive member exceeds privacy inspection limit')
+        if self.expanded + size > self.max_bytes or self.members + 1 > self.max_members:
+            raise ValueError('Archive aggregate privacy inspection limit exceeded')
+        if time.monotonic() - self.started > self.max_seconds:
+            raise ValueError('Archive privacy inspection time limit exceeded')
+
+    def scan(self, name, data, depth=0, contexts=()):
+        self.check_budget(len(data))
+        self.expanded += len(data)
+        self.members += 1
+        problems = reviewed_archive_findings(name, data, self.domains, contexts, self.reviews)
+        results = [(name, problems)]
+        approvals = matching_reviews(data, contexts, self.reviews)
+        digest = hashlib.sha256(data).hexdigest()
+        self.seen.update((archive, member, digest) for archive, member in contexts)
+        self.used_reviews.extend(approvals)
+        raw = [r for r in approvals if r.get('inspection') == 'raw-public-test-sample'
+               and r.get('testReference') and r.get('rawContentReview')]
+        if raw and not problems:
+            self.raw_samples.append({'member': name, 'sha256': hashlib.sha256(data).hexdigest(),
+                                     'scope': 'raw bytes only; nested content not expanded'})
+            return results
+        lower = name.lower()
+        is_zip = lower.endswith(('.zip', '.apk', '.jar', '.aar'))
+        is_tar = lower.endswith(('.tar.gz', '.tgz', '.tar.xz', '.tar', '.tar.bz2', '.tar.zst'))
+        if not (is_zip or is_tar):
+            return results
+        if depth >= self.max_depth:
+            raise ValueError('Archive nesting limit exceeded')
+        parent_hash = hashlib.sha256(data).hexdigest()
+
+        def child(member, content):
+            ancestry = tuple((digest, path + '/' + member) for digest, path in contexts)
+            ancestry += ((parent_hash, member),)
+            return self.scan(name + '/' + member, content, depth + 1, ancestry)
+
+        if is_zip:
+            with zipfile.ZipFile(io.BytesIO(data)) as archive:
+                for member in archive.infolist():
+                    self.check_budget()
+                    if not member.is_dir():
+                        self.check_budget(member.file_size)
+                        results.extend(child(member.filename, archive.read(member)))
+                    else:
+                        self.members += 1
+        else:
+            stream = io.BytesIO(data)
+            if lower.endswith('.tar.zst'):
+                import zstandard
+                stream = zstandard.ZstdDecompressor().stream_reader(stream)
+            elif lower.endswith(('.tar.gz', '.tgz')):
+                import gzip
+                stream = gzip.GzipFile(fileobj=stream)
+            elif lower.endswith('.tar.xz'):
+                import lzma
+                stream = lzma.LZMAFile(stream)
+            elif lower.endswith('.tar.bz2'):
+                import bz2
+                stream = bz2.BZ2File(stream)
+            with stream, tarfile.open(fileobj=self.bounded_stream(stream), mode='r|') as archive:
+                for member in archive:
+                    self.check_budget()
+                    if member.isfile():
+                        self.check_budget(member.size)
+                        results.extend(child(member.name, archive.extractfile(member).read()))
+                    else:
+                        self.members += 1
+        return results
+
+
 def scan_archive(name, data, domains, depth=0):
-    results = [(name, reviewed_archive_findings(name, data, domains))]
-    if name.lower().endswith(('.zip', '.apk', '.jar', '.aar')):
-        if depth >= 6:
-            raise ValueError('Archive nesting limit exceeded')
-        with zipfile.ZipFile(io.BytesIO(data)) as archive:
-            for member in archive.infolist():
-                if not member.is_dir():
-                    if member.file_size > MAX_ARCHIVE_MEMBER_BYTES:
-                        raise ValueError('Archive member exceeds privacy inspection limit')
-                    results.extend(scan_archive(name + '/' + member.filename, archive.read(member), domains, depth + 1))
-    elif name.lower().endswith(('.tar.gz', '.tgz', '.tar.xz', '.tar', '.tar.bz2', '.tar.zst')):
-        if depth >= 6:
-            raise ValueError('Archive nesting limit exceeded')
-        stream = io.BytesIO(data)
-        mode = 'r:*'
-        if name.lower().endswith('.tar.zst'):
-            import zstandard
-            stream = zstandard.ZstdDecompressor().stream_reader(stream)
-            mode = 'r|'
-        with stream, tarfile.open(fileobj=stream, mode=mode) as archive:
-            for member in archive:
-                if member.isfile():
-                    if member.size > MAX_ARCHIVE_MEMBER_BYTES:
-                        raise ValueError('Archive member exceeds privacy inspection limit')
-                    results.extend(scan_archive(name + '/' + member.name, archive.extractfile(member).read(), domains, depth + 1))
-    return results
+    scanner = ArchiveScan(domains)
+    result = scanner.scan(name, data, depth)
+    scanner.finish()
+    return result
+
+
+def scan_package_cached(path, domains, cache_directory=None):
+    """Cache only completed accepted scans; policy and evidence fingerprints remain local."""
+    path = Path(path)
+    if path.stat().st_size > MAX_ARCHIVE_MEMBER_BYTES:
+        raise ValueError('Package exceeds privacy inspection limit')
+    data = path.read_bytes()
+    reviews = load_public_reviews()
+    scanner = ArchiveScan(domains, reviews)
+    inputs = {'material': hashlib.sha256(data).hexdigest(), 'name': path.name,
+              'scanner': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+              'reviews': hashlib.sha256(json.dumps(reviews, sort_keys=True).encode()).hexdigest(),
+              'policy': hashlib.sha256(json.dumps(sorted(domains)).encode()).hexdigest(),
+              'settings': [scanner.max_bytes, scanner.max_members, scanner.max_seconds,
+                           scanner.max_depth, MAX_ARCHIVE_MEMBER_BYTES]}
+    key = hashlib.sha256(json.dumps(inputs, sort_keys=True).encode()).hexdigest()
+    cache = Path(cache_directory) / (key + '.json') if cache_directory is not None else None
+    if cache is not None and cache.is_file():
+        try:
+            saved = json.loads(cache.read_text(encoding='utf-8'))
+        except (OSError, ValueError):
+            saved = {}
+        if saved.get('inputs') == inputs and saved.get('accepted') is True and saved.get('complete') is True:
+            return saved
+    results = scanner.scan(path.name, data)
+    scanner.finish()
+    rejected = [(name, reasons) for name, reasons in results if reasons]
+    report = {'inputs': inputs, 'accepted': not rejected, 'complete': True,
+              'items': scanner.members, 'expandedBytes': scanner.expanded,
+              'rawSamples': scanner.raw_samples, 'rejected': rejected}
+    if cache is not None and not rejected:
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        temporary = cache.with_suffix('.tmp')
+        temporary.write_text(json.dumps(report, ensure_ascii=False), encoding='utf-8')
+        temporary.replace(cache)
+    return report
 
 
 def outgoing_findings(head, bases, domains):
@@ -182,7 +349,9 @@ def main():
             results.extend(outgoing_findings(arguments.outgoing, arguments.base, domains))
         for filename in arguments.package:
             path = Path(filename)
-            results.extend(scan_archive(path.name, path.read_bytes(), domains))
+            cache = git('rev-parse', '--git-path', 'jms-privacy-cache').decode().strip()
+            report = scan_package_cached(path, domains, cache)
+            results.extend(report['rejected'] or [(path.name, [])])
         if arguments.message_file:
             results.append(('commit message', findings('message', Path(arguments.message_file).read_bytes(), domains)))
             emails = git('var', 'GIT_AUTHOR_IDENT') + git('var', 'GIT_COMMITTER_IDENT')
