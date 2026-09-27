@@ -2,11 +2,13 @@ import 'package:fladder/models/item_base_model.dart';
 
 class SearchModel {
   final bool loading;
+  final bool hasError;
   final String searchQuery;
   final int resultCount;
   final Map<FladderItemType, List<ItemBaseModel>> results;
   SearchModel({
     this.loading = false,
+    this.hasError = false,
     this.searchQuery = "",
     this.resultCount = 0,
     this.results = const {},
@@ -14,12 +16,14 @@ class SearchModel {
 
   SearchModel copyWith({
     bool? loading,
+    bool? hasError,
     String? searchQuery,
     int? resultCount,
     Map<FladderItemType, List<ItemBaseModel>>? results,
   }) {
     return SearchModel(
       loading: loading ?? this.loading,
+      hasError: hasError ?? this.hasError,
       searchQuery: searchQuery ?? this.searchQuery,
       resultCount: resultCount ?? this.resultCount,
       results: results ?? this.results,
