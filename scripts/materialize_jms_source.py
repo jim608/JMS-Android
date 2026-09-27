@@ -34,6 +34,12 @@ def materialize(apply=False):
     if apply:
         for path, content in changes:
             path.write_bytes(content)
+        if changes:
+            subprocess.run(['git', 'add', '--pathspec-from-file=-', '--pathspec-file-nul'],
+                           input=b'\0'.join(path.as_posix().encode() for path, _ in changes) + b'\0',
+                           check=True, capture_output=True)
+            if subprocess.check_output(['git', 'diff', '--cached', '--name-only']).strip():
+                raise ValueError('Normalization unexpectedly changed the index; stop before building')
     print(f'Committed byte normalization: {len(changes)} files; applied={apply}')
 
 
