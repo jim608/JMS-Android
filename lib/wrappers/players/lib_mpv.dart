@@ -1,3 +1,5 @@
+import 'package:fladder/util/brand.dart';
+
 import 'dart:async';
 import 'dart:developer';
 import 'dart:math' as math;
@@ -16,11 +18,14 @@ import 'package:fladder/models/item_base_model.dart';
 import 'package:fladder/models/items/audio_model.dart';
 import 'package:fladder/models/items/media_streams_model.dart';
 import 'package:fladder/models/playback/playback_model.dart';
+import 'package:fladder/models/playback/transcode_playback_model.dart';
 import 'package:fladder/models/settings/subtitle_settings_model.dart';
 import 'package:fladder/models/settings/video_player_settings.dart';
 import 'package:fladder/providers/settings/subtitle_settings_provider.dart';
 import 'package:fladder/screens/video_player/video_player.dart' as video_screen;
 import 'package:fladder/util/subtitle_position_calculator.dart';
+import 'package:fladder/util/mpv_subtitle_route.dart';
+import 'package:fladder/util/mpv_subtitle_selection.dart';
 import 'package:fladder/wrappers/players/base_player.dart';
 import 'package:fladder/wrappers/players/player_states.dart';
 
@@ -28,6 +33,11 @@ class LibMPV extends BasePlayer {
   mpv.Player? _player;
   VideoController? _controller;
   String _currentSubtitleCodec = '';
+  String _subtitleDelivery = 'unknown';
+  int _subtitleGeneration = 0;
+  Future<void> _subtitleTask = Future.value();
+  final ValueNotifier<MpvSubtitleRoute> _subtitleRoute = ValueNotifier(const MpvSubtitleRoute());
+  SubtitleEncoding _externalEncoding = SubtitleEncoding.automatic;
 
   final StreamController<PlayerState> _stateController = StreamController.broadcast();
   @override
@@ -71,15 +81,16 @@ class LibMPV extends BasePlayer {
   @override
   Future<void> init(VideoPlayerSettingsModel settings) async {
     _settings = settings;
-    dispose();
+    await dispose();
 
     mpv.MediaKit.ensureInitialized();
 
     _player = mpv.Player(
       configuration: mpv.PlayerConfiguration(
-        title: "nl.jknaapen.fladder",
+        title: Brand.name,
         libassAndroidFont: libassFallbackFont,
-        libass: !kIsWeb && settings.useLibass,
+        libassAndroidFontName: libassFallbackFontName,
+        libass: !kIsWeb,
         bufferSize: settings.bufferSize * 1024 * 1024, // MPV uses buffer size in bytes
       ),
     );
@@ -103,6 +114,8 @@ class LibMPV extends BasePlayer {
       await nativePlayer.setProperty('network-timeout', '60');
       await nativePlayer.setProperty('stream-buffer-size', '4M');
       await nativePlayer.setProperty('prefetch-playlist', 'yes');
+      await nativePlayer.setProperty('sub-ass-override', 'no');
+      await nativePlayer.setProperty('embeddedfonts', 'yes');
 
       if (defaultTargetPlatform == TargetPlatform.android) {
         await nativePlayer.setProperty('ao', 'audiotrack');
@@ -116,6 +129,8 @@ class LibMPV extends BasePlayer {
 
   @override
   Future<void> dispose() async {
+    _subtitleGeneration++;
+    _currentSubtitleCodec = '';
     unawaited(_audioSession?.setActive(false));
     _fadeTimer?.cancel();
     _fadeTimer = null;
@@ -123,11 +138,12 @@ class LibMPV extends BasePlayer {
     _cancelPlayerStreams();
     _onCompleted?.cancel();
     _onCompleted = null;
-    _player?.stop();
-    _player?.dispose();
+    final player = _player;
     _player = null;
+    _controller = null;
     _retryTimer?.cancel();
     _retryTimer = null;
+    await player?.dispose();
   }
 
   void setState(PlayerState state) {
@@ -180,9 +196,10 @@ class LibMPV extends BasePlayer {
 
     final incomingPlayer = mpv.Player(
       configuration: mpv.PlayerConfiguration(
-        title: "nl.jknaapen.fladder",
+        title: Brand.name,
         libassAndroidFont: libassFallbackFont,
-        libass: !kIsWeb && _settings.useLibass,
+        libassAndroidFontName: libassFallbackFontName,
+        libass: !kIsWeb,
         bufferSize: _settings.bufferSize * 1024 * 1024,
       ),
     );
@@ -249,7 +266,11 @@ class LibMPV extends BasePlayer {
 
   @override
   Future<void> loadVideo(String url, bool play, {Duration startPosition = Duration.zero}) async {
+    _subtitleGeneration++;
+    _subtitleRoute.value = const MpvSubtitleRoute();
+    _currentSubtitleCodec = '';
     _loadCompleter = Completer<void>();
+    _subtitleDelivery = 'unknown';
     _firstLoadAttempt = DateTime.now();
 
     await setStartPosition(startPosition);
@@ -268,7 +289,7 @@ class LibMPV extends BasePlayer {
           _retryTimer?.cancel();
           _retryTimer = null;
         } else {
-          log("Retrying to load video $url");
+          log("Retrying to load media");
           await setStartPosition(startPosition);
           await _player?.open(mpv.Media(url), play: play);
           _retryTimer?.reset();
@@ -499,23 +520,144 @@ class LibMPV extends BasePlayer {
 
   @override
   Future<int> setSubtitleTrack(SubStreamModel? model, PlaybackModel playbackModel) async {
-    if (_player == null) return -1;
+    final generation = ++_subtitleGeneration;
+    final result = _subtitleTask.then((_) => _selectSubtitle(model, playbackModel, generation));
+    _subtitleTask = result.then<void>((_) {}, onError: (Object error, StackTrace stack) {});
+    return result;
+  }
+
+  Future<int> _selectSubtitle(SubStreamModel? model, PlaybackModel playbackModel, int generation) async {
+    final player = _player;
+    if (player == null || generation != _subtitleGeneration) return -1;
+    _subtitleRoute.value = const MpvSubtitleRoute();
     final wantedSubtitle = model ?? playbackModel.defaultSubStream;
     if (wantedSubtitle == null || wantedSubtitle.index == SubStreamModel.no().index) {
-      await _player?.setSubtitleTrack(mpv.SubtitleTrack.no());
+      _currentSubtitleCodec = '';
+      _subtitleDelivery = 'off';
+      await player.setSubtitleTrack(mpv.SubtitleTrack.no());
+      _subtitleRoute.value = const MpvSubtitleRoute(sid: 'no');
       return -1;
     }
     _currentSubtitleCodec = wantedSubtitle.codec;
-    final index = playbackModel.subStreams?.sublist(1).indexWhere((element) => element.id == wantedSubtitle.id) ?? -1;
-    if (!wantedSubtitle.isExternal) await _awaitTrack(index, (tracks) => tracks.subtitle.length);
-    final internalTrack = subTracks.getRange(2, subTracks.length).toList();
-    final subTrack = internalTrack.elementAtOrNull(index);
-    if (wantedSubtitle.isExternal && wantedSubtitle.url != null && subTrack == null) {
-      await _player?.setSubtitleTrack(mpv.SubtitleTrack.uri(wantedSubtitle.url!));
-    } else if (subTrack != null) {
-      await _player?.setSubtitleTrack(subTrack);
+    final external = useExternalSubtitleSource(
+      isExternal: wantedSubtitle.isExternal,
+      transcoded: playbackModel is TranscodePlaybackModel,
+      supportsExternalStream: wantedSubtitle.supportsExternalStream,
+      codec: wantedSubtitle.codec,
+      url: wantedSubtitle.url,
+    );
+    _subtitleDelivery = external
+        ? wantedSubtitle.isExternal
+            ? 'external/local subtitle'
+            : 'Jellyfin extracted ASS/SSA (transcoded video)'
+        : 'container track';
+    if (external) {
+      final url = wantedSubtitle.url;
+      if (url == null || url.isEmpty) return -1;
+      if (!kIsWeb && player.platform is mpv.NativePlayer) {
+        await (player.platform as dynamic).setProperty('sub-codepage', _externalEncoding.codepage);
+        if (generation != _subtitleGeneration || player != _player) return -1;
+      }
+      await player.setSubtitleTrack(mpv.SubtitleTrack.uri(url));
+    } else {
+      final index = playbackModel.subStreams
+              ?.where((element) => element.index >= 0 && !element.isExternal)
+              .toList()
+              .indexWhere((element) => element.id == wantedSubtitle.id) ??
+          -1;
+      if (index < 0) return -1;
+      await _awaitTrack(index, (tracks) => tracks.subtitle.length);
+      if (generation != _subtitleGeneration || player != _player) return -1;
+      final subTrack =
+          subTracks.where((track) => track.id != 'no' && track.id != 'auto' && !track.uri).elementAtOrNull(index);
+      if (subTrack == null) return -1;
+      await player.setSubtitleTrack(subTrack);
+    }
+    if (generation != _subtitleGeneration || player != _player) return -1;
+    if (!kIsWeb && player.platform is mpv.NativePlayer) {
+      final route = await MpvSubtitleRoute.configure(
+        read: (name) => _readProperty(player, name),
+        write: (name, value) async {
+          if (generation == _subtitleGeneration && player == _player) {
+            await (player.platform as dynamic).setProperty(name, value);
+          }
+        },
+        expectedCodec: wantedSubtitle.codec,
+        plainTextPreference: _settings.useLibass,
+      );
+      if (generation != _subtitleGeneration || player != _player) return -1;
+      _subtitleRoute.value = route;
+    } else {
+      _subtitleRoute.value = const MpvSubtitleRoute(plainOverlay: true);
     }
     return wantedSubtitle.index;
+  }
+
+  Future<String> _readProperty(mpv.Player player, String name) async {
+    if (player != _player || player.platform is! mpv.NativePlayer) return '';
+    try {
+      return await (player.platform as dynamic).getProperty(name, waitForInitialization: false) as String;
+    } catch (_) {
+      return '';
+    }
+  }
+
+  @override
+  Future<Map<String, String>> playbackDiagnostics() async {
+    final player = _player;
+    if (player == null) return {'backend': 'MPV (not initialized)'};
+    final values = <String, String>{'backend': kIsWeb ? 'media_kit web' : 'media_kit / libmpv'};
+    for (final name in [
+      'mpv-version',
+      'libass-version',
+      'current-vo',
+      'hwdec-current',
+      'video-codec',
+      'sid',
+      'secondary-sid',
+      'sub-ass',
+      'sub-ass-override',
+      'sub-visibility',
+      'secondary-sub-visibility',
+      'embeddedfonts',
+      'sub-font',
+      'sub-font-provider',
+      'sub-delay',
+      'sub-scale',
+      'sub-ass-force-style',
+      'decoder-frame-drop-count',
+      'frame-drop-count',
+      'avsync',
+      'paused-for-cache',
+      'cache-buffering-state',
+    ]) {
+      final value = await _readProperty(player, name);
+      values[name] = value.isEmpty ? 'unknown' : value;
+    }
+    final codec = await MpvSubtitleRoute.selectedCodec((name) => _readProperty(player, name));
+    values['subtitle codec (selected / requested)'] = '${codec.isEmpty ? 'unknown' : codec} / $_currentSubtitleCodec';
+    values['subtitle delivery (requested)'] = _subtitleDelivery;
+    values['subtitle renderer'] = MpvSubtitleRoute(
+      codec: codec,
+      expectedCodec: _currentSubtitleCodec,
+      sid: values['sid'] ?? '',
+      ass: values['sub-ass'] ?? '',
+      override: values['sub-ass-override'] ?? '',
+      visibility: values['sub-visibility'] ?? '',
+      plainOverlay: _subtitleRoute.value.plainOverlay && values['sub-visibility'] == 'no',
+    ).renderer;
+    if (isStyledSubtitle(codec)) {
+      values['active ASS effect tags (content hidden)'] = activeAssEffects(await _readProperty(player, 'sub-text-ass'));
+    } else if (isStyledSubtitle(_currentSubtitleCodec) && codec.isNotEmpty) {
+      values['subtitle source warning'] = 'ASS requested, but native decoder received $codec';
+    }
+    values['plain subtitle preference (saved)'] = '${_settings.useLibass} (ASS always native)';
+    return values;
+  }
+
+  @override
+  void applySubtitleSettings(SubtitleSettingsModel settings) {
+    _externalEncoding = settings.externalEncoding;
   }
 
   @override
@@ -567,11 +709,15 @@ class LibMPV extends BasePlayer {
     GlobalKey? controlsKey,
   }) =>
       _controller != null
-          ? _VideoSubtitles(
-              controller: _controller!,
-              showOverlay: showOverlay,
-              controlsKey: controlsKey,
-              currentSubtitleCodec: _currentSubtitleCodec,
+          ? ValueListenableBuilder<MpvSubtitleRoute>(
+              valueListenable: _subtitleRoute,
+              builder: (context, route, child) => route.plainOverlay
+                  ? _VideoSubtitles(
+                      controller: _controller!,
+                      showOverlay: showOverlay,
+                      controlsKey: controlsKey,
+                    )
+                  : const SizedBox.shrink(),
             )
           : null;
 
@@ -600,13 +746,11 @@ class _VideoSubtitles extends ConsumerStatefulWidget {
   final VideoController controller;
   final bool showOverlay;
   final GlobalKey? controlsKey;
-  final String currentSubtitleCodec;
 
   const _VideoSubtitles({
     required this.controller,
     this.showOverlay = false,
     this.controlsKey,
-    this.currentSubtitleCodec = '',
   });
 
   @override
@@ -655,23 +799,7 @@ class _VideoSubtitlesState extends ConsumerState<_VideoSubtitles> {
 
     final text = _cachedSubtitleText;
 
-    final bool isLibassEnabled = widget.controller.player.platform?.configuration.libass ?? false;
-
-    if (isLibassEnabled) {
-      // On desktop (Linux/Windows/macOS), mpv burns ALL subtitle formats into the video when libass is enabled.
-      // On mobile (Android/iOS), only ASS/SSA subs are burned in by libass; other formats need the Flutter overlay.
-      final bool isDesktop = defaultTargetPlatform == TargetPlatform.linux ||
-          defaultTargetPlatform == TargetPlatform.windows ||
-          defaultTargetPlatform == TargetPlatform.macOS;
-      if (isDesktop) {
-        return const SizedBox.shrink();
-      }
-      final currentSubCodec = widget.currentSubtitleCodec.toLowerCase();
-      final bool isAssSubtitle = currentSubCodec.contains('ass') || currentSubCodec.contains('ssa');
-      if (isAssSubtitle || text.isEmpty) {
-        return const SizedBox.shrink();
-      }
-    } else if (text.isEmpty) {
+    if (text.isEmpty) {
       return const SizedBox.shrink();
     }
 

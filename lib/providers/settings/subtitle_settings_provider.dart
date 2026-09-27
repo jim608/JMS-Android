@@ -40,6 +40,8 @@ class SubtitleSettingsNotifier extends StateNotifier<SubtitleSettingsModel> {
 
   void setFontSize(double value) => state = state.copyWith(fontSize: value);
 
+  void setExternalEncoding(SubtitleEncoding value) => state = state.copyWith(externalEncoding: value);
+
   void setVerticalOffset(double value) => state = state.copyWith(verticalOffset: value);
 
   void setSubColor(Color color) => state = state.copyWith(color: color);

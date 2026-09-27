@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 
 import 'package:fladder/providers/settings/subtitle_settings_provider.dart';
+import 'package:fladder/models/settings/subtitle_settings_model.dart';
+import 'package:fladder/models/settings/video_player_settings.dart';
+import 'package:fladder/providers/settings/video_player_settings_provider.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
 import 'package:fladder/util/focus_provider.dart';
 import 'package:fladder/util/list_padding.dart';
@@ -103,6 +107,25 @@ class _VideoSubtitleControlsState extends ConsumerState<VideoSubtitleControls> {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          if (!kIsWeb && ref.watch(videoPlayerSettingsProvider).wantedPlayer == PlayerOptions.libMPV)
+                            DropdownButtonFormField<SubtitleEncoding>(
+                              key: ValueKey(subSettings.externalEncoding),
+                              initialValue: subSettings.externalEncoding,
+                              decoration: InputDecoration(
+                                labelText: context.localized.jmsSubtitleEncoding,
+                                helperText: context.localized.jmsSubtitleEncodingHelp,
+                                helperMaxLines: 3,
+                              ),
+                              items: SubtitleEncoding.values
+                                  .map((encoding) => DropdownMenuItem(
+                                        value: encoding,
+                                        child: Text(encoding.codepage),
+                                      ))
+                                  .toList(),
+                              onChanged: (encoding) {
+                                if (encoding != null) provider.setExternalEncoding(encoding);
+                              },
+                            ),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [

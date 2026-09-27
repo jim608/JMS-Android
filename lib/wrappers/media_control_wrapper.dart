@@ -38,6 +38,7 @@ import 'package:fladder/wrappers/players/lib_mdk.dart'
 import 'package:fladder/wrappers/players/lib_mpv.dart';
 import 'package:fladder/wrappers/players/native_player.dart';
 import 'package:fladder/wrappers/players/player_states.dart';
+import 'package:fladder/providers/sleep_timer_provider.dart';
 
 part 'audio_queue_handler.dart';
 
@@ -63,6 +64,9 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
   Widget? subtitleWidget(bool showOverlay, {GlobalKey? controlsKey}) =>
       _player?.subtitles(showOverlay, controlsKey: controlsKey);
   Widget? videoWidget(Key key, BoxFit fit) => _player?.videoWidget(key, fit);
+
+  Future<Map<String, String>> playbackDiagnostics() async =>
+      await _player?.playbackDiagnostics() ?? {'backend': 'unknown (no player)'};
 
   final Ref ref;
 
@@ -122,9 +126,15 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
   Future<void> dispose() async {
     try {
       _subtitleSettingsSubscription?.close();
-      _playerStateSubscription?.cancel();
+      _subtitleSettingsSubscription = null;
+      await _playerStateSubscription?.cancel();
+      _playerStateSubscription = null;
+      for (final subscription in subscriptions) {
+        await subscription.cancel();
+      }
+      subscriptions.clear();
     } finally {
-      _player?.dispose();
+      await _player?.dispose();
     }
   }
 
@@ -145,6 +155,7 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
     for (var element in subscriptions) {
       element.cancel();
     }
+    subscriptions.clear();
     _subscribePlayer();
     _subtitleSettingsSubscription = ref.listen(subtitleSettingsProvider, (_, next) {
       _player?.applySubtitleSettings(next);
@@ -164,6 +175,7 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
   }
 
   Future<void> loadVideo(PlaybackModel model, Duration startPosition, bool play) async {
+    ref.read(sleepTimerProvider).bindMedia(model.item.id);
     try {
       if (_player is LibMPV) {
         (_player as LibMPV).setMusicPlaybackMode(false);
@@ -173,7 +185,8 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
         await (_player as NativePlayer).sendPlaybackDataToNative(context, model, startPosition);
       }
       _isNewPlayback = play;
-      await _player?.loadVideo(model.media?.url ?? "", play, startPosition: startPosition);
+      await _player?.loadVideo(model.media?.url ?? "", play && ref.read(sleepTimerProvider).allowsPlayback,
+          startPosition: startPosition);
       _player?.applySubtitleSettings(ref.read(subtitleSettingsProvider));
 
       final context = ref.read(localizationContextProvider);
@@ -269,6 +282,9 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
 
   Future<void> _updateStateStream(PlayerState value) async {
     if (_isStopped) return;
+    if (value.completed && !_isAudioQueueMode) {
+      ref.read(sleepTimerProvider).completed();
+    }
 
     if (value.completed && _isAudioQueueMode && !_audioQueueTransitioning && !_audioQueueCompletionPending) {
       _audioQueueCompletionPending = true;
@@ -385,7 +401,11 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
   }
 
   @override
-  Future<void> play() async {
+  Future<void> play({bool userInitiated = true}) async {
+    final sleepTimer = ref.read(sleepTimerProvider);
+    if (userInitiated) sleepTimer.manualPlay();
+    sleepTimer.refresh();
+    if (!sleepTimer.allowsPlayback) return;
     final playBackItem = ref.read(playBackModel.select((value) => value?.item));
     if (playBackItem is AudioModel) {
       _isStopped = false;
@@ -500,7 +520,8 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
   }
 
   @override
-  Future<void> stop() async {
+  Future<void> stop({bool preserveSleepTimer = false}) async {
+    if (!preserveSleepTimer) ref.read(sleepTimerProvider).endSession();
     if (_isStopped) return;
     _isStopped = true;
 

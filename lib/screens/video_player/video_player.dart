@@ -12,6 +12,7 @@ import 'package:fladder/models/playback/tv_playback_model.dart';
 import 'package:fladder/providers/settings/video_player_settings_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
 import 'package:fladder/screens/video_player/components/video_player_guide_wrapper.dart';
+import 'package:fladder/screens/video_player/components/playback_diagnostics.dart';
 import 'package:fladder/screens/video_player/components/video_player_next_wrapper.dart';
 import 'package:fladder/screens/video_player/video_player_controls.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
@@ -30,6 +31,8 @@ class _VideoPlayerState extends ConsumerState<VideoPlayer> with WidgetsBindingOb
   double lastScale = 0.0;
 
   bool errorPlaying = false;
+  final _ambientDiagnostics = AmbientBlurDiagnostics();
+  final _ambientComposition = ValueNotifier(AmbientComposition.direct);
 
   late PlaybackModel? currentPlaybackModel = ref.read(playBackModel);
 
@@ -46,6 +49,7 @@ class _VideoPlayerState extends ConsumerState<VideoPlayer> with WidgetsBindingOb
 
   @override
   void dispose() {
+    _ambientComposition.dispose();
     WidgetsBinding.instance.removeObserver(this);
     SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     super.dispose();
@@ -95,11 +99,32 @@ class _VideoPlayerState extends ConsumerState<VideoPlayer> with WidgetsBindingOb
       },
     );
 
-    final player = Padding(
+    final video = Padding(
       padding: fillScreen ? EdgeInsets.zero : EdgeInsets.only(left: padding.left, right: padding.right),
       child: playerController.videoWidget(
         const Key("VideoPlayer"),
         fillScreen ? (MediaQuery.of(context).orientation == Orientation.portrait ? videoFit : BoxFit.cover) : videoFit,
+      ),
+    );
+    final ambientEnabled = !kIsWeb && ref.watch(videoPlayerSettingsProvider.select((value) => value.ambientBlur));
+    final ambientPlaying = ref.watch(mediaPlaybackProvider.select((value) => value.playing && !value.buffering));
+    final player = ValueListenableBuilder<AmbientComposition>(
+      valueListenable: _ambientComposition,
+      child: video,
+      builder: (context, composition, child) => Consumer(
+        child: child,
+        builder: (context, ref, child) {
+          final appearance = ref.watch(ambientAppearanceProvider);
+          return AmbientBlur(
+            enabled: ambientEnabled,
+            playing: ambientPlaying,
+            composition: composition,
+            diagnostics: _ambientDiagnostics,
+            opacity: appearance.intensity,
+            spread: appearance.spread,
+            child: child!,
+          );
+        },
       ),
     );
 
@@ -123,14 +148,6 @@ class _VideoPlayerState extends ConsumerState<VideoPlayer> with WidgetsBindingOb
                 lastScale = 0.0;
               },
               child: Stack(children: [
-                if (!kIsWeb && ref.watch(videoPlayerSettingsProvider.select((value) => value.ambientBlur)))
-                  AmbientBlur(
-                    child: playerController.videoWidget(
-                          const Key("VideoPlayerBlur"),
-                          BoxFit.cover,
-                        ) ??
-                        const SizedBox.shrink(),
-                  ),
                 switch (currentPlaybackModel) {
                   TvPlaybackModel _ => VideoPlayerGuideWrapper(
                       key: const Key("VideoPlayerGuideWrapper"),
@@ -143,7 +160,8 @@ class _VideoPlayerState extends ConsumerState<VideoPlayer> with WidgetsBindingOb
                         if (errorPlaying) const _VideoErrorWidget(),
                       ],
                     ),
-                }
+                },
+                PlaybackDiagnostics(ambient: _ambientDiagnostics, composition: _ambientComposition),
               ]),
             ),
           ),

@@ -1,0 +1,27 @@
+targets:
+  $default:
+    builders:
+      auto_route_generator:auto_router_generator:
+        enabled: false
+      auto_route_generator:auto_route_generator:
+        enabled: false
+      dart_mappable_builder:
+        enabled: false
+      chopper_generator:
+        enabled: false
+      swagger_dart_code_generator:
+        enabled: false
+      riverpod_generator:
+        enabled: false
+      freezed:freezed:
+        generate_for:
+          - lib/models/settings/video_player_settings.dart
+        options:
+          copy_with: false
+          equal: false
+      json_serializable:json_serializable:
+        generate_for:
+          - lib/models/settings/video_player_settings.dart
+      source_gen:combining_builder:
+        generate_for:
+          - lib/models/settings/video_player_settings.dart

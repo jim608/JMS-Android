@@ -9,7 +9,8 @@ import 'package:fladder/models/settings/subtitle_settings_model.dart';
 import 'package:fladder/models/settings/video_player_settings.dart';
 import 'package:fladder/wrappers/players/player_states.dart';
 
-const libassFallbackFont = "assets/mp-font.ttf";
+const libassFallbackFont = "assets/subtitle_fonts/NotoSansCJKtc-Regular.otf";
+const libassFallbackFontName = "Noto Sans CJK TC";
 
 abstract class BasePlayer {
   Stream<PlayerState> get stateStream;
@@ -40,6 +41,12 @@ abstract class BasePlayer {
   Future<int> setSubtitleTrack(SubStreamModel? model, PlaybackModel playbackModel);
   Future<int> setAudioTrack(AudioStreamModel? model, PlaybackModel playbackModel);
   void applySubtitleSettings(SubtitleSettingsModel settings) {}
+
+  Future<Map<String, String>> playbackDiagnostics() async => {
+        'backend': runtimeType.toString(),
+        'hwdec-current': 'unknown',
+        'subtitle codec / renderer': 'unknown',
+      };
 
   Uri? isValidUrl(String input) {
     try {
