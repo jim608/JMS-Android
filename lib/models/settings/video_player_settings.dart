@@ -131,7 +131,9 @@ abstract class VideoPlayerSettingsModel with _$VideoPlayerSettingsModel {
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android && playerOptions == PlayerOptions.libMDK;
 
   bool get windowsMdkUnavailable =>
-      !kIsWeb && defaultTargetPlatform == TargetPlatform.windows && playerOptions == PlayerOptions.libMDK;
+      !kIsWeb &&
+      {TargetPlatform.windows, TargetPlatform.linux}.contains(defaultTargetPlatform) &&
+      playerOptions == PlayerOptions.libMDK;
 
   PlayerOptions get wantedPlayer => leanBackMode
       ? PlayerOptions.nativePlayer
@@ -198,7 +200,7 @@ enum PlayerOptions {
           ? {PlayerOptions.libMPV}
           : switch (defaultTargetPlatform) {
               TargetPlatform.android => {PlayerOptions.libMPV, PlayerOptions.nativePlayer},
-              TargetPlatform.windows => {PlayerOptions.libMPV},
+              TargetPlatform.windows || TargetPlatform.linux => {PlayerOptions.libMPV},
               _ => {PlayerOptions.libMDK, PlayerOptions.libMPV},
             };
 

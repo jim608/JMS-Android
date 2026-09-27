@@ -66,11 +66,16 @@ class UpdateManifest {
   int get versionCode => json['versionCode'] as int;
   String get platform => json['platform'] as String? ?? 'android';
   bool get windows => platform == 'windows-x64';
-  int get minSdk => json[windows ? 'minWindowsBuild' : 'minSdk'] as int;
+  bool get linux => platform == 'linux-x64';
+  int get minSdk => json[windows
+      ? 'minWindowsBuild'
+      : linux
+          ? 'minGlibcMinor'
+          : 'minSdk'] as int;
   List<String> get abis =>
-      windows ? ['x86_64'] : List<String>.from(json['abis'] as List);
-  Map<String, dynamic> get apk =>
-      Map<String, dynamic>.from(json[windows ? 'installer' : 'apk'] as Map);
+      windows || linux ? ['x86_64'] : List<String>.from(json['abis'] as List);
+  Map<String, dynamic> get apk => Map<String, dynamic>.from(
+      json[windows || linux ? 'installer' : 'apk'] as Map);
   String get assetName => apk['name'] as String;
   int get size => apk['size'] as int;
   String get sha256 => apk['sha256'] as String;
@@ -82,21 +87,36 @@ class UpdateManifest {
       final source = Map<String, dynamic>.from(json['source'] as Map);
       final hash = RegExp(r'^[a-f0-9]{64}$');
       if (json['schemaVersion'] != 1 ||
+          !{'android', 'windows-x64', 'linux-x64'}.contains(platform) ||
           manifest.applicationId != Brand.applicationId ||
           manifest.platform != platform ||
           manifest.versionCode <= 0 ||
           manifest.versionName.isEmpty ||
-          manifest.minSdk < (manifest.windows ? 17763 : 24) ||
+          manifest.minSdk <
+              (manifest.windows
+                  ? 17763
+                  : manifest.linux
+                      ? 36
+                      : 24) ||
           manifest.minSdk > (manifest.windows ? 999999 : 100) ||
           manifest.abis.length != 1 ||
-          manifest.abis.single != (manifest.windows ? 'x86_64' : 'arm64-v8a') ||
+          manifest.abis.single !=
+              (manifest.windows || manifest.linux ? 'x86_64' : 'arm64-v8a') ||
           manifest.size <= 0 ||
           manifest.size > maxApkBytes ||
           !(manifest.windows
                   ? RegExp(r'^JMS-Windows-[A-Za-z0-9._+-]+-x64-setup\.exe$')
-                  : RegExp(r'^[A-Za-z0-9][A-Za-z0-9._+-]*\.apk$'))
+                  : manifest.linux
+                      ? RegExp(
+                          r'^JMS-Linux-[A-Za-z0-9._+-]+-x86_64\.pkg\.tar\.xz$')
+                      : RegExp(r'^[A-Za-z0-9][A-Za-z0-9._+-]*\.apk$'))
               .hasMatch(manifest.assetName) ||
           (manifest.windows && json['signing'] != 'unsigned') ||
+          (manifest.linux &&
+              (json['signing'] != 'unsigned' ||
+                  json['packageFormat'] != 'arch' ||
+                  json['packageVersion'] !=
+                      '${manifest.versionName.replaceFirst('-', '_')}-${manifest.versionCode}')) ||
           !hash.hasMatch(manifest.sha256) ||
           !RegExp(r'^[a-f0-9]{40}$').hasMatch(json['sourceCommit'] as String) ||
           !hash.hasMatch(source['sha256'] as String) ||
@@ -115,7 +135,7 @@ class UpdateManifest {
       platform == device.platform &&
       applicationId == device.applicationId &&
       minSdk <= device.sdk &&
-      device.abis.contains(windows ? 'x86_64' : 'arm64-v8a');
+      device.abis.contains(windows || linux ? 'x86_64' : 'arm64-v8a');
 }
 
 class ReleaseInfo {
@@ -185,7 +205,14 @@ class UpdateChecker {
         final assets = (release['assets'] as List)
             .map((asset) => Map<String, dynamic>.from(asset as Map))
             .toList();
-        final metadata = _asset(assets, 'update.json');
+        final metadataName = device.platform == 'linux-x64'
+            ? 'update-linux.json'
+            : 'update.json';
+        if (device.platform == 'linux-x64' &&
+            !assets.any((asset) => asset['name'] == metadataName)) {
+          continue;
+        }
+        final metadata = _asset(assets, metadataName);
         if (metadata['size'] is! int ||
             metadata['size'] <= 0 ||
             metadata['size'] > 65536) {

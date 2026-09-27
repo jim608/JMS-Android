@@ -8,6 +8,9 @@ set(BINARY_NAME "jms")
 # The unique GTK application identifier for this application. See:
 # https://wiki.gnome.org/HowDoI/ChooseApplicationID
 set(APPLICATION_ID "com.jim608.jms")
+set(MIMALLOC_USE_STATIC_LIBS OFF CACHE BOOL "Use distribution allocator" FORCE)
+set(MIMALLOC_PATH "" CACHE FILEPATH "Use the platform allocator" FORCE)
+set(MIMALLOC_LIB "" CACHE INTERNAL "Use the platform allocator" FORCE)
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.

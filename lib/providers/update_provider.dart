@@ -10,17 +10,23 @@ import 'package:fladder/util/update_checker.dart';
 import 'package:fladder/util/update_controller.dart';
 import 'package:fladder/util/update_source.dart';
 import 'package:fladder/util/windows_update_bridge.dart';
+import 'package:fladder/util/linux_update_bridge.dart';
 
 final updateProvider = ChangeNotifierProvider<UpdateController>((ref) {
   final windows = !kIsWeb && defaultTargetPlatform == TargetPlatform.windows;
+  final linux = !kIsWeb && defaultTargetPlatform == TargetPlatform.linux;
   final controller = UpdateController(
     checker: UpdateChecker(
-        source: windows
+        source: windows || linux
             ? const UpdateSource(owner: 'jim608', repo: 'JMS-Desktop')
             : const UpdateSource()),
-    bridge: windows ? createWindowsUpdateBridge() : AndroidUpdateBridge(),
-    supported:
-        !kIsWeb && (windows || defaultTargetPlatform == TargetPlatform.android),
+    bridge: windows
+        ? createWindowsUpdateBridge()
+        : linux
+            ? createLinuxUpdateBridge()
+            : AndroidUpdateBridge(),
+    supported: !kIsWeb &&
+        (windows || linux || defaultTargetPlatform == TargetPlatform.android),
   );
   controller.automatic = ref.read(clientSettingsProvider).checkForUpdates;
   controller.playback =

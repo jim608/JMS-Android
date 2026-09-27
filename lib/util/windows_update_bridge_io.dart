@@ -18,6 +18,8 @@ Future<String> installerDigest(String path) async =>
     (await sha256.bind(File(path).openRead()).first).toString();
 
 class WindowsUpdateBridge extends UpdateBridge {
+  String get targetPlatform => 'windows-x64';
+  String get installerFileName => 'installer.exe';
   @override
   bool get isDesktop => true;
   static const channel = MethodChannel('com.jim608.jms/desktop_updates');
@@ -65,7 +67,7 @@ class WindowsUpdateBridge extends UpdateBridge {
   Future<void> download(ReleaseInfo release) async {
     if (_downloading) throw PlatformException(code: 'busy');
     _checkAllowed();
-    if (!release.manifest.windows ||
+    if (release.manifest.platform != targetPlatform ||
         release.repository != source.identity ||
         !source.ownsAsset(release.apkUrl) ||
         release.apkUrl.pathSegments.last != release.manifest.assetName) {
@@ -98,7 +100,7 @@ class WindowsUpdateBridge extends UpdateBridge {
               const Duration(days: 1)) {
             continue;
           }
-          final oldInstaller = File('${entry.path}/installer.exe');
+          final oldInstaller = File('${entry.path}/$installerFileName');
           try {
             await _delete(oldInstaller);
           } on FileSystemException {
@@ -107,7 +109,7 @@ class WindowsUpdateBridge extends UpdateBridge {
         }
       }
       final staging = await folder.createTemp('jms-');
-      temporary = File('${staging.path}/installer.exe');
+      temporary = File('${staging.path}/$installerFileName');
       var target = release.apkUrl;
       http.StreamedResponse? payload;
       for (var redirects = 0; redirects < 6; redirects++) {
@@ -115,7 +117,7 @@ class WindowsUpdateBridge extends UpdateBridge {
         final request =
             http.AbortableRequest('GET', target, abortTrigger: _abort!.future)
               ..followRedirects = false
-              ..headers['User-Agent'] = 'JMS-Windows-Updater';
+              ..headers['User-Agent'] = 'JMS-Desktop-Updater';
         final response =
             await client.send(request).timeout(const Duration(seconds: 30));
         if (response.statusCode == 200) {
@@ -165,7 +167,7 @@ class WindowsUpdateBridge extends UpdateBridge {
         throw PlatformException(code: 'hash');
       }
       _checkAllowed();
-      await _validate(temporary, release);
+      await validateInstaller(temporary, release);
       _installer = temporary;
       _release = release;
       onProgress?.call(1);
@@ -184,7 +186,7 @@ class WindowsUpdateBridge extends UpdateBridge {
     }
   }
 
-  Future<void> _validate(File installer, ReleaseInfo release) async {
+  Future<void> validateInstaller(File installer, ReleaseInfo release) async {
     final accepted = await channel.invokeMethod<bool>('validate', {
       'path': installer.path,
       'versionName': release.manifest.versionName,
@@ -230,8 +232,13 @@ class WindowsUpdateBridge extends UpdateBridge {
       throw PlatformException(code: 'hash');
     }
     _checkAllowed();
+    await validateInstaller(installer, release);
+    return launchInstaller(installer, release);
+  }
+
+  Future<String> launchInstaller(File installer, ReleaseInfo release) async {
     return await channel.invokeMethod<String>('install', {
-          'path': path,
+          'path': installer.path,
           'versionName': release.manifest.versionName,
           'versionCode': release.manifest.versionCode,
         }) ??
