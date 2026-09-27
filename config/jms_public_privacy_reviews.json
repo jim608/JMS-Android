@@ -15706,5 +15706,271 @@
         "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
       }
     ]
+  },
+  {
+    "source": "https://chromium.googlesource.com/chromium/src/third_party/zlib/+/bf1e8de6cc305fdab82db1b65bed76b70bd96c8b",
+    "archiveSha256": "4122c60a87670621707f3cf12ab8786f9707b501379c4d593dc77bce1955a5dc",
+    "archiveKind": "git archive of the pinned upstream revision from the verified MSYS2 source package",
+    "member": "zlib/google/test/data/Different Encryptions.zip",
+    "sha256": "6b31406fad0767ddb9be0a90a20828e9e070e21fbe049b7eb2b392c1c345d935",
+    "rules": [],
+    "inspection": "raw-public-test-sample",
+    "explanation": "Fixed ZipCrypto/AES test fixture referenced by the upstream ZipReader encrypted-file tests. All five members were independently decrypted with the test-defined password and matched short explanatory text; authentication and CRC checks succeeded. No private policy rule is exempted.",
+    "testReference": "ZipReaderTest.EncryptedFile_RightPassword / EncryptedFile_WrongPassword",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "zlib/google/zip_reader_unittest.cc",
+      "sha256": "c9aebe297edd48ff375b2e668dddcadf9c57c64c34b324cf59eb8aa0a2f06c20"
+    },
+    "rawContentReview": {
+      "scope": "raw-bytes-only",
+      "method": "Compare the exact fixture bytes and test reference in the pinned zlib source snapshot. The normal publisher scans raw bytes only for this exact fixture.",
+      "conclusion": "Normal recursive ZIP extraction is not claimed. Independent local review decrypted every member with pyzipper 0.3.6, authenticated its contents, scanned plaintext with the private policy, and verified fixed non-sensitive explanatory sentences."
+    },
+    "independentDecodedReview": [
+      {
+        "member": "ClearText.txt",
+        "sha256": "aaa0177ea193d48966d4a1dd85fdbb288047305af22bc0d53504bc5f6ee51532",
+        "size": 23
+      },
+      {
+        "member": "Encrypted AES-128.txt",
+        "sha256": "71d536c1b41a3fb5c0d7effed8b13fce727a5759fd28e3aa570dd06d695fde06",
+        "size": 32
+      },
+      {
+        "member": "Encrypted AES-192.txt",
+        "sha256": "37c09f9647e8d89f332f7e199e9649431fa4a49af48e30c5cf22d80516f5441c",
+        "size": 32
+      },
+      {
+        "member": "Encrypted AES-256.txt",
+        "sha256": "bbfa60f2a5c36068d02077dfb1f6b76d67e2e5ab7ebdb0793c098b4648bdaf70",
+        "size": 32
+      },
+      {
+        "member": "Encrypted ZipCrypto.txt",
+        "sha256": "8565118685067d193ddef98891aa54916e2b28f4d95106d838ac6da2f8a6de71",
+        "size": 34
+      }
+    ]
+  },
+  {
+    "source": "https://github.com/ggml-org/whisper.cpp/blob/d09f61a708f3487afa956ff578e60eae5e7a233c/README.md",
+    "archiveSha256": "94d801a272d98bdeacec29ea1e7ce047fc31f9037d5d9579a4b800b5e08fb3cd",
+    "archiveKind": "git archive of the pinned upstream revision from the verified MSYS2 source package",
+    "member": "whisper.cpp/README.md",
+    "sha256": "43451813ec96b5ea286c6d676f467bdffb053224c110c257ce3d67d911e774e7",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "The README voice-activity-detection model conversion walkthrough includes a fixed example model-output path in a console transcript. This is upstream documentation of a local output filename, not this release builder or a service endpoint. No private-domain, credential or other rule is exempted.",
+    "evidence": {
+      "kind": "upstream-documented-command-output",
+      "member": "whisper.cpp/README.md",
+      "sha256": "43451813ec96b5ea286c6d676f467bdffb053224c110c257ce3d67d911e774e7"
+    }
+  },
+  {
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/timing-cert.pem",
+    "sha256": "a191595426f6f5ccf89eeed75b27f31ef4e885b372658d79dc3c78d22cf291bf",
+    "rules": [
+      "private file type"
+    ],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "explanation": "This exact member is byte-identical to the separately verified upstream fixture mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/servercert.pem. Its original test-reference evidence and the original fixture itself must both be present and verified. This exact public cryptographic fixture is explicitly selected by a literal srctop_file call in the pinned OpenSSL test recipe. The reference is a local certificate/key/parser test input, not an external service login. No private-domain, endpoint or credential-assignment exemption is granted.",
+    "testReference": "70-test_quic_multistream.t: srctop_file(test/certs/servercert.pem)",
+    "evidence": {
+      "kind": "upstream-explicit-test-input",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/70-test_quic_multistream.t",
+      "sha256": "ee14ce5f4de952ea9f6bc5caf7f531433fce1d957ac8d42d78b472264afd778c"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/servercert.pem",
+        "sha256": "a191595426f6f5ccf89eeed75b27f31ef4e885b372658d79dc3c78d22cf291bf"
+      }
+    ]
+  },
+  {
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/insta_ca.cert.pem",
+    "sha256": "14014d7ffd9e07e5115d233252cee9c4c0461414cd8bcc9a6ccc2a2c664764da",
+    "rules": [
+      "private file type"
+    ],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "explanation": "This exact member is byte-identical to the separately verified upstream fixture mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/65-test_cmp_vfy_data/insta_ca.cert.pem. Its original test-reference evidence and the original fixture itself must both be present and verified. This exact public cryptographic fixture is explicitly selected by a literal data_file call in the pinned OpenSSL test recipe. The reference is a local certificate/key/parser test input, not an external service login. No private-domain, endpoint or credential-assignment exemption is granted.",
+    "testReference": "65-test_cmp_vfy.t: data_file(test/recipes/65-test_cmp_vfy_data/insta_ca.cert.pem)",
+    "evidence": {
+      "kind": "upstream-explicit-test-input",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/65-test_cmp_vfy.t",
+      "sha256": "e8ea83181e348bbf21231aeb9a8d3fbe31d2c8bb6ef65869cd56934a1c96fe37"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/65-test_cmp_vfy_data/insta_ca.cert.pem",
+        "sha256": "14014d7ffd9e07e5115d233252cee9c4c0461414cd8bcc9a6ccc2a2c664764da"
+      }
+    ]
+  },
+  {
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading_data/dsaparam.pem",
+    "sha256": "a1ab301173519efc2a1e7c5428afe2a9be83ddc11469a32ff9e665770c12b935",
+    "rules": [
+      "private file type"
+    ],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "explanation": "This exact member is byte-identical to the separately verified upstream fixture mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/90-test_store_data/dsaparam.pem. Its original test-reference evidence and the original fixture itself must both be present and verified. This exact public cryptographic fixture is explicitly selected by a literal data_file call in the pinned OpenSSL test recipe. The reference is a local certificate/key/parser test input, not an external service login. No private-domain, endpoint or credential-assignment exemption is granted.",
+    "testReference": "90-test_store.t: data_file(test/recipes/90-test_store_data/dsaparam.pem)",
+    "evidence": {
+      "kind": "upstream-explicit-test-input",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/90-test_store.t",
+      "sha256": "508f089842d7cb708029f07fd63d55237c7c18063b8fede17b46a624fb3a4f82"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/90-test_store_data/dsaparam.pem",
+        "sha256": "a1ab301173519efc2a1e7c5428afe2a9be83ddc11469a32ff9e665770c12b935"
+      }
+    ]
+  },
+  {
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_pkey_provided/ED448.priv.pem",
+    "sha256": "7d80d12d8f866e70d92e80433feacf9d51493d6743685861438c908d91e95405",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "explanation": "This exact member is byte-identical to the separately verified upstream fixture mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/tested448.pem. Its original test-reference evidence and the original fixture itself must both be present and verified. This exact public cryptographic fixture is explicitly selected by a literal srctop_file call in the pinned OpenSSL test recipe. The reference is a local certificate/key/parser test input, not an external service login. No private-domain, endpoint or credential-assignment exemption is granted.",
+    "testReference": "15-test_ec.t: srctop_file(test/tested448.pem)",
+    "evidence": {
+      "kind": "upstream-explicit-test-input",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/15-test_ec.t",
+      "sha256": "9f0cb9228ceba727017e5a5084668238ff77450ef47a960d713737cb8f9d0e0c"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/tested448.pem",
+        "sha256": "7d80d12d8f866e70d92e80433feacf9d51493d6743685861438c908d91e95405"
+      }
+    ]
+  },
+  {
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_pkey_provided/ED448.pub.pem",
+    "sha256": "0e0020e00d45013c952ce7d239889e8a6bf737c7cd065b7cb4476d67451982be",
+    "rules": [
+      "private file type"
+    ],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "explanation": "This exact member is byte-identical to the separately verified upstream fixture mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/tested448pub.pem. Its original test-reference evidence and the original fixture itself must both be present and verified. This exact public cryptographic fixture is explicitly selected by a literal srctop_file call in the pinned OpenSSL test recipe. The reference is a local certificate/key/parser test input, not an external service login. No private-domain, endpoint or credential-assignment exemption is granted.",
+    "testReference": "15-test_ec.t: srctop_file(test/tested448pub.pem)",
+    "evidence": {
+      "kind": "upstream-explicit-test-input",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/15-test_ec.t",
+      "sha256": "9f0cb9228ceba727017e5a5084668238ff77450ef47a960d713737cb8f9d0e0c"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/tested448pub.pem",
+        "sha256": "0e0020e00d45013c952ce7d239889e8a6bf737c7cd065b7cb4476d67451982be"
+      }
+    ]
+  },
+  {
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/65-test_cmp_vfy_data/server.key",
+    "sha256": "bfaf84a22c38b0bb23d763616fdeba2d04800821fc302f50480df74b59214aff",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "explanation": "This exact member is byte-identical to the separately verified upstream fixture mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/65-test_cmp_client_data/server.key. Its original test-reference evidence and the original fixture itself must both be present and verified. This exact public cryptographic fixture is explicitly selected by a literal data_file call in the pinned OpenSSL test recipe. The reference is a local certificate/key/parser test input, not an external service login. No private-domain, endpoint or credential-assignment exemption is granted.",
+    "testReference": "65-test_cmp_client.t: data_file(test/recipes/65-test_cmp_client_data/server.key)",
+    "evidence": {
+      "kind": "upstream-explicit-test-input",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/65-test_cmp_client.t",
+      "sha256": "2d0f819ffa6063bf7fc8373550bbd6027beb3703cacb062f04137649e121038b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/65-test_cmp_client_data/server.key",
+        "sha256": "bfaf84a22c38b0bb23d763616fdeba2d04800821fc302f50480df74b59214aff"
+      }
+    ]
+  },
+  {
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_cmp_http_data/Mock/new_pass_12345.key",
+    "sha256": "fc8ccd0034c92c6fe970582549cec2ab84fa8fac95c85ead2a5981578d5da86e",
+    "rules": [
+      "private file type"
+    ],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "explanation": "This exact member is byte-identical to the separately verified upstream fixture mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/key-pass-12345.pem. Its original test-reference evidence and the original fixture itself must both be present and verified. This exact public cryptographic fixture is explicitly selected by a literal srctop_file call in the pinned OpenSSL test recipe. The reference is a local certificate/key/parser test input, not an external service login. No private-domain, endpoint or credential-assignment exemption is granted.",
+    "testReference": "25-test_verify.t: srctop_file(test/certs/key-pass-12345.pem)",
+    "evidence": {
+      "kind": "upstream-explicit-test-input",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/25-test_verify.t",
+      "sha256": "5ba87fccf8a3f9b0d65fdb442744829d9873eebe3d3ca51aa74a8da80515ecc6"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/key-pass-12345.pem",
+        "sha256": "fc8ccd0034c92c6fe970582549cec2ab84fa8fac95c85ead2a5981578d5da86e"
+      }
+    ]
+  },
+  {
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_cmp_http_data/Mock/server.key",
+    "sha256": "3ebf0386cca98f92ae4212060b89101ba737c1ea800da45577bc059a9dd4467e",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "explanation": "This exact member is byte-identical to the separately verified upstream fixture mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/serverkey.pem. Its original test-reference evidence and the original fixture itself must both be present and verified. This exact public cryptographic fixture is explicitly selected by a literal srctop_file call in the pinned OpenSSL test recipe. The reference is a local certificate/key/parser test input, not an external service login. No private-domain, endpoint or credential-assignment exemption is granted.",
+    "testReference": "70-test_quic_multistream.t: srctop_file(test/certs/serverkey.pem)",
+    "evidence": {
+      "kind": "upstream-explicit-test-input",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/70-test_quic_multistream.t",
+      "sha256": "ee14ce5f4de952ea9f6bc5caf7f531433fce1d957ac8d42d78b472264afd778c"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/serverkey.pem",
+        "sha256": "3ebf0386cca98f92ae4212060b89101ba737c1ea800da45577bc059a9dd4467e"
+      }
+    ]
+  },
+  {
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/90-test_threads_data/rsakey.pem",
+    "sha256": "3ebf0386cca98f92ae4212060b89101ba737c1ea800da45577bc059a9dd4467e",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "explanation": "This exact member is byte-identical to the separately verified upstream fixture mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/serverkey.pem. Its original test-reference evidence and the original fixture itself must both be present and verified. This exact public cryptographic fixture is explicitly selected by a literal srctop_file call in the pinned OpenSSL test recipe. The reference is a local certificate/key/parser test input, not an external service login. No private-domain, endpoint or credential-assignment exemption is granted.",
+    "testReference": "70-test_quic_multistream.t: srctop_file(test/certs/serverkey.pem)",
+    "evidence": {
+      "kind": "upstream-explicit-test-input",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/70-test_quic_multistream.t",
+      "sha256": "ee14ce5f4de952ea9f6bc5caf7f531433fce1d957ac8d42d78b472264afd778c"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/serverkey.pem",
+        "sha256": "3ebf0386cca98f92ae4212060b89101ba737c1ea800da45577bc059a9dd4467e"
+      }
+    ]
   }
 ]
