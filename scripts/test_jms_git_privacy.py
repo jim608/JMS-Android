@@ -139,6 +139,21 @@ class PrivacyTests(unittest.TestCase):
 
 
 class PublicSourceReviewTests(unittest.TestCase):
+    def test_zstandard_source_archive_is_inspected(self):
+        import io
+        import tarfile
+        import zstandard
+        from check_jms_git_privacy import scan_archive
+        stream = io.BytesIO()
+        with tarfile.open(fileobj=stream, mode='w') as archive:
+            content = b'https://private.example.invalid'
+            info = tarfile.TarInfo('fixture.txt')
+            info.size = len(content)
+            archive.addfile(info, io.BytesIO(content))
+        data = zstandard.ZstdCompressor().compress(stream.getvalue())
+        self.assertTrue(any('private domain' in reasons for _, reasons in
+            scan_archive('source.tar.zst', data, ['private.example.invalid'])))
+
     def test_exact_public_document_and_private_policy_remain_separate(self):
         import tarfile
         from pathlib import Path

@@ -118,10 +118,16 @@ def scan_archive(name, data, domains, depth=0):
             for member in archive.infolist():
                 if not member.is_dir():
                     results.extend(scan_archive(name + '/' + member.filename, archive.read(member), domains, depth + 1))
-    elif name.lower().endswith(('.tar.gz', '.tgz', '.tar.xz', '.tar', '.tar.bz2')):
+    elif name.lower().endswith(('.tar.gz', '.tgz', '.tar.xz', '.tar', '.tar.bz2', '.tar.zst')):
         if depth >= 6:
             raise ValueError('Archive nesting limit exceeded')
-        with tarfile.open(fileobj=io.BytesIO(data), mode='r:*') as archive:
+        stream = io.BytesIO(data)
+        mode = 'r:*'
+        if name.lower().endswith('.tar.zst'):
+            import zstandard
+            stream = zstandard.ZstdDecompressor().stream_reader(stream)
+            mode = 'r|'
+        with stream, tarfile.open(fileobj=stream, mode=mode) as archive:
             for member in archive:
                 if member.isfile():
                     results.extend(scan_archive(name + '/' + member.name, archive.extractfile(member).read(), domains, depth + 1))

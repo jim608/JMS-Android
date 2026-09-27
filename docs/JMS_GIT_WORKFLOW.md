@@ -70,3 +70,10 @@ flutter test test/jms_seerr_private_source_test.dart --no-pub
 本機與遠端 jms 已分歧，目前不推送。本輪不重新處理既有 tags 或附件。清理前需確認：先將 refs、tag OID、資產、update.json、雜湊和舊 sourceCommit 對照做私下備份；列出受影響使用者、clone、更新器及下載連結；決定是否接受移除舊附件／重写公開歷史的影響。若核准，保留不含私人值的舊版本追溯對照，透過真正新版本交付修正，不替換同版 APK，不宣稱可撤回既有 clone／已下載檔案。
 
 另核對到 5 版既有資產 metadata 的 sourceCommit 與目前遠端 tag OID 不同。這是既有追溯差異，不能以改寫舊 metadata、tag 或假定本輪重建來掩蓋；清理決策前必須保留這份對照。
+
+
+### 桌面來源封存檢查
+
+Windows 原生相應來源包含 `.src.tar.zst`；發布環境需安裝 `zstandard==0.25.0`，檢查器以串流展開並遞迴掃描內容。缺少解壓套件、格式損壞或巢狀封存超過限制時應停止發布，不得將未展開的封存視為已檢查。
+
+公開上游文件的精確核對記錄位於 `config/jms_public_privacy_reviews.json`，必須同時符合檔名、內容 SHA256 與核對類型。私人網域比對仍採本機清單，不能被公開文件核對記錄豁免。
