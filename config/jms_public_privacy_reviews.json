@@ -21013,5 +21013,1486 @@
       "member": "vulkan-loader/tests/loader_settings_tests.cpp",
       "sha256": "aa0df34ac1353f8eaed022362b35748855798ead8dc79daadf6da823f5f3b26a"
     }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/alt3-key.pem",
+    "sha256": "9b035957b577b798000fcba7ebca68915257aaf7d888f25d44fb23641aa51e4f",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh req by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/bad-pc3-key.pem",
+    "sha256": "32fada1041bf3a3f85f634572df4f3b2882e77c53e10891e43e4914aa5203920",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh req by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/bad-pc4-key.pem",
+    "sha256": "e31fbffae3ae256b2e1210d5ae581b8b8b70da54a8da5274083f9166c12f0fe8",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh req by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/bad-pc6-key.pem",
+    "sha256": "e931b0fb603d7ab5d08fcd28db4fb91a7fe62d0c7b770d0438ab767e1a6f9b52",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh req by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/badalt1-key.pem",
+    "sha256": "471809338278ea0d49cc9f5ff39df3b049e2f859720e56b5877b71ddd75e892a",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh req by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/badalt10-key.pem",
+    "sha256": "8ced0e5910a66bbf707d92af5efb7ee7b82b50f1bf146696f9d461f183770320",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh req by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/badalt2-key.pem",
+    "sha256": "7aaa121ea825f888c6cd92028b701a64c09923276c677b0d0c6542efa36a9c83",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh req by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/badalt3-key.pem",
+    "sha256": "c34128a4b3f43fc0439189cb25471bcc0d1d57b550caff6ca58636a7444f6508",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh req by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/badalt4-key.pem",
+    "sha256": "e7e916fc958fe00d00b8b340a42fb340f8dcf681d7cb1c9797562397dfcabbb2",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh req by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/badalt5-key.pem",
+    "sha256": "e7a6e7bf4d8ab85b1ed48a8966261606c0103268e30fc3c863d8aaade3a46fd4",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh req by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/badalt6-key.pem",
+    "sha256": "4d904092012531d2b864270747c546c0ab9f1ee3bdab354572be3737f5d961cc",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh req by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/badalt7-key.pem",
+    "sha256": "ed98e350f493420a1ba24dab524152d3dbdb92c3b807d05a482baa3d853f66f3",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh req by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/badalt8-key.pem",
+    "sha256": "836ecd4f03de6fc1f327b5dc845efaa0e23166fd236f87d71d04ae654cc30916",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh req by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/badalt9-key.pem",
+    "sha256": "320eca208d9eed07ba92a1fdc2bf226e6d952cb3131a354377c23c354d8e5add",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh req by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/badcn1-key.pem",
+    "sha256": "a7b1f559ee757009c6b79400548526e5e7fa27b15df586b38a142677a8549be3",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh req by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/ca-key-768.pem",
+    "sha256": "8eb536beb70e02fe229ee9a29d08e255b93fbdb27c8fc0e50a32bd2b097f3695",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh genca by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/cross-key.pem",
+    "sha256": "83da61d46029b84f46b0b0a48650c825214f6685125dfdc892188eab09f1c555",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh genroot by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/goodcn1-key.pem",
+    "sha256": "702ef215de9e7019482db6a0f37626984de1107501247b3bb87496e0d1cf40c4",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh req by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/goodcn2-key.pem",
+    "sha256": "8346461942300f53722246df7f39dcc648aa8d78b023ad657b16701873789def",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh req by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/ncca1-key.pem",
+    "sha256": "f01361a3cfa43fdd1aa410911009faab48e693b94e4eb7386bb15030fabfc4e1",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh genca by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/ncca2-key.pem",
+    "sha256": "c5d609ec3479b4072e83a17e48e0e5921f80f4949bb12ecd6b54aa11cda61343",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh genca by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/ncca3-key.pem",
+    "sha256": "5ad71cfbf914be8938b2d550971e5ac416bf99725438516964a856aa61ced3a3",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh genca by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/ncca4-key.pem",
+    "sha256": "cc16b5263d1d1cd9006363d46c13d68cda8f69d9f9103bcc0a93c76f22362436",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh genca by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/nccaothername-key.pem",
+    "sha256": "06859d5c3a4d66ae1b4d0d731544e80f9ea6b5c7b30ea2c242bc848daf3691c9",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh genca by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/pc1-key.pem",
+    "sha256": "22a3925db64874c1b12645b17cc2f37fef1a38ed136bc6f726148e1dd0a2f625",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh req by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/pc2-key.pem",
+    "sha256": "c6c85428c710124d91cce509fcd8e65bda98bf3b6fc417fe037104dc19568788",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh req by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/root-cross-cert.pem",
+    "sha256": "4a2c93b5b9ed3a766ab4868f3bf591ef05afa1ff8dc2cc1ccfd7faff16b1267f",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh genca by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/root-ed448-cert.pem",
+    "sha256": "638fd11355ad6861210bc84c6635ea6c36be8a8accc7482f34b53800a5c2428c",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh genroot by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/root-ed448-key.pem",
+    "sha256": "01affa3ed3ac84e4e853c730e73aa099fd6b6719d96bdf09802c53c2d62e2f65",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh genroot by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/root-key-768.pem",
+    "sha256": "418956dcdd5cd0fb91e35e60d04719a6babb1b3b2c49946e9ef7c0993b8b859a",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact named test-certificate fixture passed in a verified positional argument to mkcert.sh genroot by test/certs/setup.sh. The helper reads or generates the named PEM key/certificate for synthetic certificate-chain regression data. Both caller and helper bytes are bound; no upstream script was executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/client-pss-restrict-key.pem",
+    "sha256": "c4431abd5f7dd33eb168d484d0470ed2add2239e06316a83e51c9c879acc966e",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/ee-ecdsa-key.pem",
+    "sha256": "b309e4b736208f0ff0ffdf89db70f9584bcb23fcf04fbd54d816ad8492be6eb8",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/mksmime-certs.sh",
+      "sha256": "5ce230d3b6d97716ed1bc819710ec6bce0ea2b346b217e93bbe5683c0951bc11"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/ee-key-3072.pem",
+    "sha256": "bc049863dc0e8cb3dc48181d87143dba2372ce2ecfba841869793f46d23280b5",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/mksmime-certs.sh",
+      "sha256": "5ce230d3b6d97716ed1bc819710ec6bce0ea2b346b217e93bbe5683c0951bc11"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/ee-key-4096.pem",
+    "sha256": "f57f1bfa31f2ee2a77c590fa9277fdf3ebc1a51d5878cd636292dc3a40797cc1",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/mksmime-certs.sh",
+      "sha256": "5ce230d3b6d97716ed1bc819710ec6bce0ea2b346b217e93bbe5683c0951bc11"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/server-dsa-key.pem",
+    "sha256": "c1087d28d279317127a1dcb487eef227e01ba81cb13a2137919009fd73dbcc78",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/mksmime-certs.sh",
+      "sha256": "5ce230d3b6d97716ed1bc819710ec6bce0ea2b346b217e93bbe5683c0951bc11"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/server-ecdsa-key.pem",
+    "sha256": "a9d22a20cd7249108d0230677e6db3626104d0723cd21a43fbbd350c15b9f5c4",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/mksmime-certs.sh",
+      "sha256": "5ce230d3b6d97716ed1bc819710ec6bce0ea2b346b217e93bbe5683c0951bc11"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/server-pss-restrict-key.pem",
+    "sha256": "89889cbfb7028d27ecbda25e5eed3372fd5f288c5eb5ba282411f82ac87050d5",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/intermediate-cert.pem",
+    "sha256": "4bca7e2a415a6f23f20710c0a143b3098ab93159e2c46731989d7a1ba52ca009",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/mk-ocsp-cert-chain.sh",
+      "sha256": "a33e03601cab5dbd93847be1dc926d1bb19d890bb43a9955d779f0183ebd47e0"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/intermediate-csr.pem",
+    "sha256": "b0002906be2f0e336f69077d60cca44aa55e29e63628153f8c2ebb7efa260b04",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/mk-ocsp-cert-chain.sh",
+      "sha256": "a33e03601cab5dbd93847be1dc926d1bb19d890bb43a9955d779f0183ebd47e0"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/intermediate-key.pem",
+    "sha256": "8f58d8bc039ea4c55a7906226f5edde885f29e79bc7f80dcf2a7a44092553f4f",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/mk-ocsp-cert-chain.sh",
+      "sha256": "a33e03601cab5dbd93847be1dc926d1bb19d890bb43a9955d779f0183ebd47e0"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/ocsp.pem",
+    "sha256": "cdb820bb5f46ceca4bca2325baf219ca6e82cff22a8ca0c25ab4b372f38a19ff",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/mk-ocsp-cert-chain.sh",
+      "sha256": "a33e03601cab5dbd93847be1dc926d1bb19d890bb43a9955d779f0183ebd47e0"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/root-cert.pem",
+    "sha256": "5de17beb4ca6671457828194b888f77717ac435c12e8360cf6a6bddc0d3cb9fb",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/mk-ocsp-cert-chain.sh",
+      "sha256": "a33e03601cab5dbd93847be1dc926d1bb19d890bb43a9955d779f0183ebd47e0"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/root-key.pem",
+    "sha256": "2539f4cd02604a3bd5dbb67802390ab39fc3f21ebc20b631883194c02e6e6217",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/mk-ocsp-cert-chain.sh",
+      "sha256": "a33e03601cab5dbd93847be1dc926d1bb19d890bb43a9955d779f0183ebd47e0"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/server-cert.pem",
+    "sha256": "e8ae2ac52e957145e6eae8c530fbeae92adbc0d2ab4b81aad6d78b35e8c7fcbd",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/mk-ocsp-cert-chain.sh",
+      "sha256": "a33e03601cab5dbd93847be1dc926d1bb19d890bb43a9955d779f0183ebd47e0"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/server-csr.pem",
+    "sha256": "03892b1faa47d4535bca7c0f713d7995fb489e2326a83fad5e6adf72d82e14ab",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/mk-ocsp-cert-chain.sh",
+      "sha256": "a33e03601cab5dbd93847be1dc926d1bb19d890bb43a9955d779f0183ebd47e0"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/server-key.pem",
+    "sha256": "c76253ca733a00f812a636cf3c891eaed04d507376617d21c6cf62c6ef64efed",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/mk-ocsp-cert-chain.sh",
+      "sha256": "a33e03601cab5dbd93847be1dc926d1bb19d890bb43a9955d779f0183ebd47e0"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/server.pem",
+    "sha256": "86660f50980466d6f173c5441d4355d2947deaede468413990eb60b17fac8012",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/mk-ocsp-cert-chain.sh",
+      "sha256": "a33e03601cab5dbd93847be1dc926d1bb19d890bb43a9955d779f0183ebd47e0"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/csrsa1.pem",
+    "sha256": "f6b5d442faac9720cebd3b990f38497fca27f283cec95e39a3a1289e180e3bcf",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/mksmime-certs.sh",
+      "sha256": "5ce230d3b6d97716ed1bc819710ec6bce0ea2b346b217e93bbe5683c0951bc11"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/sm_mldsa44.pem",
+    "sha256": "640c60cffeda17071e20da90a858ecd3d9345aaa4aaf644ef1b4b2e10b652d02",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/mksmime-certs.sh",
+      "sha256": "5ce230d3b6d97716ed1bc819710ec6bce0ea2b346b217e93bbe5683c0951bc11"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/sm_mlkem512.pem",
+    "sha256": "193e10b71ebc5b9c007e767fa2749e796d040890f189eee7ce5f2e26336d5aa1",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/mksmime-certs.sh",
+      "sha256": "5ce230d3b6d97716ed1bc819710ec6bce0ea2b346b217e93bbe5683c0951bc11"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/sm_mlkem768.pem",
+    "sha256": "b8e118ac87d412ac555b05329369caa340d80cb2ad2ea8a3f1ed1761271d9bc5",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/mksmime-certs.sh",
+      "sha256": "5ce230d3b6d97716ed1bc819710ec6bce0ea2b346b217e93bbe5683c0951bc11"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/sm_slhdsa_sha2_128s.pem",
+    "sha256": "71473f399d61ba4d645b5d9ae1df15ec04f8f1f100fdc3ced639e856d631f0a8",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/mksmime-certs.sh",
+      "sha256": "5ce230d3b6d97716ed1bc819710ec6bce0ea2b346b217e93bbe5683c0951bc11"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/sm_slhdsa_shake_128s.pem",
+    "sha256": "d6e47b87b1e56936b1eb442ba7389161293fd165e9a724d489e186543996e991",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/mksmime-certs.sh",
+      "sha256": "5ce230d3b6d97716ed1bc819710ec6bce0ea2b346b217e93bbe5683c0951bc11"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/sm_slhdsa_shake_256s.pem",
+    "sha256": "1663e23a975609d69a4a3dc9e8fd9226d7286ccd22300f8c01b8465b18362c07",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/mksmime-certs.sh",
+      "sha256": "5ce230d3b6d97716ed1bc819710ec6bce0ea2b346b217e93bbe5683c0951bc11"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/smdh.pem",
+    "sha256": "749ccec1e5f240f1780b597aa2435c8458b1a03da1420bdca2dd16df8971faed",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/mksmime-certs.sh",
+      "sha256": "5ce230d3b6d97716ed1bc819710ec6bce0ea2b346b217e93bbe5683c0951bc11"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/smdsa2.pem",
+    "sha256": "d8f89c0981f06f84fc3c1d489e775f5676085d74cc244bc18255eadcc4b27eaa",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/mksmime-certs.sh",
+      "sha256": "5ce230d3b6d97716ed1bc819710ec6bce0ea2b346b217e93bbe5683c0951bc11"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/smdsa3.pem",
+    "sha256": "e23a199a8861bbb3bbf8bfa00cecdb58e3efdb8e4f110ab45195be244abadd94",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/mksmime-certs.sh",
+      "sha256": "5ce230d3b6d97716ed1bc819710ec6bce0ea2b346b217e93bbe5683c0951bc11"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/smec2.pem",
+    "sha256": "d2a6d74c17d4547568a11cc88411d55dbae6d3d90bd13a8e2d00aa8ca25cf2c1",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/mksmime-certs.sh",
+      "sha256": "5ce230d3b6d97716ed1bc819710ec6bce0ea2b346b217e93bbe5683c0951bc11"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/smroot.pem",
+    "sha256": "322cae84b8307d5f61bbde15e9f90f458844bd8ce8de6ef57cc6ee8f26da5381",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/mksmime-certs.sh",
+      "sha256": "5ce230d3b6d97716ed1bc819710ec6bce0ea2b346b217e93bbe5683c0951bc11"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/smrsa1.pem",
+    "sha256": "bbf734e62d5e22338a3ad178b6a8f7f251ee44b37b992b5837f77283a30bb843",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/mksmime-certs.sh",
+      "sha256": "5ce230d3b6d97716ed1bc819710ec6bce0ea2b346b217e93bbe5683c0951bc11"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/smrsa2.pem",
+    "sha256": "1d01d8dac710c1b729632c97ceee749278e2ce3036d879d0dd8b7d814cb1b9c8",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/mksmime-certs.sh",
+      "sha256": "5ce230d3b6d97716ed1bc819710ec6bce0ea2b346b217e93bbe5683c0951bc11"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/smrsa3-cert.pem",
+    "sha256": "4ce08fa65f9a7afe91821105ee9d32b85c1401631715d0848a4d98d8a65a9a48",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/mksmime-certs.sh",
+      "sha256": "5ce230d3b6d97716ed1bc819710ec6bce0ea2b346b217e93bbe5683c0951bc11"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/smrsa3-key.pem",
+    "sha256": "55a13bd1e768d508f8082c6c8e7067d78f0744fbd83a261e14c35566d3085885",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/mksmime-certs.sh",
+      "sha256": "5ce230d3b6d97716ed1bc819710ec6bce0ea2b346b217e93bbe5683c0951bc11"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/smrsa3.pem",
+    "sha256": "f9071a185a0ae21e6eccfef7b9421124f7462a3d4f0da2c0ad5a5277e9adf711",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Exact literal PEM filename read, generated, copied or concatenated by the upstream certificate-test fixture generator. Relative filenames were resolved against that generator directory. The generator explicitly constructs synthetic certificate tests; source was inspected without executing it.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/mksmime-certs.sh",
+      "sha256": "5ce230d3b6d97716ed1bc819710ec6bce0ea2b346b217e93bbe5683c0951bc11"
+    }
+  },
+  {
+    "source": "https://codeload.github.com/openssl/openssl/tar.gz/d9e309a675900030d7308e36f614962a344816f9",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/apps/ca-key.pem",
+    "sha256": "3490491a6a38d202a29ba250f717b8e3065eb1ee3e16d9e5e9171d3f8f2bf8b5",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Current fixture is byte-identical to the fixed OpenSSL historical commit that regenerated test certificates. The historical mkcerts.sh explicitly runs from apps and names this PEM in test CA/server certificate generation. Both the exact generator and historical archive provenance are included as evidence; no script execution or external authentication was attempted.",
+    "historicalSourceArchiveSha256": "7f5ae84fa36f32ece6eab632776e7ea877b3a1c87ec2697910f162a983a83600",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "archiveSha256": "4433873acb69e122a9a071d05143217f86bfe0a02ae0bc33a66b97b8250b59d6",
+      "member": "util/mkcerts.sh",
+      "sha256": "1604c6a591d29394c38a47051b7a8368a4eea5c96ca68d63e9eef64a71f738c3"
+    },
+    "additionalEvidence": [
+      {
+        "archiveSha256": "4433873acb69e122a9a071d05143217f86bfe0a02ae0bc33a66b97b8250b59d6",
+        "member": "SOURCE_MANIFEST.json",
+        "sha256": "0a23718de277b7988543a63d3e199ed43bad0be5ddaf1428e4e0b26afe8d3737"
+      }
+    ]
+  },
+  {
+    "source": "https://codeload.github.com/openssl/openssl/tar.gz/d9e309a675900030d7308e36f614962a344816f9",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/apps/ca-req.pem",
+    "sha256": "a1d0a69a7260d27a140a311a1f9a6e7364859a007f7a18bbd9681ccaa2c55121",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Current fixture is byte-identical to the fixed OpenSSL historical commit that regenerated test certificates. The historical mkcerts.sh explicitly runs from apps and names this PEM in test CA/server certificate generation. Both the exact generator and historical archive provenance are included as evidence; no script execution or external authentication was attempted.",
+    "historicalSourceArchiveSha256": "7f5ae84fa36f32ece6eab632776e7ea877b3a1c87ec2697910f162a983a83600",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "archiveSha256": "4433873acb69e122a9a071d05143217f86bfe0a02ae0bc33a66b97b8250b59d6",
+      "member": "util/mkcerts.sh",
+      "sha256": "1604c6a591d29394c38a47051b7a8368a4eea5c96ca68d63e9eef64a71f738c3"
+    },
+    "additionalEvidence": [
+      {
+        "archiveSha256": "4433873acb69e122a9a071d05143217f86bfe0a02ae0bc33a66b97b8250b59d6",
+        "member": "SOURCE_MANIFEST.json",
+        "sha256": "0a23718de277b7988543a63d3e199ed43bad0be5ddaf1428e4e0b26afe8d3737"
+      }
+    ]
+  },
+  {
+    "source": "https://codeload.github.com/openssl/openssl/tar.gz/d9e309a675900030d7308e36f614962a344816f9",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/apps/client.pem",
+    "sha256": "5517423efa9a5cd7ede4604399d1572f271260d2b7214ac4218f499387b18c99",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Current fixture is byte-identical to the fixed OpenSSL historical commit that regenerated test certificates. The historical mkcerts.sh explicitly runs from apps and names this PEM in test CA/server certificate generation. Both the exact generator and historical archive provenance are included as evidence; no script execution or external authentication was attempted.",
+    "historicalSourceArchiveSha256": "7f5ae84fa36f32ece6eab632776e7ea877b3a1c87ec2697910f162a983a83600",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "archiveSha256": "4433873acb69e122a9a071d05143217f86bfe0a02ae0bc33a66b97b8250b59d6",
+      "member": "util/mkcerts.sh",
+      "sha256": "1604c6a591d29394c38a47051b7a8368a4eea5c96ca68d63e9eef64a71f738c3"
+    },
+    "additionalEvidence": [
+      {
+        "archiveSha256": "4433873acb69e122a9a071d05143217f86bfe0a02ae0bc33a66b97b8250b59d6",
+        "member": "SOURCE_MANIFEST.json",
+        "sha256": "0a23718de277b7988543a63d3e199ed43bad0be5ddaf1428e4e0b26afe8d3737"
+      }
+    ]
+  },
+  {
+    "source": "https://codeload.github.com/openssl/openssl/tar.gz/d9e309a675900030d7308e36f614962a344816f9",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/apps/pca-key.pem",
+    "sha256": "6eba0a092a01ee003a4bf101491de540e4ee03b94075578a67084292581f0430",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Current fixture is byte-identical to the fixed OpenSSL historical commit that regenerated test certificates. The historical mkcerts.sh explicitly runs from apps and names this PEM in test CA/server certificate generation. Both the exact generator and historical archive provenance are included as evidence; no script execution or external authentication was attempted.",
+    "historicalSourceArchiveSha256": "7f5ae84fa36f32ece6eab632776e7ea877b3a1c87ec2697910f162a983a83600",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "archiveSha256": "4433873acb69e122a9a071d05143217f86bfe0a02ae0bc33a66b97b8250b59d6",
+      "member": "util/mkcerts.sh",
+      "sha256": "1604c6a591d29394c38a47051b7a8368a4eea5c96ca68d63e9eef64a71f738c3"
+    },
+    "additionalEvidence": [
+      {
+        "archiveSha256": "4433873acb69e122a9a071d05143217f86bfe0a02ae0bc33a66b97b8250b59d6",
+        "member": "SOURCE_MANIFEST.json",
+        "sha256": "0a23718de277b7988543a63d3e199ed43bad0be5ddaf1428e4e0b26afe8d3737"
+      }
+    ]
+  },
+  {
+    "source": "https://codeload.github.com/openssl/openssl/tar.gz/d9e309a675900030d7308e36f614962a344816f9",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/apps/pca-req.pem",
+    "sha256": "f043270a1483e035369e9aa6e7c3ee570f75e443b3a18a0198aed6c5b1f7b0bc",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Current fixture is byte-identical to the fixed OpenSSL historical commit that regenerated test certificates. The historical mkcerts.sh explicitly runs from apps and names this PEM in test CA/server certificate generation. Both the exact generator and historical archive provenance are included as evidence; no script execution or external authentication was attempted.",
+    "historicalSourceArchiveSha256": "7f5ae84fa36f32ece6eab632776e7ea877b3a1c87ec2697910f162a983a83600",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "archiveSha256": "4433873acb69e122a9a071d05143217f86bfe0a02ae0bc33a66b97b8250b59d6",
+      "member": "util/mkcerts.sh",
+      "sha256": "1604c6a591d29394c38a47051b7a8368a4eea5c96ca68d63e9eef64a71f738c3"
+    },
+    "additionalEvidence": [
+      {
+        "archiveSha256": "4433873acb69e122a9a071d05143217f86bfe0a02ae0bc33a66b97b8250b59d6",
+        "member": "SOURCE_MANIFEST.json",
+        "sha256": "0a23718de277b7988543a63d3e199ed43bad0be5ddaf1428e4e0b26afe8d3737"
+      }
+    ]
+  },
+  {
+    "source": "https://codeload.github.com/openssl/openssl/tar.gz/d9e309a675900030d7308e36f614962a344816f9",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/apps/s1024key.pem",
+    "sha256": "dd647f2b3d59c7450bd0693d215355ce93919b0462f4f57c35e4ce292e671a61",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Current fixture is byte-identical to the fixed OpenSSL historical commit that regenerated test certificates. The historical mkcerts.sh explicitly runs from apps and names this PEM in test CA/server certificate generation. Both the exact generator and historical archive provenance are included as evidence; no script execution or external authentication was attempted.",
+    "historicalSourceArchiveSha256": "7f5ae84fa36f32ece6eab632776e7ea877b3a1c87ec2697910f162a983a83600",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "archiveSha256": "4433873acb69e122a9a071d05143217f86bfe0a02ae0bc33a66b97b8250b59d6",
+      "member": "util/mkcerts.sh",
+      "sha256": "1604c6a591d29394c38a47051b7a8368a4eea5c96ca68d63e9eef64a71f738c3"
+    },
+    "additionalEvidence": [
+      {
+        "archiveSha256": "4433873acb69e122a9a071d05143217f86bfe0a02ae0bc33a66b97b8250b59d6",
+        "member": "SOURCE_MANIFEST.json",
+        "sha256": "0a23718de277b7988543a63d3e199ed43bad0be5ddaf1428e4e0b26afe8d3737"
+      }
+    ]
+  },
+  {
+    "source": "https://codeload.github.com/openssl/openssl/tar.gz/d9e309a675900030d7308e36f614962a344816f9",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/apps/s1024req.pem",
+    "sha256": "b6475a60576911f5dc510e2dd4aa63e6de82827dd74baf95dbc547a499a8328a",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Current fixture is byte-identical to the fixed OpenSSL historical commit that regenerated test certificates. The historical mkcerts.sh explicitly runs from apps and names this PEM in test CA/server certificate generation. Both the exact generator and historical archive provenance are included as evidence; no script execution or external authentication was attempted.",
+    "historicalSourceArchiveSha256": "7f5ae84fa36f32ece6eab632776e7ea877b3a1c87ec2697910f162a983a83600",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "archiveSha256": "4433873acb69e122a9a071d05143217f86bfe0a02ae0bc33a66b97b8250b59d6",
+      "member": "util/mkcerts.sh",
+      "sha256": "1604c6a591d29394c38a47051b7a8368a4eea5c96ca68d63e9eef64a71f738c3"
+    },
+    "additionalEvidence": [
+      {
+        "archiveSha256": "4433873acb69e122a9a071d05143217f86bfe0a02ae0bc33a66b97b8250b59d6",
+        "member": "SOURCE_MANIFEST.json",
+        "sha256": "0a23718de277b7988543a63d3e199ed43bad0be5ddaf1428e4e0b26afe8d3737"
+      }
+    ]
+  },
+  {
+    "source": "https://codeload.github.com/openssl/openssl/tar.gz/d9e309a675900030d7308e36f614962a344816f9",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/apps/s512-key.pem",
+    "sha256": "eabd97ef4ae742dc493633e69d55c477561662ca63a9d914da1cce76d70f562a",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "Current fixture is byte-identical to the fixed OpenSSL historical commit that regenerated test certificates. The historical mkcerts.sh explicitly runs from apps and names this PEM in test CA/server certificate generation. Both the exact generator and historical archive provenance are included as evidence; no script execution or external authentication was attempted.",
+    "historicalSourceArchiveSha256": "7f5ae84fa36f32ece6eab632776e7ea877b3a1c87ec2697910f162a983a83600",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "archiveSha256": "4433873acb69e122a9a071d05143217f86bfe0a02ae0bc33a66b97b8250b59d6",
+      "member": "util/mkcerts.sh",
+      "sha256": "1604c6a591d29394c38a47051b7a8368a4eea5c96ca68d63e9eef64a71f738c3"
+    },
+    "additionalEvidence": [
+      {
+        "archiveSha256": "4433873acb69e122a9a071d05143217f86bfe0a02ae0bc33a66b97b8250b59d6",
+        "member": "SOURCE_MANIFEST.json",
+        "sha256": "0a23718de277b7988543a63d3e199ed43bad0be5ddaf1428e4e0b26afe8d3737"
+      }
+    ]
+  },
+  {
+    "source": "https://codeload.github.com/openssl/openssl/tar.gz/d9e309a675900030d7308e36f614962a344816f9",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/apps/s512-req.pem",
+    "sha256": "492a3d866747d7495b8966d28641d327116f1f84e965177c213bbf9add182163",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Current fixture is byte-identical to the fixed OpenSSL historical commit that regenerated test certificates. The historical mkcerts.sh explicitly runs from apps and names this PEM in test CA/server certificate generation. Both the exact generator and historical archive provenance are included as evidence; no script execution or external authentication was attempted.",
+    "historicalSourceArchiveSha256": "7f5ae84fa36f32ece6eab632776e7ea877b3a1c87ec2697910f162a983a83600",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "archiveSha256": "4433873acb69e122a9a071d05143217f86bfe0a02ae0bc33a66b97b8250b59d6",
+      "member": "util/mkcerts.sh",
+      "sha256": "1604c6a591d29394c38a47051b7a8368a4eea5c96ca68d63e9eef64a71f738c3"
+    },
+    "additionalEvidence": [
+      {
+        "archiveSha256": "4433873acb69e122a9a071d05143217f86bfe0a02ae0bc33a66b97b8250b59d6",
+        "member": "SOURCE_MANIFEST.json",
+        "sha256": "0a23718de277b7988543a63d3e199ed43bad0be5ddaf1428e4e0b26afe8d3737"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-luajit-2.1.1788460057-2.src.tar.zst",
+    "archiveSha256": "177135677e726e45dcc40fe341c9c28caf4c08da6bccd98fb8e9c461f70a29ca",
+    "member": "luajit/doc/install.html",
+    "sha256": "15de72a60b49be4828b18545237bdbfa7b5d7fb4d7a7d02600830dd9413774be",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "sourceCommit": "24c20c94e7db195b640854619577441f9b4bc6be",
+    "explanation": "Documented user-selected installation PREFIX example in LuaJIT installation instructions; not an actual JMS build path.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "luajit/doc/install.html",
+      "sha256": "15de72a60b49be4828b18545237bdbfa7b5d7fb4d7a7d02600830dd9413774be"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-winpthreads-14.0.0.r426.g4564ee4b5-1.src.tar.zst",
+    "archiveSha256": "5f8f8acf70d62475accee34d8998f83918256b6279ce7b5b019788455cee7fe7",
+    "member": "mingw-w64/mingw-w64-doc/howto-build/mingw-w64-howto-build.txt",
+    "sha256": "66962ec454dac9aaa0c43520fd85cfeb0996175803731620281fb5ff6358ebbc",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "sourceCommit": "4564ee4b5063097bf747af3a3f8270a28adff820",
+    "explanation": "The how-to explicitly illustrates an example local binutils installation and corresponding PATH export, not a JMS user path.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "mingw-w64/mingw-w64-doc/howto-build/mingw-w64-howto-build.txt",
+      "sha256": "66962ec454dac9aaa0c43520fd85cfeb0996175803731620281fb5ff6358ebbc"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-winpthreads-14.0.0.r426.g4564ee4b5-1.src.tar.zst",
+    "archiveSha256": "5f8f8acf70d62475accee34d8998f83918256b6279ce7b5b019788455cee7fe7",
+    "member": "mingw-w64/mingw-w64-libraries/winpthreads/configure",
+    "sha256": "a72ff15ebecbef091bc3a47b18cfcd8ecd2b7d65090483c8862467bf1b27972b",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "sourceCommit": "4564ee4b5063097bf747af3a3f8270a28adff820",
+    "explanation": "All path matches are the fixed Haiku/BeOS system library search directory under /boot, assigned to sys_lib_dlsearch_path_spec; these are not personal directories.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "mingw-w64/mingw-w64-libraries/winpthreads/configure",
+      "sha256": "a72ff15ebecbef091bc3a47b18cfcd8ecd2b7d65090483c8862467bf1b27972b"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-winpthreads-14.0.0.r426.g4564ee4b5-1.src.tar.zst",
+    "archiveSha256": "5f8f8acf70d62475accee34d8998f83918256b6279ce7b5b019788455cee7fe7",
+    "member": "mingw-w64/mingw-w64-libraries/winpthreads/m4/libtool.m4",
+    "sha256": "3a6a898ce92e035a4c25d8f74e3eb5252ceed5408a5e0ef3d1f4880db44ce2fe",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "sourceCommit": "4564ee4b5063097bf747af3a3f8270a28adff820",
+    "explanation": "All path matches are the fixed Haiku/BeOS system library search directory under /boot, assigned to sys_lib_dlsearch_path_spec; these are not personal directories.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "mingw-w64/mingw-w64-libraries/winpthreads/m4/libtool.m4",
+      "sha256": "3a6a898ce92e035a4c25d8f74e3eb5252ceed5408a5e0ef3d1f4880db44ce2fe"
+    }
   }
 ]
