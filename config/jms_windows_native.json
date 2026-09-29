@@ -661,7 +661,8 @@
       "version": "4.2.0-1",
       "license": [
         "spdx:BSD-3-Clause-Clear"
-      ]
+      ],
+      "packageMember": "ucrt64/bin/libSvtAv1Enc-4.dll"
     },
     {
       "dll": "libtheoradec-2.dll",
@@ -1459,7 +1460,8 @@
       "version": "4.1.1-1",
       "license": [
         "spdx:Apache-2.0"
-      ]
+      ],
+      "packageMember": "ucrt64/bin/libLerc.dll"
     },
     {
       "dll": "libdatrie-1.dll",

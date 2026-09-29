@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import shutil
 import struct
+import tarfile
 
 
 def imports(path):
@@ -45,9 +46,47 @@ def digest(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
+def verify_package_members(package, entries):
+    """Bind staged DLL hashes to their exact members in the pinned package."""
+    import zstandard
+
+    expected = {}
+    for entry in entries:
+        member = entry.get('packageMember', 'ucrt64/bin/' + entry['dll'])
+        if member.startswith('/') or '..' in member.split('/') or '\\' in member:
+            raise ValueError('Unsafe native package member')
+        if member in expected and expected[member] != entry['sha256']:
+            raise ValueError('Conflicting native package member identity')
+        expected[member] = entry['sha256']
+    seen = set()
+    with package.open('rb') as raw, zstandard.ZstdDecompressor().stream_reader(raw) as stream:
+        with tarfile.open(fileobj=stream, mode='r|') as archive:
+            for member in archive:
+                name = member.name.removeprefix('./')
+                if name not in expected:
+                    continue
+                if name in seen or not member.isfile() or member.size > 512 * 1024 * 1024:
+                    raise ValueError('Invalid native package member')
+                with archive.extractfile(member) as payload:
+                    actual = hashlib.file_digest(payload, 'sha256').hexdigest()
+                if actual != expected[name]:
+                    raise ValueError('Native DLL differs from pinned package member')
+                seen.add(name)
+    if seen != set(expected):
+        raise ValueError('Native DLL missing from pinned package')
+
+
 def stage(materials, destination, manifest):
     record = json.loads(manifest.read_text(encoding='utf-8'))
     names = {entry['dll'].lower() for entry in record['libraries']}
+    packages = {}
+    for entry in record['libraries']:
+        packages.setdefault(entry['package'], []).append(entry)
+    for package, entries in packages.items():
+        checksums = {entry['packageSha256'] for entry in entries}
+        if len(checksums) != 1 or digest(materials / package) not in checksums:
+            raise ValueError('Pinned native package checksum mismatch')
+        verify_package_members(materials / package, entries)
     system = Path(os.environ['WINDIR']) / 'System32'
     for entry in record['libraries']:
         binary = materials / 'bin' / entry['dll']
