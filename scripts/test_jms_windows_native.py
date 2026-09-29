@@ -4,9 +4,10 @@ from pathlib import Path
 import tarfile
 import tempfile
 import unittest
+import zipfile
 
 import zstandard
-from stage_jms_windows_native import verify_package_members
+from stage_jms_windows_native import verify_package_members, verify_notices
 
 
 class NativePackageBindingTests(unittest.TestCase):
@@ -47,6 +48,34 @@ class NativePackageBindingTests(unittest.TestCase):
             path = self.package(root, [item, item])
             with self.assertRaisesRegex(ValueError, 'Invalid'):
                 verify_package_members(path, [self.entry()])
+
+    def test_sdk_wrapper_requires_exact_binary_member(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root) / 'sdk.zip'
+            with zipfile.ZipFile(path, 'w') as archive:
+                archive.writestr('x64/fixture.dll', b'fixture-dll')
+            verify_package_members(path, [self.entry(packageMember='x64/fixture.dll')])
+            with self.assertRaisesRegex(ValueError, 'missing'):
+                verify_package_members(path, [self.entry(packageMember='x86/fixture.dll')])
+
+    def test_notice_content_and_component_binding(self):
+        with tempfile.TemporaryDirectory() as root:
+            folder = Path(root)
+            (folder / 'notices').mkdir()
+            (folder / 'notices/LICENSE').write_bytes(b'fixture-license')
+            record = {'libraries': [{'notices': ['LICENSE']}], 'notices': {
+                'LICENSE': {'sha256': hashlib.sha256(b'fixture-license').hexdigest()}}}
+            self.assertEqual(len(verify_notices(folder, record)), 1)
+            (folder / 'notices/LICENSE').write_bytes(b'changed-license')
+            with self.assertRaisesRegex(ValueError, 'checksum'):
+                verify_notices(folder, record)
+            record['libraries'][0]['notices'] = ['missing']
+            with self.assertRaisesRegex(ValueError, 'binding'):
+                verify_notices(folder, record)
+
+    def test_missing_notices_rejected(self):
+        with self.assertRaisesRegex(ValueError, 'required'):
+            verify_notices(Path('.'), {'libraries': [{}]})
 
 
 if __name__ == '__main__':

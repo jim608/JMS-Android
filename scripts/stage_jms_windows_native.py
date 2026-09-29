@@ -7,6 +7,7 @@ from pathlib import Path
 import shutil
 import struct
 import tarfile
+import zipfile
 
 
 def imports(path):
@@ -59,6 +60,21 @@ def verify_package_members(package, entries):
             raise ValueError('Conflicting native package member identity')
         expected[member] = entry['sha256']
     seen = set()
+    if package.suffix == '.zip':
+        with zipfile.ZipFile(package) as archive:
+            for info in archive.infolist():
+                if info.filename not in expected:
+                    continue
+                if info.filename in seen or info.is_dir() or info.file_size > 512 * 1024 * 1024:
+                    raise ValueError('Invalid native package member')
+                with archive.open(info) as payload:
+                    actual = hashlib.file_digest(payload, 'sha256').hexdigest()
+                if actual != expected[info.filename]:
+                    raise ValueError('Native DLL differs from pinned package member')
+                seen.add(info.filename)
+        if seen != set(expected):
+            raise ValueError('Native DLL missing from pinned package')
+        return
     with package.open('rb') as raw, zstandard.ZstdDecompressor().stream_reader(raw) as stream:
         with tarfile.open(fileobj=stream, mode='r|') as archive:
             for member in archive:
@@ -76,8 +92,27 @@ def verify_package_members(package, entries):
         raise ValueError('Native DLL missing from pinned package')
 
 
+def verify_notices(materials, record):
+    notices = record.get('notices', {})
+    if not notices or any(not entry.get('notices') for entry in record['libraries']):
+        raise ValueError('Native component notices are required')
+    for entry in record['libraries']:
+        if any(name not in notices for name in entry['notices']):
+            raise ValueError('Native component notice binding is missing')
+    paths = []
+    for name, info in notices.items():
+        if Path(name).is_absolute() or '..' in name.split('/') or '\\' in name or ':' in name:
+            raise ValueError('Unsafe native notice path')
+        source = materials / 'notices' / name
+        if digest(source) != info['sha256']:
+            raise ValueError('Native component notice checksum mismatch')
+        paths.append((name, source))
+    return paths
+
+
 def stage(materials, destination, manifest):
     record = json.loads(manifest.read_text(encoding='utf-8'))
+    notices = verify_notices(materials, record)
     names = {entry['dll'].lower() for entry in record['libraries']}
     packages = {}
     for entry in record['libraries']:
@@ -103,6 +138,10 @@ def stage(materials, destination, manifest):
         raise ValueError('Fresh application staging directory is required')
     for entry in record['libraries']:
         shutil.copyfile(materials / 'bin' / entry['dll'], destination / entry['dll'])
+    for name, source in notices:
+        target = destination / 'licenses' / 'native' / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, target)
     shutil.copyfile(manifest, destination / 'JMS_NATIVE_MATERIALS.json')
     print('Verified native DLLs, normal/delay imports, packages and corresponding sources:', len(names))
 
