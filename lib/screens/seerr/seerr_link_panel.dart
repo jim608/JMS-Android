@@ -6,6 +6,7 @@ import 'package:fladder/providers/seerr_link_provider.dart';
 import 'package:fladder/providers/seerr_dashboard_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/screens/seerr/seerr_support_text.dart';
+import 'package:fladder/screens/settings/widgets/seerr_connection_dialog.dart';
 import 'package:fladder/seerr/seerr_connection.dart';
 import 'package:fladder/seerr/seerr_source.dart';
 import 'package:fladder/util/fladder_config.dart';
@@ -16,7 +17,10 @@ Future<void> openSeerrAccountLink(BuildContext context, WidgetRef ref) async {
   final source = effectiveJmsSeerrCredentials(account.seerrCredentials,
           configuredSource: FladderConfig.seerrBaseUrl)
       .serverUrl;
-  if (source.isEmpty) return;
+  if (source.isEmpty) {
+    await showSeerrConnectionDialog(context);
+    return;
+  }
   if (account.seerrCredentials?.linkedServerId !=
           account.credentials.serverId ||
       account.seerrCredentials?.serverUrl != source) {

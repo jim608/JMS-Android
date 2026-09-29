@@ -227,7 +227,8 @@ class User extends _$User {
       final current = state;
       if (current == null ||
           !current.sameIdentity(user) ||
-          current.seerrCredentials?.serverUrl != previous.serverUrl) {
+          current.seerrCredentials?.serverUrl !=
+              user.seerrCredentials?.serverUrl) {
         return;
       }
     }

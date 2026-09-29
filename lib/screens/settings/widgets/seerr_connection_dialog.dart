@@ -31,6 +31,7 @@ class SeerrConnectionDialog extends ConsumerStatefulWidget {
 
 class _SeerrConnectionDialogState extends ConsumerState<SeerrConnectionDialog> {
   final passwordController = TextEditingController();
+  final sourceController = TextEditingController();
   late final TextEditingController apiKeyController;
   final headerNameController = TextEditingController();
   final headerValueController = TextEditingController();
@@ -53,10 +54,34 @@ class _SeerrConnectionDialogState extends ConsumerState<SeerrConnectionDialog> {
   @override
   void dispose() {
     passwordController.dispose();
+    sourceController.dispose();
     apiKeyController.dispose();
     headerNameController.dispose();
     headerValueController.dispose();
     super.dispose();
+  }
+
+  Future<void> _saveSource() async {
+    final account = ref.read(userProvider);
+    if (processing || account == null) return;
+    setState(() {
+      processing = true;
+      localError = null;
+    });
+    try {
+      final source = seerrBaseUri(sourceController.text.trim()).toString();
+      await ref.read(userProvider.notifier).setSeerrServerUrl(source);
+      if (!mounted || ref.read(userProvider)?.sameIdentity(account) != true) {
+        return;
+      }
+      await ref.read(seerrLinkProvider.notifier).ensure(manual: true);
+    } on SeerrFailure catch (error) {
+      if (mounted) localError = seerrError(context, error);
+    } catch (_) {
+      if (mounted) localError = _statusLabel('service_unavailable');
+    } finally {
+      if (mounted) setState(() => processing = false);
+    }
   }
 
   void _saveAdvanced() {
@@ -214,7 +239,30 @@ class _SeerrConnectionDialogState extends ConsumerState<SeerrConnectionDialog> {
                         TextStyle(color: Theme.of(context).colorScheme.error)),
               ],
               const SeerrDiagnosticButton(),
-              if (status == 'binding_required' && account != null) ...[
+              if ((source == null || source.isEmpty) && account != null) ...[
+                TextField(
+                  key: const Key('seerr-service-url'),
+                  controller: sourceController,
+                  enabled: !busy,
+                  keyboardType: TextInputType.url,
+                  autocorrect: false,
+                  enableSuggestions: false,
+                  decoration: InputDecoration(
+                    labelText:
+                        seerrText(context, 'Seerr service URL', 'Seerr 服務網址'),
+                    hintText: 'https://seerr.example.org',
+                  ),
+                  onSubmitted: (_) => _saveSource(),
+                ),
+                TextButton(
+                  key: const Key('seerr-save-service-url'),
+                  onPressed: busy ? null : _saveSource,
+                  child: Text(seerrText(context, 'Save service URL', '儲存服務網址')),
+                ),
+              ],
+              if (status == 'binding_required' &&
+                  account != null &&
+                  source?.isNotEmpty == true) ...[
                 const SizedBox(height: 12),
                 FilledButton(
                   onPressed: processing
