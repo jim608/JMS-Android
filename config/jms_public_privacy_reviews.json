@@ -20515,5 +20515,503 @@
       "kind": "upstream-fixed-key-import-test"
     },
     "additionalEvidence": []
+  },
+  {
+    "source": "https://chromium.googlesource.com/angle/angle/+/890b5d8fa2988e3719e0d80421bf3e927db9cd5c",
+    "archiveSha256": "ebe3f6c9ec97464835eff445ee51df1406ce27c97e505be7bb8a9f8532672058",
+    "member": "angleproject/doc/DebuggingTips.md",
+    "sha256": "c3bb550366946d2e6f458478f198805c7056ad7ac3968613169d90ecfc3623e5",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Documented example SDK and NDK locations; every path is explicitly an example, not a JMS build path.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "angleproject/doc/DebuggingTips.md",
+      "sha256": "c3bb550366946d2e6f458478f198805c7056ad7ac3968613169d90ecfc3623e5"
+    }
+  },
+  {
+    "source": "https://chromium.googlesource.com/angle/angle/+/890b5d8fa2988e3719e0d80421bf3e927db9cd5c",
+    "archiveSha256": "ebe3f6c9ec97464835eff445ee51df1406ce27c97e505be7bb8a9f8532672058",
+    "member": "angleproject/util/posix/crash_handler_posix.cpp",
+    "sha256": "06933360591d6f8723ebc21dd17d72de99a660139b59f61c90b5e25e1810c8ee",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Comment-only examples explaining absolute crash-symbol path resolution.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "angleproject/util/posix/crash_handler_posix.cpp",
+      "sha256": "06933360591d6f8723ebc21dd17d72de99a660139b59f61c90b5e25e1810c8ee"
+    }
+  },
+  {
+    "source": "https://chromium.googlesource.com/chromium/src/build/+/70c150bc0ae989d00c15ab1ed67464198e4890d0",
+    "archiveSha256": "b7b0c6c69f8561887863a9d811718c5944394e3dae1460003dcf244822b08201",
+    "member": "build/android/chromium-debug.keystore",
+    "sha256": "43ca0449e656278af91d7d1e95f5b14f559a633c156e6353ff1ecb690359b322",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Shared Chromium Android debug-signing fixture, explicitly selected by config.gni with public debug alias and password. Read-only keytool validation confirmed that alias/password opens this exact fixture. It is not used to sign JMS releases and grants no private-domain exemption.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "build/config/android/config.gni",
+      "sha256": "ef78c69e8be9db34ad541873cf9df48e2f8121d12fe69212162a349e35113a96"
+    }
+  },
+  {
+    "source": "https://chromium.googlesource.com/chromium/src/build/+/70c150bc0ae989d00c15ab1ed67464198e4890d0",
+    "archiveSha256": "b7b0c6c69f8561887863a9d811718c5944394e3dae1460003dcf244822b08201",
+    "member": "build/chromeos/test_runner.py",
+    "sha256": "4f88e88834e8749ce97b828ad538a141ea7ae2aa7b57632f93b04b7934b88670",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "The standard ChromeOS chronos crash directory used to collect system test logs.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "build/chromeos/test_runner.py",
+      "sha256": "4f88e88834e8749ce97b828ad538a141ea7ae2aa7b57632f93b04b7934b88670"
+    }
+  },
+  {
+    "source": "https://chromium.googlesource.com/chromium/src/build/+/70c150bc0ae989d00c15ab1ed67464198e4890d0",
+    "archiveSha256": "b7b0c6c69f8561887863a9d811718c5944394e3dae1460003dcf244822b08201",
+    "member": "build/config/siso/reproxy.star",
+    "sha256": "76b80f138c1d7721ac7e0c6c38b7a5eee0ca33e8bd3fcf93c9ce311feb96e6bf",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Commented upstream rewrapper command illustrating build configuration; no JMS environment value.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "build/config/siso/reproxy.star",
+      "sha256": "76b80f138c1d7721ac7e0c6c38b7a5eee0ca33e8bd3fcf93c9ce311feb96e6bf"
+    }
+  },
+  {
+    "source": "https://chromium.googlesource.com/chromium/src/build/+/70c150bc0ae989d00c15ab1ed67464198e4890d0",
+    "archiveSha256": "b7b0c6c69f8561887863a9d811718c5944394e3dae1460003dcf244822b08201",
+    "member": "build/fuchsia/test/serial_boot_device.py",
+    "sha256": "5286338e58169eceb19f7432ab8402ea78878913cf6a086a9148956938d6c851",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Fixed upstream test-host directory for DMC logs; not a credential or JMS user path.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "build/fuchsia/test/serial_boot_device.py",
+      "sha256": "5286338e58169eceb19f7432ab8402ea78878913cf6a086a9148956938d6c851"
+    }
+  },
+  {
+    "source": "https://chromium.googlesource.com/external/github.com/KhronosGroup/SPIRV-Tools/+/257a227fbadf8176ea386c7d8fb9b889cbf08640",
+    "archiveSha256": "68f74743fe9fd02d53ccfc3d3280d31d45cc6b5883f8f1f07b0e8bcb213ac587",
+    "member": "spirv-tools/test/opt/opextinst_forward_ref_fixup_pass_test.cpp",
+    "sha256": "349e78a2bfa7f87b53c2200f484957f7524efc29cf0fbb094062a39f9dd8725e",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Literal SPIR-V shader debug OpString in expected regression-test input and output.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "spirv-tools/test/opt/opextinst_forward_ref_fixup_pass_test.cpp",
+      "sha256": "349e78a2bfa7f87b53c2200f484957f7524efc29cf0fbb094062a39f9dd8725e"
+    }
+  },
+  {
+    "source": "https://github.com/google/swiftshader/tree/c1f7fbbec4e17769c0182daae185466cb806d0d5",
+    "archiveSha256": "f76c7c95066b1666ee2223f25d84cf7ddf7a891300e47b8eebd41bcd10dbba37",
+    "member": "swiftshader-c1f7fbbec4e17769c0182daae185466cb806d0d5/tests/regres/cmd/regres/main.go",
+    "sha256": "4b02372874e04495653d601947883eb3644ce124593e82d50aa8403694af4a85",
+    "rules": [
+      "credential URL/header"
+    ],
+    "explanation": "The only credential-shaped URL contains literal runtime placeholders. The same source replaces both placeholders with separately supplied runtime values; no actual credential is stored in this member.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "swiftshader-c1f7fbbec4e17769c0182daae185466cb806d0d5/tests/regres/cmd/regres/main.go",
+      "sha256": "4b02372874e04495653d601947883eb3644ce124593e82d50aa8403694af4a85"
+    }
+  },
+  {
+    "source": "https://github.com/google/swiftshader/tree/c1f7fbbec4e17769c0182daae185466cb806d0d5",
+    "archiveSha256": "f76c7c95066b1666ee2223f25d84cf7ddf7a891300e47b8eebd41bcd10dbba37",
+    "member": "swiftshader-c1f7fbbec4e17769c0182daae185466cb806d0d5/tests/regres/llvm/10.0.0.pub.key",
+    "sha256": "8832cdaa241a735a21c630408814ec3168f6daae4a6e227a54d8414675a1d30c",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Public PGP verification key selected by the LLVM download signature checker. Bounded packet inspection found only public-key, public-subkey, user-ID and signature packets, with no secret-key packets.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "swiftshader-c1f7fbbec4e17769c0182daae185466cb806d0d5/tests/regres/llvm/llvm.go",
+      "sha256": "22c4949b645f7e8d38ebd75b94e01f7b60e51f1549661b3e999ef169506eb827"
+    }
+  },
+  {
+    "source": "https://github.com/google/swiftshader/tree/c1f7fbbec4e17769c0182daae185466cb806d0d5",
+    "archiveSha256": "f76c7c95066b1666ee2223f25d84cf7ddf7a891300e47b8eebd41bcd10dbba37",
+    "member": "swiftshader-c1f7fbbec4e17769c0182daae185466cb806d0d5/third_party/llvm-10.0/configs/common/include/llvm/IR/cmake_install.cmake",
+    "sha256": "4d5d6282ce90f0d3640aeabea6a582ab3feccb81a02ba7d26cb3402638bd9c87",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Generated upstream CMake install-script header recording its original LLVM source directory; no JMS user data.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "swiftshader-c1f7fbbec4e17769c0182daae185466cb806d0d5/third_party/llvm-10.0/configs/common/include/llvm/IR/cmake_install.cmake",
+      "sha256": "4d5d6282ce90f0d3640aeabea6a582ab3feccb81a02ba7d26cb3402638bd9c87"
+    }
+  },
+  {
+    "source": "https://github.com/google/swiftshader/tree/c1f7fbbec4e17769c0182daae185466cb806d0d5",
+    "archiveSha256": "f76c7c95066b1666ee2223f25d84cf7ddf7a891300e47b8eebd41bcd10dbba37",
+    "member": "swiftshader-c1f7fbbec4e17769c0182daae185466cb806d0d5/third_party/llvm-16.0/llvm/include/llvm/Support/Path.h",
+    "sha256": "ea275a4fe158e90d84bbab69183da3aeaad486133204b9be0aff49031448a1a6",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "LLVM Path API documentation illustrating a Windows root-name example; the path is a documentation literal.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "swiftshader-c1f7fbbec4e17769c0182daae185466cb806d0d5/third_party/llvm-16.0/llvm/include/llvm/Support/Path.h",
+      "sha256": "ea275a4fe158e90d84bbab69183da3aeaad486133204b9be0aff49031448a1a6"
+    }
+  },
+  {
+    "source": "https://chromium.googlesource.com/external/github.com/KhronosGroup/Vulkan-Loader/+/235d1d2cf617af03a2ecbf6e951287595138feda",
+    "archiveSha256": "2e0935d4f30ee1d52bd21ffd19a6d70980d93814d7976e218b50619a1507ebef",
+    "member": "vulkan-loader/docs/LoaderDriverInterface.md",
+    "sha256": "6fee9f43f917f24ecc877c94bf761981e54a18765892811cd9b837cf26f7a1b3",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Documented example driver search paths and standard per-user configuration layout.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "vulkan-loader/docs/LoaderDriverInterface.md",
+      "sha256": "6fee9f43f917f24ecc877c94bf761981e54a18765892811cd9b837cf26f7a1b3"
+    }
+  },
+  {
+    "source": "https://chromium.googlesource.com/external/github.com/KhronosGroup/Vulkan-Loader/+/235d1d2cf617af03a2ecbf6e951287595138feda",
+    "archiveSha256": "2e0935d4f30ee1d52bd21ffd19a6d70980d93814d7976e218b50619a1507ebef",
+    "member": "vulkan-loader/docs/LoaderLayerInterface.md",
+    "sha256": "fe7330a549dca027d08d94ab0b3315d64d965e2ee649a8be1446839f8b0ac05f",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Documented per-user Vulkan layer search directory layout.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "vulkan-loader/docs/LoaderLayerInterface.md",
+      "sha256": "fe7330a549dca027d08d94ab0b3315d64d965e2ee649a8be1446839f8b0ac05f"
+    }
+  },
+  {
+    "source": "https://chromium.googlesource.com/external/github.com/KhronosGroup/Vulkan-Loader/+/235d1d2cf617af03a2ecbf6e951287595138feda",
+    "archiveSha256": "2e0935d4f30ee1d52bd21ffd19a6d70980d93814d7976e218b50619a1507ebef",
+    "member": "vulkan-loader/docs/images/svgs/function_instance_chain.svg",
+    "sha256": "f44521e7e5b093c2ebe929b2c212276cd9d4cd9ce7191482fb25c393735b27d2",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Every path match is SVG editor export metadata in the fixed upstream documentation image.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "vulkan-loader/docs/images/svgs/function_instance_chain.svg",
+      "sha256": "f44521e7e5b093c2ebe929b2c212276cd9d4cd9ce7191482fb25c393735b27d2"
+    }
+  },
+  {
+    "source": "https://chromium.googlesource.com/external/github.com/KhronosGroup/Vulkan-Loader/+/235d1d2cf617af03a2ecbf6e951287595138feda",
+    "archiveSha256": "2e0935d4f30ee1d52bd21ffd19a6d70980d93814d7976e218b50619a1507ebef",
+    "member": "vulkan-loader/docs/images/svgs/high_level_loader.svg",
+    "sha256": "4fae90526f164e112710a7899d319829c3efcf113e1aafe26bdfa33f98ffd9f2",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Every path match is SVG editor export metadata in the fixed upstream documentation image.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "vulkan-loader/docs/images/svgs/high_level_loader.svg",
+      "sha256": "4fae90526f164e112710a7899d319829c3efcf113e1aafe26bdfa33f98ffd9f2"
+    }
+  },
+  {
+    "source": "https://chromium.googlesource.com/external/github.com/KhronosGroup/Vulkan-Loader/+/235d1d2cf617af03a2ecbf6e951287595138feda",
+    "archiveSha256": "2e0935d4f30ee1d52bd21ffd19a6d70980d93814d7976e218b50619a1507ebef",
+    "member": "vulkan-loader/docs/images/svgs/loader_device_chain_app.svg",
+    "sha256": "83b9e8bc4ae156c4f36f4b663962f73e42765bf9fd111f702519186b9997c215",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Every path match is SVG editor export metadata in the fixed upstream documentation image.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "vulkan-loader/docs/images/svgs/loader_device_chain_app.svg",
+      "sha256": "83b9e8bc4ae156c4f36f4b663962f73e42765bf9fd111f702519186b9997c215"
+    }
+  },
+  {
+    "source": "https://chromium.googlesource.com/external/github.com/KhronosGroup/Vulkan-Loader/+/235d1d2cf617af03a2ecbf6e951287595138feda",
+    "archiveSha256": "2e0935d4f30ee1d52bd21ffd19a6d70980d93814d7976e218b50619a1507ebef",
+    "member": "vulkan-loader/docs/images/svgs/loader_device_chain_loader.svg",
+    "sha256": "8dd6fcb7efdc227bfbe7e4f2b2780cb57da07c1a51876f5bb33f12f98d594700",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Every path match is SVG editor export metadata in the fixed upstream documentation image.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "vulkan-loader/docs/images/svgs/loader_device_chain_loader.svg",
+      "sha256": "8dd6fcb7efdc227bfbe7e4f2b2780cb57da07c1a51876f5bb33f12f98d594700"
+    }
+  },
+  {
+    "source": "https://chromium.googlesource.com/external/github.com/KhronosGroup/Vulkan-Loader/+/235d1d2cf617af03a2ecbf6e951287595138feda",
+    "archiveSha256": "2e0935d4f30ee1d52bd21ffd19a6d70980d93814d7976e218b50619a1507ebef",
+    "member": "vulkan-loader/docs/images/svgs/loader_device_surface_chain.svg",
+    "sha256": "a225a3e7ccf9c6eeb8d9b6889f86bd3f560fbbedffb4a824be2d8fdc8436f0dd",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Every path match is SVG editor export metadata in the fixed upstream documentation image.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "vulkan-loader/docs/images/svgs/loader_device_surface_chain.svg",
+      "sha256": "a225a3e7ccf9c6eeb8d9b6889f86bd3f560fbbedffb4a824be2d8fdc8436f0dd"
+    }
+  },
+  {
+    "source": "https://chromium.googlesource.com/external/github.com/KhronosGroup/Vulkan-Loader/+/235d1d2cf617af03a2ecbf6e951287595138feda",
+    "archiveSha256": "2e0935d4f30ee1d52bd21ffd19a6d70980d93814d7976e218b50619a1507ebef",
+    "member": "vulkan-loader/docs/images/svgs/loader_instance_chain.svg",
+    "sha256": "b25acbf44e5031b1a53855c7f903591fada1875ce1570a81db1bfd96a6be65d6",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Every path match is SVG editor export metadata in the fixed upstream documentation image.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "vulkan-loader/docs/images/svgs/loader_instance_chain.svg",
+      "sha256": "b25acbf44e5031b1a53855c7f903591fada1875ce1570a81db1bfd96a6be65d6"
+    }
+  },
+  {
+    "source": "https://chromium.googlesource.com/external/github.com/KhronosGroup/Vulkan-Loader/+/235d1d2cf617af03a2ecbf6e951287595138feda",
+    "archiveSha256": "2e0935d4f30ee1d52bd21ffd19a6d70980d93814d7976e218b50619a1507ebef",
+    "member": "vulkan-loader/docs/images/svgs/loader_layer_order.svg",
+    "sha256": "5ed95810d87d9ab219a128940c5532c8b04713f8a1262a7bcd86ab7630abc634",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Every path match is SVG editor export metadata in the fixed upstream documentation image.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "vulkan-loader/docs/images/svgs/loader_layer_order.svg",
+      "sha256": "5ed95810d87d9ab219a128940c5532c8b04713f8a1262a7bcd86ab7630abc634"
+    }
+  },
+  {
+    "source": "https://chromium.googlesource.com/external/github.com/KhronosGroup/Vulkan-Loader/+/235d1d2cf617af03a2ecbf6e951287595138feda",
+    "archiveSha256": "2e0935d4f30ee1d52bd21ffd19a6d70980d93814d7976e218b50619a1507ebef",
+    "member": "vulkan-loader/docs/images/svgs/loader_layer_order_calls.svg",
+    "sha256": "dc2fce9180747e91a41667c5c116584beff91b3211b29e8af0beab8d35a50945",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Every path match is SVG editor export metadata in the fixed upstream documentation image.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "vulkan-loader/docs/images/svgs/loader_layer_order_calls.svg",
+      "sha256": "dc2fce9180747e91a41667c5c116584beff91b3211b29e8af0beab8d35a50945"
+    }
+  },
+  {
+    "source": "https://chromium.googlesource.com/external/github.com/KhronosGroup/Vulkan-Loader/+/235d1d2cf617af03a2ecbf6e951287595138feda",
+    "archiveSha256": "2e0935d4f30ee1d52bd21ffd19a6d70980d93814d7976e218b50619a1507ebef",
+    "member": "vulkan-loader/tests/framework/data/binaries/dummy_library_elf_32.dll",
+    "sha256": "3b7de3d9bf7ff2f4e85b03ba5c94ea2e5fe5d78337e5fc06c56d53b973ec9b43",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Upstream dummy-library architecture/format regression fixture. The committed generator builds only void dummy() {} and deliberately copies ELF/PE under wrong extensions. Path matches are embedded upstream compiler/debug metadata, not JMS personal settings. This approval applies only to the path rule and this exact fixture.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "vulkan-loader/tests/framework/data/CMakeLists.txt",
+      "sha256": "7657050b6b6a08d9afbce038d919e7ca1dfd1dd5b53b7abc5a392d53107ed592"
+    },
+    "additionalEvidence": [
+      {
+        "member": "vulkan-loader/tests/framework/data/stub.cpp",
+        "sha256": "6b8b40cc7bc2204b463997c1e865df7db858607de3f8dbe965ea047e7490742b"
+      }
+    ]
+  },
+  {
+    "source": "https://chromium.googlesource.com/external/github.com/KhronosGroup/Vulkan-Loader/+/235d1d2cf617af03a2ecbf6e951287595138feda",
+    "archiveSha256": "2e0935d4f30ee1d52bd21ffd19a6d70980d93814d7976e218b50619a1507ebef",
+    "member": "vulkan-loader/tests/framework/data/binaries/dummy_library_elf_64.dll",
+    "sha256": "83188e04c3aff11c225b6b252e9ac99ce0d5af389e8f4880120e032ce8d56371",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Upstream dummy-library architecture/format regression fixture. The committed generator builds only void dummy() {} and deliberately copies ELF/PE under wrong extensions. Path matches are embedded upstream compiler/debug metadata, not JMS personal settings. This approval applies only to the path rule and this exact fixture.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "vulkan-loader/tests/framework/data/CMakeLists.txt",
+      "sha256": "7657050b6b6a08d9afbce038d919e7ca1dfd1dd5b53b7abc5a392d53107ed592"
+    },
+    "additionalEvidence": [
+      {
+        "member": "vulkan-loader/tests/framework/data/stub.cpp",
+        "sha256": "6b8b40cc7bc2204b463997c1e865df7db858607de3f8dbe965ea047e7490742b"
+      }
+    ]
+  },
+  {
+    "source": "https://chromium.googlesource.com/external/github.com/KhronosGroup/Vulkan-Loader/+/235d1d2cf617af03a2ecbf6e951287595138feda",
+    "archiveSha256": "2e0935d4f30ee1d52bd21ffd19a6d70980d93814d7976e218b50619a1507ebef",
+    "member": "vulkan-loader/tests/framework/data/binaries/dummy_library_pe_32.dll",
+    "sha256": "fad538175ca6300f1765700c8ee493e7b13f0bfd73a7da53861e8a50c9aaec8c",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Upstream dummy-library architecture/format regression fixture. The committed generator builds only void dummy() {} and deliberately copies ELF/PE under wrong extensions. Path matches are embedded upstream compiler/debug metadata, not JMS personal settings. This approval applies only to the path rule and this exact fixture.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "vulkan-loader/tests/framework/data/CMakeLists.txt",
+      "sha256": "7657050b6b6a08d9afbce038d919e7ca1dfd1dd5b53b7abc5a392d53107ed592"
+    },
+    "additionalEvidence": [
+      {
+        "member": "vulkan-loader/tests/framework/data/stub.cpp",
+        "sha256": "6b8b40cc7bc2204b463997c1e865df7db858607de3f8dbe965ea047e7490742b"
+      }
+    ]
+  },
+  {
+    "source": "https://chromium.googlesource.com/external/github.com/KhronosGroup/Vulkan-Loader/+/235d1d2cf617af03a2ecbf6e951287595138feda",
+    "archiveSha256": "2e0935d4f30ee1d52bd21ffd19a6d70980d93814d7976e218b50619a1507ebef",
+    "member": "vulkan-loader/tests/framework/data/binaries/dummy_library_pe_32.so",
+    "sha256": "fad538175ca6300f1765700c8ee493e7b13f0bfd73a7da53861e8a50c9aaec8c",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Upstream dummy-library architecture/format regression fixture. The committed generator builds only void dummy() {} and deliberately copies ELF/PE under wrong extensions. Path matches are embedded upstream compiler/debug metadata, not JMS personal settings. This approval applies only to the path rule and this exact fixture.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "vulkan-loader/tests/framework/data/CMakeLists.txt",
+      "sha256": "7657050b6b6a08d9afbce038d919e7ca1dfd1dd5b53b7abc5a392d53107ed592"
+    },
+    "additionalEvidence": [
+      {
+        "member": "vulkan-loader/tests/framework/data/stub.cpp",
+        "sha256": "6b8b40cc7bc2204b463997c1e865df7db858607de3f8dbe965ea047e7490742b"
+      }
+    ]
+  },
+  {
+    "source": "https://chromium.googlesource.com/external/github.com/KhronosGroup/Vulkan-Loader/+/235d1d2cf617af03a2ecbf6e951287595138feda",
+    "archiveSha256": "2e0935d4f30ee1d52bd21ffd19a6d70980d93814d7976e218b50619a1507ebef",
+    "member": "vulkan-loader/tests/framework/data/binaries/dummy_library_pe_64.dll",
+    "sha256": "8f846aac866af38b645ae0fbd775d84b0ee37a0ab337cf4ae23fb0a30389d2e6",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Upstream dummy-library architecture/format regression fixture. The committed generator builds only void dummy() {} and deliberately copies ELF/PE under wrong extensions. Path matches are embedded upstream compiler/debug metadata, not JMS personal settings. This approval applies only to the path rule and this exact fixture.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "vulkan-loader/tests/framework/data/CMakeLists.txt",
+      "sha256": "7657050b6b6a08d9afbce038d919e7ca1dfd1dd5b53b7abc5a392d53107ed592"
+    },
+    "additionalEvidence": [
+      {
+        "member": "vulkan-loader/tests/framework/data/stub.cpp",
+        "sha256": "6b8b40cc7bc2204b463997c1e865df7db858607de3f8dbe965ea047e7490742b"
+      }
+    ]
+  },
+  {
+    "source": "https://chromium.googlesource.com/external/github.com/KhronosGroup/Vulkan-Loader/+/235d1d2cf617af03a2ecbf6e951287595138feda",
+    "archiveSha256": "2e0935d4f30ee1d52bd21ffd19a6d70980d93814d7976e218b50619a1507ebef",
+    "member": "vulkan-loader/tests/framework/data/binaries/dummy_library_pe_64.so",
+    "sha256": "8f846aac866af38b645ae0fbd775d84b0ee37a0ab337cf4ae23fb0a30389d2e6",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Upstream dummy-library architecture/format regression fixture. The committed generator builds only void dummy() {} and deliberately copies ELF/PE under wrong extensions. Path matches are embedded upstream compiler/debug metadata, not JMS personal settings. This approval applies only to the path rule and this exact fixture.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "vulkan-loader/tests/framework/data/CMakeLists.txt",
+      "sha256": "7657050b6b6a08d9afbce038d919e7ca1dfd1dd5b53b7abc5a392d53107ed592"
+    },
+    "additionalEvidence": [
+      {
+        "member": "vulkan-loader/tests/framework/data/stub.cpp",
+        "sha256": "6b8b40cc7bc2204b463997c1e865df7db858607de3f8dbe965ea047e7490742b"
+      }
+    ]
+  },
+  {
+    "source": "https://chromium.googlesource.com/external/github.com/KhronosGroup/Vulkan-Loader/+/235d1d2cf617af03a2ecbf6e951287595138feda",
+    "archiveSha256": "2e0935d4f30ee1d52bd21ffd19a6d70980d93814d7976e218b50619a1507ebef",
+    "member": "vulkan-loader/tests/framework/data/binaries/libdummy_library_elf_32.so",
+    "sha256": "3b7de3d9bf7ff2f4e85b03ba5c94ea2e5fe5d78337e5fc06c56d53b973ec9b43",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Upstream dummy-library architecture/format regression fixture. The committed generator builds only void dummy() {} and deliberately copies ELF/PE under wrong extensions. Path matches are embedded upstream compiler/debug metadata, not JMS personal settings. This approval applies only to the path rule and this exact fixture.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "vulkan-loader/tests/framework/data/CMakeLists.txt",
+      "sha256": "7657050b6b6a08d9afbce038d919e7ca1dfd1dd5b53b7abc5a392d53107ed592"
+    },
+    "additionalEvidence": [
+      {
+        "member": "vulkan-loader/tests/framework/data/stub.cpp",
+        "sha256": "6b8b40cc7bc2204b463997c1e865df7db858607de3f8dbe965ea047e7490742b"
+      }
+    ]
+  },
+  {
+    "source": "https://chromium.googlesource.com/external/github.com/KhronosGroup/Vulkan-Loader/+/235d1d2cf617af03a2ecbf6e951287595138feda",
+    "archiveSha256": "2e0935d4f30ee1d52bd21ffd19a6d70980d93814d7976e218b50619a1507ebef",
+    "member": "vulkan-loader/tests/framework/data/binaries/libdummy_library_elf_64.so",
+    "sha256": "83188e04c3aff11c225b6b252e9ac99ce0d5af389e8f4880120e032ce8d56371",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Upstream dummy-library architecture/format regression fixture. The committed generator builds only void dummy() {} and deliberately copies ELF/PE under wrong extensions. Path matches are embedded upstream compiler/debug metadata, not JMS personal settings. This approval applies only to the path rule and this exact fixture.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "vulkan-loader/tests/framework/data/CMakeLists.txt",
+      "sha256": "7657050b6b6a08d9afbce038d919e7ca1dfd1dd5b53b7abc5a392d53107ed592"
+    },
+    "additionalEvidence": [
+      {
+        "member": "vulkan-loader/tests/framework/data/stub.cpp",
+        "sha256": "6b8b40cc7bc2204b463997c1e865df7db858607de3f8dbe965ea047e7490742b"
+      }
+    ]
+  },
+  {
+    "source": "https://chromium.googlesource.com/external/github.com/KhronosGroup/Vulkan-Loader/+/235d1d2cf617af03a2ecbf6e951287595138feda",
+    "archiveSha256": "2e0935d4f30ee1d52bd21ffd19a6d70980d93814d7976e218b50619a1507ebef",
+    "member": "vulkan-loader/tests/loader_settings_tests.cpp",
+    "sha256": "aa0df34ac1353f8eaed022362b35748855798ead8dc79daadf6da823f5f3b26a",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Synthetic per-user loader-settings path assembled by the regression-test helper.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "vulkan-loader/tests/loader_settings_tests.cpp",
+      "sha256": "aa0df34ac1353f8eaed022362b35748855798ead8dc79daadf6da823f5f3b26a"
+    }
   }
 ]
