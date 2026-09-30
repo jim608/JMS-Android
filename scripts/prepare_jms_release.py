@@ -132,31 +132,17 @@ def main():
     destination.mkdir(parents=True, exist_ok=True)
     owner_path.write_text(json.dumps(owner), encoding='utf-8')
     source_archive = destination / ("JMS-" + version + "-source.zip")
-    names = run("git", "ls-tree", "-rz", "--name-only", commit).split("\0") if snapshot else run("git", "ls-files", "-z", "--cached", "--others", "--exclude-standard").split("\0")
-    source_manifest = {}
-    with zipfile.ZipFile(source_archive, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as archive:
-        for name in sorted(set(names)):
-            if not name or not (ROOT / name).is_file() or not validate_source_name(name):
-                continue
-            path = ROOT / name
-            if path.is_symlink():
-                raise ValueError("Source symlink requires manual review: " + name)
-            if snapshot:
-                data = subprocess.check_output(['rtk', 'proxy', 'git', 'cat-file', 'blob', f'{commit}:{name}'], cwd=ROOT)
-            else:
-                data = path.read_bytes()
-            if SECRET.search(data):
-                raise ValueError("Potential secret in source: " + name)
-            archive.writestr("JMS/" + name, data)
-            source_manifest[name] = hashlib.sha256(data).hexdigest()
-        missing = [entry["path"] for entry in record["inputs"] if entry["path"] not in source_manifest]
-        if missing:
-            raise ValueError("Build inputs missing from source package: " + ", ".join(missing))
-        archive.writestr("JMS/build-inputs.json", json.dumps(record, indent=2))
-        archive.writestr("JMS/source-manifest.json", json.dumps({"sourceCommit": commit, "dirty": not snapshot,
-                          "files": source_manifest}, indent=2))
-        if not snapshot:
-            archive.writestr("JMS/source-changes.patch", run("git", "diff", "--binary", "HEAD", "--", *sorted(ALLOWED_ROOTS), *sorted(ALLOWED_FILES)))
+    if not snapshot:
+        raise ValueError('Release source requires a verified committed build record')
+    from package_jms_sources import committed_archive
+    if source_archive.exists():
+        from jms_desktop_publication import verify_source_archive
+        verify_source_archive(source_archive, commit)
+        with zipfile.ZipFile(source_archive) as archive:
+            if json.loads(archive.read('JMS/build-inputs.json')) != record:
+                raise ValueError('Existing prepared source belongs to another build record')
+    else:
+        committed_archive(commit, source_archive, ROOT, record)
     shutil.copy2(apk, destination / apk.name)
     metadata = {"schemaVersion": 1, **info, "sourceCommit": commit, "buildId": record["buildId"],
                 "apk": {"name": apk.name, "size": apk.stat().st_size, "sha256": sha256(apk)},
