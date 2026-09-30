@@ -18,10 +18,21 @@ from jms_git_release import committed_source, check_upstream, push_release, veri
 from prepare_jms_release import apk_info, require_bound_sources
 from verify_jms_snapshot import verify_snapshot
 from jms_legacy_verifier import prepare_legacy_verifier
+from check_jms_git_privacy import load_policy, scan_packages_cached
 
 PUBLICATION = ROOT / 'artifacts/publication'
 SDK = ROOT / '.jms-tools/android-sdk/build-tools/35.0.0'
 FLUTTER = ROOT / '.jms-tools/flutter/bin/flutter.bat'
+
+
+def verify_asset_privacy(assets):
+    report = scan_packages_cached(
+        [asset['path'] for asset in assets.values()], load_policy(),
+        PUBLICATION / 'privacy-cache')
+    save_json(PUBLICATION / 'asset-privacy.json', report)
+    if not report['complete'] or not report['accepted']:
+        raise ReleaseError('Release asset privacy inspection rejected content; see local asset-privacy.json')
+    return report
 
 
 def version_info():
@@ -326,8 +337,7 @@ def publish(args):
             save()
             committed_source(publication_commit)
             committed_source(state['sourceCommit'], allow_ancestor=True)
-            for asset in assets.values():
-                execute([sys.executable, 'scripts/check_jms_git_privacy.py', '--package', asset['path']])
+            verify_asset_privacy(assets)
             helper = '!"' + str(github.executable).replace('\\', '/') + '" auth git-credential'
             push_release('https://github.com/' + REPOSITORY + '.git', state['sourceCommit'], tag,
                          branch_commit=publication_commit,
