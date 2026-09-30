@@ -104,7 +104,7 @@ void main() {
     expect(
         UpdateSource.allowedRedirect(Uri.parse('https://release-assets.githubusercontent.com/a?sig=redacted')), true);
   });
-  for (final entry in {2004: UpdateStatus.current, 2005: UpdateStatus.current, 2006: UpdateStatus.available}.entries) {
+  for (final entry in {2004: UpdateStatus.ahead, 2005: UpdateStatus.current, 2006: UpdateStatus.available}.entries) {
     test('integer version comparison ${entry.key}', () async {
       final updater = checker(metadata: manifest(code: entry.key));
       expect((await updater.check(device)).status, entry.value);

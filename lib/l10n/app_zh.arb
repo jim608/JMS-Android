@@ -31,7 +31,7 @@
   "jmsUpdatePermission": "前往安裝權限設定",
   "jmsUpdateLater": "稍後再說",
   "jmsUpdateSkip": "略過此版本",
-  "jmsUpdateState": "{state, select, unconfigured{尚未設定更新來源} idle{尚未檢查} checking{檢查中…} noRelease{已連上更新來源，此頻道尚無可用的已發布版本} current{已是最新的相容版本} available{找到新版} sourceUnavailable{無法存取更新儲存庫：不存在或沒有權限} network{網路失敗，請手動重試} rateLimited{GitHub 限流，請稍後再試} incomplete{更新資料不完整或格式錯誤} incompatible{沒有適合此裝置的 ARM64 更新} downloading{下載並核對 SHA-256 中…} downloaded{下載及核對完成，仍需您確認安裝} cancelled{下載已取消} downloadFailed{下載或檔案核對失敗} permissionRequired{需要安裝權限} installPending{安裝待確認，尚未確認更新成功} installCancelled{安裝已取消／未確認} installBlocked{安裝被阻擋或驗證失敗} updated{重新啟動後已確認更新成功} playbackBlocked{播放期間或 App 在背景，暫停更新操作} unsupported{App 內更新僅支援 Android} other{尚未檢查}}",
+  "jmsUpdateState": "{state, select, unconfigured{尚未設定更新來源} idle{尚未檢查} checking{檢查中…} noRelease{已連上更新來源，此頻道尚無可用的已發布版本} current{已是最新的相容版本} ahead{目前安裝版本較此頻道已發布版本新；尚無可下載的新版} available{找到新版} sourceUnavailable{無法存取更新儲存庫：不存在或沒有權限} network{網路失敗，請手動重試} rateLimited{GitHub 限流，請稍後再試} incomplete{更新資料不完整或格式錯誤} incompatible{沒有適合此裝置的 ARM64 更新} downloading{下載並核對 SHA-256 中…} downloaded{下載及核對完成，仍需您確認安裝} cancelled{下載已取消} downloadFailed{下載或檔案核對失敗} permissionRequired{需要安裝權限} installPending{安裝待確認，尚未確認更新成功} installCancelled{安裝已取消／未確認} installBlocked{安裝被阻擋或驗證失敗} updated{重新啟動後已確認更新成功} playbackBlocked{播放期間或 App 在背景，暫停更新操作} unsupported{App 內更新僅支援 Android} other{尚未檢查}}",
   "jmsUpdateFailure": "{reason, select, hash{SHA-256 不符，拒絕安裝。} signature{簽章與已安裝的 JMS 不符。請勿卸載或清除資料。} space{儲存空間不足。} size{APK 檔案大小不符。} incompatible{APK 身分、版本、ABI 或 Android 需求不符。} source{下載來源不可信。} split{不是完整的 ARM64 APK。} permission{安裝授權被拒絕或操作已延後。} systemBlocked{Android 阻擋了安裝程式。} notVerified{請重新下載並驗證更新。} other{操作失敗，可手動重試；未清除資料。}}",
   "jmsAmbientIntensity": "光晕强度",
   "jmsAmbientSpread": "扩散范围",

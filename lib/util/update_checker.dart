@@ -17,6 +17,7 @@ enum UpdateStatus {
   checking,
   noRelease,
   current,
+  ahead,
   available,
   network,
   sourceUnavailable,
@@ -201,6 +202,7 @@ class UpdateChecker {
       }
       ReleaseInfo? newest;
       var compatible = false;
+      var sameVersion = false;
       for (final release in candidates) {
         final assets = (release['assets'] as List)
             .map((asset) => Map<String, dynamic>.from(asset as Map))
@@ -234,6 +236,7 @@ class UpdateChecker {
         }
         if (!manifest.supports(device)) continue;
         compatible = true;
+        sameVersion |= manifest.versionCode == device.versionCode;
         if (manifest.versionCode <= device.versionCode) continue;
         final published = DateTime.parse(release['published_at'] as String);
         if (newest == null ||
@@ -251,7 +254,7 @@ class UpdateChecker {
           newest != null
               ? UpdateStatus.available
               : compatible
-                  ? UpdateStatus.current
+                  ? (sameVersion ? UpdateStatus.current : UpdateStatus.ahead)
                   : UpdateStatus.incompatible,
           newest);
     } on UpdateFailure catch (error) {

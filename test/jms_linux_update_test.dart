@@ -128,7 +128,7 @@ void main() {
     for (final older in [20, 19]) {
       versionCode = older;
       expect((await checker.check(linuxDevice, prerelease: true)).status,
-          UpdateStatus.current);
+          older == 20 ? UpdateStatus.current : UpdateStatus.ahead);
     }
   });
 }

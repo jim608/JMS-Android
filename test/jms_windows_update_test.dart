@@ -158,7 +158,7 @@ void main() {
     prerelease = false;
     for (final older in [15, 14]) {
       code = older;
-      expect((await checker.check(desktopDevice)).status, UpdateStatus.current);
+      expect((await checker.check(desktopDevice)).status, older == 15 ? UpdateStatus.current : UpdateStatus.ahead);
     }
   });
 
