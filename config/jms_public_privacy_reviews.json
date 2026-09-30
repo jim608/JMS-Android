@@ -37527,5 +37527,505 @@
       "member": "mbedtls-3.4.0/tests/suites/test_suite_pkcs1_v21.data",
       "sha256": "71c18387a3f1a5737cc34b74bb9bad66d6943996b46a1ec23cdb935b5b179432"
     }
+  },
+  {
+    "source": "https://codeload.github.com/FFmpeg/FFmpeg/zip/d388c347d41e4eb516dec05910551c5461e65615",
+    "archiveSha256": "3eca84c5395aaea4afd9fbedebb0b0191f75c79c1d00850b24dd38880aa3d6fb",
+    "member": "FFmpeg-d388c347d41e4eb516dec05910551c5461e65615/libavformat/tests/url.c",
+    "sha256": "9ef2d810636f3e8be4e4cf266c87136dd3851730e7a0e0d4f60d1f82f3638220",
+    "rules": [
+      "credential URL/header"
+    ],
+    "explanation": "Credential-shaped userinfo is passed to the URL decomposition test helper test_decompose/test2, not to external authentication. Identical full member bytes were independently matched to the previous reviewed distribution.",
+    "evidence": {
+      "kind": "upstream-source-context",
+      "member": "FFmpeg-d388c347d41e4eb516dec05910551c5461e65615/libavformat/tests/url.c",
+      "sha256": "9ef2d810636f3e8be4e4cf266c87136dd3851730e7a0e0d4f60d1f82f3638220"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://codeload.github.com/FFmpeg/FFmpeg/zip/d388c347d41e4eb516dec05910551c5461e65615",
+    "archiveSha256": "3eca84c5395aaea4afd9fbedebb0b0191f75c79c1d00850b24dd38880aa3d6fb",
+    "member": "FFmpeg-d388c347d41e4eb516dec05910551c5461e65615/tests/ref/fate/url",
+    "sha256": "a5b2378a47e738a3513eedb60c2b49eeb9f8f483713a377f03615c8c0f80d1ed",
+    "rules": [
+      "credential URL/header"
+    ],
+    "explanation": "Expected textual output of the FFmpeg URL decomposition regression. Userinfo fields are synthetic parser expectations. Identical full member bytes were independently matched to the previous reviewed distribution.",
+    "evidence": {
+      "kind": "upstream-source-context",
+      "member": "FFmpeg-d388c347d41e4eb516dec05910551c5461e65615/tests/ref/fate/url",
+      "sha256": "a5b2378a47e738a3513eedb60c2b49eeb9f8f483713a377f03615c8c0f80d1ed"
+    },
+    "additionalEvidence": [
+      {
+        "member": "FFmpeg-d388c347d41e4eb516dec05910551c5461e65615/libavformat/tests/url.c",
+        "sha256": "9ef2d810636f3e8be4e4cf266c87136dd3851730e7a0e0d4f60d1f82f3638220"
+      }
+    ]
+  },
+  {
+    "source": "https://codeload.github.com/FFmpeg/FFmpeg/zip/refs/tags/n6.0",
+    "archiveSha256": "dc22aee07c9339f8b16162d3c1927b8e310981bc96d97216a1d6564c150908c7",
+    "member": "FFmpeg-n6.0/libavformat/tests/url.c",
+    "sha256": "9ef2d810636f3e8be4e4cf266c87136dd3851730e7a0e0d4f60d1f82f3638220",
+    "rules": [
+      "credential URL/header"
+    ],
+    "explanation": "Credential-shaped userinfo is passed to the URL decomposition test helper test_decompose/test2, not to external authentication. Identical full member bytes were independently matched to the previous reviewed distribution.",
+    "evidence": {
+      "kind": "upstream-source-context",
+      "member": "FFmpeg-n6.0/libavformat/tests/url.c",
+      "sha256": "9ef2d810636f3e8be4e4cf266c87136dd3851730e7a0e0d4f60d1f82f3638220"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://codeload.github.com/FFmpeg/FFmpeg/zip/refs/tags/n6.0",
+    "archiveSha256": "dc22aee07c9339f8b16162d3c1927b8e310981bc96d97216a1d6564c150908c7",
+    "member": "FFmpeg-n6.0/tests/ref/fate/url",
+    "sha256": "a5b2378a47e738a3513eedb60c2b49eeb9f8f483713a377f03615c8c0f80d1ed",
+    "rules": [
+      "credential URL/header"
+    ],
+    "explanation": "Expected textual output of the FFmpeg URL decomposition regression. Userinfo fields are synthetic parser expectations. Identical full member bytes were independently matched to the previous reviewed distribution.",
+    "evidence": {
+      "kind": "upstream-source-context",
+      "member": "FFmpeg-n6.0/tests/ref/fate/url",
+      "sha256": "a5b2378a47e738a3513eedb60c2b49eeb9f8f483713a377f03615c8c0f80d1ed"
+    },
+    "additionalEvidence": [
+      {
+        "member": "FFmpeg-n6.0/libavformat/tests/url.c",
+        "sha256": "9ef2d810636f3e8be4e4cf266c87136dd3851730e7a0e0d4f60d1f82f3638220"
+      }
+    ]
+  },
+  {
+    "source": "https://download.gnome.org/sources/libxml2/2.10/libxml2-2.10.3.tar.xz",
+    "archiveSha256": "5d2cc3d78bec3dbe212a9d7fa629ada25a7da928af432c93060ff5c17ee28a9c",
+    "member": "libxml2-2.10.3/test/schemas/vdv-first5_0.xsd",
+    "sha256": "328305459f4970efa328e403f5e3ce519cd3b166102dd0cb95ee66314527b24d",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Every path match is historical RCS Header metadata in source/XML comments; it identifies upstream source history, not JMS private data. Identical full member bytes were independently matched to the previous reviewed distribution.",
+    "evidence": {
+      "kind": "upstream-source-context",
+      "member": "libxml2-2.10.3/test/schemas/vdv-first5_0.xsd",
+      "sha256": "328305459f4970efa328e403f5e3ce519cd3b166102dd0cb95ee66314527b24d"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://download.gnome.org/sources/libxml2/2.10/libxml2-2.10.3.tar.xz",
+    "archiveSha256": "5d2cc3d78bec3dbe212a9d7fa629ada25a7da928af432c93060ff5c17ee28a9c",
+    "member": "libxml2-2.10.3/test/schemas/vdv-first1_0.xml",
+    "sha256": "4b317ad7a384cda968aa5f51c8351f90074034e6ce7739d362d2070340dc02ee",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Every path match is historical RCS Header metadata in source/XML comments; it identifies upstream source history, not JMS private data. Identical full member bytes were independently matched to the previous reviewed distribution.",
+    "evidence": {
+      "kind": "upstream-source-context",
+      "member": "libxml2-2.10.3/test/schemas/vdv-first1_0.xml",
+      "sha256": "4b317ad7a384cda968aa5f51c8351f90074034e6ce7739d362d2070340dc02ee"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://download.gnome.org/sources/libxml2/2.10/libxml2-2.10.3.tar.xz",
+    "archiveSha256": "5d2cc3d78bec3dbe212a9d7fa629ada25a7da928af432c93060ff5c17ee28a9c",
+    "member": "libxml2-2.10.3/test/schemas/vdv-first2_0.xsd",
+    "sha256": "4ba6bbf0bc90a5b55d463cc246dbc13cc62a405feba9e03650fab9557c70c49e",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Every path match is historical RCS Header metadata in source/XML comments; it identifies upstream source history, not JMS private data. Identical full member bytes were independently matched to the previous reviewed distribution.",
+    "evidence": {
+      "kind": "upstream-source-context",
+      "member": "libxml2-2.10.3/test/schemas/vdv-first2_0.xsd",
+      "sha256": "4ba6bbf0bc90a5b55d463cc246dbc13cc62a405feba9e03650fab9557c70c49e"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://download.gnome.org/sources/libxml2/2.10/libxml2-2.10.3.tar.xz",
+    "archiveSha256": "5d2cc3d78bec3dbe212a9d7fa629ada25a7da928af432c93060ff5c17ee28a9c",
+    "member": "libxml2-2.10.3/test/schemas/vdv-first0_0.xml",
+    "sha256": "4b317ad7a384cda968aa5f51c8351f90074034e6ce7739d362d2070340dc02ee",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Every path match is historical RCS Header metadata in source/XML comments; it identifies upstream source history, not JMS private data. Identical full member bytes were independently matched to the previous reviewed distribution.",
+    "evidence": {
+      "kind": "upstream-source-context",
+      "member": "libxml2-2.10.3/test/schemas/vdv-first0_0.xml",
+      "sha256": "4b317ad7a384cda968aa5f51c8351f90074034e6ce7739d362d2070340dc02ee"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://download.gnome.org/sources/libxml2/2.10/libxml2-2.10.3.tar.xz",
+    "archiveSha256": "5d2cc3d78bec3dbe212a9d7fa629ada25a7da928af432c93060ff5c17ee28a9c",
+    "member": "libxml2-2.10.3/test/schemas/vdv-first4_0.xsd",
+    "sha256": "3e762ec6c08d2eeb73b26f174ba4b2f842109d5b7bc05f81a88740aa0df8b4cd",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Every path match is historical RCS Header metadata in source/XML comments; it identifies upstream source history, not JMS private data. Identical full member bytes were independently matched to the previous reviewed distribution.",
+    "evidence": {
+      "kind": "upstream-source-context",
+      "member": "libxml2-2.10.3/test/schemas/vdv-first4_0.xsd",
+      "sha256": "3e762ec6c08d2eeb73b26f174ba4b2f842109d5b7bc05f81a88740aa0df8b4cd"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://download.gnome.org/sources/libxml2/2.10/libxml2-2.10.3.tar.xz",
+    "archiveSha256": "5d2cc3d78bec3dbe212a9d7fa629ada25a7da928af432c93060ff5c17ee28a9c",
+    "member": "libxml2-2.10.3/test/schemas/vdv-complexTypes.xsd",
+    "sha256": "f4097825ab6a6deac10e01ec3810a83a5b80df96b0263f4b73a0cf6584c2ed1b",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Every path match is historical RCS Header metadata in source/XML comments; it identifies upstream source history, not JMS private data. Identical full member bytes were independently matched to the previous reviewed distribution.",
+    "evidence": {
+      "kind": "upstream-source-context",
+      "member": "libxml2-2.10.3/test/schemas/vdv-complexTypes.xsd",
+      "sha256": "f4097825ab6a6deac10e01ec3810a83a5b80df96b0263f4b73a0cf6584c2ed1b"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://download.gnome.org/sources/libxml2/2.10/libxml2-2.10.3.tar.xz",
+    "archiveSha256": "5d2cc3d78bec3dbe212a9d7fa629ada25a7da928af432c93060ff5c17ee28a9c",
+    "member": "libxml2-2.10.3/test/schemas/vdv-simpleTypes.xsd",
+    "sha256": "49253f634b2d12292a54c69d478773160f5f9a268fe7bf060af9b22838ee005d",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Every path match is historical RCS Header metadata in source/XML comments; it identifies upstream source history, not JMS private data. Identical full member bytes were independently matched to the previous reviewed distribution.",
+    "evidence": {
+      "kind": "upstream-source-context",
+      "member": "libxml2-2.10.3/test/schemas/vdv-simpleTypes.xsd",
+      "sha256": "49253f634b2d12292a54c69d478773160f5f9a268fe7bf060af9b22838ee005d"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://download.gnome.org/sources/libxml2/2.10/libxml2-2.10.3.tar.xz",
+    "archiveSha256": "5d2cc3d78bec3dbe212a9d7fa629ada25a7da928af432c93060ff5c17ee28a9c",
+    "member": "libxml2-2.10.3/test/schemas/vdv-first3_0.xml",
+    "sha256": "4b317ad7a384cda968aa5f51c8351f90074034e6ce7739d362d2070340dc02ee",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Every path match is historical RCS Header metadata in source/XML comments; it identifies upstream source history, not JMS private data. Identical full member bytes were independently matched to the previous reviewed distribution.",
+    "evidence": {
+      "kind": "upstream-source-context",
+      "member": "libxml2-2.10.3/test/schemas/vdv-first3_0.xml",
+      "sha256": "4b317ad7a384cda968aa5f51c8351f90074034e6ce7739d362d2070340dc02ee"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://download.gnome.org/sources/libxml2/2.10/libxml2-2.10.3.tar.xz",
+    "archiveSha256": "5d2cc3d78bec3dbe212a9d7fa629ada25a7da928af432c93060ff5c17ee28a9c",
+    "member": "libxml2-2.10.3/test/schemas/vdv-first2_0.xml",
+    "sha256": "4b317ad7a384cda968aa5f51c8351f90074034e6ce7739d362d2070340dc02ee",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Every path match is historical RCS Header metadata in source/XML comments; it identifies upstream source history, not JMS private data. Identical full member bytes were independently matched to the previous reviewed distribution.",
+    "evidence": {
+      "kind": "upstream-source-context",
+      "member": "libxml2-2.10.3/test/schemas/vdv-first2_0.xml",
+      "sha256": "4b317ad7a384cda968aa5f51c8351f90074034e6ce7739d362d2070340dc02ee"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://download.gnome.org/sources/libxml2/2.10/libxml2-2.10.3.tar.xz",
+    "archiveSha256": "5d2cc3d78bec3dbe212a9d7fa629ada25a7da928af432c93060ff5c17ee28a9c",
+    "member": "libxml2-2.10.3/test/schemas/vdv-first3_0.xsd",
+    "sha256": "abe4d6bb131515dbc9c541f95335a30a14c9bda99db55c79a97a4969070ca49c",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Every path match is historical RCS Header metadata in source/XML comments; it identifies upstream source history, not JMS private data. Identical full member bytes were independently matched to the previous reviewed distribution.",
+    "evidence": {
+      "kind": "upstream-source-context",
+      "member": "libxml2-2.10.3/test/schemas/vdv-first3_0.xsd",
+      "sha256": "abe4d6bb131515dbc9c541f95335a30a14c9bda99db55c79a97a4969070ca49c"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://download.gnome.org/sources/libxml2/2.10/libxml2-2.10.3.tar.xz",
+    "archiveSha256": "5d2cc3d78bec3dbe212a9d7fa629ada25a7da928af432c93060ff5c17ee28a9c",
+    "member": "libxml2-2.10.3/m4/libtool.m4",
+    "sha256": "c1a4cfb2c1dab76d4229b7c3ab04cdaf8dae0967fae71abb93d25e337745d64b",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Every path match in this exact upstream member was checked as BeOS system dynamic-library search path, not a user directory. No credential, endpoint or private-domain exemption is granted. Identical full member bytes were independently matched to the previous reviewed distribution.",
+    "evidence": {
+      "kind": "upstream-source-context",
+      "member": "libxml2-2.10.3/m4/libtool.m4",
+      "sha256": "c1a4cfb2c1dab76d4229b7c3ab04cdaf8dae0967fae71abb93d25e337745d64b"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://codeload.github.com/Mbed-TLS/mbedtls/zip/refs/tags/v3.4.0",
+    "archiveSha256": "9969088c86eb89f6f0a131e699c46ff57058288410f2087bd0d308f65e9fccb5",
+    "member": "mbedtls-3.4.0/tests/data_files/crl_cat_rsabadpem-ec.pem",
+    "sha256": "9b930fb641b1f042f873cc141eee7d29595aa2260116795af4d73517ad62aae6",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Exact Git blob matches the fixed upstream commit 57a5d60abbc3169a1baf15b933120d8b269efcf2. The included commit evidence records the PKCS8 test-key generation recipe or the x509_verify concatenated-CRL regression references and expected errors. Historical test use established independently of the filename; no source code or external login executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "archiveSha256": "23b103bc738778a3415aa3cf4b9d6ee78781e24f20b6144a7c22df45358c59d2",
+      "member": "mbedtls-history.json",
+      "sha256": "a960ad566b4562b764e33d4833dc948070eca0a9dc464813fddfb2f91e532e3b"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://codeload.github.com/Mbed-TLS/mbedtls/zip/refs/tags/v3.4.0",
+    "archiveSha256": "9969088c86eb89f6f0a131e699c46ff57058288410f2087bd0d308f65e9fccb5",
+    "member": "mbedtls-3.4.0/tests/data_files/crt_cat_rsaexp-ec.pem",
+    "sha256": "9d7b3df09c803ca77f07720a9dbef99c0bf76ef00212e75fe7f9fdfdb30c3f94",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Exact Git blob matches the fixed upstream commit 57a5d60abbc3169a1baf15b933120d8b269efcf2. The included commit evidence records the PKCS8 test-key generation recipe or the x509_verify concatenated-CRL regression references and expected errors. Historical test use established independently of the filename; no source code or external login executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "archiveSha256": "23b103bc738778a3415aa3cf4b9d6ee78781e24f20b6144a7c22df45358c59d2",
+      "member": "mbedtls-history.json",
+      "sha256": "a960ad566b4562b764e33d4833dc948070eca0a9dc464813fddfb2f91e532e3b"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://codeload.github.com/Mbed-TLS/mbedtls/zip/refs/tags/v3.4.0",
+    "archiveSha256": "9969088c86eb89f6f0a131e699c46ff57058288410f2087bd0d308f65e9fccb5",
+    "member": "mbedtls-3.4.0/tests/data_files/dh.1000.pem",
+    "sha256": "e5fa5946d438a33a41573170681d5edd37028ab561774d3cc141fe6962aa4c2b",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "DHM 1000-bit parameter input explicitly passed as dhm_file by the upstream DHM size handshake acceptance/rejection tests at lines 7248, 7256 and 7264. Public DH parameters, not a private key.",
+    "evidence": {
+      "kind": "upstream-source-context",
+      "member": "mbedtls-3.4.0/tests/ssl-opt.sh",
+      "sha256": "64c4e4699e73ca5784e2766db8473d6c58ab8327c8352f7b7a7e3ec35219b3cd"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://codeload.github.com/Mbed-TLS/mbedtls/zip/refs/tags/v3.4.0",
+    "archiveSha256": "9969088c86eb89f6f0a131e699c46ff57058288410f2087bd0d308f65e9fccb5",
+    "member": "mbedtls-3.4.0/tests/data_files/ec_prv.pk8.pw.pem",
+    "sha256": "d58913cbb587fca417bcbd8c2ec09c858206cee88de3a1351aa8601791066c82",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Exact Git blob matches the fixed upstream commit a9e54129b5b7fc9c690fd12cb7c20fcf014b12b3. The included commit evidence records the PKCS8 test-key generation recipe or the x509_verify concatenated-CRL regression references and expected errors. Historical test use established independently of the filename; no source code or external login executed.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "archiveSha256": "23b103bc738778a3415aa3cf4b9d6ee78781e24f20b6144a7c22df45358c59d2",
+      "member": "mbedtls-history.json",
+      "sha256": "a960ad566b4562b764e33d4833dc948070eca0a9dc464813fddfb2f91e532e3b"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://codeload.github.com/Mbed-TLS/mbedtls/zip/refs/tags/v3.4.0",
+    "archiveSha256": "9969088c86eb89f6f0a131e699c46ff57058288410f2087bd0d308f65e9fccb5",
+    "member": "mbedtls-3.4.0/tests/src/certs.c",
+    "sha256": "56255e08f0c17bbffb089f3893dcb84a7de402293341544bb519c748e494ff1f",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "This is the X.509 test certificates implementation. Its six private-key string macros are generated from the individually verified test-key files named by BEGIN FILE directives; test CA, server and client material only.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mbedtls-3.4.0/tests/data_files/test-ca2.key.enc",
+      "sha256": "18b93a1c675861bef54a47c044d4431133b5e92c54e433e1d114fbc43871ef08"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mbedtls-3.4.0/tests/data_files/test-ca.key",
+        "sha256": "ea70a2d032b80892abf2fee8676258701fe47a78c31e379fc73542925a783f06"
+      },
+      {
+        "member": "mbedtls-3.4.0/tests/data_files/server5.key",
+        "sha256": "dc05ad588945ee5771ea24f4970b79e020acfb9c45c6de9d7975b440394f4938"
+      },
+      {
+        "member": "mbedtls-3.4.0/tests/data_files/server2.key",
+        "sha256": "5d061d8e92c246e465654ea6eef75b0667cc49cfb8f76d3b4c2f2517861f8b1e"
+      },
+      {
+        "member": "mbedtls-3.4.0/tests/data_files/cli2.key",
+        "sha256": "f3c47ba835345e9072b0f79628f2d1f539f79749b85afb92bfade5761fbd6757"
+      },
+      {
+        "member": "mbedtls-3.4.0/tests/data_files/cli-rsa.key",
+        "sha256": "660d13287799f69599adf0aff1db46ee42b4c492b0f153f620f89a639dcb8f7d"
+      }
+    ]
+  },
+  {
+    "source": "https://codeload.github.com/Mbed-TLS/mbedtls/zip/refs/tags/v3.4.0",
+    "archiveSha256": "9969088c86eb89f6f0a131e699c46ff57058288410f2087bd0d308f65e9fccb5",
+    "member": "mbedtls-3.4.0/tests/suites/test_suite_pem.data",
+    "sha256": "55232acd03663f7e1a352445d299a3ed0fbf747306f2399243d391e5a944225c",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "The three EC private-key marker occurrences are input/header arguments to mbedtls_pem_read_buffer regression cases, with expected parser errors. Exact suite function and vectors reviewed; not application credentials.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mbedtls-3.4.0/tests/suites/test_suite_pem.function",
+      "sha256": "9539563cd9641689b877848664fb15c55513bb84bfeb4d362ce467a9ae4820ae"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://repo.maven.apache.org/maven2/io/github/peerless2012/ass-kt/0.3.0/ass-kt-0.3.0.aar",
+    "archiveSha256": "c07eead6db7f6834c2142fb6b76955292ca4ba9e337edddab51b798aeec5fb57",
+    "member": "jni/arm64-v8a/libass.so",
+    "sha256": "488ead8aec91f24cf5cf49fe3849cb7b83268e1474673b4f8cd85fb02240e1bf",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Binary bytes match the fixed Maven ass-kt 0.3.0 AAR. Every filesystem-path match is an upstream GitHub runner libass-android build prefix, correlated with the included publishing workflow; not a JMS user path.",
+    "evidence": {
+      "kind": "upstream-build-or-format-reference",
+      "archiveSha256": "a4296e761deeeca859279c30bc8d90cdf063788d89779b260c8b9c72f0e6e898",
+      "member": "libass-android-2e7f6a6116b401414352f18e72ced73640ca886e/.github/workflows/publish.yml",
+      "sha256": "e929ab3386f6810a5084e1c3d0d3fd49ffde349f310ab2cad5139d1dc92a787b"
+    },
+    "additionalEvidence": [],
+    "distributions": [
+      {
+        "archiveSha256": "0fbb744c0a1947e9186783d760203a5383d5e54bb68211444b86ead39a84377f",
+        "member": "lib/arm64-v8a/libass.so"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.maven.apache.org/maven2/io/github/peerless2012/ass-kt/0.3.0/ass-kt-0.3.0.aar",
+    "archiveSha256": "c07eead6db7f6834c2142fb6b76955292ca4ba9e337edddab51b798aeec5fb57",
+    "member": "jni/armeabi-v7a/libass.so",
+    "sha256": "abaa79699b534d3bc924fc8fd7b9b94f1c2e7fa93062c1200d53333639c4819b",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Binary bytes match the fixed Maven ass-kt 0.3.0 AAR. Every filesystem-path match is an upstream GitHub runner libass-android build prefix, correlated with the included publishing workflow; not a JMS user path.",
+    "evidence": {
+      "kind": "upstream-build-or-format-reference",
+      "archiveSha256": "a4296e761deeeca859279c30bc8d90cdf063788d89779b260c8b9c72f0e6e898",
+      "member": "libass-android-2e7f6a6116b401414352f18e72ced73640ca886e/.github/workflows/publish.yml",
+      "sha256": "e929ab3386f6810a5084e1c3d0d3fd49ffde349f310ab2cad5139d1dc92a787b"
+    },
+    "additionalEvidence": [],
+    "distributions": []
+  },
+  {
+    "source": "https://repo.maven.apache.org/maven2/io/github/peerless2012/ass-kt/0.3.0/ass-kt-0.3.0.aar",
+    "archiveSha256": "c07eead6db7f6834c2142fb6b76955292ca4ba9e337edddab51b798aeec5fb57",
+    "member": "jni/x86/libass.so",
+    "sha256": "37b95b12c9a07dc16e36f83e594440f628069c960aeba6df49785a3d7c4e44fe",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Binary bytes match the fixed Maven ass-kt 0.3.0 AAR. Every filesystem-path match is an upstream GitHub runner libass-android build prefix, correlated with the included publishing workflow; not a JMS user path.",
+    "evidence": {
+      "kind": "upstream-build-or-format-reference",
+      "archiveSha256": "a4296e761deeeca859279c30bc8d90cdf063788d89779b260c8b9c72f0e6e898",
+      "member": "libass-android-2e7f6a6116b401414352f18e72ced73640ca886e/.github/workflows/publish.yml",
+      "sha256": "e929ab3386f6810a5084e1c3d0d3fd49ffde349f310ab2cad5139d1dc92a787b"
+    },
+    "additionalEvidence": [],
+    "distributions": []
+  },
+  {
+    "source": "https://repo.maven.apache.org/maven2/io/github/peerless2012/ass-kt/0.3.0/ass-kt-0.3.0.aar",
+    "archiveSha256": "c07eead6db7f6834c2142fb6b76955292ca4ba9e337edddab51b798aeec5fb57",
+    "member": "jni/x86_64/libass.so",
+    "sha256": "fc538fc0e8c226b234ea772e6622ec1e14fdec4eb6dd05eef76704a6f9560b44",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Binary bytes match the fixed Maven ass-kt 0.3.0 AAR. Every filesystem-path match is an upstream GitHub runner libass-android build prefix, correlated with the included publishing workflow; not a JMS user path.",
+    "evidence": {
+      "kind": "upstream-build-or-format-reference",
+      "archiveSha256": "a4296e761deeeca859279c30bc8d90cdf063788d89779b260c8b9c72f0e6e898",
+      "member": "libass-android-2e7f6a6116b401414352f18e72ced73640ca886e/.github/workflows/publish.yml",
+      "sha256": "e929ab3386f6810a5084e1c3d0d3fd49ffde349f310ab2cad5139d1dc92a787b"
+    },
+    "additionalEvidence": [],
+    "distributions": []
+  },
+  {
+    "source": "https://github.com/media-kit/libmpv-android-video-build/releases/download/v1.1.8/full-arm64-v8a.jar",
+    "archiveSha256": "031aa9e76de6e0dea733d382252636f6237ded0aef797a561e6fc8b85c4f3ff1",
+    "member": "lib/arm64-v8a/libmpv.so",
+    "sha256": "c0d797517822ac8e3006318cc5b80a5331a086282690043881448a9fbc843678",
+    "rules": [
+      "personal filesystem path",
+      "credential pattern"
+    ],
+    "explanation": "Binary bytes match the pinned media-kit v1.1.8 ARM64 JAR. All paths are upstream GitHub runner build prefixes. Every private-key pattern is a complete NUL-terminated PEM format label, with no key body, matching included mbedTLS parser/writer constants.",
+    "evidence": {
+      "kind": "upstream-build-or-format-reference",
+      "archiveSha256": "9969088c86eb89f6f0a131e699c46ff57058288410f2087bd0d308f65e9fccb5",
+      "member": "mbedtls-3.4.0/library/pkparse.c",
+      "sha256": "bd38ba42e9954cbc45448220feee1cdc0cd38f359ffa0c3a0f201ec3e495c4cc"
+    },
+    "additionalEvidence": [
+      {
+        "archiveSha256": "9969088c86eb89f6f0a131e699c46ff57058288410f2087bd0d308f65e9fccb5",
+        "member": "mbedtls-3.4.0/library/pkwrite.c",
+        "sha256": "c35c263f9041a8b534489c36a31c49e2a54e293bc744032338249c15777c14e2"
+      }
+    ],
+    "distributions": [
+      {
+        "archiveSha256": "0fbb744c0a1947e9186783d760203a5383d5e54bb68211444b86ead39a84377f",
+        "member": "lib/arm64-v8a/libmpv.so"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.maven.apache.org/maven2/org/apache/tika/tika-core/3.2.0/tika-core-3.2.0.jar",
+    "archiveSha256": "083229d0199b2066feab0bcbf41d17ea8da3631c6187a865cda173c910467464",
+    "member": "org/apache/tika/mime/tika-mimetypes.xml",
+    "sha256": "e3f15ef4358674f773bfdbde2468684bccab76975479d6be7870a1702c0f99a4",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "Exact Apache Tika 3.2.0 MIME registry from the official Maven artifact. Private-key labels occur only as offset-zero magic-match attributes identifying file formats; no credential payload.",
+    "evidence": {
+      "kind": "upstream-build-or-format-reference",
+      "archiveSha256": "083229d0199b2066feab0bcbf41d17ea8da3631c6187a865cda173c910467464",
+      "member": "org/apache/tika/mime/tika-mimetypes.xml",
+      "sha256": "e3f15ef4358674f773bfdbde2468684bccab76975479d6be7870a1702c0f99a4"
+    },
+    "additionalEvidence": [],
+    "distributions": [
+      {
+        "archiveSha256": "0fbb744c0a1947e9186783d760203a5383d5e54bb68211444b86ead39a84377f",
+        "member": "org/apache/tika/mime/tika-mimetypes.xml"
+      }
+    ]
   }
 ]
