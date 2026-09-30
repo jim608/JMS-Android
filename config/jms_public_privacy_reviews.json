@@ -32086,5 +32086,140 @@
         "sha256": "ef805beb02cee91aad0e928f4b70e4980e666918fb5b11d83728f961570aca34"
       }
     ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gcc-16.2.0-4.src.tar.zst",
+    "archiveSha256": "a1792a44764405bc365746e0e60f0daa122076cec0dddd35a781d141f94273cf",
+    "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/gcc/testsuite/sarif-replay.dg/2.1.0-valid/spec-example-4.sarif",
+    "sha256": "005c9e82476a82e3138ac141a363958135db7014a42e5148de301ede9f331f11",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Parsed SARIF 2.1.0 replay input from the fixed GCC testsuite after removing only comments outside JSON strings. Paths are upstream compiler invocations, working directories and URI-base diagnostic metadata (or the SARIF specification example environment), not JMS runtime settings or a private service. The JSON was structurally parsed; only the path rule is approved.",
+    "evidence": {
+      "kind": "upstream-source-or-format-path",
+      "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/gcc/testsuite/sarif-replay.dg/2.1.0-valid/spec-example-4.sarif",
+      "sha256": "005c9e82476a82e3138ac141a363958135db7014a42e5148de301ede9f331f11"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gcc-16.2.0-4.src.tar.zst",
+    "archiveSha256": "a1792a44764405bc365746e0e60f0daa122076cec0dddd35a781d141f94273cf",
+    "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/gcc/testsuite/sarif-replay.dg/2.1.0-valid/graphs.sarif",
+    "sha256": "9fade04255ac187738ac95916c4193a1c2a6681234abef87efd00091a6358486",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Parsed SARIF 2.1.0 replay input from the fixed GCC testsuite after removing only comments outside JSON strings. Paths are upstream compiler invocations, working directories and URI-base diagnostic metadata (or the SARIF specification example environment), not JMS runtime settings or a private service. The JSON was structurally parsed; only the path rule is approved.",
+    "evidence": {
+      "kind": "upstream-source-or-format-path",
+      "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/gcc/testsuite/sarif-replay.dg/2.1.0-valid/graphs.sarif",
+      "sha256": "9fade04255ac187738ac95916c4193a1c2a6681234abef87efd00091a6358486"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gcc-16.2.0-4.src.tar.zst",
+    "archiveSha256": "a1792a44764405bc365746e0e60f0daa122076cec0dddd35a781d141f94273cf",
+    "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/gcc/testsuite/sarif-replay.dg/2.1.0-valid/3.11.6-embedded-links-pr123056.sarif",
+    "sha256": "8949cf3b55fdb9720bdd961e976af992d26c969b3fe1927a1e46c5e75cb69778",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Parsed SARIF 2.1.0 replay input from the fixed GCC testsuite after removing only comments outside JSON strings. Paths are upstream compiler invocations, working directories and URI-base diagnostic metadata (or the SARIF specification example environment), not JMS runtime settings or a private service. The JSON was structurally parsed; only the path rule is approved.",
+    "evidence": {
+      "kind": "upstream-source-or-format-path",
+      "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/gcc/testsuite/sarif-replay.dg/2.1.0-valid/3.11.6-embedded-links-pr123056.sarif",
+      "sha256": "8949cf3b55fdb9720bdd961e976af992d26c969b3fe1927a1e46c5e75cb69778"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gcc-16.2.0-4.src.tar.zst",
+    "archiveSha256": "a1792a44764405bc365746e0e60f0daa122076cec0dddd35a781d141f94273cf",
+    "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/gcc/testsuite/sarif-replay.dg/2.1.0-valid/signal-1.c.sarif",
+    "sha256": "b7df27032abdbcb0c8635afe736fcfd9d7cb010f91745eab1513cc37ef02e0b3",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Parsed SARIF 2.1.0 replay input from the fixed GCC testsuite after removing only comments outside JSON strings. Paths are upstream compiler invocations, working directories and URI-base diagnostic metadata (or the SARIF specification example environment), not JMS runtime settings or a private service. The JSON was structurally parsed; only the path rule is approved.",
+    "evidence": {
+      "kind": "upstream-source-or-format-path",
+      "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/gcc/testsuite/sarif-replay.dg/2.1.0-valid/signal-1.c.sarif",
+      "sha256": "b7df27032abdbcb0c8635afe736fcfd9d7cb010f91745eab1513cc37ef02e0b3"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gcc-16.2.0-4.src.tar.zst",
+    "archiveSha256": "a1792a44764405bc365746e0e60f0daa122076cec0dddd35a781d141f94273cf",
+    "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/gcc/testsuite/sarif-replay.dg/2.1.0-valid/malloc-vs-local-4.c.sarif",
+    "sha256": "84d3fcc9dcaaff1027a6a87cd40fc270eef5e49ca0ded8b1f6f6c4cee3750994",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Parsed SARIF 2.1.0 replay input from the fixed GCC testsuite after removing only comments outside JSON strings. Paths are upstream compiler invocations, working directories and URI-base diagnostic metadata (or the SARIF specification example environment), not JMS runtime settings or a private service. The JSON was structurally parsed; only the path rule is approved.",
+    "evidence": {
+      "kind": "upstream-source-or-format-path",
+      "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/gcc/testsuite/sarif-replay.dg/2.1.0-valid/malloc-vs-local-4.c.sarif",
+      "sha256": "84d3fcc9dcaaff1027a6a87cd40fc270eef5e49ca0ded8b1f6f6c4cee3750994"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gcc-16.2.0-4.src.tar.zst",
+    "archiveSha256": "a1792a44764405bc365746e0e60f0daa122076cec0dddd35a781d141f94273cf",
+    "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/libstdc++-v3/config/os/bsd/darwin/ctype_base.h",
+    "sha256": "d9e29b1a5f1cd1ba18f35c3ea1e2f0bb3264adc48e5dc7fd672509f81d8ea3d8",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "The path appears only within the historical anonymous FreeBSD CVS source provenance comment for ctype.h. It is a public source-control repository path, not a JMS user home directory.",
+    "evidence": {
+      "kind": "upstream-source-or-format-path",
+      "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/libstdc++-v3/config/os/bsd/darwin/ctype_base.h",
+      "sha256": "d9e29b1a5f1cd1ba18f35c3ea1e2f0bb3264adc48e5dc7fd672509f81d8ea3d8"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gcc-16.2.0-4.src.tar.zst",
+    "archiveSha256": "a1792a44764405bc365746e0e60f0daa122076cec0dddd35a781d141f94273cf",
+    "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/libstdc++-v3/config/os/bsd/freebsd/ctype_base.h",
+    "sha256": "7242554f5feb121debab25ebec4be5478cf65ade0bc71da136e975890a9c2f0a",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "The path appears only within the historical anonymous FreeBSD CVS source provenance comment for ctype.h. It is a public source-control repository path, not a JMS user home directory.",
+    "evidence": {
+      "kind": "upstream-source-or-format-path",
+      "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/libstdc++-v3/config/os/bsd/freebsd/ctype_base.h",
+      "sha256": "7242554f5feb121debab25ebec4be5478cf65ade0bc71da136e975890a9c2f0a"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-graphite2-1.3.15-1.src.tar.zst",
+    "archiveSha256": "eb76ce274c68ea6bad0883144c21e44a803ec94fed9dc0f6584feb0a8415a1d6",
+    "member": "mingw-w64-graphite2/graphite2-1.3.15.tgz/graphite2-1.3.15/tests/fuzz-tests/Padauk/my_Headwords/Corrupted ATTR_SET justifiaction level.fuzz",
+    "sha256": "0315bbcd9a45a75e4c13913d421e68fa66b3de26a2b661734d7c8f85e4679471",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Fixed upstream Graphite2 fuzz regression diagnostic with symbolized stack frames and shared-library source/build paths. These are upstream failure reproduction metadata; no JMS user path or credential is present. The diagnostic is reviewed as inert text, not executed.",
+    "evidence": {
+      "kind": "upstream-source-or-format-path",
+      "member": "mingw-w64-graphite2/graphite2-1.3.15.tgz/graphite2-1.3.15/tests/fuzz-tests/Padauk/my_Headwords/Corrupted ATTR_SET justifiaction level.fuzz",
+      "sha256": "0315bbcd9a45a75e4c13913d421e68fa66b3de26a2b661734d7c8f85e4679471"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-spirv-cross-1~1.4.357.0-1.src.tar.zst",
+    "archiveSha256": "4082735b9f40527966fcadd19dfdcafd8313d5187abae5d53c270af448aa7c4f",
+    "member": "mingw-w64-spirv-cross/spirv-cross-1.4.357.0.tar.gz/SPIRV-Cross-vulkan-sdk-1.4.357.0/tests-other/debug-info.spv",
+    "sha256": "fb74d59d7d9c928e671624c6443409d24a3e765621f9310f82871a041773c117",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "The fixed SPIR-V module was parsed instruction-by-instruction without execution. All matched home-path prefixes occur in OpString debug records describing the upstream Slang source filename and compiler arguments. These are upstream debug-info fixture metadata, not JMS user settings; only the path rule is approved.",
+    "evidence": {
+      "kind": "upstream-source-or-format-path",
+      "member": "mingw-w64-spirv-cross/spirv-cross-1.4.357.0.tar.gz/SPIRV-Cross-vulkan-sdk-1.4.357.0/tests-other/debug-info.spv",
+      "sha256": "fb74d59d7d9c928e671624c6443409d24a3e765621f9310f82871a041773c117"
+    }
   }
 ]
