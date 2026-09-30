@@ -31637,5 +31637,454 @@
       "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/provable-privkey.sh",
       "sha256": "54161b90c1235093f6f4aebcb1eae513e4740212e8b4622367763bd78bdaa437"
     }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-mldsa-inconsistent.pem",
+    "sha256": "499221b0f4fa5607088e45788eba01499e21cd16164fcf438a5cddc392aae777",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "Every complete private-key PEM payload in this exact member was decoded as data and its label and DER SHA256 matched an already traced synthetic test key in the same fixed upstream archive. Adjacent C string literals were decoded without executing source. The original fixture members and their exact test-use references are additionally bound below. This establishes reuse of the known test-key content, including currently unused copies; it does not claim that every copy is itself called by an active test. Only the listed rules for this member hash are approved.",
+    "keyPayloadIdentities": [
+      {
+        "pemLabel": "PRIVATE KEY",
+        "derSha256": "a2cf7a6f0389b4d1be8c1bd5e46da0eb5cc2bc787c3f9b2ec050f19ee0d42c01"
+      }
+    ],
+    "evidence": {
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-mldsa-inconsistent1.pem",
+      "sha256": "499221b0f4fa5607088e45788eba01499e21cd16164fcf438a5cddc392aae777",
+      "kind": "identical-upstream-test-key-content"
+    },
+    "additionalEvidence": [
+      {
+        "kind": "upstream-explicit-test-input",
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/mldsa.sh",
+        "sha256": "30e50c0057bb04e3453eb92a8ddf0330af2559d78f6f5f79155239a62fcc182b"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/long-session-id.c",
+    "sha256": "dd31801b196779c122daead576ce11b550f09a8415f7149ee8205d7c559f873b",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "Every complete private-key PEM payload in this exact member was decoded as data and its label and DER SHA256 matched an already traced synthetic test key in the same fixed upstream archive. Adjacent C string literals were decoded without executing source. The original fixture members and their exact test-use references are additionally bound below. This establishes reuse of the known test-key content, including currently unused copies; it does not claim that every copy is itself called by an active test. Only the listed rules for this member hash are approved.",
+    "keyPayloadIdentities": [
+      {
+        "pemLabel": "RSA PRIVATE KEY",
+        "derSha256": "e35c0f0554038226424b6904c86ed91eb890421e1001dd7b132de0be8bd5d73f"
+      }
+    ],
+    "evidence": {
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cipher-alignment.c",
+      "sha256": "0ff6b1e483edae294f2e37d06c4e5e5d142f983d398950b8b7a33a6e42418f13",
+      "kind": "identical-upstream-test-key-content"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cipher-alignment.c",
+        "sha256": "0ff6b1e483edae294f2e37d06c4e5e5d142f983d398950b8b7a33a6e42418f13",
+        "kind": "upstream-fixed-key-import-test"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/pubkey-import-export.c",
+    "sha256": "f680daf2ae36368eb1db4860c9d5af0d69b95d359331df858bbdc31177ee0763",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "Every complete private-key PEM payload in this exact member was decoded as data and its label and DER SHA256 matched an already traced synthetic test key in the same fixed upstream archive. Adjacent C string literals were decoded without executing source. The original fixture members and their exact test-use references are additionally bound below. This establishes reuse of the known test-key content, including currently unused copies; it does not claim that every copy is itself called by an active test. Only the listed rules for this member hash are approved.",
+    "keyPayloadIdentities": [
+      {
+        "pemLabel": "RSA PRIVATE KEY",
+        "derSha256": "273942962b8c5c0d0f2d7bba781916b9bba756066e0ff2937e7b617d775cbef7"
+      }
+    ],
+    "evidence": {
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/auto-verify.c",
+      "sha256": "6e7975c8ef11f6230802a149411cb0aab2b78b56436d490889cc67756b259734",
+      "kind": "identical-upstream-test-key-content"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/auto-verify.c",
+        "sha256": "6e7975c8ef11f6230802a149411cb0aab2b78b56436d490889cc67756b259734",
+        "kind": "upstream-fixed-key-import-test"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/rsa-encrypt-decrypt.c",
+    "sha256": "5f4aae9fbd9e2e5237f081603da593b9d71de3ab3712c2b30fde3b7f4307d080",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "Every complete private-key PEM payload in this exact member was decoded as data and its label and DER SHA256 matched an already traced synthetic test key in the same fixed upstream archive. Adjacent C string literals were decoded without executing source. The original fixture members and their exact test-use references are additionally bound below. This establishes reuse of the known test-key content, including currently unused copies; it does not claim that every copy is itself called by an active test. Only the listed rules for this member hash are approved.",
+    "keyPayloadIdentities": [
+      {
+        "pemLabel": "RSA PRIVATE KEY",
+        "derSha256": "273942962b8c5c0d0f2d7bba781916b9bba756066e0ff2937e7b617d775cbef7"
+      }
+    ],
+    "evidence": {
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/auto-verify.c",
+      "sha256": "6e7975c8ef11f6230802a149411cb0aab2b78b56436d490889cc67756b259734",
+      "kind": "identical-upstream-test-key-content"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/auto-verify.c",
+        "sha256": "6e7975c8ef11f6230802a149411cb0aab2b78b56436d490889cc67756b259734",
+        "kind": "upstream-fixed-key-import-test"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/rsaes-pkcs1-v1_5.c",
+    "sha256": "bc7de262fce8a8a1c81cf2d1358be4e58722fdd1dbe9d471f8321e322a92587a",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "Every complete private-key PEM payload in this exact member was decoded as data and its label and DER SHA256 matched an already traced synthetic test key in the same fixed upstream archive. Adjacent C string literals were decoded without executing source. The original fixture members and their exact test-use references are additionally bound below. This establishes reuse of the known test-key content, including currently unused copies; it does not claim that every copy is itself called by an active test. Only the listed rules for this member hash are approved.",
+    "keyPayloadIdentities": [
+      {
+        "pemLabel": "RSA PRIVATE KEY",
+        "derSha256": "273942962b8c5c0d0f2d7bba781916b9bba756066e0ff2937e7b617d775cbef7"
+      }
+    ],
+    "evidence": {
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/auto-verify.c",
+      "sha256": "6e7975c8ef11f6230802a149411cb0aab2b78b56436d490889cc67756b259734",
+      "kind": "identical-upstream-test-key-content"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/auto-verify.c",
+        "sha256": "6e7975c8ef11f6230802a149411cb0aab2b78b56436d490889cc67756b259734",
+        "kind": "upstream-fixed-key-import-test"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/testpkcs11-certs/client.key",
+    "sha256": "4455b0e7098d757fc7505c4a8925630efc07abd09ee1192e4f3156f76b6edc21",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "Every complete private-key PEM payload in this exact member was decoded as data and its label and DER SHA256 matched an already traced synthetic test key in the same fixed upstream archive. Adjacent C string literals were decoded without executing source. The original fixture members and their exact test-use references are additionally bound below. This establishes reuse of the known test-key content, including currently unused copies; it does not claim that every copy is itself called by an active test. Only the listed rules for this member hash are approved.",
+    "keyPayloadIdentities": [
+      {
+        "pemLabel": "RSA PRIVATE KEY",
+        "derSha256": "7227eb61b7aa84eb0919b9f0a0a8bb2b3f2c7883c004e6da62d49033c9efaa10"
+      }
+    ],
+    "evidence": {
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/pkcs11/pkcs11-privkey.c",
+      "sha256": "e01fc3052a5b4983cf95bc71893cb84719a8624cffbcc0a5979dc229a7c66629",
+      "kind": "identical-upstream-test-key-content"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/pkcs11/pkcs11-privkey.c",
+        "sha256": "e01fc3052a5b4983cf95bc71893cb84719a8624cffbcc0a5979dc229a7c66629",
+        "kind": "upstream-fixed-key-import-test"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/x509cert-tl.c",
+    "sha256": "77bb3a446381a9bd95d6176efef742428f5337fd620733bd1ddad42bab43a30e",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "Every complete private-key PEM payload in this exact member was decoded as data and its label and DER SHA256 matched an already traced synthetic test key in the same fixed upstream archive. Adjacent C string literals were decoded without executing source. The original fixture members and their exact test-use references are additionally bound below. This establishes reuse of the known test-key content, including currently unused copies; it does not claim that every copy is itself called by an active test. Only the listed rules for this member hash are approved.",
+    "keyPayloadIdentities": [
+      {
+        "pemLabel": "RSA PRIVATE KEY",
+        "derSha256": "273942962b8c5c0d0f2d7bba781916b9bba756066e0ff2937e7b617d775cbef7"
+      },
+      {
+        "pemLabel": "RSA PRIVATE KEY",
+        "derSha256": "e35c0f0554038226424b6904c86ed91eb890421e1001dd7b132de0be8bd5d73f"
+      }
+    ],
+    "evidence": {
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/auto-verify.c",
+      "sha256": "6e7975c8ef11f6230802a149411cb0aab2b78b56436d490889cc67756b259734",
+      "kind": "identical-upstream-test-key-content"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/auto-verify.c",
+        "sha256": "6e7975c8ef11f6230802a149411cb0aab2b78b56436d490889cc67756b259734",
+        "kind": "upstream-fixed-key-import-test"
+      },
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cipher-alignment.c",
+        "sha256": "0ff6b1e483edae294f2e37d06c4e5e5d142f983d398950b8b7a33a6e42418f13"
+      },
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cipher-alignment.c",
+        "sha256": "0ff6b1e483edae294f2e37d06c4e5e5d142f983d398950b8b7a33a6e42418f13",
+        "kind": "upstream-fixed-key-import-test"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/demos/certs/apps/ckey.pem",
+    "sha256": "c261be75344e362cacc629218eadcfbdd96823c869685959a3ba7af79fc3f6b5",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "Every complete private-key PEM payload in this exact member was decoded as data and its label and DER SHA256 matched an already traced synthetic test key in the same fixed upstream archive. Adjacent C string literals were decoded without executing source. The original fixture members and their exact test-use references are additionally bound below. This establishes reuse of the known test-key content, including currently unused copies; it does not claim that every copy is itself called by an active test. Only the listed rules for this member hash are approved.",
+    "keyPayloadIdentities": [
+      {
+        "pemLabel": "RSA PRIVATE KEY",
+        "derSha256": "365f3fdc51d0681d21754181b5e0c719878ebcc96e0f571d33afd423aa6b03ab"
+      }
+    ],
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/apps/client.pem",
+      "sha256": "5517423efa9a5cd7ede4604399d1572f271260d2b7214ac4218f499387b18c99",
+      "kind": "identical-upstream-test-key-content"
+    },
+    "additionalEvidence": [
+      {
+        "kind": "upstream-test-reference",
+        "archiveSha256": "4433873acb69e122a9a071d05143217f86bfe0a02ae0bc33a66b97b8250b59d6",
+        "member": "util/mkcerts.sh",
+        "sha256": "1604c6a591d29394c38a47051b7a8368a4eea5c96ca68d63e9eef64a71f738c3"
+      },
+      {
+        "archiveSha256": "4433873acb69e122a9a071d05143217f86bfe0a02ae0bc33a66b97b8250b59d6",
+        "member": "SOURCE_MANIFEST.json",
+        "sha256": "0a23718de277b7988543a63d3e199ed43bad0be5ddaf1428e4e0b26afe8d3737"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/demos/certs/apps/skey2.pem",
+    "sha256": "48f1d94844d0d276e8c41fc9ce9e37485bc5551e939f57ba7a4893d0d8d98971",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "Every complete private-key PEM payload in this exact member was decoded as data and its label and DER SHA256 matched an already traced synthetic test key in the same fixed upstream archive. Adjacent C string literals were decoded without executing source. The original fixture members and their exact test-use references are additionally bound below. This establishes reuse of the known test-key content, including currently unused copies; it does not claim that every copy is itself called by an active test. Only the listed rules for this member hash are approved.",
+    "keyPayloadIdentities": [
+      {
+        "pemLabel": "RSA PRIVATE KEY",
+        "derSha256": "ab6a5ba5e21b109622f1ea1d90d430762955dca8e7b56200ab97367bcf8b0a05"
+      }
+    ],
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/apps/server2.pem",
+      "sha256": "315a1d925c484b57b5f6b154318c241f49803a627d5dd97a1add7eb5759a16fd",
+      "kind": "identical-upstream-test-key-content"
+    },
+    "additionalEvidence": [
+      {
+        "kind": "upstream-explicit-test-input",
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_ssl_old.t",
+        "sha256": "b09936498bcb0213cc0411ab2c77a73d24a0c9db19ee79e9deea5cf226ecd8e7"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/timing-key.pem",
+    "sha256": "2b3891b1b3aa63a8267842adcce059c9dd4817fefde628308767c908f3701821",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "Every complete private-key PEM payload in this exact member was decoded as data and its label and DER SHA256 matched an already traced synthetic test key in the same fixed upstream archive. Adjacent C string literals were decoded without executing source. The original fixture members and their exact test-use references are additionally bound below. This establishes reuse of the known test-key content, including currently unused copies; it does not claim that every copy is itself called by an active test. Only the listed rules for this member hash are approved.",
+    "keyPayloadIdentities": [
+      {
+        "pemLabel": "PRIVATE KEY",
+        "derSha256": "9691370d6b32043242ad431fbe82ebbdeb53afa3dc04c4849551c87161525e43"
+      }
+    ],
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/apps/server.pem",
+      "sha256": "ffdc8d77eb82b815de5235d93d1b733bf7a6934a8276862cd3b0d842b7dcc53d",
+      "kind": "identical-upstream-test-key-content"
+    },
+    "additionalEvidence": [
+      {
+        "kind": "upstream-explicit-test-input",
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/70-test_asyncio.t",
+        "sha256": "949b71799ac851cfa804b70f170bb830029dd722acf130f926d4aa45dbfe6492"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading_data/key.pem",
+    "sha256": "ebdd18f7829a82404ca54be4177f1ba38b4e211e06f6cef3a584e22f864559b9",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "Every complete private-key PEM payload in this exact member was decoded as data and its label and DER SHA256 matched an already traced synthetic test key in the same fixed upstream archive. Adjacent C string literals were decoded without executing source. The original fixture members and their exact test-use references are additionally bound below. This establishes reuse of the known test-key content, including currently unused copies; it does not claim that every copy is itself called by an active test. Only the listed rules for this member hash are approved.",
+    "keyPayloadIdentities": [
+      {
+        "pemLabel": "PRIVATE KEY",
+        "derSha256": "bc00b886eff4cb2e90076c9f9a44e7b9bc8775eaccb11f5dad527dc70009177b"
+      }
+    ],
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/cert-key-cert.pem",
+      "sha256": "d752dc61d5deb2475b1cac94cd47b00e98dc87db3aecae47f3d2a0da605c9a4e",
+      "kind": "identical-upstream-test-key-content"
+    },
+    "additionalEvidence": [
+      {
+        "kind": "upstream-explicit-test-input",
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading.t",
+        "sha256": "df894534c294ebc5d934c55c4c374742cf4c512b614800d215c9f9da943b5549"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_pkey_provided/ED25519.priv.pem",
+    "sha256": "c4932a9b6b97423b249a53e58d706f820185467464699038ed7ca5b29815ba03",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "Every complete private-key PEM payload in this exact member was decoded as data and its label and DER SHA256 matched an already traced synthetic test key in the same fixed upstream archive. Adjacent C string literals were decoded without executing source. The original fixture members and their exact test-use references are additionally bound below. This establishes reuse of the known test-key content, including currently unused copies; it does not claim that every copy is itself called by an active test. Only the listed rules for this member hash are approved.",
+    "keyPayloadIdentities": [
+      {
+        "pemLabel": "PRIVATE KEY",
+        "derSha256": "06ceb2d515aec734d9d42561d1f7f467f53926837e85229814fcf218056240ae"
+      }
+    ],
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_data/evppkey_ecx.txt",
+      "sha256": "e2073638c30705ead8fee4bdf33ebcc5a7dadc09809c4f62d417f15ce065babe",
+      "kind": "identical-upstream-test-key-content"
+    },
+    "additionalEvidence": [
+      {
+        "kind": "upstream-resolved-test-input",
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp.t",
+        "sha256": "25053d06399e81f3486e55052279cb09c304c3855f6fff355934d28c24aedff6"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_pkey_provided/X25519.priv.pem",
+    "sha256": "e0d11e8b607bd1e45a7d0c10ea36f3587afa32ba8ce3a55f032aad51fa2edd7c",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "Every complete private-key PEM payload in this exact member was decoded as data and its label and DER SHA256 matched an already traced synthetic test key in the same fixed upstream archive. Adjacent C string literals were decoded without executing source. The original fixture members and their exact test-use references are additionally bound below. This establishes reuse of the known test-key content, including currently unused copies; it does not claim that every copy is itself called by an active test. Only the listed rules for this member hash are approved.",
+    "keyPayloadIdentities": [
+      {
+        "pemLabel": "PRIVATE KEY",
+        "derSha256": "1a42281432fa72d79107ee6d16e9be028a703b63418de1c096baf4691ad4cef9"
+      }
+    ],
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_data/evppkey_ecx.txt",
+      "sha256": "e2073638c30705ead8fee4bdf33ebcc5a7dadc09809c4f62d417f15ce065babe",
+      "kind": "identical-upstream-test-key-content"
+    },
+    "additionalEvidence": [
+      {
+        "kind": "upstream-resolved-test-input",
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp.t",
+        "sha256": "25053d06399e81f3486e55052279cb09c304c3855f6fff355934d28c24aedff6"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_pkey_provided/X448.priv.pem",
+    "sha256": "42c03331dd25a8b9c18a47c218f9ec600c6357db528b39c5795a79307e4061d1",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "Every complete private-key PEM payload in this exact member was decoded as data and its label and DER SHA256 matched an already traced synthetic test key in the same fixed upstream archive. Adjacent C string literals were decoded without executing source. The original fixture members and their exact test-use references are additionally bound below. This establishes reuse of the known test-key content, including currently unused copies; it does not claim that every copy is itself called by an active test. Only the listed rules for this member hash are approved.",
+    "keyPayloadIdentities": [
+      {
+        "pemLabel": "PRIVATE KEY",
+        "derSha256": "5887a078b07c324dddf1dfd74be90767ee68bbd8a7e09124344690b525203b25"
+      }
+    ],
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_data/evppkey_ecx.txt",
+      "sha256": "e2073638c30705ead8fee4bdf33ebcc5a7dadc09809c4f62d417f15ce065babe",
+      "kind": "identical-upstream-test-key-content"
+    },
+    "additionalEvidence": [
+      {
+        "kind": "upstream-resolved-test-input",
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp.t",
+        "sha256": "25053d06399e81f3486e55052279cb09c304c3855f6fff355934d28c24aedff6"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_cmp_http_data/Mock/newWithNew.pem",
+    "sha256": "037785791a67945ba8f4395699ed67484f99bef4c47c579f915a381be10be573",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "Every complete private-key PEM payload in this exact member was decoded as data and its label and DER SHA256 matched an already traced synthetic test key in the same fixed upstream archive. Adjacent C string literals were decoded without executing source. The original fixture members and their exact test-use references are additionally bound below. This establishes reuse of the known test-key content, including currently unused copies; it does not claim that every copy is itself called by an active test. Only the listed rules for this member hash are approved.",
+    "keyPayloadIdentities": [
+      {
+        "pemLabel": "PRIVATE KEY",
+        "derSha256": "80b885d1af82668ad76d1c5a1a916b5bfc23d247e2f7f450e45b5c1024843e96"
+      }
+    ],
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/root-ed25519.privkey.pem",
+      "sha256": "4b4fc44435f8d20dd4e915752db1019d3936877152b95d5f39414f422b1110cd",
+      "kind": "identical-upstream-test-key-content"
+    },
+    "additionalEvidence": [
+      {
+        "kind": "upstream-explicit-test-input",
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/15-test_pkey.t",
+        "sha256": "ef805beb02cee91aad0e928f4b70e4980e666918fb5b11d83728f961570aca34"
+      }
+    ]
   }
 ]
