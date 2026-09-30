@@ -12,6 +12,7 @@ import tarfile
 import hashlib
 import json
 import time
+import struct
 
 
 def git(*arguments):
@@ -251,6 +252,7 @@ class ArchiveScan:
 
         if is_zip:
             with zipfile.ZipFile(io.BytesIO(data)) as archive:
+                payload_ranges = []
                 for member in archive.infolist():
                     self.current_member = name + '/' + member.filename
                     self.check_budget()
@@ -258,8 +260,32 @@ class ArchiveScan:
                         self.check_budget(member.file_size)
                         results.extend(child(member.filename, archive.read(member)))
                     else:
+                        if member.file_size or archive.read(member):
+                            raise ValueError('ZIP directory contains uninspected payload')
                         self.members += 1
                         results.append((self.current_member, findings(member.filename, b'', self.domains)))
+                    # Only exclude payload bytes after the member was fully decoded,
+                    # CRC-checked and inspected with its exact member identity.
+                    offset = member.header_offset
+                    if offset < 0 or data[offset:offset + 4] != b'PK\x03\x04':
+                        raise ValueError('Invalid ZIP local header')
+                    name_size, extra_size = struct.unpack_from('<HH', data, offset + 26)
+                    start = offset + 30 + name_size + extra_size
+                    end = start + member.compress_size
+                    if start > archive.start_dir or end > archive.start_dir:
+                        raise ValueError('ZIP payload overlaps archive metadata')
+                    payload_ranges.append((offset, start, end))
+                metadata = []
+                cursor = 0
+                for offset, start, end in sorted(payload_ranges):
+                    if offset < cursor:
+                        raise ValueError('Overlapping ZIP members')
+                    metadata.append(data[cursor:start])
+                    cursor = end
+                metadata.append(data[cursor:])
+                # Headers, comments, signing blocks, preambles and trailing bytes
+                # remain inspected. A member review never approves the container.
+                results[0] = (name, findings(name, b'\n'.join(metadata), self.domains))
         else:
             stream = io.BytesIO(data)
             if lower.endswith('.tar.zst'):

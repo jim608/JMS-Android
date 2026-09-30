@@ -35,6 +35,28 @@ def review(archive, member, data, evidence_member=None, evidence_data=None):
 
 
 class PublicEvidenceTests(unittest.TestCase):
+    def test_stored_member_review_does_not_exempt_container_metadata(self):
+        payload = b'password="' + b'x' * 32 + b'"'
+        for location in ('none', 'comment', 'trailer', 'other'):
+            with self.subTest(location=location):
+                stream = io.BytesIO()
+                with zipfile.ZipFile(stream, 'w', compression=zipfile.ZIP_STORED) as archive:
+                    archive.writestr('fixture.txt', payload)
+                    if location == 'comment':
+                        archive.comment = b'https://private.example.invalid'
+                    if location == 'other':
+                        archive.writestr('other.txt', payload)
+                data = stream.getvalue()
+                if location == 'trailer':
+                    data += b'https://private.example.invalid'
+                approval = review(data, 'fixture.txt', payload)
+                approval['rules'] = ['credential assignment']
+                _, rejected = self.scan(data, [approval], ['private.example.invalid'])
+                if location == 'none':
+                    self.assertEqual([], rejected)
+                else:
+                    self.assertTrue(rejected)
+
     def scan(self, data, reviews, domains=(), **limits):
         scanner = privacy.ArchiveScan(domains, reviews, **limits)
         results = scanner.scan('release.zip', data)
