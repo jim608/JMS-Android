@@ -28008,5 +28008,471 @@
       "member": "mingw-w64-python/Python-3.14.7.tar.xz/Python-3.14.7/Lib/test/test_urlparse.py",
       "sha256": "c1b4bf192569399b268d310dd8f4983c5cbce66d182ee2af29fc047b61897730"
     }
+  },
+  {
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/ca-crl-invalid.pem",
+    "sha256": "1ceefe4edcdc4e079a4cbed3f6674f15d27daf5236a9231b59dd75e1ba65b33f",
+    "rules": [
+      "private file type"
+    ],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "explanation": "Pinned GnuTLS test input selected by an explicit source-relative path (or the enumerated DH parameter list). The consuming shell test uses the fixture with certtool or its test-server/client harness. Only the exact input bytes and listed rules are approved; no external-service login or upstream test execution was performed.",
+    "testReference": "crl.sh: tests/cert-tests/data/ca-crl-invalid.pem",
+    "evidence": {
+      "kind": "upstream-explicit-cryptographic-test-input",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/crl.sh",
+      "sha256": "9446a31ca667185347500154dd95944f29853627d4afbb711acf6688a6cd658a"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/Makefile.am",
+        "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
+      }
+    ]
+  },
+  {
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/ca-crl-valid.pem",
+    "sha256": "8c8cb1afc2737bd7e0725176373ad3e42f87ea2d1afaaab44c5c66362d9bb860",
+    "rules": [
+      "private file type"
+    ],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "explanation": "Pinned GnuTLS test input selected by an explicit source-relative path (or the enumerated DH parameter list). The consuming shell test uses the fixture with certtool or its test-server/client harness. Only the exact input bytes and listed rules are approved; no external-service login or upstream test execution was performed.",
+    "testReference": "crl.sh: tests/cert-tests/data/ca-crl-valid.pem",
+    "evidence": {
+      "kind": "upstream-explicit-cryptographic-test-input",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/crl.sh",
+      "sha256": "9446a31ca667185347500154dd95944f29853627d4afbb711acf6688a6cd658a"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/Makefile.am",
+        "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/enc2pkcs8.pem",
+    "sha256": "6d25276d1d4cc19f88ef9a1d6dfe2d41dda690d044564dc031fa055a5b2453da",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "The exact fixture is selected by an explicitly enumerated literal shell loop in the pinned GnuTLS test. The loop passes its filename to certtool key decoding or compares its expected textual key output. The positional filename assignment and source-relative consumer were checked without executing the upstream test or attempting any service login.",
+    "testReference": "pkcs8-decode.sh -> tests/cert-tests/data/enc2pkcs8.pem",
+    "evidence": {
+      "kind": "upstream-enumerated-key-format-test",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs8-decode.sh",
+      "sha256": "270523e9817f1baed5ab0a5d1cbdd06a4b6ed3f84379366f1e31f6f4ae3b52ad"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/Makefile.am",
+        "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/encpkcs8.pem",
+    "sha256": "1f05abcf78f42ff1233dd15f2cb02a7742b95bfb6fcabf4578e9411835b647d8",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "The exact fixture is selected by an explicitly enumerated literal shell loop in the pinned GnuTLS test. The loop passes its filename to certtool key decoding or compares its expected textual key output. The positional filename assignment and source-relative consumer were checked without executing the upstream test or attempting any service login.",
+    "testReference": "pkcs8-decode.sh -> tests/cert-tests/data/encpkcs8.pem",
+    "evidence": {
+      "kind": "upstream-enumerated-key-format-test",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs8-decode.sh",
+      "sha256": "270523e9817f1baed5ab0a5d1cbdd06a4b6ed3f84379366f1e31f6f4ae3b52ad"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/Makefile.am",
+        "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-gost01-2-enc.p8.txt",
+    "sha256": "fb047c29ae50835a7e15ce9999ceb542cb113fde2699778079248018d4562088",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "The exact fixture is selected by an explicitly enumerated literal shell loop in the pinned GnuTLS test. The loop passes its filename to certtool key decoding or compares its expected textual key output. The positional filename assignment and source-relative consumer were checked without executing the upstream test or attempting any service login.",
+    "testReference": "pkcs8-gost.sh -> tests/cert-tests/data/key-gost01-2-enc.p8.txt",
+    "evidence": {
+      "kind": "upstream-enumerated-key-format-test",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs8-gost.sh",
+      "sha256": "3876191a7b10c16d2ccf39f3d00f67025d7ddb5fd11f4a48bb7546fd0b215d90"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/Makefile.am",
+        "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-gost01-2.p8",
+    "sha256": "9f46b47ac9d404513fbb1bcaed1f22d1b9373bfe6fd23ab3e1062e9022b70233",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "The exact fixture is selected by an explicitly enumerated literal shell loop in the pinned GnuTLS test. The loop passes its filename to certtool key decoding or compares its expected textual key output. The positional filename assignment and source-relative consumer were checked without executing the upstream test or attempting any service login.",
+    "testReference": "pkcs8-gost.sh -> tests/cert-tests/data/key-gost01-2.p8",
+    "evidence": {
+      "kind": "upstream-enumerated-key-format-test",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs8-gost.sh",
+      "sha256": "3876191a7b10c16d2ccf39f3d00f67025d7ddb5fd11f4a48bb7546fd0b215d90"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/Makefile.am",
+        "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-gost01-2.p8.txt",
+    "sha256": "e2098001c6f64b3d253d8c21d7d035852caeda6d5cad08617c046b5d9dcc2c92",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "The exact fixture is selected by an explicitly enumerated literal shell loop in the pinned GnuTLS test. The loop passes its filename to certtool key decoding or compares its expected textual key output. The positional filename assignment and source-relative consumer were checked without executing the upstream test or attempting any service login.",
+    "testReference": "pkcs8-gost.sh -> tests/cert-tests/data/key-gost01-2.p8.txt",
+    "evidence": {
+      "kind": "upstream-enumerated-key-format-test",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs8-gost.sh",
+      "sha256": "3876191a7b10c16d2ccf39f3d00f67025d7ddb5fd11f4a48bb7546fd0b215d90"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/Makefile.am",
+        "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-gost01.p8",
+    "sha256": "0f45b594c8912940472e5b8d988c5377893dbc9bd736b1f427ec4a6b863aed9f",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "The exact fixture is selected by an explicitly enumerated literal shell loop in the pinned GnuTLS test. The loop passes its filename to certtool key decoding or compares its expected textual key output. The positional filename assignment and source-relative consumer were checked without executing the upstream test or attempting any service login.",
+    "testReference": "pkcs8-gost.sh -> tests/cert-tests/data/key-gost01.p8",
+    "evidence": {
+      "kind": "upstream-enumerated-key-format-test",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs8-gost.sh",
+      "sha256": "3876191a7b10c16d2ccf39f3d00f67025d7ddb5fd11f4a48bb7546fd0b215d90"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/Makefile.am",
+        "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-gost01.p8.txt",
+    "sha256": "d6ccf965700c8023d9141f48ecb92fb3b57e07d0dbe3d64321975795edb5a828",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "The exact fixture is selected by an explicitly enumerated literal shell loop in the pinned GnuTLS test. The loop passes its filename to certtool key decoding or compares its expected textual key output. The positional filename assignment and source-relative consumer were checked without executing the upstream test or attempting any service login.",
+    "testReference": "pkcs8-gost.sh -> tests/cert-tests/data/key-gost01.p8.txt",
+    "evidence": {
+      "kind": "upstream-enumerated-key-format-test",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs8-gost.sh",
+      "sha256": "3876191a7b10c16d2ccf39f3d00f67025d7ddb5fd11f4a48bb7546fd0b215d90"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/Makefile.am",
+        "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-gost12-256-2-enc.p8.txt",
+    "sha256": "cd2a3619b878fe1ef617921a45fe879e90c19ccba025f05a73714ca192aff3de",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "The exact fixture is selected by an explicitly enumerated literal shell loop in the pinned GnuTLS test. The loop passes its filename to certtool key decoding or compares its expected textual key output. The positional filename assignment and source-relative consumer were checked without executing the upstream test or attempting any service login.",
+    "testReference": "pkcs8-gost.sh -> tests/cert-tests/data/key-gost12-256-2-enc.p8.txt",
+    "evidence": {
+      "kind": "upstream-enumerated-key-format-test",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs8-gost.sh",
+      "sha256": "3876191a7b10c16d2ccf39f3d00f67025d7ddb5fd11f4a48bb7546fd0b215d90"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/Makefile.am",
+        "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-gost12-256-2.p8",
+    "sha256": "785b6d7926d43a48fbaa0a1bf3bb3d2db72d4f1af5161b0c58a903ce956f665e",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "The exact fixture is selected by an explicitly enumerated literal shell loop in the pinned GnuTLS test. The loop passes its filename to certtool key decoding or compares its expected textual key output. The positional filename assignment and source-relative consumer were checked without executing the upstream test or attempting any service login.",
+    "testReference": "pkcs8-gost.sh -> tests/cert-tests/data/key-gost12-256-2.p8",
+    "evidence": {
+      "kind": "upstream-enumerated-key-format-test",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs8-gost.sh",
+      "sha256": "3876191a7b10c16d2ccf39f3d00f67025d7ddb5fd11f4a48bb7546fd0b215d90"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/Makefile.am",
+        "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-gost12-256-2.p8.txt",
+    "sha256": "681572a554b5d31e60c2bfaeb85e9d144faaac264619721869fcf05c718953c8",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "The exact fixture is selected by an explicitly enumerated literal shell loop in the pinned GnuTLS test. The loop passes its filename to certtool key decoding or compares its expected textual key output. The positional filename assignment and source-relative consumer were checked without executing the upstream test or attempting any service login.",
+    "testReference": "pkcs8-gost.sh -> tests/cert-tests/data/key-gost12-256-2.p8.txt",
+    "evidence": {
+      "kind": "upstream-enumerated-key-format-test",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs8-gost.sh",
+      "sha256": "3876191a7b10c16d2ccf39f3d00f67025d7ddb5fd11f4a48bb7546fd0b215d90"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/Makefile.am",
+        "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-gost12-256.p8",
+    "sha256": "b02e1154209c523063d9aee63c4b5ef849bf19ca36f0bd78802177add72d08e8",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "The exact fixture is selected by an explicitly enumerated literal shell loop in the pinned GnuTLS test. The loop passes its filename to certtool key decoding or compares its expected textual key output. The positional filename assignment and source-relative consumer were checked without executing the upstream test or attempting any service login.",
+    "testReference": "pkcs8-gost.sh -> tests/cert-tests/data/key-gost12-256.p8",
+    "evidence": {
+      "kind": "upstream-enumerated-key-format-test",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs8-gost.sh",
+      "sha256": "3876191a7b10c16d2ccf39f3d00f67025d7ddb5fd11f4a48bb7546fd0b215d90"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/Makefile.am",
+        "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-gost12-256.p8.txt",
+    "sha256": "27ed84b951be3daf3a98838d11180e782dce25d68b1aa031374b4b56cd63cf7b",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "The exact fixture is selected by an explicitly enumerated literal shell loop in the pinned GnuTLS test. The loop passes its filename to certtool key decoding or compares its expected textual key output. The positional filename assignment and source-relative consumer were checked without executing the upstream test or attempting any service login.",
+    "testReference": "pkcs8-gost.sh -> tests/cert-tests/data/key-gost12-256.p8.txt",
+    "evidence": {
+      "kind": "upstream-enumerated-key-format-test",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs8-gost.sh",
+      "sha256": "3876191a7b10c16d2ccf39f3d00f67025d7ddb5fd11f4a48bb7546fd0b215d90"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/Makefile.am",
+        "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/pkcs8-eddsa.pem",
+    "sha256": "4b4fc44435f8d20dd4e915752db1019d3936877152b95d5f39414f422b1110cd",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "The exact fixture is selected by an explicitly enumerated literal shell loop in the pinned GnuTLS test. The loop passes its filename to certtool key decoding or compares its expected textual key output. The positional filename assignment and source-relative consumer were checked without executing the upstream test or attempting any service login.",
+    "testReference": "pkcs8-eddsa.sh -> tests/cert-tests/data/pkcs8-eddsa.pem",
+    "evidence": {
+      "kind": "upstream-enumerated-key-format-test",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs8-eddsa.sh",
+      "sha256": "0aca6b9a521db9209e85c0c9eb08ff879389cd5d19843faf13785dbc995d4411"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/Makefile.am",
+        "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/pkcs8-eddsa.pem.txt",
+    "sha256": "96cd803ae0c527a99074a3ababe15029eb2e67dd589c8a0b9d0c8467919f679c",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "The exact fixture is selected by an explicitly enumerated literal shell loop in the pinned GnuTLS test. The loop passes its filename to certtool key decoding or compares its expected textual key output. The positional filename assignment and source-relative consumer were checked without executing the upstream test or attempting any service login.",
+    "testReference": "pkcs8-eddsa.sh -> tests/cert-tests/data/pkcs8-eddsa.pem.txt",
+    "evidence": {
+      "kind": "upstream-enumerated-key-format-test",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs8-eddsa.sh",
+      "sha256": "0aca6b9a521db9209e85c0c9eb08ff879389cd5d19843faf13785dbc995d4411"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/Makefile.am",
+        "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/pkcs8-pbes1-des-md5.pem",
+    "sha256": "9693b38412655412614466b85c7731a94ff0eb2e5a66e8268b1a437990f82f00",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "The exact fixture is selected by an explicitly enumerated literal shell loop in the pinned GnuTLS test. The loop passes its filename to certtool key decoding or compares its expected textual key output. The positional filename assignment and source-relative consumer were checked without executing the upstream test or attempting any service login.",
+    "testReference": "pkcs8-decode.sh -> tests/cert-tests/data/pkcs8-pbes1-des-md5.pem",
+    "evidence": {
+      "kind": "upstream-enumerated-key-format-test",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs8-decode.sh",
+      "sha256": "270523e9817f1baed5ab0a5d1cbdd06a4b6ed3f84379366f1e31f6f4ae3b52ad"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/Makefile.am",
+        "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/pkcs8-pbes2-sha256.pem",
+    "sha256": "8852388822b3ab2d5094cc98145aca9568920b17275ac2b2bfd5de29f7d19fd6",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "The exact fixture is selected by an explicitly enumerated literal shell loop in the pinned GnuTLS test. The loop passes its filename to certtool key decoding or compares its expected textual key output. The positional filename assignment and source-relative consumer were checked without executing the upstream test or attempting any service login.",
+    "testReference": "pkcs8-decode.sh -> tests/cert-tests/data/pkcs8-pbes2-sha256.pem",
+    "evidence": {
+      "kind": "upstream-enumerated-key-format-test",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs8-decode.sh",
+      "sha256": "270523e9817f1baed5ab0a5d1cbdd06a4b6ed3f84379366f1e31f6f4ae3b52ad"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/Makefile.am",
+        "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/privkey2.pem",
+    "sha256": "e3f5dc3e76365055372c482765ba67e97d85b15306b4966a680428ea46f63670",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "The exact fixture is selected by an explicitly enumerated literal shell loop in the pinned GnuTLS test. The loop passes its filename to certtool key decoding or compares its expected textual key output. The positional filename assignment and source-relative consumer were checked without executing the upstream test or attempting any service login.",
+    "testReference": "privkey-import.sh -> tests/cert-tests/data/privkey2.pem",
+    "evidence": {
+      "kind": "upstream-enumerated-key-format-test",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/privkey-import.sh",
+      "sha256": "af109e7c2e66b71fe27471d4ed9e15aa0bf32c1a35882b7c399a6e2050dd4451"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/Makefile.am",
+        "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/privkey3.pem",
+    "sha256": "8a91b29c2fcf5d335e71daab6bae077e9eb43106583b1f933ce4dabfda6ce3c0",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "The exact fixture is selected by an explicitly enumerated literal shell loop in the pinned GnuTLS test. The loop passes its filename to certtool key decoding or compares its expected textual key output. The positional filename assignment and source-relative consumer were checked without executing the upstream test or attempting any service login.",
+    "testReference": "privkey-import.sh -> tests/cert-tests/data/privkey3.pem",
+    "evidence": {
+      "kind": "upstream-enumerated-key-format-test",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/privkey-import.sh",
+      "sha256": "af109e7c2e66b71fe27471d4ed9e15aa0bf32c1a35882b7c399a6e2050dd4451"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/Makefile.am",
+        "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/unencpkcs8.pem",
+    "sha256": "3e842f0dea1dec2a082a1ccee35856b0d073a1502d0aa9e76132649e9a89d20b",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "The exact fixture is selected by an explicitly enumerated literal shell loop in the pinned GnuTLS test. The loop passes its filename to certtool key decoding or compares its expected textual key output. The positional filename assignment and source-relative consumer were checked without executing the upstream test or attempting any service login.",
+    "testReference": "pkcs8-decode.sh -> tests/cert-tests/data/unencpkcs8.pem",
+    "evidence": {
+      "kind": "upstream-enumerated-key-format-test",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs8-decode.sh",
+      "sha256": "270523e9817f1baed5ab0a5d1cbdd06a4b6ed3f84379366f1e31f6f4ae3b52ad"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/Makefile.am",
+        "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
+      }
+    ]
   }
 ]
