@@ -5,7 +5,7 @@ from jms_publication import Github, ReleaseError, allowed_url
 
 class DesktopPublicationTests(unittest.TestCase):
     def test_repository_scope_is_exact(self):
-        for repository in ('jim608/JMS-Desktop', 'jim608/JMS-Linux'):
+        for repository in ('jim608/JMS-Desktop', 'jim608/JMS-Linux', 'jim608/JMS-Web'):
             github = Github(repository=repository)
             with patch.object(github, 'call', return_value=b'{}') as call:
                 github.api('repos/' + repository + '/releases')

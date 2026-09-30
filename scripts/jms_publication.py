@@ -163,7 +163,7 @@ def publication_gates(policy, baseline_apk, signer=SIGNER):
 
 class Github:
     def __init__(self, executable=None, *, repository=REPOSITORY):
-        if repository not in {'jim608/JMS-Android', 'jim608/JMS-Desktop', 'jim608/JMS-Linux'}:
+        if repository not in {'jim608/JMS-Android', 'jim608/JMS-Desktop', 'jim608/JMS-Linux', 'jim608/JMS-Web'}:
             raise ReleaseError('Repository is not an authorized JMS release target')
         self.repository = repository
         self.executable = executable or ROOT / '.jms-tools/gh/bin/gh.exe'

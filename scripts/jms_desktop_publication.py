@@ -12,7 +12,50 @@ from jms_publication import (ROOT, Github, ReleaseError, sha256, save_json,
                              upload_complete_release, anonymous_download)
 from check_jms_git_privacy import load_policy, scan_packages_cached, tree_entries
 
-REPOSITORIES = {'windows': 'jim608/JMS-Desktop', 'linux': 'jim608/JMS-Linux'}
+REPOSITORIES = {'windows': 'jim608/JMS-Desktop', 'linux': 'jim608/JMS-Linux', 'web': 'jim608/JMS-Web'}
+
+
+def validate_web_inventory(directory):
+    record = json.loads((directory / 'web-publication.json').read_text(encoding='utf-8'))
+    if record['repository'] != REPOSITORIES['web'] or record['platform'] != 'web':
+        raise ReleaseError('Web repository/platform mismatch')
+    if record['sourceRepository'] != 'jim608/JMS-Android' or not re.fullmatch('[a-f0-9]{40}', record['sourceCommit']):
+        raise ReleaseError('Invalid Web source identity')
+    version = re.search(r'^version:\s*([^+\s]+)\+(\d+)',
+                       git('show', record['sourceCommit'] + ':pubspec.yaml'), re.M)
+    if not version or (version[1], int(version[2])) != (record['versionName'], record['versionCode']):
+        raise ReleaseError('Web version differs from source')
+    expected_id = 'JMS-' + record['versionName'] + '-web-' + record['sourceCommit'][:12]
+    if record['buildId'] != expected_id or record.get('validation', {}).get('container') is not True:
+        raise ReleaseError('Web build identity or runtime evidence missing')
+    files = {}
+    for entry in record['assets']:
+        name = entry['name']
+        if Path(name).name != name or '/' in name or '\\' in name or name in files:
+            raise ReleaseError('Invalid Web asset name')
+        path = directory / name
+        if not path.is_file() or path.stat().st_size != entry['size'] or sha256(path) != entry['sha256']:
+            raise ReleaseError('Web asset differs from reviewed inventory')
+        files[name] = {'path': str(path), 'size': entry['size'], 'sha256': entry['sha256']}
+    required = {record['webArchive'], record['sourceArchive'], 'source.json', 'SHA256SUMS.txt', 'RELEASE_NOTES.md'}
+    if not required.issubset(files):
+        raise ReleaseError('Web release is incomplete')
+    identity = json.loads((directory / 'source.json').read_text(encoding='utf-8'))
+    for field in ('platform', 'versionName', 'versionCode', 'sourceCommit', 'sourceRepository', 'buildId'):
+        if identity.get(field) != record[field]:
+            raise ReleaseError('Web source record differs from release')
+    with zipfile.ZipFile(directory / record['webArchive']) as bundle:
+        if expected_id.encode() not in bundle.read('main.dart.js'):
+            raise ReleaseError('Web executable has another build identity')
+        for name in ('index.html', 'flutter_bootstrap.js', 'assets/NOTICES'):
+            if name not in bundle.namelist():
+                raise ReleaseError('Web runtime or dependency licenses missing')
+    verify_source_archive(directory / record['sourceArchive'], record['sourceCommit'])
+    privacy = scan_packages_cached([entry['path'] for entry in files.values()], load_policy(),
+                                   ROOT / git('rev-parse', '--git-path', 'jms-privacy-cache'))
+    if not privacy['accepted']:
+        raise ReleaseError('Web release privacy review required')
+    return record, files
 
 
 def git(*args, cwd=ROOT):
@@ -123,7 +166,8 @@ def publish_desktop(args):
     if not args.artifact_directory:
         raise ReleaseError('Desktop publication requires a prepared artifact directory')
     directory = Path(args.artifact_directory).resolve()
-    record, files = validate_inventory(directory, args.platform)
+    record, files = (validate_web_inventory(directory) if args.platform == 'web'
+                     else validate_inventory(directory, args.platform))
     # The source SHA is a shared-source commit; the release tag belongs to the release repository.
     remote_source = git('ls-remote', 'https://github.com/jim608/JMS-Android.git', 'refs/heads/jms').split()[0]
     git('merge-base', '--is-ancestor', record['sourceCommit'], remote_source)
