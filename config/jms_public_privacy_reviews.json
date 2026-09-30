@@ -28474,5 +28474,358 @@
         "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
       }
     ]
+  },
+  {
+    "source": "https://static.crates.io/crates/gdk-pixbuf/gdk-pixbuf-0.22.0.crate",
+    "archiveSha256": "25f420376dbee041b2db374ce4573892a36222bb3f6c0c43e24f0d67eae9b646",
+    "member": "gdk-pixbuf-0.22.0/tests/overflow.rs",
+    "sha256": "8dd9f67670d7d0e616cdb042e64bc7dfd42f17ef423cbd00fa9ca15165628c80",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Commented upstream panic trace documents the multiplication-overflow regression reproduced by this test; the path is part of that fixed upstream diagnostic, not a JMS build or user setting.",
+    "evidence": {
+      "kind": "upstream-test-or-format-reference",
+      "member": "gdk-pixbuf-0.22.0/tests/overflow.rs",
+      "sha256": "8dd9f67670d7d0e616cdb042e64bc7dfd42f17ef423cbd00fa9ca15165628c80"
+    }
+  },
+  {
+    "source": "https://static.crates.io/crates/toml_parser/toml_parser-1.1.3+spec-1.1.0.crate",
+    "archiveSha256": "1d38ac1cf9b95face32296c0a3ede1fdc270627c9d9c02a7274dd6d960dc4d56",
+    "member": "toml_parser-1.1.3+spec-1.1.0/src/decoder/string.rs",
+    "sha256": "d74cc99092ec8866f763ad658d25e79fe44411f49681fe553ce319eccdefcd27",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Literal Windows path and matching expected string are inputs and assertions in the TOML quoted-string decoder regression.",
+    "evidence": {
+      "kind": "upstream-test-or-format-reference",
+      "member": "toml_parser-1.1.3+spec-1.1.0/src/decoder/string.rs",
+      "sha256": "d74cc99092ec8866f763ad658d25e79fe44411f49681fe553ce319eccdefcd27"
+    }
+  },
+  {
+    "source": "https://static.crates.io/crates/url/url-2.5.8.crate",
+    "archiveSha256": "ff67a8a4397373c3ef660812acab3268222035010ab8680ec4215f38ba3d0eed",
+    "member": "url-2.5.8/src/lib.rs",
+    "sha256": "51f47a93654528f3b8cb92c94fc26ad25775860d84197fff0c3124a687f8c5e3",
+    "rules": [
+      "credential URL/header"
+    ],
+    "explanation": "API documentation authority() example parses synthetic userinfo at example.com and asserts the authority string; no network authentication occurs.",
+    "evidence": {
+      "kind": "upstream-test-or-format-reference",
+      "member": "url-2.5.8/src/lib.rs",
+      "sha256": "51f47a93654528f3b8cb92c94fc26ad25775860d84197fff0c3124a687f8c5e3"
+    }
+  },
+  {
+    "source": "https://static.crates.io/crates/url/url-2.5.8.crate",
+    "archiveSha256": "ff67a8a4397373c3ef660812acab3268222035010ab8680ec4215f38ba3d0eed",
+    "member": "url-2.5.8/tests/setters_tests.json",
+    "sha256": "a3a4cbd7b798bc2c4d9656dc50be7397a5a5ed1f0b52daa1da1ad654d38c1dcd",
+    "rules": [
+      "personal filesystem path",
+      "credential URL/header",
+      "private network endpoint"
+    ],
+    "explanation": "Exact WPT URL parser/setter fixture loaded with include_str! by tests/wpt.rs. Userinfo, RFC1918 hosts and file paths are input/expected parse fields; the consumer performs URL parsing/setter assertions, not network requests.",
+    "evidence": {
+      "kind": "upstream-test-or-format-reference",
+      "member": "url-2.5.8/tests/wpt.rs",
+      "sha256": "2d083ab72ad8cc9b116dd164e63440dd120f07977ac306377633cfe214f34a62"
+    }
+  },
+  {
+    "source": "https://static.crates.io/crates/url/url-2.5.8.crate",
+    "archiveSha256": "ff67a8a4397373c3ef660812acab3268222035010ab8680ec4215f38ba3d0eed",
+    "member": "url-2.5.8/tests/unit.rs",
+    "sha256": "7eb96c1194fba03fd7f469c44cbbe28699dae14399be72e4c5c675a90fe08dc7",
+    "rules": [
+      "credential URL/header"
+    ],
+    "explanation": "URL parsing and origin-equality unit tests use synthetic userinfo strings; these inputs are parsed and compared, not used as service credentials.",
+    "evidence": {
+      "kind": "upstream-test-or-format-reference",
+      "member": "url-2.5.8/tests/unit.rs",
+      "sha256": "7eb96c1194fba03fd7f469c44cbbe28699dae14399be72e4c5c675a90fe08dc7"
+    }
+  },
+  {
+    "source": "https://static.crates.io/crates/url/url-2.5.8.crate",
+    "archiveSha256": "ff67a8a4397373c3ef660812acab3268222035010ab8680ec4215f38ba3d0eed",
+    "member": "url-2.5.8/tests/urltestdata.json",
+    "sha256": "58d67bea710d5f46324fe6841df5fd82090fe4ec2d882bc0fc7c1784d4771884",
+    "rules": [
+      "personal filesystem path",
+      "credential URL/header",
+      "private network endpoint"
+    ],
+    "explanation": "Exact WPT URL parser/setter fixture loaded with include_str! by tests/wpt.rs. Userinfo, RFC1918 hosts and file paths are input/expected parse fields; the consumer performs URL parsing/setter assertions, not network requests.",
+    "evidence": {
+      "kind": "upstream-test-or-format-reference",
+      "member": "url-2.5.8/tests/wpt.rs",
+      "sha256": "2d083ab72ad8cc9b116dd164e63440dd120f07977ac306377633cfe214f34a62"
+    }
+  },
+  {
+    "source": "https://static.crates.io/crates/zune-jpeg/zune-jpeg-0.5.15.crate",
+    "archiveSha256": "27bc9d5b815bc103f142aa054f561d9187d191692ec7c2d1e2b4737f8dbd7296",
+    "member": "zune-jpeg-0.5.15/src/bitstream.rs",
+    "sha256": "0f053b8d4443b8818fe187be90304a4f3c645ee43bc9984b8baad4c8b39ce387",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Commented-out local image regression example in the upstream decoder source; the one path identifies the upstream minimized image input, contains no credential, and is not JMS configuration.",
+    "evidence": {
+      "kind": "upstream-test-or-format-reference",
+      "member": "zune-jpeg-0.5.15/src/bitstream.rs",
+      "sha256": "0f053b8d4443b8818fe187be90304a4f3c645ee43bc9984b8baad4c8b39ce387"
+    }
+  },
+  {
+    "source": "https://static.crates.io/crates/console/console-0.15.11.crate",
+    "archiveSha256": "054ccb5b10f9f2cbf51eb355ca1d05c2d279ce1804688d0db74b4733a5aeafd8",
+    "member": "console-0.15.11/tests/data/sample_zellij_session.log",
+    "sha256": "341286d8721451c0a7dc647e7b98438191651199b2d5f03d132e3e971aeddadb",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "ANSI terminal transcript consumed by the complex_data regression, which compares old and new ANSI matchers. The path is upstream sample terminal text; approval does not cover other logs or credentials.",
+    "evidence": {
+      "kind": "upstream-test-or-format-reference",
+      "member": "console-0.15.11/src/ansi.rs",
+      "sha256": "40db1de0c8ad5109c6a0c124ff92050d49d534ea58f835f3a3e85b9479b93782"
+    }
+  },
+  {
+    "source": "https://static.crates.io/crates/crossbeam-channel/crossbeam-channel-0.5.15.crate",
+    "archiveSha256": "82b8f8f868b36967f9606790d1903570de9ceaf870a7bf9fbbd3016d636a2cb2",
+    "member": "crossbeam-channel-0.5.15/src/flavors/array.rs",
+    "sha256": "79bc219187c9f40b156b9fe551c1176b66bf73e6d48905b23a2d74c6366a2205",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "The apparent home-directory string is the path component of the cited public 1024cores bounded-MPMC algorithm article, not a filesystem path.",
+    "evidence": {
+      "kind": "upstream-test-or-format-reference",
+      "member": "crossbeam-channel-0.5.15/src/flavors/array.rs",
+      "sha256": "79bc219187c9f40b156b9fe551c1176b66bf73e6d48905b23a2d74c6366a2205"
+    }
+  },
+  {
+    "source": "https://static.crates.io/crates/crossbeam-queue/crossbeam-queue-0.3.12.crate",
+    "archiveSha256": "0f58bbc28f91df819d0aa2a2c00cd19754769c2fad90579b3592b1c9ba7a3115",
+    "member": "crossbeam-queue-0.3.12/src/array_queue.rs",
+    "sha256": "86c732c258c8b929a259e22d772241de80ec2741b18fce8cbb23815e4dd731d4",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "The apparent home-directory string is the path component of the cited public 1024cores bounded-MPMC algorithm article, not a filesystem path.",
+    "evidence": {
+      "kind": "upstream-test-or-format-reference",
+      "member": "crossbeam-queue-0.3.12/src/array_queue.rs",
+      "sha256": "86c732c258c8b929a259e22d772241de80ec2741b18fce8cbb23815e4dd731d4"
+    }
+  },
+  {
+    "source": "https://static.crates.io/crates/git2/git2-0.20.2.crate",
+    "archiveSha256": "2deb07a133b1520dc1a5690e9bd08950108873d7ed5de38dcc74d3b5ebffa110",
+    "member": "git2-0.20.2/src/cred.rs",
+    "sha256": "f36dfa6a4bbdced2cb92d7cb429c39552e028bd49c30ddd2e71a60d6c18ae35d",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "The encrypted RSA fixture is embedded solely in the cfg(test), ssh-feature ssh_key_from_memory unit test. It is passed with its explicit synthetic passphrase to Cred::ssh_key_from_memory and checked for successful in-memory parsing; the test does not authenticate to a remote endpoint.",
+    "evidence": {
+      "kind": "upstream-test-or-format-reference",
+      "member": "git2-0.20.2/src/cred.rs",
+      "sha256": "f36dfa6a4bbdced2cb92d7cb429c39552e028bd49c30ddd2e71a60d6c18ae35d"
+    }
+  },
+  {
+    "source": "https://static.crates.io/crates/libgit2-sys/libgit2-sys-0.18.1+1.9.0.crate",
+    "archiveSha256": "e1dcb20f84ffcdd825c7a311ae347cce604a6f084a767dec4a4929829645290e",
+    "member": "libgit2-sys-0.18.1+1.9.0/libgit2/.github/actions/run-build/action.yml",
+    "sha256": "9364739e61f5a29da25dc07339ec3d506fc23147ca36bfce4de220de2cc577fb",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Upstream CI container mount/working-directory and sanitizer configuration paths. They describe the fixed build-container layout and contain no JMS user path or runtime secret.",
+    "evidence": {
+      "kind": "upstream-test-or-format-reference",
+      "member": "libgit2-sys-0.18.1+1.9.0/libgit2/.github/actions/run-build/action.yml",
+      "sha256": "9364739e61f5a29da25dc07339ec3d506fc23147ca36bfce4de220de2cc577fb"
+    }
+  },
+  {
+    "source": "https://static.crates.io/crates/libgit2-sys/libgit2-sys-0.18.1+1.9.0.crate",
+    "archiveSha256": "e1dcb20f84ffcdd825c7a311ae347cce604a6f084a767dec4a4929829645290e",
+    "member": "libgit2-sys-0.18.1+1.9.0/libgit2/.github/workflows/main.yml",
+    "sha256": "3270fc90080bb5524d60c74bcb20653ea27ad1c78227f62f69c821200614c16b",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Upstream CI container mount/working-directory and sanitizer configuration paths. They describe the fixed build-container layout and contain no JMS user path or runtime secret.",
+    "evidence": {
+      "kind": "upstream-test-or-format-reference",
+      "member": "libgit2-sys-0.18.1+1.9.0/libgit2/.github/workflows/main.yml",
+      "sha256": "3270fc90080bb5524d60c74bcb20653ea27ad1c78227f62f69c821200614c16b"
+    }
+  },
+  {
+    "source": "https://static.crates.io/crates/libgit2-sys/libgit2-sys-0.18.1+1.9.0.crate",
+    "archiveSha256": "e1dcb20f84ffcdd825c7a311ae347cce604a6f084a767dec4a4929829645290e",
+    "member": "libgit2-sys-0.18.1+1.9.0/libgit2/.github/workflows/nightly.yml",
+    "sha256": "48cce8b1905edd8bd52deeff03d82c897885c3b8d5e87face4d8c96ca8b694b4",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Upstream CI container mount/working-directory and sanitizer configuration paths. They describe the fixed build-container layout and contain no JMS user path or runtime secret.",
+    "evidence": {
+      "kind": "upstream-test-or-format-reference",
+      "member": "libgit2-sys-0.18.1+1.9.0/libgit2/.github/workflows/nightly.yml",
+      "sha256": "48cce8b1905edd8bd52deeff03d82c897885c3b8d5e87face4d8c96ca8b694b4"
+    }
+  },
+  {
+    "source": "https://static.crates.io/crates/libgit2-sys/libgit2-sys-0.18.1+1.9.0.crate",
+    "archiveSha256": "e1dcb20f84ffcdd825c7a311ae347cce604a6f084a767dec4a4929829645290e",
+    "member": "libgit2-sys-0.18.1+1.9.0/libgit2/include/git2/repository.h",
+    "sha256": "947f01e699aad61723a517ef0802bbef6750efaadc71f0db54f14ee6fc2e1e05",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Filesystem-search/ignore algorithm documentation uses an illustrative home-directory path in a comment, not an active private path setting.",
+    "evidence": {
+      "kind": "upstream-test-or-format-reference",
+      "member": "libgit2-sys-0.18.1+1.9.0/libgit2/include/git2/repository.h",
+      "sha256": "947f01e699aad61723a517ef0802bbef6750efaadc71f0db54f14ee6fc2e1e05"
+    }
+  },
+  {
+    "source": "https://static.crates.io/crates/libgit2-sys/libgit2-sys-0.18.1+1.9.0.crate",
+    "archiveSha256": "e1dcb20f84ffcdd825c7a311ae347cce604a6f084a767dec4a4929829645290e",
+    "member": "libgit2-sys-0.18.1+1.9.0/libgit2/src/libgit2/ignore.c",
+    "sha256": "0e5be19897672f9815879010a3331e6a3f0cbdc2261a0c7cc9953c6f88ff81a6",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Filesystem-search/ignore algorithm documentation uses an illustrative home-directory path in a comment, not an active private path setting.",
+    "evidence": {
+      "kind": "upstream-test-or-format-reference",
+      "member": "libgit2-sys-0.18.1+1.9.0/libgit2/src/libgit2/ignore.c",
+      "sha256": "0e5be19897672f9815879010a3331e6a3f0cbdc2261a0c7cc9953c6f88ff81a6"
+    }
+  },
+  {
+    "source": "https://static.crates.io/crates/url/url-2.5.4.crate",
+    "archiveSha256": "32f8b686cadd1473f4bd0117a5d28d36b1ade384ea9b5069a1c40aefed7fda60",
+    "member": "url-2.5.4/src/lib.rs",
+    "sha256": "50cb052ffca9a3ca73156f06fc88c034adc75c332ab2f23a4170d3a206f386a9",
+    "rules": [
+      "credential URL/header"
+    ],
+    "explanation": "API documentation authority() example parses synthetic userinfo at example.com and asserts the authority string; no network authentication occurs.",
+    "evidence": {
+      "kind": "upstream-test-or-format-reference",
+      "member": "url-2.5.4/src/lib.rs",
+      "sha256": "50cb052ffca9a3ca73156f06fc88c034adc75c332ab2f23a4170d3a206f386a9"
+    }
+  },
+  {
+    "source": "https://static.crates.io/crates/url/url-2.5.4.crate",
+    "archiveSha256": "32f8b686cadd1473f4bd0117a5d28d36b1ade384ea9b5069a1c40aefed7fda60",
+    "member": "url-2.5.4/tests/setters_tests.json",
+    "sha256": "a3a4cbd7b798bc2c4d9656dc50be7397a5a5ed1f0b52daa1da1ad654d38c1dcd",
+    "rules": [
+      "personal filesystem path",
+      "credential URL/header",
+      "private network endpoint"
+    ],
+    "explanation": "Exact WPT URL parser/setter fixture loaded with include_str! by tests/wpt.rs. Userinfo, RFC1918 hosts and file paths are input/expected parse fields; the consumer performs URL parsing/setter assertions, not network requests.",
+    "evidence": {
+      "kind": "upstream-test-or-format-reference",
+      "member": "url-2.5.4/tests/wpt.rs",
+      "sha256": "8781251116a9de8169327ed40a0237ac6ff2f84e3d579d6fb6d7353362f9a48a"
+    }
+  },
+  {
+    "source": "https://static.crates.io/crates/url/url-2.5.4.crate",
+    "archiveSha256": "32f8b686cadd1473f4bd0117a5d28d36b1ade384ea9b5069a1c40aefed7fda60",
+    "member": "url-2.5.4/tests/unit.rs",
+    "sha256": "fd597d2ca9d890856f35271e3896f27713c33d4afd89737f7379ac71f3470586",
+    "rules": [
+      "credential URL/header"
+    ],
+    "explanation": "URL parsing and origin-equality unit tests use synthetic userinfo strings; these inputs are parsed and compared, not used as service credentials.",
+    "evidence": {
+      "kind": "upstream-test-or-format-reference",
+      "member": "url-2.5.4/tests/unit.rs",
+      "sha256": "fd597d2ca9d890856f35271e3896f27713c33d4afd89737f7379ac71f3470586"
+    }
+  },
+  {
+    "source": "https://static.crates.io/crates/url/url-2.5.4.crate",
+    "archiveSha256": "32f8b686cadd1473f4bd0117a5d28d36b1ade384ea9b5069a1c40aefed7fda60",
+    "member": "url-2.5.4/tests/urltestdata.json",
+    "sha256": "58d67bea710d5f46324fe6841df5fd82090fe4ec2d882bc0fc7c1784d4771884",
+    "rules": [
+      "personal filesystem path",
+      "credential URL/header",
+      "private network endpoint"
+    ],
+    "explanation": "Exact WPT URL parser/setter fixture loaded with include_str! by tests/wpt.rs. Userinfo, RFC1918 hosts and file paths are input/expected parse fields; the consumer performs URL parsing/setter assertions, not network requests.",
+    "evidence": {
+      "kind": "upstream-test-or-format-reference",
+      "member": "url-2.5.4/tests/wpt.rs",
+      "sha256": "8781251116a9de8169327ed40a0237ac6ff2f84e3d579d6fb6d7353362f9a48a"
+    }
+  },
+  {
+    "source": "https://static.crates.io/crates/vcpkg/vcpkg-0.2.15.crate",
+    "archiveSha256": "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426",
+    "member": "vcpkg-0.2.15/test-data/no-status/installed/vcpkg/info/boost-spirit_1.67.0_x64-windows.list",
+    "sha256": "9fe5dc0b4c2119aa31cb02f149b23a7eda1fc8c390c282ee47d23fe9aab8a364",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "These are relative Boost Spirit include-file entries in a vcpkg package-list fixture. The matched segments are relative Boost source directory names, not a user home directory. The exact normalized/no-status fixture trees are used by the package-discovery regressions.",
+    "evidence": {
+      "kind": "upstream-test-or-format-reference",
+      "member": "vcpkg-0.2.15/src/lib.rs",
+      "sha256": "e328540870c53574108da063a67e5ff10256b50a5b36063f0ae2f0bab51a9bc9"
+    }
+  },
+  {
+    "source": "https://static.crates.io/crates/vcpkg/vcpkg-0.2.15.crate",
+    "archiveSha256": "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426",
+    "member": "vcpkg-0.2.15/test-data/normalized/installed/vcpkg/info/boost-spirit_1.67.0_x64-windows-static.list",
+    "sha256": "d2bcedbc537f4859274fa6b5509adee7f90f0af29d5935ef4caf236ad8041aa4",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "These are relative Boost Spirit include-file entries in a vcpkg package-list fixture. The matched segments are relative Boost source directory names, not a user home directory. The exact normalized/no-status fixture trees are used by the package-discovery regressions.",
+    "evidence": {
+      "kind": "upstream-test-or-format-reference",
+      "member": "vcpkg-0.2.15/src/lib.rs",
+      "sha256": "e328540870c53574108da063a67e5ff10256b50a5b36063f0ae2f0bab51a9bc9"
+    }
+  },
+  {
+    "source": "https://static.crates.io/crates/vcpkg/vcpkg-0.2.15.crate",
+    "archiveSha256": "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426",
+    "member": "vcpkg-0.2.15/test-data/normalized/installed/vcpkg/info/boost-spirit_1.67.0_x64-windows.list",
+    "sha256": "9fe5dc0b4c2119aa31cb02f149b23a7eda1fc8c390c282ee47d23fe9aab8a364",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "These are relative Boost Spirit include-file entries in a vcpkg package-list fixture. The matched segments are relative Boost source directory names, not a user home directory. The exact normalized/no-status fixture trees are used by the package-discovery regressions.",
+    "evidence": {
+      "kind": "upstream-test-or-format-reference",
+      "member": "vcpkg-0.2.15/src/lib.rs",
+      "sha256": "e328540870c53574108da063a67e5ff10256b50a5b36063f0ae2f0bab51a9bc9"
+    }
   }
 ]
