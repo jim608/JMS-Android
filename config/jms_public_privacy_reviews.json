@@ -28827,5 +28827,2405 @@
       "member": "vcpkg-0.2.15/src/lib.rs",
       "sha256": "e328540870c53574108da063a67e5ff10256b50a5b36063f0ae2f0bab51a9bc9"
     }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gcc-16.2.0-4.src.tar.zst",
+    "archiveSha256": "a1792a44764405bc365746e0e60f0daa122076cec0dddd35a781d141f94273cf",
+    "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/libgo/go/crypto/tls/testdata/example-cert.pem",
+    "sha256": "c0e6d056e7bb46ef45fae41d3bd85305a6dcd281fd59afb007af6c89b3de7f38",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gcc/gcc-16.2.0.tar.xz/gcc-16.2.0/libgo/go/crypto/tls/testdata/example-cert.pem",
+      "sha256": "c0e6d056e7bb46ef45fae41d3bd85305a6dcd281fd59afb007af6c89b3de7f38"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-glib2-2.90.0-1.src.tar.zst",
+    "archiveSha256": "580246fb9db6083e0191ac7fd0e44af71df6ec0dc52cfd384b5ae07f8665cc9e",
+    "member": "mingw-w64-glib2/glib-2.90.0.tar.xz/glib-2.90.0/gio/tests/cert-tests/cert3.pem",
+    "sha256": "aa46850a4cf757575eda5bb36ce8c310a011bfe8df5b4a4df3fbbb82e8adb00d",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-glib2/glib-2.90.0.tar.xz/glib-2.90.0/gio/tests/cert-tests/cert3.pem",
+      "sha256": "aa46850a4cf757575eda5bb36ce8c310a011bfe8df5b4a4df3fbbb82e8adb00d"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/doc/credentials/dhparams/rfc2409-group-1-768.pem",
+    "sha256": "f9f55311756c34483137733ce6d46bc8cb0c448317f904e0e25dbf210dadd488",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public DH PARAMETERS data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/doc/credentials/dhparams/rfc2409-group-1-768.pem",
+      "sha256": "f9f55311756c34483137733ce6d46bc8cb0c448317f904e0e25dbf210dadd488"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/doc/credentials/params.pem",
+    "sha256": "fdde7e21fe249ab48c164bc98adaea2cb47ca8bfc340614ec57c9268478e8bf6",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public DH PARAMETERS data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/doc/credentials/params.pem",
+      "sha256": "fdde7e21fe249ab48c164bc98adaea2cb47ca8bfc340614ec57c9268478e8bf6"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/doc/credentials/x509/cert-dsa.pem",
+    "sha256": "97d4931fa4bc947e8254ca9c1e1cb7101364ac22730090459e9ba7963990a973",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/doc/credentials/x509/cert-dsa.pem",
+      "sha256": "97d4931fa4bc947e8254ca9c1e1cb7101364ac22730090459e9ba7963990a973"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/doc/credentials/x509/cert-ecc-sign.pem",
+    "sha256": "6ee15a68fc759c3850036b81db43d824217ac589e323edb349607006539dfaca",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/doc/credentials/x509/cert-ecc-sign.pem",
+      "sha256": "6ee15a68fc759c3850036b81db43d824217ac589e323edb349607006539dfaca"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/doc/credentials/x509/clicert-dsa.pem",
+    "sha256": "11019d39a87fa74a087b0c3b932d880fd8639f850652a2de97a008997267c0ec",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/doc/credentials/x509/clicert-dsa.pem",
+      "sha256": "11019d39a87fa74a087b0c3b932d880fd8639f850652a2de97a008997267c0ec"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/doc/credentials/x509/clicert.pem",
+    "sha256": "df7fe5b49a91a09b0c589c742ecf7fee9026cff91251f9e276ffdf9c4ca22f61",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/doc/credentials/x509/clicert.pem",
+      "sha256": "df7fe5b49a91a09b0c589c742ecf7fee9026cff91251f9e276ffdf9c4ca22f61"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/ca-gnutls-keyid.pem",
+    "sha256": "e8e022a017f0c18eb9f1ff04117c6e7f795195a64f0d969519dc318ff48978af",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/ca-gnutls-keyid.pem",
+      "sha256": "e8e022a017f0c18eb9f1ff04117c6e7f795195a64f0d969519dc318ff48978af"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/ca-no-keyid.pem",
+    "sha256": "73d20f5c2d0c39be33477bb36f9ddc70fd07fee1defc4f3925b26e08ea97a835",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/ca-no-keyid.pem",
+      "sha256": "73d20f5c2d0c39be33477bb36f9ddc70fd07fee1defc4f3925b26e08ea97a835"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/crl-demo2.pem",
+    "sha256": "f92f175c11d023cc9180a1f2dfb13a0bde9e616c84c9bb27354f720871759ffb",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public X509 CRL data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/crl-demo2.pem",
+      "sha256": "f92f175c11d023cc9180a1f2dfb13a0bde9e616c84c9bb27354f720871759ffb"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/crl-demo3.pem",
+    "sha256": "b041f95b4771ad109ac4430b46a1804a9cbf239fc4bb45bc0a6b08ccfaae0de6",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public X509 CRL data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/crl-demo3.pem",
+      "sha256": "b041f95b4771ad109ac4430b46a1804a9cbf239fc4bb45bc0a6b08ccfaae0de6"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/gost-cert-ca.pem",
+    "sha256": "393e27b8a349e92a0eccf9aeb493b3ab8fb49fc91b00552cf3aad8a5412489b7",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/gost-cert-ca.pem",
+      "sha256": "393e27b8a349e92a0eccf9aeb493b3ab8fb49fc91b00552cf3aad8a5412489b7"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/gost-cert-new.pem",
+    "sha256": "4fa08d54acf47cbb1da0d2351411fe70e01e3babaf725f8888462f2f4a340287",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/gost-cert-new.pem",
+      "sha256": "4fa08d54acf47cbb1da0d2351411fe70e01e3babaf725f8888462f2f4a340287"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/openssl-invalid-time-format.pem",
+    "sha256": "48215e4b4453ef1df44bb5a219caeea7cb0be5561796a2e60ab9e4f081b81721",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/openssl-invalid-time-format.pem",
+      "sha256": "48215e4b4453ef1df44bb5a219caeea7cb0be5561796a2e60ab9e4f081b81721"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/template-krb5name-full.pem",
+    "sha256": "543a0158df82fd42e11042935b006d9cde5366d5b1fd66bcbc5e9042ca5f0261",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/template-krb5name-full.pem",
+      "sha256": "543a0158df82fd42e11042935b006d9cde5366d5b1fd66bcbc5e9042ca5f0261"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/template-rsa-sha3-224.pem",
+    "sha256": "87ebfb70eba829ae38188a20d00c3c5cd9f29ff8fd5ff6c076f98087885f3416",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/template-rsa-sha3-224.pem",
+      "sha256": "87ebfb70eba829ae38188a20d00c3c5cd9f29ff8fd5ff6c076f98087885f3416"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/template-rsa-sha3-256.pem",
+    "sha256": "240832c724bb386f9caa04305b076426fc74be21557404c12522bc90b14c9da6",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/template-rsa-sha3-256.pem",
+      "sha256": "240832c724bb386f9caa04305b076426fc74be21557404c12522bc90b14c9da6"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/template-rsa-sha3-384.pem",
+    "sha256": "2836cfa05ec67f52e697f3e2416136e9dd84f020d6bfb1b3d247e8bce32bd5a3",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/template-rsa-sha3-384.pem",
+      "sha256": "2836cfa05ec67f52e697f3e2416136e9dd84f020d6bfb1b3d247e8bce32bd5a3"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/template-rsa-sha3-512.pem",
+    "sha256": "4282f3e8ee122cf38656546c34a6331d228b08c2a149393218c43d06a39f5ea9",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/template-rsa-sha3-512.pem",
+      "sha256": "4282f3e8ee122cf38656546c34a6331d228b08c2a149393218c43d06a39f5ea9"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/userid.pem",
+    "sha256": "93a6ec8377f93118e52caa44a3e870d30733cdb96e93efb0a07d80d59036d3c2",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/userid.pem",
+      "sha256": "93a6ec8377f93118e52caa44a3e870d30733cdb96e93efb0a07d80d59036d3c2"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/x509-v1-with-iid.pem",
+    "sha256": "78698f285f96f0502895575fc02ec9f5eac5ee82bcd7529fdf11596f13986e5b",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/x509-v1-with-iid.pem",
+      "sha256": "78698f285f96f0502895575fc02ec9f5eac5ee82bcd7529fdf11596f13986e5b"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/x509-v1-with-sid.pem",
+    "sha256": "a33a74955b6ac8dc63454cd275b229a0be291d1834ff5e48dea535b5d7e65140",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/x509-v1-with-sid.pem",
+      "sha256": "a33a74955b6ac8dc63454cd275b229a0be291d1834ff5e48dea535b5d7e65140"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/x509-v3-with-fractional-time.pem",
+    "sha256": "28abc6193b3bfee50bf2d7dc2faabb4b3512e0d6674ca49db12d279ba7bb97fd",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/x509-v3-with-fractional-time.pem",
+      "sha256": "28abc6193b3bfee50bf2d7dc2faabb4b3512e0d6674ca49db12d279ba7bb97fd"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/x509-with-zero-version.pem",
+    "sha256": "1824bd2f1bb25b724d2ecaf66dfc6b26082c3e2035bb5bae90abd39de6cee0a2",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/x509-with-zero-version.pem",
+      "sha256": "1824bd2f1bb25b724d2ecaf66dfc6b26082c3e2035bb5bae90abd39de6cee0a2"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/certs/cert-ecc.pem",
+    "sha256": "b18dbc6fb409ba1689b4c9ae965d19b3a90ca2a7b9d2d6fe0684d0cf4796d16c",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/certs/cert-ecc.pem",
+      "sha256": "b18dbc6fb409ba1689b4c9ae965d19b3a90ca2a7b9d2d6fe0684d0cf4796d16c"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/certs/cert-ecc384.pem",
+    "sha256": "24153fba331819edd47098edaebaebd467d7929815c4cefbf919e32529ec166b",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/certs/cert-ecc384.pem",
+      "sha256": "24153fba331819edd47098edaebaebd467d7929815c4cefbf919e32529ec166b"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/certs/cert-ecc521.pem",
+    "sha256": "69d58a7e235142ac29d0805af2798c2ecd8c03418fff42fba7a3ef8af876aab6",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/certs/cert-ecc521.pem",
+      "sha256": "69d58a7e235142ac29d0805af2798c2ecd8c03418fff42fba7a3ef8af876aab6"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/certs/cert-rsa-2432.pem",
+    "sha256": "b0eaeab25cfa850a82680d137f3f0cdc15dbdb383ba27738b7ff9ea590e7b792",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/certs/cert-rsa-2432.pem",
+      "sha256": "b0eaeab25cfa850a82680d137f3f0cdc15dbdb383ba27738b7ff9ea590e7b792"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/certs/id-on-xmppAddr.pem",
+    "sha256": "b4e90b05e0b34f2f177ec2b25be3d84b9e9604b50a4febaf36f322c0d5425eab",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/certs/id-on-xmppAddr.pem",
+      "sha256": "b4e90b05e0b34f2f177ec2b25be3d84b9e9604b50a4febaf36f322c0d5425eab"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/certs/rawpk_pub.pem",
+    "sha256": "040423ac5213bd7e439e534aff017d3ad7b9a7ee7322b98ddcb776e61d1add7c",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public PUBLIC KEY data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/certs/rawpk_pub.pem",
+      "sha256": "040423ac5213bd7e439e534aff017d3ad7b9a7ee7322b98ddcb776e61d1add7c"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/data/large-cert.pem",
+    "sha256": "adc885a65df77e170718549e823063ce31ffbd3e5c19df5f2d23ac4f62ce7cf8",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/data/large-cert.pem",
+      "sha256": "adc885a65df77e170718549e823063ce31ffbd3e5c19df5f2d23ac4f62ce7cf8"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/data/long.pem",
+    "sha256": "92601fbc3d7b59fa3a01aa246cdf672e6080e103c7a72c9ee34ade0831a12adf",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public X509 CRL data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/data/long.pem",
+      "sha256": "92601fbc3d7b59fa3a01aa246cdf672e6080e103c7a72c9ee34ade0831a12adf"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/ocsp-tests/certs/ca.pem",
+    "sha256": "81382512c5e162afbb4634b5d2c6b052e0319520e8172e377d7245d9e4e1d95e",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/ocsp-tests/certs/ca.pem",
+      "sha256": "81382512c5e162afbb4634b5d2c6b052e0319520e8172e377d7245d9e4e1d95e"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/ocsp-tests/certs/chain-akamai.com.pem",
+    "sha256": "5bd3fdecffbf5e6b737aa5f54bac922f423e11e4dfbc46d256943f15ebfbbec6",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/ocsp-tests/certs/chain-akamai.com.pem",
+      "sha256": "5bd3fdecffbf5e6b737aa5f54bac922f423e11e4dfbc46d256943f15ebfbbec6"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/ocsp-tests/certs/chain-amazon.com-unsorted.pem",
+    "sha256": "976091925cc84a927853c74c16dcb70c3e2cd0c5ebb0f0f162a251705da4ef0b",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/ocsp-tests/certs/chain-amazon.com-unsorted.pem",
+      "sha256": "976091925cc84a927853c74c16dcb70c3e2cd0c5ebb0f0f162a251705da4ef0b"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/ocsp-tests/certs/chain-amazon.com.pem",
+    "sha256": "6a26f72ac978dc81c9aade99a793b7a5a4f731eb2c7cc0c3944d0c59331c46b6",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/ocsp-tests/certs/chain-amazon.com.pem",
+      "sha256": "6a26f72ac978dc81c9aade99a793b7a5a4f731eb2c7cc0c3944d0c59331c46b6"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/ocsp-tests/certs/ocsp-server.pem",
+    "sha256": "51d69d8991dd51c041cb528069fab5f920ec67a9a72347f316710576da62afff",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/ocsp-tests/certs/ocsp-server.pem",
+      "sha256": "51d69d8991dd51c041cb528069fab5f920ec67a9a72347f316710576da62afff"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/ocsp-tests/signer-verify/trust.pem",
+    "sha256": "eee6f0ca69ad059c2f5cec2ffe2f1acb2d11b57da33c3fbe88700a7d783c5467",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/ocsp-tests/signer-verify/trust.pem",
+      "sha256": "eee6f0ca69ad059c2f5cec2ffe2f1acb2d11b57da33c3fbe88700a7d783c5467"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/p11-kit-trust-data/Example_Root_CA.pem",
+    "sha256": "0d2e78e12dee77cdd277381bb060f00bd0bf78cd3c9c547b62286a5a45fd81df",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/p11-kit-trust-data/Example_Root_CA.pem",
+      "sha256": "0d2e78e12dee77cdd277381bb060f00bd0bf78cd3c9c547b62286a5a45fd81df"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/rsa-md5-collision/colliding-chain-md5-1.pem",
+    "sha256": "f1fa2979853c9b07253070bf71ad24947202a9ba59f6c6c703dccaa86c42239e",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/rsa-md5-collision/colliding-chain-md5-1.pem",
+      "sha256": "f1fa2979853c9b07253070bf71ad24947202a9ba59f6c6c703dccaa86c42239e"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/rsa-md5-collision/colliding-chain-md5-2.pem",
+    "sha256": "b3eb6511e1697e953b6ce6ba6c8bc6df00e9b02f22a91f238c2513868ee49cf8",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/rsa-md5-collision/colliding-chain-md5-2.pem",
+      "sha256": "b3eb6511e1697e953b6ce6ba6c8bc6df00e9b02f22a91f238c2513868ee49cf8"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/x509cert-dir/ca.pem",
+    "sha256": "6404097ed05acc59b0cc0027716e29f3dc566ceb6ef1e86cf9d4f16d30c72941",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/x509cert-dir/ca.pem",
+      "sha256": "6404097ed05acc59b0cc0027716e29f3dc566ceb6ef1e86cf9d4f16d30c72941"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/apps/cert.pem",
+    "sha256": "a4c9b015f67947c38833fa9b2c0a07d4ee4136955ffa3a28a1e34be048f9b957",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/apps/cert.pem",
+      "sha256": "a4c9b015f67947c38833fa9b2c0a07d4ee4136955ffa3a28a1e34be048f9b957"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/apps/req.pem",
+    "sha256": "7e5054bc53334b6723ae688236f94aca50b8a8b87eae44bffb04aa3f971a4d4b",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE REQUEST data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/apps/req.pem",
+      "sha256": "7e5054bc53334b6723ae688236f94aca50b8a8b87eae44bffb04aa3f971a4d4b"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/apps/testCA.pem",
+    "sha256": "e75c583a194e000b9cae10e3f4224cf305c8be9ba057e3c86192ac008f57fad3",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE REQUEST data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/apps/testCA.pem",
+      "sha256": "e75c583a194e000b9cae10e3f4224cf305c8be9ba057e3c86192ac008f57fad3"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/demos/bio/intca.pem",
+    "sha256": "876ac7a17992346c11205a5e55972347eb76486e30bcc218c3a4954545e4e282",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/demos/bio/intca.pem",
+      "sha256": "876ac7a17992346c11205a5e55972347eb76486e30bcc218c3a4954545e4e282"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/demos/bio/root.pem",
+    "sha256": "3a33842a19657f72d1a14818cd53d845e578a7bcc3a55c0ff93a911d7d7b82c8",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/demos/bio/root.pem",
+      "sha256": "3a33842a19657f72d1a14818cd53d845e578a7bcc3a55c0ff93a911d7d7b82c8"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/demos/cms/cacert.pem",
+    "sha256": "a648d3e421b0c2a1bf65414158c8472b24e7684488d8b4bf6ee45de32f3d4cae",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/demos/cms/cacert.pem",
+      "sha256": "a648d3e421b0c2a1bf65414158c8472b24e7684488d8b4bf6ee45de32f3d4cae"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/demos/guide/rootcert.pem",
+    "sha256": "e2da48877db306d87cb7e185d354aaeed04d359b13cf716e1249f27297e8a599",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/demos/guide/rootcert.pem",
+      "sha256": "e2da48877db306d87cb7e185d354aaeed04d359b13cf716e1249f27297e8a599"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/demos/guide/servercert.pem",
+    "sha256": "9ad20bff6068c5dbf9f7cd8e2dc51a79820d724b4cb8a6e3d6a540a3d170aa5c",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/demos/guide/servercert.pem",
+      "sha256": "9ad20bff6068c5dbf9f7cd8e2dc51a79820d724b4cb8a6e3d6a540a3d170aa5c"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/demos/smime/cacert.pem",
+    "sha256": "a648d3e421b0c2a1bf65414158c8472b24e7684488d8b4bf6ee45de32f3d4cae",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/demos/smime/cacert.pem",
+      "sha256": "a648d3e421b0c2a1bf65414158c8472b24e7684488d8b4bf6ee45de32f3d4cae"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/demos/sslecho/cert.pem",
+    "sha256": "5b7997a7e975ce4ca6c22b0d99a11f75b5d42eeadf4e72b0d008f02fab25ad19",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/demos/sslecho/cert.pem",
+      "sha256": "5b7997a7e975ce4ca6c22b0d99a11f75b5d42eeadf4e72b0d008f02fab25ad19"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/bad-pc6-cert.pem",
+    "sha256": "1f423cdb58e91e521210388c49bbe0eeaa036de58f9e2f1cc43509b8821a33cd",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/bad-pc6-cert.pem",
+      "sha256": "1f423cdb58e91e521210388c49bbe0eeaa036de58f9e2f1cc43509b8821a33cd"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/bad.pem",
+    "sha256": "51326050279acb0ba7ab46261a8058a2f9b3c866bc8c73ac1c57560c45e38d94",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/bad.pem",
+      "sha256": "51326050279acb0ba7ab46261a8058a2f9b3c866bc8c73ac1c57560c45e38d94"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/client-ed25519-cert.pem",
+    "sha256": "b061c4fc2ebeadbd3096c7c76045f6497c7d32d4f016d8d2ea1dbae0d1a994ce",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/client-ed25519-cert.pem",
+      "sha256": "b061c4fc2ebeadbd3096c7c76045f6497c7d32d4f016d8d2ea1dbae0d1a994ce"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/client-ed448-cert.pem",
+    "sha256": "03bb7cd7dcf3c0719359d177af9bd8e86c15dc2c2c726f610cdd8ceebd913414",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/client-ed448-cert.pem",
+      "sha256": "03bb7cd7dcf3c0719359d177af9bd8e86c15dc2c2c726f610cdd8ceebd913414"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/client-pss-restrict-cert.pem",
+    "sha256": "a0a51936646f54260073c12d9732fb109970847406b7be498f3d8dee836f33ff",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/client-pss-restrict-cert.pem",
+      "sha256": "a0a51936646f54260073c12d9732fb109970847406b7be498f3d8dee836f33ff"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/ct-server-key-public.pem",
+    "sha256": "ea2129c4ea5403808f8629a8adcf49962c5d2ecd3e5cb79720ed0ddf14da2028",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public PUBLIC KEY data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/ct-server-key-public.pem",
+      "sha256": "ea2129c4ea5403808f8629a8adcf49962c5d2ecd3e5cb79720ed0ddf14da2028"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/dhp2048.pem",
+    "sha256": "d56f31afbe64adc9b42ddbc2d4f2bdba0e11c9ec9630ef571425b3f5f1428e3e",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public DH PARAMETERS data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/dhp2048.pem",
+      "sha256": "d56f31afbe64adc9b42ddbc2d4f2bdba0e11c9ec9630ef571425b3f5f1428e3e"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/ee-cert-3072.pem",
+    "sha256": "88ae70e2689a20dd5284dd40593c7070e1c7873296c7e5b4fd34630375f92820",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/ee-cert-3072.pem",
+      "sha256": "88ae70e2689a20dd5284dd40593c7070e1c7873296c7e5b4fd34630375f92820"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/ee-cert-4096.pem",
+    "sha256": "d764d1dc04b74b98d6e10a84317362beb60b3d961b504a84ca11d1398c705516",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/ee-cert-4096.pem",
+      "sha256": "d764d1dc04b74b98d6e10a84317362beb60b3d961b504a84ca11d1398c705516"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/ee-cert-8192.pem",
+    "sha256": "aaf0d92377924b4e82b97fcbd779e24123734dbc0e5dd69030b6f4e812ad92a0",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/ee-cert-8192.pem",
+      "sha256": "aaf0d92377924b4e82b97fcbd779e24123734dbc0e5dd69030b6f4e812ad92a0"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/ee-client-chain.pem",
+    "sha256": "8d41c09c285e72fab8a66520ac880be2795ca31c1fd1d328709d5125596945d2",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/ee-client-chain.pem",
+      "sha256": "8d41c09c285e72fab8a66520ac880be2795ca31c1fd1d328709d5125596945d2"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/ee-ecdsa-client-chain.pem",
+    "sha256": "0c1c2de8ec5a5da45276660b7041e34c3153804378c4f40cd4588f145fedc122",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/ee-ecdsa-client-chain.pem",
+      "sha256": "0c1c2de8ec5a5da45276660b7041e34c3153804378c4f40cd4588f145fedc122"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/embeddedSCTs1.pem",
+    "sha256": "4b7d1712e2819df58adabfe9c8a7dcc05b3086c8755abefe519dfb9d6eff5aac",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/embeddedSCTs1.pem",
+      "sha256": "4b7d1712e2819df58adabfe9c8a7dcc05b3086c8755abefe519dfb9d6eff5aac"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/embeddedSCTs1_issuer.pem",
+    "sha256": "5d629e2f2099310a4fb629e4e7696c188c16b2cad89b02c32b31d8f5cb646824",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/embeddedSCTs1_issuer.pem",
+      "sha256": "5d629e2f2099310a4fb629e4e7696c188c16b2cad89b02c32b31d8f5cb646824"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/embeddedSCTs3.pem",
+    "sha256": "dcb5e902265b8b38829835719f69c1056e6962aab533576ebd14d8cbadc1d806",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/embeddedSCTs3.pem",
+      "sha256": "dcb5e902265b8b38829835719f69c1056e6962aab533576ebd14d8cbadc1d806"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/embeddedSCTs3_issuer.pem",
+    "sha256": "ba2950f8419b916e714c04a2c30f450c6c215a44ea34160a6f83407d77981494",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/embeddedSCTs3_issuer.pem",
+      "sha256": "ba2950f8419b916e714c04a2c30f450c6c215a44ea34160a6f83407d77981494"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/interCA.pem",
+    "sha256": "9aab2a35ba50760923935c3936b468e116fbccdb7fb3d89fd6559c3e442ed1bc",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/interCA.pem",
+      "sha256": "9aab2a35ba50760923935c3936b468e116fbccdb7fb3d89fd6559c3e442ed1bc"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/ncca-cert.pem",
+    "sha256": "355b479f2d1edf79570aa33a7b7d1e072ea05e5537ebb008970e70a3d0918437",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/ncca-cert.pem",
+      "sha256": "355b479f2d1edf79570aa33a7b7d1e072ea05e5537ebb008970e70a3d0918437"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/p256-ee-rsa-ca-cert.pem",
+    "sha256": "2d42468142174e56c3be9875ba53531b223c23910ec214db6ce38fa1aa693413",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/p256-ee-rsa-ca-cert.pem",
+      "sha256": "2d42468142174e56c3be9875ba53531b223c23910ec214db6ce38fa1aa693413"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/p256-server-cert.pem",
+    "sha256": "3acf87bc5cad6c263584de4a3989798c3e5520715491a01d76da9ef5721d7fea",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/p256-server-cert.pem",
+      "sha256": "3acf87bc5cad6c263584de4a3989798c3e5520715491a01d76da9ef5721d7fea"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/p384-root.pem",
+    "sha256": "7b802128593950692a759c814c743995ac5e7c36670ae86dbfce1c315cc17a5b",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/p384-root.pem",
+      "sha256": "7b802128593950692a759c814c743995ac5e7c36670ae86dbfce1c315cc17a5b"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/p384-server-cert.pem",
+    "sha256": "10e9c51e2edeb47e99b122bed4e7c4eec148df414a71c915d34c89844bafab0d",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/p384-server-cert.pem",
+      "sha256": "10e9c51e2edeb47e99b122bed4e7c4eec148df414a71c915d34c89844bafab0d"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/root-ml-dsa-44-cert.pem",
+    "sha256": "e5af14872d239113a2543b402e09b146232d3807aab90f8e6d57d79e53f74fd7",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/root-ml-dsa-44-cert.pem",
+      "sha256": "e5af14872d239113a2543b402e09b146232d3807aab90f8e6d57d79e53f74fd7"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/root-noserver.pem",
+    "sha256": "cfe3b16e664d9e66a154395f26fcaceb71b9b81179019f0b826c164cd6eb4eef",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public TRUSTED CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/root-noserver.pem",
+      "sha256": "cfe3b16e664d9e66a154395f26fcaceb71b9b81179019f0b826c164cd6eb4eef"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/rootCA.pem",
+    "sha256": "6695342a9440ef406c6b91db6deb82b62dcaec0f221bcf1a3bc2646bf8534051",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/rootCA.pem",
+      "sha256": "6695342a9440ef406c6b91db6deb82b62dcaec0f221bcf1a3bc2646bf8534051"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/rootcert.pem",
+    "sha256": "e2da48877db306d87cb7e185d354aaeed04d359b13cf716e1249f27297e8a599",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/rootcert.pem",
+      "sha256": "e2da48877db306d87cb7e185d354aaeed04d359b13cf716e1249f27297e8a599"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/server-cecdsa-cert.pem",
+    "sha256": "661c9dbf24ccc3df13a0e94de10077f9e8c17c351a0f0e2c55475d207bc8fe43",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/server-cecdsa-cert.pem",
+      "sha256": "661c9dbf24ccc3df13a0e94de10077f9e8c17c351a0f0e2c55475d207bc8fe43"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/server-dsa-cert.pem",
+    "sha256": "2e8cfef1889f818407a99f4e3c089c1fb1f43bb08f4f7da8fcff5a496d2131ef",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/server-dsa-cert.pem",
+      "sha256": "2e8cfef1889f818407a99f4e3c089c1fb1f43bb08f4f7da8fcff5a496d2131ef"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/server-dsa-pubkey.pem",
+    "sha256": "8a748fa88ccda0bf28653c7632886b0ab1dad236dd4db2adaf22949b4d7071e5",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public PUBLIC KEY data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/server-dsa-pubkey.pem",
+      "sha256": "8a748fa88ccda0bf28653c7632886b0ab1dad236dd4db2adaf22949b4d7071e5"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/server-ec-compressed-cert.pem",
+    "sha256": "e47b661578acbbae8f731ec62ddba868103dfce63fe8a4f0ec28135e5acfff4f",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/server-ec-compressed-cert.pem",
+      "sha256": "e47b661578acbbae8f731ec62ddba868103dfce63fe8a4f0ec28135e5acfff4f"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/server-ecdsa-brainpoolP256r1-cert.pem",
+    "sha256": "94d0cf32cd82e904f5b9e9563f62e8fddcc1f95a871de2a36364ebf6d54f3e65",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/server-ecdsa-brainpoolP256r1-cert.pem",
+      "sha256": "94d0cf32cd82e904f5b9e9563f62e8fddcc1f95a871de2a36364ebf6d54f3e65"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/server-ecdsa-cert.pem",
+    "sha256": "f5d5a6b81fa90966fc70e0efbb845e90949f1c2059b1b0d9170e31ca0388cae9",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/server-ecdsa-cert.pem",
+      "sha256": "f5d5a6b81fa90966fc70e0efbb845e90949f1c2059b1b0d9170e31ca0388cae9"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/server-ml-dsa-44-cert.pem",
+    "sha256": "aedd73dfbc41c461517afb1a2a9d4470ada8d5104b800a8b1f5fa1f43d912096",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/server-ml-dsa-44-cert.pem",
+      "sha256": "aedd73dfbc41c461517afb1a2a9d4470ada8d5104b800a8b1f5fa1f43d912096"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/server-pss-cert.pem",
+    "sha256": "366b959dfee2a70c2ead3e73430cb2a3410709cc2699f0a560c39d94a1f2aa30",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/server-pss-cert.pem",
+      "sha256": "366b959dfee2a70c2ead3e73430cb2a3410709cc2699f0a560c39d94a1f2aa30"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/server-pss-restrict-cert.pem",
+    "sha256": "c731aa614d4fd269edc6eb29a0c45fa32297f31d2a1f6364db364adfe529bb3e",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/server-pss-restrict-cert.pem",
+      "sha256": "c731aa614d4fd269edc6eb29a0c45fa32297f31d2a1f6364db364adfe529bb3e"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/server-trusted.pem",
+    "sha256": "eda68be6d67e88cbee1f0ec60b805d900135c5626e87ba75febc889e22a1667b",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public TRUSTED CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/server-trusted.pem",
+      "sha256": "eda68be6d67e88cbee1f0ec60b805d900135c5626e87ba75febc889e22a1667b"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/sm2-csr.pem",
+    "sha256": "4356cfe0c807df591a7979107cac22b799bba7464c087b5f0285cc0e3459dd0d",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE REQUEST data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/sm2-csr.pem",
+      "sha256": "4356cfe0c807df591a7979107cac22b799bba7464c087b5f0285cc0e3459dd0d"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/some-names3.pem",
+    "sha256": "6c2650c5a31c74b3892853c73a636d4b0d9e4fc3e7b73c307f359a9663a16b23",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/some-names3.pem",
+      "sha256": "6c2650c5a31c74b3892853c73a636d4b0d9e4fc3e7b73c307f359a9663a16b23"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/subinterCA-ss.pem",
+    "sha256": "02eb837eeefe47086e6281e8a9de45cc27fc83f9eebd1a14e84c94050bad84da",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/subinterCA-ss.pem",
+      "sha256": "02eb837eeefe47086e6281e8a9de45cc27fc83f9eebd1a14e84c94050bad84da"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/subinterCA.pem",
+    "sha256": "a04c591ff2697f95b65281abd91e050baa3fe25d9f7d741a564a1610e885f9ad",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/subinterCA.pem",
+      "sha256": "a04c591ff2697f95b65281abd91e050baa3fe25d9f7d741a564a1610e885f9ad"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/untrusted.pem",
+    "sha256": "6ed78d0bb68704fbd924837f9146da3b3a74a8f718653272f40fe695b458e8b0",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/untrusted.pem",
+      "sha256": "6ed78d0bb68704fbd924837f9146da3b3a74a8f718653272f40fe695b458e8b0"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/wrongcert.pem",
+    "sha256": "23c1ab6fd410a94b01801dd9f21fedcc08fa3292ffee73853792d21d82c5dc53",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/wrongcert.pem",
+      "sha256": "23c1ab6fd410a94b01801dd9f21fedcc08fa3292ffee73853792d21d82c5dc53"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/x509-req-detect-invalid-version.pem",
+    "sha256": "01d1532312407e9c853916f8ffaa68605ef759ed1546a0b9b235ed1cd7c59272",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE REQUEST data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/x509-req-detect-invalid-version.pem",
+      "sha256": "01d1532312407e9c853916f8ffaa68605ef759ed1546a0b9b235ed1cd7c59272"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/D1_Cert_EE.pem",
+    "sha256": "658abe8b99e3d1c6e27b39ab84893036aee332030047fc60025846b65f7306ee",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/D1_Cert_EE.pem",
+      "sha256": "658abe8b99e3d1c6e27b39ab84893036aee332030047fc60025846b65f7306ee"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/D1_Issuer_ICA.pem",
+    "sha256": "5be1d640d5b276d5a12876e7e7b66f6bc847de08254fa1af0aa4cfadc0a7f6c3",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/D1_Issuer_ICA.pem",
+      "sha256": "5be1d640d5b276d5a12876e7e7b66f6bc847de08254fa1af0aa4cfadc0a7f6c3"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/D2_Cert_ICA.pem",
+    "sha256": "f90fdafbfd1e493a9056dfcb1eaca36376a865fdcac8cd619787586b65c22e5b",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/D2_Cert_ICA.pem",
+      "sha256": "f90fdafbfd1e493a9056dfcb1eaca36376a865fdcac8cd619787586b65c22e5b"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/D2_Issuer_Root.pem",
+    "sha256": "df68841998b7fd098a9517fe971e97890be0fc93bbe1b2a1ef63ebdea3111c80",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/D2_Issuer_Root.pem",
+      "sha256": "df68841998b7fd098a9517fe971e97890be0fc93bbe1b2a1ef63ebdea3111c80"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/D3_Cert_EE.pem",
+    "sha256": "5436cd5587b22935a0c48e7cdc4fe4e03bfd6a43b936cb4c73f233d8f129ccdd",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/D3_Cert_EE.pem",
+      "sha256": "5436cd5587b22935a0c48e7cdc4fe4e03bfd6a43b936cb4c73f233d8f129ccdd"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/D3_Issuer_Root.pem",
+    "sha256": "0b4f500a62db6ce8ffc5820121350d2b633ae996ce90a7eb98df60ae0314aace",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/D3_Issuer_Root.pem",
+      "sha256": "0b4f500a62db6ce8ffc5820121350d2b633ae996ce90a7eb98df60ae0314aace"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/ISIC_D1_Issuer_ICA.pem",
+    "sha256": "dcfa276314f0e6288b099f5a1904d0cafd31de909034d0b03d5373296a122499",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/ISIC_D1_Issuer_ICA.pem",
+      "sha256": "dcfa276314f0e6288b099f5a1904d0cafd31de909034d0b03d5373296a122499"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/ISIC_D2_Issuer_Root.pem",
+    "sha256": "b846c561cb42f94aaaddb068f3e91a373ff04c3f1b83d1b05d0ef3cc9679c7df",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/ISIC_D2_Issuer_Root.pem",
+      "sha256": "b846c561cb42f94aaaddb068f3e91a373ff04c3f1b83d1b05d0ef3cc9679c7df"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/ISIC_D3_Issuer_Root.pem",
+    "sha256": "ab9cf6c512f094eae1a1552aa9617c3052ebf55f5c89efbd6c13fdd0596bce6a",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/ISIC_D3_Issuer_Root.pem",
+      "sha256": "ab9cf6c512f094eae1a1552aa9617c3052ebf55f5c89efbd6c13fdd0596bce6a"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/ISIC_ND1_Issuer_ICA.pem",
+    "sha256": "fd772deca1b5e08300672c0b2cf9692826c4fb7fc1c576342dc1288a67a7257a",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/ISIC_ND1_Issuer_ICA.pem",
+      "sha256": "fd772deca1b5e08300672c0b2cf9692826c4fb7fc1c576342dc1288a67a7257a"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/ISIC_ND2_Issuer_Root.pem",
+    "sha256": "4407e859fff6513da80b926b84f1df7c892db694fcdfa371ec2337fca6459830",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/ISIC_ND2_Issuer_Root.pem",
+      "sha256": "4407e859fff6513da80b926b84f1df7c892db694fcdfa371ec2337fca6459830"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/ISIC_ND3_Issuer_Root.pem",
+    "sha256": "da60d756ef78827bc35037c307fe297b031a214269d784c614867c0fc058eb6e",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/ISIC_ND3_Issuer_Root.pem",
+      "sha256": "da60d756ef78827bc35037c307fe297b031a214269d784c614867c0fc058eb6e"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/ND1_Cert_EE.pem",
+    "sha256": "cb95212342b15b73a8bfd9d002bb6a711f7285f84129e37e42c486d4fcb1eb49",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/ND1_Cert_EE.pem",
+      "sha256": "cb95212342b15b73a8bfd9d002bb6a711f7285f84129e37e42c486d4fcb1eb49"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/ND1_Cross_Root.pem",
+    "sha256": "4a4928ce5db4c7347a6d0b7b10677c6308390b624d82eeb0fe3f68d125121a4e",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/ND1_Cross_Root.pem",
+      "sha256": "4a4928ce5db4c7347a6d0b7b10677c6308390b624d82eeb0fe3f68d125121a4e"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/ND1_Issuer_ICA-Cross.pem",
+    "sha256": "d52a8980974ee46c48b6bb9ccda06e04e1d692362f8b4e807538ed3a0329660f",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/ND1_Issuer_ICA-Cross.pem",
+      "sha256": "d52a8980974ee46c48b6bb9ccda06e04e1d692362f8b4e807538ed3a0329660f"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/ND1_Issuer_ICA.pem",
+    "sha256": "8d308217bc4ac323646e40ff5f8c2982212d28175007a08ce34efcd9a0852bb5",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/ND1_Issuer_ICA.pem",
+      "sha256": "8d308217bc4ac323646e40ff5f8c2982212d28175007a08ce34efcd9a0852bb5"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/ND2_Cert_ICA.pem",
+    "sha256": "8d308217bc4ac323646e40ff5f8c2982212d28175007a08ce34efcd9a0852bb5",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/ND2_Cert_ICA.pem",
+      "sha256": "8d308217bc4ac323646e40ff5f8c2982212d28175007a08ce34efcd9a0852bb5"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/ND2_Issuer_Root.pem",
+    "sha256": "221bcffd8229c22d84ddb5d47c148705bae0e06563e128bcfabd1f5c3282605b",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/ND2_Issuer_Root.pem",
+      "sha256": "221bcffd8229c22d84ddb5d47c148705bae0e06563e128bcfabd1f5c3282605b"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/ND3_Cert_EE.pem",
+    "sha256": "a0312cbf7bf494b1589328ef128d4d608912e47396f35fed6a36414e4cb02ccf",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/ND3_Cert_EE.pem",
+      "sha256": "a0312cbf7bf494b1589328ef128d4d608912e47396f35fed6a36414e4cb02ccf"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/ND3_Issuer_Root.pem",
+    "sha256": "4a4928ce5db4c7347a6d0b7b10677c6308390b624d82eeb0fe3f68d125121a4e",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/ND3_Issuer_Root.pem",
+      "sha256": "4a4928ce5db4c7347a6d0b7b10677c6308390b624d82eeb0fe3f68d125121a4e"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/WKIC_D1_Issuer_ICA.pem",
+    "sha256": "d4dc78f704e83ec7689e30f67860d5eb19ee46ac2925704ffc62d1e823087fd6",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/WKIC_D1_Issuer_ICA.pem",
+      "sha256": "d4dc78f704e83ec7689e30f67860d5eb19ee46ac2925704ffc62d1e823087fd6"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/WKIC_D2_Issuer_Root.pem",
+    "sha256": "ca95152668a2f5732d7a48f1bd3a21ba44a35092aab69d531c6032674cafa4cb",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/WKIC_D2_Issuer_Root.pem",
+      "sha256": "ca95152668a2f5732d7a48f1bd3a21ba44a35092aab69d531c6032674cafa4cb"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/WKIC_D3_Issuer_Root.pem",
+    "sha256": "9918c53b554c4c784b30158a5ec9a88eab7cb35dbcb4081f5cf3087613e527d0",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/WKIC_D3_Issuer_Root.pem",
+      "sha256": "9918c53b554c4c784b30158a5ec9a88eab7cb35dbcb4081f5cf3087613e527d0"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/WKIC_ND1_Issuer_ICA.pem",
+    "sha256": "52c8d6cfacfb6d8d815bbc382cb0e1b0de6966bc56a12cef441275778b858b75",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/WKIC_ND1_Issuer_ICA.pem",
+      "sha256": "52c8d6cfacfb6d8d815bbc382cb0e1b0de6966bc56a12cef441275778b858b75"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/WKIC_ND2_Issuer_Root.pem",
+    "sha256": "f88da4bdc17aed4c83aa38610c0e899e09dd462cba1eb0237126a9fa7a4556ca",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/WKIC_ND2_Issuer_Root.pem",
+      "sha256": "f88da4bdc17aed4c83aa38610c0e899e09dd462cba1eb0237126a9fa7a4556ca"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/WKIC_ND3_Issuer_Root.pem",
+    "sha256": "096103f9d7e802bcaf558bebe1da71eb08022d25061a2474e5c9719d9775736f",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/WKIC_ND3_Issuer_Root.pem",
+      "sha256": "096103f9d7e802bcaf558bebe1da71eb08022d25061a2474e5c9719d9775736f"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/WSNIC_D1_Issuer_ICA.pem",
+    "sha256": "c7067360f586987affe5e47e67f2a17d5240f693430cfe50bb623baf7aa9a03c",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/WSNIC_D1_Issuer_ICA.pem",
+      "sha256": "c7067360f586987affe5e47e67f2a17d5240f693430cfe50bb623baf7aa9a03c"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/WSNIC_D2_Issuer_Root.pem",
+    "sha256": "deb15b947c09108518785f9a43d215b19aa1fc66d850463262f0801cb3eb4d07",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/WSNIC_D2_Issuer_Root.pem",
+      "sha256": "deb15b947c09108518785f9a43d215b19aa1fc66d850463262f0801cb3eb4d07"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/WSNIC_D3_Issuer_Root.pem",
+    "sha256": "60366b94d8a5b3c3da0cac37a3767d03425530734810f510721f62c191985a4d",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/WSNIC_D3_Issuer_Root.pem",
+      "sha256": "60366b94d8a5b3c3da0cac37a3767d03425530734810f510721f62c191985a4d"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/WSNIC_ND1_Issuer_ICA.pem",
+    "sha256": "45be6e76b20d9aff9ee8546d522b74316b99cebc88bcdffdbb147699289cff64",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/WSNIC_ND1_Issuer_ICA.pem",
+      "sha256": "45be6e76b20d9aff9ee8546d522b74316b99cebc88bcdffdbb147699289cff64"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/WSNIC_ND2_Issuer_Root.pem",
+    "sha256": "3e3b0dac9dce98358ef55ea87fd98c3eaef43bfbbf7f9d78f1333f0123a2f850",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/WSNIC_ND2_Issuer_Root.pem",
+      "sha256": "3e3b0dac9dce98358ef55ea87fd98c3eaef43bfbbf7f9d78f1333f0123a2f850"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/WSNIC_ND3_Issuer_Root.pem",
+    "sha256": "42ae110a0193d7050b21ffe4bfe6de7c081628fd02d309e3a394183ebcd2549d",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ocsp-tests/WSNIC_ND3_Issuer_Root.pem",
+      "sha256": "42ae110a0193d7050b21ffe4bfe6de7c081628fd02d309e3a394183ebcd2549d"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading_data/csr.pem",
+    "sha256": "09c08239731fca2b5950f4dd074027b1b787dd78127eb89564ae17a156c86991",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE REQUEST data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading_data/csr.pem",
+      "sha256": "09c08239731fca2b5950f4dd074027b1b787dd78127eb89564ae17a156c86991"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/25-test_eai_data/ascii_chain.pem",
+    "sha256": "1ad8e50dc63267133d37a3060b6bb147627a1502ab3e529b8e75b480842dd402",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/25-test_eai_data/ascii_chain.pem",
+      "sha256": "1ad8e50dc63267133d37a3060b6bb147627a1502ab3e529b8e75b480842dd402"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/25-test_eai_data/ascii_leaf.pem",
+    "sha256": "d228da85b5219749180d6556ab622a0e3267be833bfc139ad7bfbce605ffb1de",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/25-test_eai_data/ascii_leaf.pem",
+      "sha256": "d228da85b5219749180d6556ab622a0e3267be833bfc139ad7bfbce605ffb1de"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/25-test_eai_data/kdc-cert.pem",
+    "sha256": "c8df1f99b6245a940a6914ff8c174b9cfe9697aab6f8968dd72e795c5da2492c",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/25-test_eai_data/kdc-cert.pem",
+      "sha256": "c8df1f99b6245a940a6914ff8c174b9cfe9697aab6f8968dd72e795c5da2492c"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/25-test_eai_data/kdc-root-cert.pem",
+    "sha256": "ff987cd53b902974afbadab629bb23dcdbd9202b9005025ce2a85c10f4d986e7",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/25-test_eai_data/kdc-root-cert.pem",
+      "sha256": "ff987cd53b902974afbadab629bb23dcdbd9202b9005025ce2a85c10f4d986e7"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/25-test_eai_data/utf8_chain.pem",
+    "sha256": "40207703b472dc20e5e30e1db926cc5110da6af573e4474f87d5aaba8d21a547",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/25-test_eai_data/utf8_chain.pem",
+      "sha256": "40207703b472dc20e5e30e1db926cc5110da6af573e4474f87d5aaba8d21a547"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/25-test_eai_data/utf8_leaf.pem",
+    "sha256": "02ecbea9eaad03f0ad3be838f9c3625b4fc9e0d925d9fc569ca308af1cad7496",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/25-test_eai_data/utf8_leaf.pem",
+      "sha256": "02ecbea9eaad03f0ad3be838f9c3625b4fc9e0d925d9fc569ca308af1cad7496"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_pkey_provided/DH.pub.pem",
+    "sha256": "1467709ed8e09a71147998664b039b6aa8cc3f334d6cbdf37e718e9530cec288",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public PUBLIC KEY data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_pkey_provided/DH.pub.pem",
+      "sha256": "1467709ed8e09a71147998664b039b6aa8cc3f334d6cbdf37e718e9530cec288"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_pkey_provided/DSA.pub.pem",
+    "sha256": "9a3f7a6ecd6e8f6d66cff13fd813ae7f5fb0866e3adba8f52e62e15a7929214c",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public PUBLIC KEY data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_pkey_provided/DSA.pub.pem",
+      "sha256": "9a3f7a6ecd6e8f6d66cff13fd813ae7f5fb0866e3adba8f52e62e15a7929214c"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_pkey_provided/EC.pub.pem",
+    "sha256": "f0662ea5b30787f7d8bc94e93ed5d23c38bb77cbdf2f1a7bea5e2b0f8b74e5eb",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public PUBLIC KEY data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_pkey_provided/EC.pub.pem",
+      "sha256": "f0662ea5b30787f7d8bc94e93ed5d23c38bb77cbdf2f1a7bea5e2b0f8b74e5eb"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_pkey_provided/ED25519.pub.pem",
+    "sha256": "7f2d9ed0b71b8e5a6c5cf30e647d6e20b5bca6dac8071f11abe3fef8014db610",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public PUBLIC KEY data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_pkey_provided/ED25519.pub.pem",
+      "sha256": "7f2d9ed0b71b8e5a6c5cf30e647d6e20b5bca6dac8071f11abe3fef8014db610"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_pkey_provided/RSA.pub.pem",
+    "sha256": "1ff8ee7732a16d858da6f5a6f0b63a9d44de23dff00d4dbf191ee17708ab470d",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public PUBLIC KEY data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_pkey_provided/RSA.pub.pem",
+      "sha256": "1ff8ee7732a16d858da6f5a6f0b63a9d44de23dff00d4dbf191ee17708ab470d"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_pkey_provided/X25519.pub.pem",
+    "sha256": "8b700b78f5b2c9b9d799ab746ed1d31917530f1f5eb2b53124d569ca2918fbb6",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public PUBLIC KEY data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_pkey_provided/X25519.pub.pem",
+      "sha256": "8b700b78f5b2c9b9d799ab746ed1d31917530f1f5eb2b53124d569ca2918fbb6"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_pkey_provided/X448.pub.pem",
+    "sha256": "3c555c0ca654cbe960b78c77ad36c2e35407a04537ee1c5025ef96a5c57cd75f",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public PUBLIC KEY data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_pkey_provided/X448.pub.pem",
+      "sha256": "3c555c0ca654cbe960b78c77ad36c2e35407a04537ee1c5025ef96a5c57cd75f"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/66-test_ossl_store_data/DH-params.pem",
+    "sha256": "24422a90f3436bc0a8082c7179213a999c7b5ecab14ac03c0eaf56bc3a97d5a9",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public DH PARAMETERS data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/66-test_ossl_store_data/DH-params.pem",
+      "sha256": "24422a90f3436bc0a8082c7179213a999c7b5ecab14ac03c0eaf56bc3a97d5a9"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_cmp_http_data/Mock/csr.pem",
+    "sha256": "a93a0c65021dfd3a38cad385fab7f265438a94fded9ed2c48a20d61216a6d348",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE REQUEST data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_cmp_http_data/Mock/csr.pem",
+      "sha256": "a93a0c65021dfd3a38cad385fab7f265438a94fded9ed2c48a20d61216a6d348"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_cmp_http_data/Mock/newWithOld.pem",
+    "sha256": "a2ee76bbd5016a43b4c06a83d01d4c4063c924fe9fcf54a7d9f924a93bd43ce1",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_cmp_http_data/Mock/newWithOld.pem",
+      "sha256": "a2ee76bbd5016a43b4c06a83d01d4c4063c924fe9fcf54a7d9f924a93bd43ce1"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_cmp_http_data/Mock/new_pub.key",
+    "sha256": "38f36cc52c9507aec7c95e0e040accb4c6fe4c9bdfc448a38698ecea916598f7",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public PUBLIC KEY data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_cmp_http_data/Mock/new_pub.key",
+      "sha256": "38f36cc52c9507aec7c95e0e040accb4c6fe4c9bdfc448a38698ecea916598f7"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_cmp_http_data/Mock/newcrl.pem",
+    "sha256": "fd684b9116324b7f08601febc7aeac90b420ef18a96c5c47c781cf6f1a7c42f7",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public X509 CRL data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_cmp_http_data/Mock/newcrl.pem",
+      "sha256": "fd684b9116324b7f08601febc7aeac90b420ef18a96c5c47c781cf6f1a7c42f7"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_cmp_http_data/Mock/oldWithNew.pem",
+    "sha256": "ea8328def79035dba6bb9eb7df213211a3526a71f7f906e1360d7ae01518f7c2",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_cmp_http_data/Mock/oldWithNew.pem",
+      "sha256": "ea8328def79035dba6bb9eb7df213211a3526a71f7f906e1360d7ae01518f7c2"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_cmp_http_data/Mock/oldcrl.pem",
+    "sha256": "aafda8a59ac1c478347925d49d6df3a82e767c6e9b8044adbbb64ee3c7336e2a",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public X509 CRL data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_cmp_http_data/Mock/oldcrl.pem",
+      "sha256": "aafda8a59ac1c478347925d49d6df3a82e767c6e9b8044adbbb64ee3c7336e2a"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_cmp_http_data/Mock/wrong_csr.pem",
+    "sha256": "09c08239731fca2b5950f4dd074027b1b787dd78127eb89564ae17a156c86991",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE REQUEST data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_cmp_http_data/Mock/wrong_csr.pem",
+      "sha256": "09c08239731fca2b5950f4dd074027b1b787dd78127eb89564ae17a156c86991"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_tsa_data/sectigo-signer.pem",
+    "sha256": "892b2a4b24639570d43655176361498453610bfae520123d2ad873fdcefad5fe",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_tsa_data/sectigo-signer.pem",
+      "sha256": "892b2a4b24639570d43655176361498453610bfae520123d2ad873fdcefad5fe"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_tsa_data/sectigo-time-stamping-ca.pem",
+    "sha256": "99d6d613a89ab79e79ddef036fb8136a24a77b595c2c6a8a6b9dab27e6a8f558",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_tsa_data/sectigo-time-stamping-ca.pem",
+      "sha256": "99d6d613a89ab79e79ddef036fb8136a24a77b595c2c6a8a6b9dab27e6a8f558"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/90-test_gost_data/server-cert2001.pem",
+    "sha256": "ce6ca348c4530fb318be99d596dbeecd4849470f9d98b05bae5f3d02df2075b1",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/90-test_gost_data/server-cert2001.pem",
+      "sha256": "ce6ca348c4530fb318be99d596dbeecd4849470f9d98b05bae5f3d02df2075b1"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/90-test_gost_data/server-cert2012.pem",
+    "sha256": "1ae901980ca08e6350bbedc1de622c72015b5031968abddb2a82305c5b42d671",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/90-test_gost_data/server-cert2012.pem",
+      "sha256": "1ae901980ca08e6350bbedc1de622c72015b5031968abddb2a82305c5b42d671"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-p11-kit-0.26.5-1.src.tar.zst",
+    "archiveSha256": "1665c40c6237bbb9be868ecfc00ab65f9038047e4c608126de575ae4ecb5ca12",
+    "member": "mingw-w64-p11-kit/p11-kit-0.26.5.tar.xz/p11-kit-0.26.5/trust/fixtures/verisign-v1.pem",
+    "sha256": "3cc9c4b018fcc8285efe4e134156bad55f4c7ad139d2700d643a35a892832524",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public TRUSTED CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-p11-kit/p11-kit-0.26.5.tar.xz/p11-kit-0.26.5/trust/fixtures/verisign-v1.pem",
+      "sha256": "3cc9c4b018fcc8285efe4e134156bad55f4c7ad139d2700d643a35a892832524"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-p11-kit-0.26.5-1.src.tar.zst",
+    "archiveSha256": "1665c40c6237bbb9be868ecfc00ab65f9038047e4c608126de575ae4ecb5ca12",
+    "member": "mingw-w64-p11-kit/p11-kit-0.26.5.tar.xz/p11-kit-0.26.5/trust/fixtures/cacert3-distrusted-all.pem",
+    "sha256": "c303287512bcaa9d367b725c8a40414f9d0d19721b4a31ae6c59343994765626",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public TRUSTED CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-p11-kit/p11-kit-0.26.5.tar.xz/p11-kit-0.26.5/trust/fixtures/cacert3-distrusted-all.pem",
+      "sha256": "c303287512bcaa9d367b725c8a40414f9d0d19721b4a31ae6c59343994765626"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-p11-kit-0.26.5-1.src.tar.zst",
+    "archiveSha256": "1665c40c6237bbb9be868ecfc00ab65f9038047e4c608126de575ae4ecb5ca12",
+    "member": "mingw-w64-p11-kit/p11-kit-0.26.5.tar.xz/p11-kit-0.26.5/trust/input/distrusted.pem",
+    "sha256": "d621b2a2ae3ff4c3b8f8cafdc7243fc041daf57e20d40c178095d50b81d31df9",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public TRUSTED CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-p11-kit/p11-kit-0.26.5.tar.xz/p11-kit-0.26.5/trust/input/distrusted.pem",
+      "sha256": "d621b2a2ae3ff4c3b8f8cafdc7243fc041daf57e20d40c178095d50b81d31df9"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-p11-kit-0.26.5-1.src.tar.zst",
+    "archiveSha256": "1665c40c6237bbb9be868ecfc00ab65f9038047e4c608126de575ae4ecb5ca12",
+    "member": "mingw-w64-p11-kit/p11-kit-0.26.5.tar.xz/p11-kit-0.26.5/trust/input/extensions.pem",
+    "sha256": "0d2e78e12dee77cdd277381bb060f00bd0bf78cd3c9c547b62286a5a45fd81df",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-p11-kit/p11-kit-0.26.5.tar.xz/p11-kit-0.26.5/trust/input/extensions.pem",
+      "sha256": "0d2e78e12dee77cdd277381bb060f00bd0bf78cd3c9c547b62286a5a45fd81df"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-python-3.14.7-1.src.tar.zst",
+    "archiveSha256": "0c37a34be1c2ae9d6aae9a41cc581675a324ebe826a992edc3bd8aa11eae3e70",
+    "member": "mingw-w64-python/Python-3.14.7.tar.xz/Python-3.14.7/Lib/test/certdata/pycacert.pem",
+    "sha256": "89f34fc25200eba9185a7cb0f3e0160617e91be3b16b0716550488e8e499329f",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-python/Python-3.14.7.tar.xz/Python-3.14.7/Lib/test/certdata/pycacert.pem",
+      "sha256": "89f34fc25200eba9185a7cb0f3e0160617e91be3b16b0716550488e8e499329f"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-python-3.14.7-1.src.tar.zst",
+    "archiveSha256": "0c37a34be1c2ae9d6aae9a41cc581675a324ebe826a992edc3bd8aa11eae3e70",
+    "member": "mingw-w64-python/Python-3.14.7.tar.xz/Python-3.14.7/Lib/test/certdata/selfsigned_pythontestdotnet.pem",
+    "sha256": "3879632e778cb56dfc6df5b9d2f60c5e39c264338f6647f11568837f9d62e535",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Read-only OpenSSL parsing verified every PEM block in this exact upstream member as public CERTIFICATE data. No private-key PEM block is present. The file-extension rule is the only approved rule; credential content, private domains and other findings remain blocked. The public format content itself is the evidence, not an assumption based on its filename or publication.",
+    "evidence": {
+      "kind": "upstream-public-format-object",
+      "member": "mingw-w64-python/Python-3.14.7.tar.xz/Python-3.14.7/Lib/test/certdata/selfsigned_pythontestdotnet.pem",
+      "sha256": "3879632e778cb56dfc6df5b9d2f60c5e39c264338f6647f11568837f9d62e535"
+    }
   }
 ]
