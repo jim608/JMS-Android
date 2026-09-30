@@ -31242,5 +31242,152 @@
       "member": "winnow-1.0.4/examples/ndjson/main.rs",
       "sha256": "597fce15ca0e0c76e0c2d02641d2bb65b157449bdc758ef9071da96173052039"
     }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-libssh-0.12.2-1.src.tar.zst",
+    "archiveSha256": "b935d915b5392e573f65855c491e476ae38860d3929d2b564e507aa660c3e05b",
+    "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/tests/fuzz/ssh_privkey_fuzzer_corpus/855ce609b52aec530bf631a78da7038bed99040a",
+    "sha256": "a47dd16eb681db256ce8b34437f5440dfda79a271e4e79571a947a155c8da26d",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "Exact private-key parser fuzz corpus member. The pinned CMake fuzzer macro enumerates this corpus and registers each input; LLVMFuzzerTestOneInput passes the byte input to ssh_pki_import_privkey_base64 and frees the result. This verifies a local parser fixture, not a service login. No fuzzer was executed.",
+    "evidence": {
+      "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/tests/fuzz/CMakeLists.txt",
+      "sha256": "010d8567306a6b79d22dc56b6c8168818be64155181894fe8deb4ff4e56f9ed3",
+      "kind": "upstream-explicit-test-input"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/tests/fuzz/ssh_privkey_fuzzer.c",
+        "sha256": "76e2ff0f3ab18cc1ad59a71f42666bb45b86862bfb4c8c1f41b5c220040fbacf"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-libssh-0.12.2-1.src.tar.zst",
+    "archiveSha256": "b935d915b5392e573f65855c491e476ae38860d3929d2b564e507aa660c3e05b",
+    "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/tests/fuzz/ssh_server_fuzzer.c",
+    "sha256": "63cd5713dcfab62faf447493feb4c8d536af7cfefb46aa1a36a05eaa577b14e9",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "The sole embedded RSA key is the fixed kRSAPrivateKeyPEM fuzz-server host key. write_rsa_hostkey writes that constant, and LLVMFuzzerTestOneInput selects it through SSH_BIND_OPTIONS_HOSTKEY for the local fuzz harness. The CMake recipe explicitly registers this fuzzer. No server or upstream test was run.",
+    "evidence": {
+      "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/tests/fuzz/ssh_server_fuzzer.c",
+      "sha256": "63cd5713dcfab62faf447493feb4c8d536af7cfefb46aa1a36a05eaa577b14e9",
+      "kind": "upstream-explicit-test-input"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/tests/fuzz/CMakeLists.txt",
+        "sha256": "010d8567306a6b79d22dc56b6c8168818be64155181894fe8deb4ff4e56f9ed3"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-libssh-0.12.2-1.src.tar.zst",
+    "archiveSha256": "b935d915b5392e573f65855c491e476ae38860d3929d2b564e507aa660c3e05b",
+    "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/tests/keys/pkcs11/id_pkcs11_ecdsa_256",
+    "sha256": "2fbfa1b9c544084fe063e02e441694361e6ea7d1eae0f62f270624954c3f3790",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "Exact synthetic PKCS11 private-key fixture named by a LIBSSH test-key constant and passed by setup_tokens to the local SoftHSM token setup script in the PKCS11 authentication regression. It is test infrastructure for the isolated test server, not an external service credential. Tests and token import were not executed during review.",
+    "evidence": {
+      "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/tests/client/torture_auth_pkcs11.c",
+      "sha256": "b60498a4f74a1f0abbd5223c69fb7698c6e77fedcb306dfc2593d9cbf1c5c7d3",
+      "kind": "upstream-explicit-test-input"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/tests/pkcs11/setup-softhsm-tokens.sh",
+        "sha256": "f566fcdeac60f767b3cc82c7c143225fa6ea87c6638ede51c2ad3654620d183a"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-libssh-0.12.2-1.src.tar.zst",
+    "archiveSha256": "b935d915b5392e573f65855c491e476ae38860d3929d2b564e507aa660c3e05b",
+    "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/tests/keys/pkcs11/id_pkcs11_ecdsa_384",
+    "sha256": "ec0c6ee624b7a5c2e6b62dd2eb86dc2e02999e91316cc70814a318b0e74cf4b2",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "Exact synthetic PKCS11 private-key fixture named by a LIBSSH test-key constant and passed by setup_tokens to the local SoftHSM token setup script in the PKCS11 authentication regression. It is test infrastructure for the isolated test server, not an external service credential. Tests and token import were not executed during review.",
+    "evidence": {
+      "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/tests/client/torture_auth_pkcs11.c",
+      "sha256": "b60498a4f74a1f0abbd5223c69fb7698c6e77fedcb306dfc2593d9cbf1c5c7d3",
+      "kind": "upstream-explicit-test-input"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/tests/pkcs11/setup-softhsm-tokens.sh",
+        "sha256": "f566fcdeac60f767b3cc82c7c143225fa6ea87c6638ede51c2ad3654620d183a"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-libssh-0.12.2-1.src.tar.zst",
+    "archiveSha256": "b935d915b5392e573f65855c491e476ae38860d3929d2b564e507aa660c3e05b",
+    "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/tests/keys/pkcs11/id_pkcs11_ecdsa_521",
+    "sha256": "9ef9ae27976bb7276d1155180a75f35afc3ab9b2c78b5a9daa1243ad588b4837",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "Exact synthetic PKCS11 private-key fixture named by a LIBSSH test-key constant and passed by setup_tokens to the local SoftHSM token setup script in the PKCS11 authentication regression. It is test infrastructure for the isolated test server, not an external service credential. Tests and token import were not executed during review.",
+    "evidence": {
+      "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/tests/client/torture_auth_pkcs11.c",
+      "sha256": "b60498a4f74a1f0abbd5223c69fb7698c6e77fedcb306dfc2593d9cbf1c5c7d3",
+      "kind": "upstream-explicit-test-input"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/tests/pkcs11/setup-softhsm-tokens.sh",
+        "sha256": "f566fcdeac60f767b3cc82c7c143225fa6ea87c6638ede51c2ad3654620d183a"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-libssh-0.12.2-1.src.tar.zst",
+    "archiveSha256": "b935d915b5392e573f65855c491e476ae38860d3929d2b564e507aa660c3e05b",
+    "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/tests/keys/pkcs11/id_pkcs11_ed25519",
+    "sha256": "282a8f6f1cec21f5eb7e44a03808d2bd8a828474300313c05a23e598ae1b0111",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "Exact synthetic PKCS11 private-key fixture named by a LIBSSH test-key constant and passed by setup_tokens to the local SoftHSM token setup script in the PKCS11 authentication regression. It is test infrastructure for the isolated test server, not an external service credential. Tests and token import were not executed during review.",
+    "evidence": {
+      "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/tests/client/torture_auth_pkcs11.c",
+      "sha256": "b60498a4f74a1f0abbd5223c69fb7698c6e77fedcb306dfc2593d9cbf1c5c7d3",
+      "kind": "upstream-explicit-test-input"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/tests/pkcs11/setup-softhsm-tokens.sh",
+        "sha256": "f566fcdeac60f767b3cc82c7c143225fa6ea87c6638ede51c2ad3654620d183a"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-libssh-0.12.2-1.src.tar.zst",
+    "archiveSha256": "b935d915b5392e573f65855c491e476ae38860d3929d2b564e507aa660c3e05b",
+    "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/tests/keys/pkcs11/id_pkcs11_rsa",
+    "sha256": "ad34d190350e66acb674a6319db0810a0243f10a49007f9c2c4c4b1bd388e189",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "Exact synthetic PKCS11 private-key fixture named by a LIBSSH test-key constant and passed by setup_tokens to the local SoftHSM token setup script in the PKCS11 authentication regression. It is test infrastructure for the isolated test server, not an external service credential. Tests and token import were not executed during review.",
+    "evidence": {
+      "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/tests/client/torture_auth_pkcs11.c",
+      "sha256": "b60498a4f74a1f0abbd5223c69fb7698c6e77fedcb306dfc2593d9cbf1c5c7d3",
+      "kind": "upstream-explicit-test-input"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/tests/pkcs11/setup-softhsm-tokens.sh",
+        "sha256": "f566fcdeac60f767b3cc82c7c143225fa6ea87c6638ede51c2ad3654620d183a"
+      }
+    ]
   }
 ]
