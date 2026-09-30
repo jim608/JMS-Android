@@ -13,6 +13,7 @@ import 'package:fladder/providers/settings/video_player_settings_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
 import 'package:fladder/screens/video_player/components/video_player_guide_wrapper.dart';
 import 'package:fladder/screens/video_player/components/playback_diagnostics.dart';
+import 'package:fladder/screens/video_player/components/centered_video_viewport.dart';
 import 'package:fladder/screens/video_player/components/video_player_next_wrapper.dart';
 import 'package:fladder/screens/video_player/video_player_controls.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
@@ -72,7 +73,6 @@ class _VideoPlayerState extends ConsumerState<VideoPlayer> with WidgetsBindingOb
   Widget build(BuildContext context) {
     final fillScreen = ref.watch(videoPlayerSettingsProvider.select((value) => value.fillScreen));
     final videoFit = ref.watch(videoPlayerSettingsProvider.select((value) => value.videoFit));
-    final padding = MediaQuery.of(context).padding;
 
     final playerController = ref.watch(videoPlayerProvider.select((value) => value));
 
@@ -99,8 +99,8 @@ class _VideoPlayerState extends ConsumerState<VideoPlayer> with WidgetsBindingOb
       },
     );
 
-    final video = Padding(
-      padding: fillScreen ? EdgeInsets.zero : EdgeInsets.only(left: padding.left, right: padding.right),
+    final video = CenteredVideoViewport(
+      fillScreen: fillScreen,
       child: playerController.videoWidget(
         const Key("VideoPlayer"),
         fillScreen ? (MediaQuery.of(context).orientation == Orientation.portrait ? videoFit : BoxFit.cover) : videoFit,
