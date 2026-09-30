@@ -190,9 +190,9 @@ def verify_remote(github, state, files, state_directory, policy):
 def publish(args):
     PUBLICATION.mkdir(parents=True, exist_ok=True)
     with release_lock(PUBLICATION / 'publisher.lock'):
-        commit = committed_source()
+        publication_commit = committed_source()
         check_upstream()
-        execute([sys.executable, 'scripts/check_jms_git_privacy.py', '--tree', commit])
+        execute([sys.executable, 'scripts/check_jms_git_privacy.py', '--tree', publication_commit])
         policy = read_json(ROOT / 'config/jms_publication.json')
         baseline = ROOT / policy['baselineApk']
         if sha256(baseline) != policy['baselineSha256']:
@@ -204,10 +204,19 @@ def publish(args):
         github = Github()
         repository = github.authenticate()
         files = source_files()
-        fingerprint = source_fingerprint({name: digest for name, digest in files.items() if name != 'docs/JMS_STATUS.md'})
         version, code = version_info()
-        push_release('https://github.com/' + REPOSITORY + '.git', commit, 'v' + version, dry_run=True)
         candidate = ROOT / f'artifacts/JMS-Android-{version}-release-arm64-test-signed.apk'
+        commit = publication_commit
+        if candidate.exists():
+            candidate_record = read_json(ROOT / f'artifacts/checks/build-{version}-inputs.json')
+            candidate_commit = candidate_record.get('sourceCommit', '')
+            if not re.fullmatch('[a-f0-9]{40}', candidate_commit):
+                raise ReleaseError('Candidate lacks its original full source commit')
+            commit = committed_source(candidate_commit, allow_ancestor=True)
+            bind_candidate_record(candidate_record, commit, candidate, None)
+        fingerprint = source_fingerprint({'sourceCommit': commit})
+        push_release('https://github.com/' + REPOSITORY + '.git', commit, 'v' + version,
+                     branch_commit=publication_commit, dry_run=True)
         quality = quality_checks(files)
         review_apk = candidate if candidate.exists() else baseline
         if not candidate.exists() and policy.get('nativeEvidence'):
@@ -275,7 +284,8 @@ def publish(args):
             save_json(state_path, state)
         if state.get('gitHistoryMode') != 'jms-commits-v1':
             raise ReleaseError('Legacy snapshot state cannot resume as a jms commit release')
-        committed_source(state['sourceCommit'])
+        committed_source(state['sourceCommit'], allow_ancestor=True)
+        state['publicationToolCommit'] = publication_commit
         save = lambda: save_json(state_path, state)
         apk = ROOT / f'artifacts/JMS-Android-{version}-release-arm64-test-signed.apk'
         record_path = ROOT / f'artifacts/checks/build-{version}-inputs.json'
@@ -314,11 +324,13 @@ def publish(args):
                 raise ReleaseError('Prepared assets changed; published content cannot be replaced')
             state['assets'] = assets
             save()
-            committed_source(state['sourceCommit'])
+            committed_source(publication_commit)
+            committed_source(state['sourceCommit'], allow_ancestor=True)
             for asset in assets.values():
                 execute([sys.executable, 'scripts/check_jms_git_privacy.py', '--package', asset['path']])
             helper = '!"' + str(github.executable).replace('\\', '/') + '" auth git-credential'
             push_release('https://github.com/' + REPOSITORY + '.git', state['sourceCommit'], tag,
+                         branch_commit=publication_commit,
                          git_options=['-c', 'credential.helper=', '-c', 'credential.https://github.com.helper=' + helper],
                          environment=github.environment)
             if not state.get('releaseId'):

@@ -60,6 +60,35 @@ class GitReleaseTests(unittest.TestCase):
             with self.assertRaises(jms_publication.ReleaseError):
                 verify_snapshot(self.first, inputs)
 
+    def test_ancestor_candidate_keeps_newer_branch_and_original_tag(self):
+        with self.assertRaises(GitReleaseError):
+            committed_source(self.first)
+        self.assertEqual(self.first, committed_source(self.first, allow_ancestor=True))
+        push_release(self.remote, self.first, 'vfixture', branch_commit=self.second)
+        push_release(self.remote, self.first, 'vfixture', branch_commit=self.second)
+        self.assertEqual(self.second, self.run_git('--git-dir=' + self.remote, 'rev-parse', 'jms'))
+        self.assertEqual(self.first, self.run_git('--git-dir=' + self.remote, 'rev-parse', 'refs/tags/vfixture'))
+        self.assertEqual(self.base, self.run_git('--git-dir=' + self.remote, 'rev-parse', 'main'))
+        with self.assertRaises(GitReleaseError):
+            push_release(self.remote, self.first, 'vother', branch_commit=self.first)
+
+    def test_ancestor_candidate_cannot_hide_newer_private_commit(self):
+        head = self.commit('fix: later change', 'https://service.private.example')
+        with self.assertRaises(GitReleaseError):
+            push_release(self.remote, self.first, 'vfixture', branch_commit=head)
+        self.assertNotIn('refs/heads/jms', self.run_git('ls-remote', self.remote))
+
+    def test_ancestor_candidate_rejects_dirty_and_unrelated_source(self):
+        Path('source.txt').write_text('dirty')
+        with self.assertRaises(GitReleaseError):
+            committed_source(self.first, allow_ancestor=True)
+        self.run_git('restore', 'source.txt')
+        self.run_git('checkout', '--detach', self.base)
+        other = self.commit('fix: different lineage', 'other')
+        self.run_git('checkout', 'jms')
+        with self.assertRaises(GitReleaseError):
+            committed_source(other, allow_ancestor=True)
+
     def test_gitlink_is_a_pointer_and_does_not_hide_blob_findings(self):
         from check_jms_git_privacy import blob_findings, tree_entries
         self.run_git('update-index', '--add', '--cacheinfo', '160000,' + self.base + ',external-source')

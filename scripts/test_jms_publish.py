@@ -248,6 +248,7 @@ class PublisherTests(unittest.TestCase):
         config = {'baselineApk': 'base.apk', 'baselineSha256': 'fixture'}
         github = unittest.mock.Mock()
         with patch.object(publisher, 'PUBLICATION', self.root / 'publication'), \
+             patch.object(publisher, 'ROOT', self.root), \
              patch.object(publisher, 'read_json', return_value=config), \
              patch.object(publisher, 'sha256', return_value='fixture'), \
              patch.object(publisher, 'apk_info', return_value=({'versionCode': 2008}, policy.SIGNER, True, '', '')), \

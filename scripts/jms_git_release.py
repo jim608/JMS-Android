@@ -17,15 +17,19 @@ def git(*args):
     return result.stdout.decode().strip()
 
 
-def committed_source(expected=None):
+def committed_source(expected=None, *, allow_ancestor=False):
     if git('branch', '--show-current') != 'jms':
         raise GitReleaseError('Release requires the jms branch')
     if git('status', '--porcelain', '--untracked-files=all'):
         raise GitReleaseError('Release requires a clean committed worktree and index')
     commit = git('rev-parse', 'HEAD')
     if expected and expected != commit:
-        raise GitReleaseError('Release state belongs to another jms commit')
-    return commit
+        if not allow_ancestor:
+            raise GitReleaseError('Release state belongs to another jms commit')
+        if git('rev-parse', '--verify', expected + '^{commit}') != expected:
+            raise GitReleaseError('Candidate requires a full source commit identity')
+        git('merge-base', '--is-ancestor', expected, commit)
+    return expected or commit
 
 
 def refs(remote):
@@ -60,12 +64,14 @@ def check_upstream():
     return remote, branch, upstream
 
 
-def push_release(remote, commit, tag, *, git_options=(), environment=None, dry_run=False):
+def push_release(remote, commit, tag, *, git_options=(), environment=None, dry_run=False,
+                 branch_commit=None):
     if 'DonutWare/Fladder' in remote:
         raise GitReleaseError('Official upstream is read-only')
     if not tag.startswith('v') or git('check-ref-format', 'refs/tags/' + tag):
         raise GitReleaseError('Invalid release tag')
-    committed_source(commit)
+    head = committed_source(branch_commit or commit)
+    committed_source(commit, allow_ancestor=branch_commit is not None)
     current = refs(remote)
     branch = current.get('refs/heads/jms')
     tagged = current.get('refs/tags/' + tag)
@@ -73,27 +79,29 @@ def push_release(remote, commit, tag, *, git_options=(), environment=None, dry_r
         raise GitReleaseError('Immutable release tag points elsewhere')
     if branch:
         git('fetch', '--no-tags', remote, 'refs/heads/jms')
-        git('merge-base', '--is-ancestor', branch, commit)
+        git('merge-base', '--is-ancestor', branch, head)
     domains = load_policy()
     bases = [branch] if branch else []
     # For a new jms branch only an advertised, locally verified main ancestor is trusted.
     if not branch and current.get('refs/heads/main'):
         git('fetch', '--no-tags', remote, 'refs/heads/main')
-        git('merge-base', '--is-ancestor', current['refs/heads/main'], commit)
+        git('merge-base', '--is-ancestor', current['refs/heads/main'], head)
         bases = [current['refs/heads/main']]
-    issues = outgoing_findings(commit, bases, domains)
+    issues = outgoing_findings(head, bases, domains)
     issues.extend(blob_findings(tree_entries(commit), domains))
+    if head != commit:
+        issues.extend(blob_findings(tree_entries(head), domains))
     if any(problems for _, problems in issues):
         raise GitReleaseError('Privacy rejected outgoing commits or release tree; run the local checker')
-    if dry_run or (branch == commit and tagged == commit):
+    if dry_run or (branch == head and tagged == commit):
         return
     result = subprocess.run(['git', *git_options, 'push', '--atomic', remote,
-                             commit + ':refs/heads/jms', commit + ':refs/tags/' + tag],
+                             head + ':refs/heads/jms', commit + ':refs/tags/' + tag],
                             env=environment, capture_output=True)
     if result.returncode:
         raise GitReleaseError('Atomic push rejected; no force-push or retag permitted')
     after = refs(remote)
-    if after.get('refs/heads/jms') != commit or after.get('refs/tags/' + tag) != commit:
+    if after.get('refs/heads/jms') != head or after.get('refs/tags/' + tag) != commit:
         raise GitReleaseError('Remote branch/tag verification failed')
 
 
