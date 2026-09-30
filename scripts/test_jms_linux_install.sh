@@ -5,12 +5,15 @@ test "$(id -u)" = 0
 test -d /candidate
 pacman -Syu --noconfirm --needed gtk3 mpv alsa-lib sqlite polkit libarchive xdg-user-dirs libsecret gnome-keyring xorg-server-xvfb xorg-xauth xorg-xwininfo dbus procps-ng pulseaudio python networkmanager
 useradd -m jms-test
-mkdir -p /output
+mkdir -p /output /run/dbus
+systemd-sysusers
+dbus-uuidgen --ensure
 dbus-daemon --system --fork
 NetworkManager --no-daemon >/output/network-manager.log 2>&1 &
 
 launch() {
   local executable=$1 label=$2
+  local result=0
   runuser -u jms-test -- env JMS_EXECUTABLE="$executable" dbus-run-session -- xvfb-run -a bash -ec '
     pulseaudio --start --exit-idle-time=-1
     "$JMS_EXECUTABLE" > /tmp/jms-launch.log 2>&1 &
@@ -22,8 +25,9 @@ launch() {
     if grep -E "Unhandled Exception|MissingPluginException|error while loading shared libraries" /tmp/jms-launch.log; then exit 1; fi
     kill "$app_pid"
     wait "$app_pid" || test "$?" = 143
-  ' >"/output/$label-window.log" 2>&1
-  cp /tmp/jms-launch.log "/output/$label-launch.log"
+  ' >"/output/$label-window.log" 2>&1 || result=$?
+  if test -f /tmp/jms-launch.log; then cp /tmp/jms-launch.log "/output/$label-launch.log"; fi
+  test "$result" = 0
 }
 
 pacman -U --noconfirm /candidate/previous.pkg.tar.xz
