@@ -118,7 +118,7 @@ def main():
                    "nativeSourceAudit": "PASS" if not failures else "BLOCKED", "status": "LOCAL_ONLY", "blockers": failures}
     if args.require_publication_ready:
         from jms_git_release import committed_source, verify_build_record
-        committed_source(commit)
+        committed_source(commit, allow_ancestor=snapshot)
         verify_build_record(record, commit)
         validate_publication(publication)
     final_destination = ROOT / "artifacts/releases" / record["buildId"]
