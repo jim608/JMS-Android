@@ -27,6 +27,11 @@ on:
         options:
           - release
           - nightly
+          - jms-candidates
+      source_commit:
+        description: "Exact pushed JMS source commit for isolated Linux/Web candidates"
+        required: false
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -36,8 +41,83 @@ env:
   NIGHTLY_TAG: nightly
 
 jobs:
+  jms-candidates:
+    if: github.repository == 'jim608/JMS-Android' && github.event_name == 'workflow_dispatch' && inputs.build_type == 'jms-candidates'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [linux, web]
+    steps:
+      - uses: actions/checkout@v4.1.1
+        with:
+          ref: ${{ inputs.source_commit }}
+          fetch-depth: 0
+          submodules: recursive
+      - name: Verify immutable source
+        env:
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+        run: |
+          [[ "$SOURCE_COMMIT" =~ ^[a-f0-9]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          git fetch origin jms
+          git merge-base --is-ancestor "$SOURCE_COMMIT" origin/jms
+          test -z "$(git status --porcelain)"
+          VERSION=$(sed -n 's/^version: \([^+]*\)+.*/\1/p' pubspec.yaml)
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "BUILD_ID=JMS-$VERSION-${{ matrix.platform }}-${SOURCE_COMMIT:0:12}" >> "$GITHUB_ENV"
+      - name: Build Linux packages
+        if: matrix.platform == 'linux'
+        env:
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+        run: |
+          docker build --target package -f Dockerfile.linux --build-arg JMS_BUILD_ID="$BUILD_ID" --build-arg JMS_SOURCE_COMMIT="$SOURCE_COMMIT" -t jms-candidate .
+          docker create --name jms-export jms-candidate /bin/true
+          mkdir candidate
+          docker cp jms-export:/output/. candidate/
+          docker run --rm -v "$PWD:/src:ro" -e JMS_ISOLATED_SECRET_TEST=1 jms-candidate bash -ec 'apt-get update >/dev/null; apt-get install -y --no-install-recommends gnome-keyring procps >/dev/null; bash /src/scripts/test_jms_linux_secret.sh' > candidate/secret-service-test.log
+      - name: Build and test Web container
+        if: matrix.platform == 'web'
+        env:
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+        run: |
+          docker build -f Dockerfile.web --build-arg JMS_VERSION="$VERSION" --build-arg JMS_SOURCE_COMMIT="$SOURCE_COMMIT" --build-arg JMS_BUILD_ID="$BUILD_ID" -t jms-candidate .
+          docker run -d --name jms-web-test -p 18081:8080 jms-candidate
+          for attempt in $(seq 1 30); do curl --fail --silent http://127.0.0.1:18081/healthz && break; sleep 1; done
+          JMS_TEST_ORIGIN=http://127.0.0.1:18081 python3 -m unittest discover -s scripts -p test_jms_web_container.py
+          mkdir -p candidate/site
+          docker cp jms-web-test:/usr/share/nginx/html/. candidate/site/
+          docker image inspect jms-candidate > candidate/image-record.json
+          docker save jms-candidate | gzip > candidate/JMS-Web-container.tar.gz
+      - name: Record source identity
+        env:
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib
+          pathlib.Path('candidate/runner-source.json').write_text(json.dumps({key: os.environ[key] for key in ('SOURCE_COMMIT', 'VERSION', 'BUILD_ID', 'PLATFORM', 'GITHUB_RUN_ID')}, indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jms-${{ matrix.platform }}-${{ inputs.source_commit }}
+          path: |
+            candidate/*.json
+            candidate/*.txt
+            candidate/*.tsv
+            candidate/*.log
+            candidate/*.xz
+            candidate/*.gz
+            candidate/site/
+          if-no-files-found: error
+          retention-days: 14
+
   # Check if workflow should run based on trigger conditions
   check-trigger:
+    if: inputs.build_type != 'jms-candidates'
     runs-on: ubuntu-latest
     outputs:
       should_run: ${{ steps.check.outputs.should_run }}
