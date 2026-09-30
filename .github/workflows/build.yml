@@ -28,8 +28,13 @@ on:
           - release
           - nightly
           - jms-candidates
+          - jms-validate-linux
       source_commit:
         description: "Exact pushed JMS source commit for isolated Linux/Web candidates"
+        required: false
+        type: string
+      candidate_run:
+        description: "Completed candidate workflow run to validate"
         required: false
         type: string
 
@@ -41,6 +46,39 @@ env:
   NIGHTLY_TAG: nightly
 
 jobs:
+  jms-validate-linux:
+    if: github.repository == 'jim608/JMS-Android' && github.event_name == 'workflow_dispatch' && inputs.build_type == 'jms-validate-linux'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4.1.1
+      - name: Download exact candidate and published upgrade baseline
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.candidate_run }}
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+        run: |
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]]
+          [[ "$SOURCE_COMMIT" =~ ^[a-f0-9]{40}$ ]]
+          gh run download "$RUN_ID" --name "jms-linux-$SOURCE_COMMIT" --dir candidate
+          (cd candidate && sha256sum --check SHA256SUMS.txt)
+          curl --fail --location https://github.com/jim608/JMS-Linux/releases/download/v0.11.1-jms.21/JMS-Linux-0.11.1-jms.21-x86_64.pkg.tar.xz -o candidate/previous.pkg.tar.xz
+          echo 'fa373413b2a0e1d69fb284be07085ca94addfcacb87cff52f7968d29828cf28b  candidate/previous.pkg.tar.xz' | sha256sum --check
+      - name: Verify install, upgrade, portable and retained settings
+        run: |
+          mkdir validation
+          docker run --rm -v "$PWD/candidate:/candidate:ro" -v "$PWD/validation:/output" -v "$PWD/scripts/test_jms_linux_install.sh:/test.sh:ro" -e JMS_ISOLATED_INSTALL_TEST=1 archlinux:base bash /test.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jms-linux-install-validation-${{ inputs.source_commit }}
+          path: validation/
+          if-no-files-found: error
+          retention-days: 14
+
   jms-candidates:
     if: github.repository == 'jim608/JMS-Android' && github.event_name == 'workflow_dispatch' && inputs.build_type == 'jms-candidates'
     runs-on: ubuntu-24.04
@@ -117,7 +155,7 @@ jobs:
 
   # Check if workflow should run based on trigger conditions
   check-trigger:
-    if: inputs.build_type != 'jms-candidates'
+    if: inputs.build_type != 'jms-candidates' && inputs.build_type != 'jms-validate-linux'
     runs-on: ubuntu-latest
     outputs:
       should_run: ${{ steps.check.outputs.should_run }}
