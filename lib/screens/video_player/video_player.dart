@@ -100,7 +100,6 @@ class _VideoPlayerState extends ConsumerState<VideoPlayer> with WidgetsBindingOb
     );
 
     final video = CenteredVideoViewport(
-      fillScreen: fillScreen,
       child: playerController.videoWidget(
         const Key("VideoPlayer"),
         fillScreen ? (MediaQuery.of(context).orientation == Orientation.portrait ? videoFit : BoxFit.cover) : videoFit,
