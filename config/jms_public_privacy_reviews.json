@@ -31227,5 +31227,20 @@
       "member": "mingw-w64-python/Python-3.14.7.tar.xz/Python-3.14.7/Lib/test/certdata/selfsigned_pythontestdotnet.pem",
       "sha256": "3879632e778cb56dfc6df5b9d2f60c5e39c264338f6647f11568837f9d62e535"
     }
+  },
+  {
+    "source": "https://static.crates.io/crates/winnow/winnow-1.0.4.crate",
+    "archiveSha256": "23b97319f7b8343df12cc98938e5c3eb436064524c8d2b4e30a1d3a36eecdf81",
+    "member": "winnow-1.0.4/examples/ndjson/example.ndjson",
+    "sha256": "c44c130731008bca76181348d40f46b183577949b5a4d229e0e1a56e1e405e5d",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Fixed upstream NDJSON example consisting entirely of parsed Cargo compiler-artifact, build-script-executed and build-finished records. Paths identify upstream Cargo registry/build outputs, not JMS user data. The adjacent example CLI accepts a file and feeds its text to parser::ndjson; the example data is not executed or treated as credentials. Only the exact path finding is approved.",
+    "evidence": {
+      "kind": "upstream-format-example",
+      "member": "winnow-1.0.4/examples/ndjson/main.rs",
+      "sha256": "597fce15ca0e0c76e0c2d02641d2bb65b157449bdc758ef9071da96173052039"
+    }
   }
 ]
