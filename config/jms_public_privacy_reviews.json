@@ -31389,5 +31389,253 @@
         "sha256": "f566fcdeac60f767b3cc82c7c143225fa6ea87c6638ede51c2ad3654620d183a"
       }
     ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/66-test_ossl_store_data/DHX-params.pem",
+    "sha256": "47263e8b6da1f65e5502239cc09e0321742c0815af3535f0adfc29d247f170b4",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "This separately enumerated member is byte-for-byte identical to the reviewed member mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_read_depr_data/x942params.pem in the same fixed upstream archive. It shares only that exact content and the listed rule approvals; both member identities and the original use evidence must be present. Original review: The pinned OpenSSL recipe resolves this exact local cryptographic test input through a getfile input to the deprecated PEM parser tests, using the recipe data directory. The directory definition and consuming test call are in the same hash-verified recipe. No test program or external authentication was executed; no private-policy, endpoint or other rule is exempted.",
+    "evidence": {
+      "kind": "upstream-resolved-test-input",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/pem_read_depr_test.c",
+      "sha256": "475795c4964fd7a0cc17d86eb4c538a5f07dfde765a0bcbc69167161d45b9109"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_read_depr.t",
+        "sha256": "3a65866e3d5138f0710d090726e3d7e15fc98dc33a1a253cd687c7a1e93a3655"
+      },
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_read_depr_data/x942params.pem",
+        "sha256": "47263e8b6da1f65e5502239cc09e0321742c0815af3535f0adfc29d247f170b4"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/66-test_ossl_store_data/DSA-params.pem",
+    "sha256": "ecb0f1b54cbde2380c4d835e7660671f0f9a8e57fd0bc5b8c9c1b2634ee19181",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "This separately enumerated member is byte-for-byte identical to the reviewed member mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_read_depr_data/dsaparams.pem in the same fixed upstream archive. It shares only that exact content and the listed rule approvals; both member identities and the original use evidence must be present. Original review: The pinned OpenSSL recipe resolves this exact local cryptographic test input through a getfile input to the deprecated PEM parser tests, using the recipe data directory. The directory definition and consuming test call are in the same hash-verified recipe. No test program or external authentication was executed; no private-policy, endpoint or other rule is exempted.",
+    "evidence": {
+      "kind": "upstream-resolved-test-input",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/pem_read_depr_test.c",
+      "sha256": "475795c4964fd7a0cc17d86eb4c538a5f07dfde765a0bcbc69167161d45b9109"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_read_depr.t",
+        "sha256": "3a65866e3d5138f0710d090726e3d7e15fc98dc33a1a253cd687c7a1e93a3655"
+      },
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_read_depr_data/dsaparams.pem",
+        "sha256": "ecb0f1b54cbde2380c4d835e7660671f0f9a8e57fd0bc5b8c9c1b2634ee19181"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/cert-ca.p12",
+    "sha256": "b2d9788c5f3a9cc558f8c96c4b3fdc99d856991266709d63fa98f48d3aced4bb",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "The files[] table names this exact PKCS12 fixture. doit() prefixes cert-tests/data, passes the resulting file and table password to gnutls_certificate_set_x509_simple_pkcs12_file, and checks the import result. This is a local credential-container regression, not a remote service login. Review only reads fixed source and data bytes; no upstream tests, signing or external authentication were executed.",
+    "evidence": {
+      "kind": "upstream-explicit-test-input",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/set_pkcs12_cred.c",
+      "sha256": "0b94b3fe15b0a8fc5badc0009dfcee794c76d62fb3ab1d732c0b25b077d49339"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/gost01.p12",
+    "sha256": "86b3171ff5f3ebf92be04ea24e185c2aac7a6b3ea6c736534ad5a2d1515d8035",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Literal p12 loop entries supply file=$1 and a fixed test password; certtool --p12-info consumes the exact source data member and the GOST import regression checks its exit status. Review only reads fixed source and data bytes; no upstream tests, signing or external authentication were executed.",
+    "evidence": {
+      "kind": "upstream-explicit-test-input",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs12-gost.sh",
+      "sha256": "e51f0b922384caae885d4b7c9e8e598e2bb6e6ce311356bc7dde09f597632853"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/gost12-2.p12",
+    "sha256": "bcdf85982f504b34ae06f0232647dc23fe5ae06f721c8b0e874bed1dea29f9df",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Literal p12 loop entries supply file=$1 and a fixed test password; certtool --p12-info consumes the exact source data member and the GOST import regression checks its exit status. Review only reads fixed source and data bytes; no upstream tests, signing or external authentication were executed.",
+    "evidence": {
+      "kind": "upstream-explicit-test-input",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs12-gost.sh",
+      "sha256": "e51f0b922384caae885d4b7c9e8e598e2bb6e6ce311356bc7dde09f597632853"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/gost12.p12",
+    "sha256": "bcdf85982f504b34ae06f0232647dc23fe5ae06f721c8b0e874bed1dea29f9df",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Literal p12 loop entries supply file=$1 and a fixed test password; certtool --p12-info consumes the exact source data member and the GOST import regression checks its exit status. Review only reads fixed source and data bytes; no upstream tests, signing or external authentication were executed.",
+    "evidence": {
+      "kind": "upstream-explicit-test-input",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs12-gost.sh",
+      "sha256": "e51f0b922384caae885d4b7c9e8e598e2bb6e6ce311356bc7dde09f597632853"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-corpus-rc2-1.p12",
+    "sha256": "24e51a0db24357150a564ae0da4701a5cf8e610f83bcabc8eb5d7ab9bd30f461",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Literal p12 loop entries are split into file=$1 and passed through the source data directory to certtool --p12-info. The regression accepts normal parse failure but rejects abnormal exit/crash; its comments identify the OSS-Fuzz and parser corner-case origin. Review only reads fixed source and data bytes; no upstream tests, signing or external authentication were executed.",
+    "evidence": {
+      "kind": "upstream-explicit-test-input",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs12-corner-cases.sh",
+      "sha256": "b8e3b4ba5a677d833a941866d1bacd32b8059f37a5b1978d77d456cba1cc8caa"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-corpus-rc2-2.p12",
+    "sha256": "2595a877cb72e9395b4cb26c213ac96f925fda776606f7a0d91ef18caa4e7aee",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Literal p12 loop entries are split into file=$1 and passed through the source data directory to certtool --p12-info. The regression accepts normal parse failure but rejects abnormal exit/crash; its comments identify the OSS-Fuzz and parser corner-case origin. Review only reads fixed source and data bytes; no upstream tests, signing or external authentication were executed.",
+    "evidence": {
+      "kind": "upstream-explicit-test-input",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs12-corner-cases.sh",
+      "sha256": "b8e3b4ba5a677d833a941866d1bacd32b8059f37a5b1978d77d456cba1cc8caa"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-corpus-rc2-3.p12",
+    "sha256": "632059d7b1af3efed859473f5c2ae1b5ea1cfb30c1e9647ead21295438e96086",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Literal p12 loop entries are split into file=$1 and passed through the source data directory to certtool --p12-info. The regression accepts normal parse failure but rejects abnormal exit/crash; its comments identify the OSS-Fuzz and parser corner-case origin. Review only reads fixed source and data bytes; no upstream tests, signing or external authentication were executed.",
+    "evidence": {
+      "kind": "upstream-explicit-test-input",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs12-corner-cases.sh",
+      "sha256": "b8e3b4ba5a677d833a941866d1bacd32b8059f37a5b1978d77d456cba1cc8caa"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-mldsa-inconsistent1.pem",
+    "sha256": "499221b0f4fa5607088e45788eba01499e21cd16164fcf438a5cddc392aae777",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "The explicit for n in 1 loop selects this exact inconsistent ML-DSA fixture through key-mldsa-inconsistent$n.pem. The local certtool -k parser test requires failure. No approval is inferred for the unused numbered variants. Review only reads fixed source and data bytes; no upstream tests, signing or external authentication were executed.",
+    "evidence": {
+      "kind": "upstream-explicit-test-input",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/mldsa.sh",
+      "sha256": "30e50c0057bb04e3453eb92a8ddf0330af2559d78f6f5f79155239a62fcc182b"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-utf8-1.p12",
+    "sha256": "7414e6826b3242cff4ad7b8e8dc2afc2ed94d77dcd9923f38ea41117efc1f1ee",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Literal p12 loop entries supply file=$1 and a fixed Unicode test password; certtool --p12-info consumes each exact source data member to verify UTF-8 password import behavior. Review only reads fixed source and data bytes; no upstream tests, signing or external authentication were executed.",
+    "evidence": {
+      "kind": "upstream-explicit-test-input",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs12-utf8.sh",
+      "sha256": "24a56ebfc9b2bb5c9ea462a8411b2fe93113a08188bfa642dd89adbd24c45130"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-utf8-2.p12",
+    "sha256": "b78749c2ea1ba723e4ad35fc549d4f8b5721a30e4cebe7fad3325b868434e282",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Literal p12 loop entries supply file=$1 and a fixed Unicode test password; certtool --p12-info consumes each exact source data member to verify UTF-8 password import behavior. Review only reads fixed source and data bytes; no upstream tests, signing or external authentication were executed.",
+    "evidence": {
+      "kind": "upstream-explicit-test-input",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs12-utf8.sh",
+      "sha256": "24a56ebfc9b2bb5c9ea462a8411b2fe93113a08188bfa642dd89adbd24c45130"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/mem-leak.p12",
+    "sha256": "921a4b27652b177cd0048e1a07c5786a36e3f9744ca051a9bf9d19d04d1d8444",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "Literal p12 loop entries are split into file=$1 and passed through the source data directory to certtool --p12-info. The regression accepts normal parse failure but rejects abnormal exit/crash; its comments identify the OSS-Fuzz and parser corner-case origin. Review only reads fixed source and data bytes; no upstream tests, signing or external authentication were executed.",
+    "evidence": {
+      "kind": "upstream-explicit-test-input",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs12-corner-cases.sh",
+      "sha256": "b8e3b4ba5a677d833a941866d1bacd32b8059f37a5b1978d77d456cba1cc8caa"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/provable-dsa2048-fips.pem",
+    "sha256": "48034a6259dc607b94ed79deb251a2dce6568a5ed27c860746ad061854676b1c",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "The FIPS conditional selects one of these two exact DSAFILE literals, passed to certtool --verify-provable-privkey --load-privkey with and without the fixed public generation seed. Exit status is checked by the local regression. Review only reads fixed source and data bytes; no upstream tests, signing or external authentication were executed.",
+    "evidence": {
+      "kind": "upstream-explicit-test-input",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/provable-privkey.sh",
+      "sha256": "54161b90c1235093f6f4aebcb1eae513e4740212e8b4622367763bd78bdaa437"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/provable-dsa2048.pem",
+    "sha256": "eb91fe34080f88f3ec9558acbf630f3c3c58752f15c770f4c19a28cdfb832d67",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "The FIPS conditional selects one of these two exact DSAFILE literals, passed to certtool --verify-provable-privkey --load-privkey with and without the fixed public generation seed. Exit status is checked by the local regression. Review only reads fixed source and data bytes; no upstream tests, signing or external authentication were executed.",
+    "evidence": {
+      "kind": "upstream-explicit-test-input",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/provable-privkey.sh",
+      "sha256": "54161b90c1235093f6f4aebcb1eae513e4740212e8b4622367763bd78bdaa437"
+    }
   }
 ]
