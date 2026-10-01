@@ -44,6 +44,7 @@ pathlib.Path('/output/preferences-location.txt').write_text(str(p))
 PY
 pacman -U --noconfirm /candidate/JMS-Linux-*-x86_64.pkg.tar.xz
 pacman -Q jms > /output/package-version.txt
+bsdtar -xOf /candidate/JMS-Linux-*-x86_64.pkg.tar.xz .PKGINFO | grep -Fx 'depend = networkmanager'
 test -x /usr/bin/jms
 test -f /usr/share/applications/com.jim608.jms.desktop
 test -f /usr/share/icons/hicolor/512x512/apps/com.jim608.jms.png
