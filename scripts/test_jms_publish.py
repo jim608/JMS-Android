@@ -18,6 +18,7 @@ class FakeGithub:
     def __init__(self, files):
         self.files = files
         self.uploads = []
+        self.downloads = []
         self.publishes = 0
         self.fail_once = None
         self.release = {'id': 7, 'draft': True, 'tag_name': 'vfixture', 'name': 'JMS fixture', 'prerelease': True,
@@ -40,6 +41,7 @@ class FakeGithub:
             'size': path.stat().st_size, 'digest': 'sha256:' + policy.sha256(path)})
 
     def asset_bytes(self, asset, destination):
+        self.downloads.append(asset['name'])
         shutil.copyfile(self.files[asset['name']]['path'], destination)
 
 
@@ -78,6 +80,27 @@ class PublisherTests(unittest.TestCase):
         self.assertFalse(github.release['draft'])
         policy.upload_complete_release(github, state, files, lambda: None, target)
         self.assertEqual(github.uploads, list(files))
+        self.assertEqual(github.publishes, 1)
+
+    def test_verified_download_cache_requires_current_digest_and_intact_bytes(self):
+        files = self.assets()
+        github = FakeGithub(files)
+        state = self.state()
+        target = self.root / 'verified-cache'
+        target.mkdir()
+        policy.upload_complete_release(github, state, files, lambda: None, target)
+        github.downloads.clear()
+        policy.upload_complete_release(github, state, files, lambda: None, target)
+        self.assertEqual(github.downloads, [])
+        (target / 'test.apk').write_bytes(b'partial')
+        policy.upload_complete_release(github, state, files, lambda: None, target)
+        self.assertEqual(github.downloads, ['test.apk'])
+        github.downloads.clear()
+        for asset in github.release['assets']:
+            if asset['name'] == 'update.json':
+                asset.pop('digest')
+        policy.upload_complete_release(github, state, files, lambda: None, target)
+        self.assertEqual(github.downloads, ['update.json'])
         self.assertEqual(github.publishes, 1)
 
     def test_existing_content_or_channel_mismatch_never_mutates(self):

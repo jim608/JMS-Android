@@ -305,7 +305,14 @@ def upload_complete_release(github, state, files, save, verification_directory):
             release = github.api(f'repos/{repository}/releases/{state["releaseId"]}')
             actual = match_assets(release, files)
         destination = Path(verification_directory) / name
-        github.asset_bytes(actual[name], destination)
+        # Reuse only bytes already verified against both the planned content and
+        # GitHub's current digest. A partial or changed download is never reused.
+        verified = (state.get('verifiedAssets', {}).get(name) == expected['sha256']
+                    and actual[name].get('digest') == 'sha256:' + expected['sha256']
+                    and destination.is_file() and destination.stat().st_size == expected['size']
+                    and sha256(destination) == expected['sha256'])
+        if not verified:
+            github.asset_bytes(actual[name], destination)
         if sha256(destination) != expected['sha256']:
             raise ReleaseError('Draft asset content differs; refusing publication: ' + name)
         state.setdefault('verifiedAssets', {})[name] = expected['sha256']
