@@ -9,6 +9,7 @@ import 'package:fladder/util/update_checker.dart';
 
 abstract class UpdateBridge {
   bool get isDesktop => false;
+  bool get supportsBackgroundDownload => false;
   void Function(double progress)? onProgress;
   Future<UpdateDevice> device();
   Future<void> setAllowed(bool allowed);
@@ -17,6 +18,16 @@ abstract class UpdateBridge {
   Future<bool> canInstall();
   Future<void> permission();
   Future<String> install();
+  Future<UpdateTransfer?> restoreTransfer() async => null;
+}
+
+class UpdateTransfer {
+  final ReleaseInfo release;
+  final UpdateStatus status;
+  final double progress;
+  final String? failure;
+  const UpdateTransfer(this.release, this.status,
+      {this.progress = 0, this.failure});
 }
 
 class AndroidUpdateBridge extends UpdateBridge {
@@ -28,6 +39,8 @@ class AndroidUpdateBridge extends UpdateBridge {
       }
     });
   }
+  @override
+  bool get supportsBackgroundDownload => true;
   @override
   Future<UpdateDevice> device() async =>
       UpdateDevice.fromJson((await channel.invokeMapMethod('device'))!);
@@ -51,6 +64,32 @@ class AndroidUpdateBridge extends UpdateBridge {
   @override
   Future<String> install() async =>
       await channel.invokeMethod<String>('install') ?? 'installPending';
+  @override
+  Future<UpdateTransfer?> restoreTransfer() async {
+    final value = await channel.invokeMapMethod<String, dynamic>('restore');
+    if (value == null || value['metadata'] is! Map) return null;
+    final metadata = Map<String, dynamic>.from(value['metadata'] as Map);
+    final manifest = UpdateManifest.parse(metadata);
+    final status = switch (value['status']) {
+      'downloading' => UpdateStatus.downloading,
+      'downloaded' => UpdateStatus.downloaded,
+      'failed' => UpdateStatus.downloadFailed,
+      'cancelled' => UpdateStatus.cancelled,
+      _ => null,
+    };
+    if (status == null) return null;
+    return UpdateTransfer(
+      ReleaseInfo(
+          manifest,
+          '',
+          DateTime.fromMillisecondsSinceEpoch(0),
+          Uri.parse(metadata['url'] as String),
+          metadata['repository'] as String),
+      status,
+      progress: ((value['progress'] as num?)?.toDouble() ?? 0).clamp(0, 1),
+      failure: value['failure'] as String?,
+    );
+  }
 }
 
 class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
@@ -78,6 +117,8 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
   bool get busy =>
       _checking || status == UpdateStatus.downloading || _installing;
   bool get blocked => playback || !_foreground;
+  bool get _transferAllowed =>
+      !playback && (_foreground || bridge.supportsBackgroundDownload);
   bool get hasNewUpdate =>
       !blocked &&
       !deferred &&
@@ -122,13 +163,30 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
       }
       _device = await bridge.device();
       if (_disposed) return;
-      await bridge.setAllowed(!blocked);
+      await bridge.setAllowed(_transferAllowed);
       final pending = _prefs!.getInt('jms.update.pending');
       if (pending != null && _device!.versionCode >= pending) {
         status = UpdateStatus.updated;
         await _prefs!.remove('jms.update.pending');
       } else if (pending != null) {
         status = UpdateStatus.installPending;
+      }
+      final transfer = await bridge.restoreTransfer();
+      if (_disposed) return;
+      if (transfer != null &&
+          transfer.release.repository == checker.source.identity &&
+          checker.source.ownsAsset(transfer.release.apkUrl) &&
+          transfer.release.apkUrl.pathSegments.last ==
+              transfer.release.manifest.assetName &&
+          transfer.release.manifest.supports(_device!) &&
+          transfer.release.manifest.versionCode > _device!.versionCode) {
+        latestRelease = transfer.release;
+        status = transfer.status;
+        progress = transfer.progress;
+        failure = transfer.failure;
+        if (status == UpdateStatus.downloading) {
+          unawaited(_completeDownload(transfer.release));
+        }
       }
       ready = true;
       _notify();
@@ -172,8 +230,10 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
   void setPlayback(bool value) {
     playback = value;
     if (supported) {
-      unawaited(bridge.setAllowed(!blocked).catchError((Object _) {}));
-      if (blocked && status == UpdateStatus.downloading) unawaited(cancel());
+      unawaited(bridge.setAllowed(_transferAllowed).catchError((Object _) {}));
+      if (!_transferAllowed && status == UpdateStatus.downloading) {
+        unawaited(cancel());
+      }
     }
     _notify();
     if (!blocked && ready) unawaited(check(manual: false));
@@ -183,8 +243,10 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _foreground = state == AppLifecycleState.resumed;
     if (supported) {
-      unawaited(bridge.setAllowed(!blocked).catchError((Object _) {}));
-      if (blocked && status == UpdateStatus.downloading) unawaited(cancel());
+      unawaited(bridge.setAllowed(_transferAllowed).catchError((Object _) {}));
+      if (!_transferAllowed && status == UpdateStatus.downloading) {
+        unawaited(cancel());
+      }
     }
     if (_foreground) unawaited(check(manual: false));
   }
@@ -260,8 +322,12 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
     failure = null;
     progress = 0;
     _notify();
+    await _completeDownload(latestRelease!);
+  }
+
+  Future<void> _completeDownload(ReleaseInfo release) async {
     try {
-      await bridge.download(latestRelease!);
+      await bridge.download(release);
       status = UpdateStatus.downloaded;
     } on PlatformException catch (error) {
       failure = error.code;
@@ -275,7 +341,12 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> cancel() async {
-    await bridge.cancel();
+    try {
+      await bridge.cancel();
+    } catch (_) {
+      failure = 'download';
+      _notify();
+    }
   }
 
   Future<void> install({bool openPermission = false}) async {
@@ -322,7 +393,9 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
     _disposed = true;
     _timer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
-    if (supported) unawaited(bridge.cancel().catchError((Object _) {}));
+    if (supported && !bridge.supportsBackgroundDownload) {
+      unawaited(bridge.cancel().catchError((Object _) {}));
+    }
     checker.close();
     super.dispose();
   }

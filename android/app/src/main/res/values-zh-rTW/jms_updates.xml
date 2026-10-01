@@ -1,0 +1,5 @@
+<resources>
+    <string name="jms_update_channel">JMS 更新</string>
+    <string name="jms_update_downloading">正在下載 JMS 更新</string>
+    <string name="jms_update_cancel">取消下載</string>
+</resources>

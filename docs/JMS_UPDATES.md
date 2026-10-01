@@ -90,13 +90,14 @@ M13 補充：本機候選建置與對外發布分開。可先執行 `scripts/bui
 
 - 官方 API/HTTPS/ETag/JSON 快取；單請求 15 秒、5xx 最多額外重試一次。限流依 retry/reset 暫停並持久化；自動每天最多一次，無背景常駐、無自動彈窗/下載。
 - APK 僅指定 repository release asset；官方 release-assets.githubusercontent.com / objects.githubusercontent.com 的 HTTPS 導向可用，其餘外站及 HTTP 拒絕，最多 5 次。
-- 原生 worker 以 64 KiB 串流寫 App 私有 cache，限制 300 MiB；SHA 隨下載計算、進度最多每 250ms。取消/中斷清理，手動重試從頭下載。
+- 經使用者確認的 Android APK 下載由原生 WorkManager 任務執行，顯示可取消的下載通知；切換 App 或離開更新頁不取消下載。自動更新檢查不會自行啟動下載。
+- 以 64 KiB 串流寫 App 私有 cache，限制 300 MiB；SHA 隨下載計算、進度最多每 250ms。斷網或系統暫停保留綁定來源、版本、大小、SHA256 與任務識別的部分檔案，最多額外重試三次；伺服器未支援範圍續傳時重新下載，明確取消則清除部分檔案。
 - 核對大小/SHA、PackageManager 的實際 package/version/minSdk、ZIP 完整 ARM64 app/flutter library、非 split。候選 signer set 與**已安裝 JMS**相同，不信遠端憑證；首版保守拒絕 signer rotation。
 - PackageManager 辨識 signer 不等於本 App 完成全部 APK 密碼學驗證。安裝前再 off-main-thread 核對 SHA/身分，**Android installer** 最終強制驗證內容簽章和系統策略。
 - 明確點擊後才開安裝；FileProvider 僅授予 update APK content URI，無 file URI 或廣泛儲存權限。
 - 拒絕未知來源授權、取消或系統阻擋不清資料、不卸載。下載完成/安裝返回不是成功；下次啟動已安裝 versionCode ≥ pendingCode 才確認，否則待確認。
-- 播放 state 非 disposed（含暫停/小窗）或 App 在背景時拒絕下載/安裝，並取消現有下載；離開播放恢復每日檢查資格，不改播放器實作。
-- cache 最多保留一個 APK；重試替換，超過 24 小時殘留於下次建立 bridge 時清理；不記錄授權 URL、憑證內容、帳號。
+- 播放 state 非 disposed（含暫停／小窗）時延後更新檢查、取消更新下載；App 不在前景時不開始新的下載、不顯示更新對話框，也不啟動安裝。已確認開始的 Android APK 下載可在背景繼續，完成後仍須回到前景由使用者確認安裝。
+- cache 最多保留一個 APK；新下載替換舊候選，明確取消或驗證失敗時清除，不記錄授權 URL、憑證內容、帳號。App 被系統暫停的恢復與使用者強制停止 App 不同，不保證強制停止後立即繼續下載。
 
 ## 發布順序與手機驗收
 

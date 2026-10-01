@@ -1,9 +1,32 @@
 package nl.jknaapen.fladder.updates
 
 import java.net.URI
+import java.security.MessageDigest
 
 object UpdatePolicy {
     const val MAX_BYTES = 300L * 1024 * 1024
+    fun transferBinding(repository: String, address: String, versionName: String, versionCode: Long,
+                        minSdk: Int, sourceCommit: String, size: Long, digest: String): String? {
+        if (!assetAllowed(address, repository) || versionName.isBlank() || versionCode <= 0 ||
+            minSdk < 24 || size !in 1..MAX_BYTES || !Regex("[a-f0-9]{64}").matches(digest) ||
+            !Regex("[a-f0-9]{40}").matches(sourceCommit)) return null
+        val identity = listOf(repository, address, "com.jim608.jms", "android", "arm64-v8a",
+            versionName, versionCode, minSdk, sourceCommit, size, digest).joinToString("\n")
+        return MessageDigest.getInstance("SHA-256").digest(identity.toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }
+    }
+    fun partialBinding(transferKey: String, workId: String): String? =
+        if (Regex("[a-f0-9]{64}").matches(transferKey) &&
+            Regex("[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}").matches(workId))
+            "$transferKey\n$workId" else null
+    fun responseStart(status: Int, contentRange: String?, offset: Long, expectedSize: Long): Long? {
+        if (expectedSize !in 1..MAX_BYTES || offset !in 0 until expectedSize) return null
+        if (status == 200) return 0
+        if (status != 206 || offset == 0L) return null
+        val match = Regex("bytes (\\d+)-(\\d+)/(\\d+)").matchEntire(contentRange ?: "") ?: return null
+        val values = match.groupValues.drop(1).map { it.toLongOrNull() ?: return null }
+        return if (values == listOf(offset, expectedSize - 1, expectedSize)) offset else null
+    }
     fun assetAllowed(address: String, repository: String): Boolean = runCatching {
         val uri = URI(address)
         val parts = repository.split("/")

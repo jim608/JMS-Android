@@ -5,6 +5,34 @@ import org.junit.Test
 
 class UpdatePolicyTest {
     private val digest = "a".repeat(64)
+    @Test fun partialIsBoundToSourceContentAndExactTask() {
+        fun binding(size: Long = 100, hash: String = digest, code: Long = 2006, source: String = "b".repeat(40),
+                    repository: String = "test/jms", address: String = "https://github.com/test/jms/releases/download/v6/JMS.apk") =
+            UpdatePolicy.transferBinding(repository, address, "v6", code, 24, source, size, hash)
+        val original = binding()!!
+        assertEquals(original, binding())
+        assertNotEquals(original, binding(size = 101))
+        assertNotEquals(original, binding(hash = "c".repeat(64)))
+        assertNotEquals(original, binding(code = 2007))
+        assertNotEquals(original, binding(source = "c".repeat(40)))
+        assertNull(binding(address = "https://evil.test/JMS.apk"))
+        assertNull(binding(repository = "other/jms"))
+        val id = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+        assertEquals(UpdatePolicy.partialBinding(original, id), UpdatePolicy.partialBinding(original, id))
+        assertNotEquals(UpdatePolicy.partialBinding(original, id),
+            UpdatePolicy.partialBinding(original, "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"))
+        assertNull(UpdatePolicy.partialBinding(original, "../fixture"))
+    }
+    @Test fun resumedHttpRequiresExactRangeOrFullRestart() {
+        assertEquals(40L, UpdatePolicy.responseStart(206, "bytes 40-99/100", 40, 100))
+        assertEquals(0L, UpdatePolicy.responseStart(200, null, 40, 100))
+        assertEquals(0L, UpdatePolicy.responseStart(200, null, 0, 100))
+        for (range in listOf("bytes 0-99/100", "bytes 40-98/100", "bytes 40-99/101", "bytes 40-99/*", null))
+            assertNull(UpdatePolicy.responseStart(206, range, 40, 100))
+        assertNull(UpdatePolicy.responseStart(206, "bytes 0-99/100", 0, 100))
+        assertNull(UpdatePolicy.responseStart(416, null, 40, 100))
+        assertNull(UpdatePolicy.responseStart(200, null, 101, 100))
+    }
     @Test fun onlyOfficialHttpsAssets() {
         assertTrue(UpdatePolicy.assetAllowed("https://github.com/test/jms/releases/download/v6/JMS.apk", "test/jms"))
         for (url in listOf("http://github.com/test/jms/releases/download/v6/JMS.apk",

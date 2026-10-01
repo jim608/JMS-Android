@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -27,7 +28,8 @@ Map<String, dynamic> asset(String name, int size) => {
       'name': name,
       'size': size,
       'state': 'uploaded',
-      'browser_download_url': 'https://github.com/fixture-owner/jms-fixture/releases/download/v6/$name',
+      'browser_download_url':
+          'https://github.com/fixture-owner/jms-fixture/releases/download/v6/$name',
     };
 Map<String, dynamic> release({bool draft = false, bool prerelease = false}) => {
       'draft': draft,
@@ -35,17 +37,25 @@ Map<String, dynamic> release({bool draft = false, bool prerelease = false}) => {
       'tag_name': 'v6',
       'published_at': '2026-09-19T00:00:00Z',
       'body': '測試更新',
-      'assets': [asset('update.json', 1000), asset('JMS.apk', 100), asset('JMS-source.zip', 200)],
+      'assets': [
+        asset('update.json', 1000),
+        asset('JMS.apk', 100),
+        asset('JMS-source.zip', 200)
+      ],
     };
-UpdateChecker checker({List<dynamic>? releases, Map<String, dynamic>? metadata, int apiStatus = 200}) => UpdateChecker(
-    source: source,
-    client: MockClient((request) async => http.Response(
-          request.url.host == 'api.github.com'
-              ? jsonEncode(releases ?? [release()])
-              : jsonEncode(metadata ?? manifest()),
-          request.url.host == 'api.github.com' ? apiStatus : 200,
-          headers: {'content-type': 'application/json; charset=utf-8'},
-        )));
+UpdateChecker checker(
+        {List<dynamic>? releases,
+        Map<String, dynamic>? metadata,
+        int apiStatus = 200}) =>
+    UpdateChecker(
+        source: source,
+        client: MockClient((request) async => http.Response(
+              request.url.host == 'api.github.com'
+                  ? jsonEncode(releases ?? [release()])
+                  : jsonEncode(metadata ?? manifest()),
+              request.url.host == 'api.github.com' ? apiStatus : 200,
+              headers: {'content-type': 'application/json; charset=utf-8'},
+            )));
 
 class FakeBridge extends AndroidUpdateBridge {
   int downloads = 0;
@@ -54,12 +64,22 @@ class FakeBridge extends AndroidUpdateBridge {
   String? downloadError;
   Completer<void>? downloadPending;
   int installedCode = 2005;
+  int cancellations = 0;
+  bool lastAllowed = true;
+  UpdateTransfer? restoredTransfer;
   @override
-  Future<UpdateDevice> device() async => UpdateDevice('com.jim608.jms', installedCode, 35, ['arm64-v8a']);
+  Future<UpdateDevice> device() async =>
+      UpdateDevice('com.jim608.jms', installedCode, 35, ['arm64-v8a']);
   @override
-  Future<void> setAllowed(bool allowed) async {}
+  Future<void> setAllowed(bool allowed) async {
+    lastAllowed = allowed;
+  }
+
+  @override
+  Future<UpdateTransfer?> restoreTransfer() async => restoredTransfer;
   @override
   Future<void> cancel() async {
+    cancellations++;
     if (downloadPending != null && !downloadPending!.isCompleted) {
       downloadPending!.completeError(PlatformException(code: 'cancelled'));
     }
@@ -86,13 +106,15 @@ class FakeBridge extends AndroidUpdateBridge {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   test('unconfigured does not contact platform or upstream', () async {
-    final updater = UpdateChecker(client: MockClient((_) async => throw StateError('network forbidden')));
+    final updater = UpdateChecker(
+        client: MockClient((_) async => throw StateError('network forbidden')));
     expect((await updater.check(device)).status, UpdateStatus.unconfigured);
     expect(Brand.applicationId, 'com.jim608.jms');
     updater.close();
   });
   test('reject upstream and untrusted redirects', () {
-    expect(const UpdateSource(owner: 'DonutWare', repo: 'Fladder').valid, false);
+    expect(
+        const UpdateSource(owner: 'DonutWare', repo: 'Fladder').valid, false);
     for (final url in [
       'http://release-assets.githubusercontent.com/a',
       'https://evil.test/a',
@@ -102,9 +124,15 @@ void main() {
       expect(UpdateSource.allowedRedirect(Uri.parse(url)), false);
     }
     expect(
-        UpdateSource.allowedRedirect(Uri.parse('https://release-assets.githubusercontent.com/a?sig=redacted')), true);
+        UpdateSource.allowedRedirect(Uri.parse(
+            'https://release-assets.githubusercontent.com/a?sig=redacted')),
+        true);
   });
-  for (final entry in {2004: UpdateStatus.ahead, 2005: UpdateStatus.current, 2006: UpdateStatus.available}.entries) {
+  for (final entry in {
+    2004: UpdateStatus.ahead,
+    2005: UpdateStatus.current,
+    2006: UpdateStatus.available
+  }.entries) {
     test('integer version comparison ${entry.key}', () async {
       final updater = checker(metadata: manifest(code: entry.key));
       expect((await updater.check(device)).status, entry.value);
@@ -122,7 +150,8 @@ void main() {
       updater.close();
     }
     final updater = checker(releases: [release(prerelease: true)]);
-    expect((await updater.check(device, prerelease: true)).status, UpdateStatus.available);
+    expect((await updater.check(device, prerelease: true)).status,
+        UpdateStatus.available);
     updater.close();
   });
   for (final entry in {
@@ -151,22 +180,29 @@ void main() {
     expect(requests, 1);
     updater.close();
   });
-  test('403 distinguishes rate-limit headers from permission failure', () async {
+  test('403 distinguishes rate-limit headers from permission failure',
+      () async {
     for (final headers in [
       {'x-ratelimit-remaining': '0'},
       {'retry-after': '120'},
       {'x-ratelimit-remaining': '50'},
     ]) {
-      final updater =
-          UpdateChecker(source: source, client: MockClient((_) async => http.Response('', 403, headers: headers)));
-      final limited = headers['x-ratelimit-remaining'] == '0' || headers.containsKey('retry-after');
-      expect((await updater.check(device)).status, limited ? UpdateStatus.rateLimited : UpdateStatus.sourceUnavailable);
+      final updater = UpdateChecker(
+          source: source,
+          client: MockClient(
+              (_) async => http.Response('', 403, headers: headers)));
+      final limited = headers['x-ratelimit-remaining'] == '0' ||
+          headers.containsKey('retry-after');
+      expect((await updater.check(device)).status,
+          limited ? UpdateStatus.rateLimited : UpdateStatus.sourceUnavailable);
       expect(updater.retryAfter != null, limited);
       updater.close();
     }
   });
   test('invalid JSON and timeout are distinct', () async {
-    final invalid = UpdateChecker(source: source, client: MockClient((_) async => http.Response('{', 200)));
+    final invalid = UpdateChecker(
+        source: source,
+        client: MockClient((_) async => http.Response('{', 200)));
     expect((await invalid.check(device)).status, UpdateStatus.incomplete);
     invalid.close();
     final timeout = UpdateChecker(
@@ -185,7 +221,9 @@ void main() {
         source: source,
         client: MockClient((request) async {
           requests++;
-          if (requests == 1) return http.Response('[]', 200, headers: {'etag': '"fixture"'});
+          if (requests == 1) {
+            return http.Response('[]', 200, headers: {'etag': '"fixture"'});
+          }
           expect(request.headers['If-None-Match'], '"fixture"');
           return http.Response('', 304);
         }));
@@ -193,7 +231,9 @@ void main() {
     expect((await updater.check(device)).status, UpdateStatus.noRelease);
     updater.close();
   });
-  test('metadata rejects package, ABI, fractional version and missing source/hash', () {
+  test(
+      'metadata rejects package, ABI, fractional version and missing source/hash',
+      () {
     for (final invalid in [
       {...manifest(), 'applicationId': 'com.other'},
       {
@@ -208,7 +248,8 @@ void main() {
         'apk': {'name': 'JMS.apk', 'size': 100, 'sha256': ''}
       },
     ]) {
-      expect(() => UpdateManifest.parse(invalid), throwsA(isA<UpdateFailure>()));
+      expect(
+          () => UpdateManifest.parse(invalid), throwsA(isA<UpdateFailure>()));
     }
   });
   test('wrong minSDK or device ABI is incompatible', () async {
@@ -216,17 +257,28 @@ void main() {
     expect((await updater.check(device)).status, UpdateStatus.incompatible);
     updater.close();
     final arm = checker();
-    expect((await arm.check(const UpdateDevice('com.jim608.jms', 2005, 35, ['x86_64']))).status,
+    expect(
+        (await arm.check(
+                const UpdateDevice('com.jim608.jms', 2005, 35, ['x86_64'])))
+            .status,
         UpdateStatus.incompatible);
     arm.close();
   });
-  test('same-release assets, complete source and exact size required', () async {
+  test('same-release assets, complete source and exact size required',
+      () async {
     for (final assets in [
       [asset('update.json', 1000), asset('JMS.apk', 100)],
-      [asset('update.json', 1000), asset('JMS.apk', 101), asset('JMS-source.zip', 200)],
       [
         asset('update.json', 1000),
-        {...asset('JMS.apk', 100), 'browser_download_url': 'https://evil.test/JMS.apk'},
+        asset('JMS.apk', 101),
+        asset('JMS-source.zip', 200)
+      ],
+      [
+        asset('update.json', 1000),
+        {
+          ...asset('JMS.apk', 100),
+          'browser_download_url': 'https://evil.test/JMS.apk'
+        },
         asset('JMS-source.zip', 200)
       ],
     ]) {
@@ -254,7 +306,8 @@ void main() {
     expect(prefs.getInt('jms.update.skipped'), 2006);
     controller.dispose();
   });
-  test('playback prevents check download and installer; never auto-downloads', () async {
+  test('playback prevents check download and installer; never auto-downloads',
+      () async {
     SharedPreferences.setMockInitialValues({});
     final bridge = FakeBridge();
     final controller = UpdateController(checker: checker(), bridge: bridge);
@@ -270,7 +323,13 @@ void main() {
     expect(controller.status, UpdateStatus.playbackBlocked);
     controller.dispose();
   });
-  for (final code in ['hash', 'signature', 'incompatible', 'space', 'download']) {
+  for (final code in [
+    'hash',
+    'signature',
+    'incompatible',
+    'space',
+    'download'
+  ]) {
     test('native download rejection $code never installs', () async {
       SharedPreferences.setMockInitialValues({});
       final bridge = FakeBridge()..downloadError = code;
@@ -284,7 +343,8 @@ void main() {
       controller.dispose();
     });
   }
-  test('cancel download and permission denial / installer cancellation', () async {
+  test('cancel download and permission denial / installer cancellation',
+      () async {
     SharedPreferences.setMockInitialValues({});
     final bridge = FakeBridge()..downloadPending = Completer<void>();
     final controller = UpdateController(checker: checker(), bridge: bridge);
@@ -305,19 +365,116 @@ void main() {
     expect(controller.status, UpdateStatus.installCancelled);
     controller.dispose();
   });
+  test(
+      'confirmed Android download survives inactive and background without installing',
+      () async {
+    SharedPreferences.setMockInitialValues({});
+    final bridge = FakeBridge()..downloadPending = Completer<void>();
+    final controller = UpdateController(checker: checker(), bridge: bridge);
+    await controller.initialize();
+    await controller.check();
+    final download = controller.download();
+    controller.didChangeAppLifecycleState(AppLifecycleState.inactive);
+    controller.didChangeAppLifecycleState(AppLifecycleState.hidden);
+    controller.didChangeAppLifecycleState(AppLifecycleState.paused);
+    expect(bridge.cancellations, 0);
+    expect(bridge.lastAllowed, true);
+    expect(controller.status, UpdateStatus.downloading);
+    bridge.downloadPending!.complete();
+    await download;
+    expect(controller.status, UpdateStatus.downloaded);
+    expect(bridge.installs, 0);
+    await controller.install();
+    expect(bridge.installs, 0);
+    controller.didChangeAppLifecycleState(AppLifecycleState.resumed);
+    await controller.install();
+    expect(bridge.installs, 1);
+    controller.dispose();
+  });
+  test('disposing an Android update observer does not cancel the native task',
+      () async {
+    SharedPreferences.setMockInitialValues({});
+    final bridge = FakeBridge()..downloadPending = Completer<void>();
+    final controller = UpdateController(checker: checker(), bridge: bridge);
+    await controller.initialize();
+    await controller.check();
+    final download = controller.download();
+    controller.dispose();
+    expect(bridge.cancellations, 0);
+    bridge.downloadPending!.complete();
+    await download;
+  });
+  test('Android restart rejoins a matching transfer and preserves progress',
+      () async {
+    SharedPreferences.setMockInitialValues({});
+    final release = (await checker().check(device)).release!;
+    final bridge = FakeBridge()
+      ..restoredTransfer =
+          UpdateTransfer(release, UpdateStatus.downloading, progress: .4)
+      ..downloadPending = Completer<void>();
+    final controller = UpdateController(checker: checker(), bridge: bridge);
+    await controller.initialize();
+    expect(controller.status, UpdateStatus.downloading);
+    expect(controller.progress, .4);
+    expect(bridge.downloads, 1);
+    bridge.downloadPending!.complete();
+    await Future<void>.delayed(Duration.zero);
+    expect(controller.status, UpdateStatus.downloaded);
+    expect(bridge.installs, 0);
+    controller.dispose();
+  });
+  test(
+      'restore never accepts an update from another repository or installed version',
+      () async {
+    SharedPreferences.setMockInitialValues({});
+    final release = (await checker().check(device)).release!;
+    final wrong = ReleaseInfo(release.manifest, '', release.published,
+        release.apkUrl, 'fixture-owner/other');
+    final bridge = FakeBridge()
+      ..restoredTransfer = UpdateTransfer(wrong, UpdateStatus.downloading);
+    final controller = UpdateController(checker: checker(), bridge: bridge);
+    await controller.initialize();
+    expect(controller.latestRelease, isNull);
+    expect(bridge.downloads, 0);
+    controller.dispose();
+    bridge.restoredTransfer = UpdateTransfer(release, UpdateStatus.downloaded);
+    bridge.installedCode = release.manifest.versionCode;
+    final installed = UpdateController(checker: checker(), bridge: bridge);
+    await installed.initialize();
+    expect(installed.latestRelease, isNull);
+    installed.dispose();
+  });
+  test('playback still cancels an active APK download', () async {
+    SharedPreferences.setMockInitialValues({});
+    final bridge = FakeBridge()..downloadPending = Completer<void>();
+    final controller = UpdateController(checker: checker(), bridge: bridge);
+    await controller.initialize();
+    await controller.check();
+    final download = controller.download();
+    controller.setPlayback(true);
+    await download;
+    expect(bridge.cancellations, 1);
+    expect(bridge.lastAllowed, false);
+    expect(controller.status, UpdateStatus.cancelled);
+    controller.dispose();
+  });
   test('only installed version after restart confirms success', () async {
     SharedPreferences.setMockInitialValues({'jms.update.pending': 2006});
     final pending = UpdateController(checker: checker(), bridge: FakeBridge());
     await pending.initialize();
     expect(pending.status, UpdateStatus.installPending);
     pending.dispose();
-    final complete = UpdateController(checker: checker(), bridge: FakeBridge()..installedCode = 2006);
+    final complete = UpdateController(
+        checker: checker(), bridge: FakeBridge()..installedCode = 2006);
     await complete.initialize();
     expect(complete.status, UpdateStatus.updated);
     complete.dispose();
   });
-  test('auto check cooldown persists across restarts and manual check can bypass', () async {
-    SharedPreferences.setMockInitialValues({'jms.update.lastCheck': DateTime.now().millisecondsSinceEpoch});
+  test(
+      'auto check cooldown persists across restarts and manual check can bypass',
+      () async {
+    SharedPreferences.setMockInitialValues(
+        {'jms.update.lastCheck': DateTime.now().millisecondsSinceEpoch});
     var requests = 0;
     final updater = UpdateChecker(
         source: source,

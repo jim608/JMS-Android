@@ -8,22 +8,29 @@ import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import android.os.StatFs
 import android.provider.Settings
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
 import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.Observer
+import androidx.work.BackoffPolicy
+import androidx.work.Constraints
+import androidx.work.Data
+import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
 import com.ryanheise.audioservice.AudioServiceFragmentActivity
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodChannel
-import java.io.File
-import java.net.HttpURLConnection
-import java.net.URL
-import java.security.MessageDigest
+import org.json.JSONObject
+import java.util.UUID
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.zip.ZipFile
 
 class UpdateFileProvider : FileProvider()
 
@@ -32,24 +39,21 @@ class AndroidUpdateBridge(private val activity: AudioServiceFragmentActivity, me
     private val channel = MethodChannel(messenger, "com.jim608.jms/updates")
     private val handler = Handler(Looper.getMainLooper())
     private val executor = Executors.newSingleThreadExecutor()
-    private val cancelled = AtomicBoolean(false)
     private val allowed = AtomicBoolean(true)
-    private val busy = AtomicBoolean(false)
-    private val directory = File(activity.cacheDir, "jms-updates").apply { mkdirs() }
-    private val partial = File(directory, "update.part")
-    private val ready = File(directory, "update.apk")
-    private var verified: Map<*, *>? = null
+    private val installing = AtomicBoolean(false)
+    private val manager = WorkManager.getInstance(activity.applicationContext)
+    private val transfer = AndroidUpdateTransfer(activity.applicationContext)
+    private var observedId: UUID? = null
+    private var observer: Observer<WorkInfo?>? = null
+    private var downloadResult: MethodChannel.Result? = null
     private var installResult: MethodChannel.Result? = null
-    @Volatile private var connection: HttpURLConnection? = null
     private val installer = activity.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         installResult?.success(if (result.resultCode == Activity.RESULT_CANCELED) "installCancelled" else "installPending")
         installResult = null
-        busy.set(false)
+        installing.set(false)
     }
 
     init {
-        partial.delete()
-        if (ready.exists() && System.currentTimeMillis() - ready.lastModified() > 86400000) ready.delete()
         activity.lifecycle.addObserver(this)
         channel.setMethodCallHandler { call, result ->
             when (call.method) {
@@ -60,43 +64,168 @@ class AndroidUpdateBridge(private val activity: AudioServiceFragmentActivity, me
                 }
                 "allowed" -> {
                     allowed.set(call.arguments == true)
-                    if (!allowed.get()) cancelled.set(true)
+                    if (!allowed.get()) cancelActive()
                     result.success(null)
                 }
-                "cancel" -> {
-                    cancelled.set(true)
-                    connection?.disconnect()
-                    result.success(null)
+                "cancel" -> executor.execute {
+                    try {
+                        synchronized(workLock) {
+                            manager.cancelUniqueWork(AndroidUpdateWorker.UNIQUE_WORK).result.get(10, TimeUnit.SECONDS)
+                            transfer.clear()
+                        }
+                        handler.post { result.success(null) }
+                    } catch (_: Exception) {
+                        handler.post { result.error("download", "Update cancellation unavailable", null) }
+                    }
                 }
+                "restore" -> restore(result)
                 "canInstall" -> result.success(canInstall())
                 "permission" -> {
-                    try {
+                    if (!foreground() || !allowed.get()) { result.error("playback", "Installation deferred", null) }
+                    else try {
                         if (Build.VERSION.SDK_INT >= 26) activity.startActivity(
                             Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + activity.packageName)))
                         result.success(null)
                     } catch (_: Exception) { result.error("systemBlocked", "System settings unavailable", null) }
                 }
-                "download" -> work(result) { download(call.arguments as Map<*, *>); null }
+                "download" -> download(call.arguments as? Map<*, *>, result)
                 "install" -> install(result)
                 else -> result.notImplemented()
             }
         }
     }
 
-    private fun install(result: MethodChannel.Result) {
+    private fun currentWork(): WorkInfo? {
+        val active = manager.getWorkInfosForUniqueWork(AndroidUpdateWorker.UNIQUE_WORK)
+            .get(10, TimeUnit.SECONDS).filter { !it.state.isFinished }
+        if (active.size > 1) throw UpdateError("busy")
+        if (active.isNotEmpty()) return active.single()
+        return transfer.jobId()?.let {
+            manager.getWorkInfoById(UUID.fromString(it)).get(10, TimeUnit.SECONDS)
+        }
+    }
+
+    private fun cancelActive() {
+        executor.execute {
+            runCatching {
+                synchronized(workLock) {
+                    val work = currentWork()
+                    if (work != null && !work.state.isFinished) {
+                        manager.cancelWorkById(work.id).result.get(10, TimeUnit.SECONDS)
+                        transfer.clear()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun restore(result: MethodChannel.Result) {
+        executor.execute {
+            val value = runCatching {
+                val metadata = transfer.request() ?: return@runCatching null
+                val work = currentWork() ?: return@runCatching null
+                if (metadata["_workId"] != work.id.toString()) return@runCatching null
+                val status = when (work.state) {
+                    WorkInfo.State.ENQUEUED, WorkInfo.State.RUNNING, WorkInfo.State.BLOCKED -> "downloading"
+                    WorkInfo.State.SUCCEEDED -> {
+                        val verified = transfer.verified() ?: return@runCatching null
+                        if (!transfer.installFile().isFile || transfer.key(verified) != transfer.key(metadata)) return@runCatching null
+                        "downloaded"
+                    }
+                    WorkInfo.State.FAILED -> "failed"
+                    WorkInfo.State.CANCELLED -> "cancelled"
+                }
+                mapOf("status" to status, "metadata" to metadata,
+                    "progress" to if (status == "downloaded") 1.0 else transfer.progress(metadata),
+                    "failure" to work.outputData.getString(AndroidUpdateWorker.FAILURE))
+            }.getOrNull()
+            handler.post { result.success(value) }
+        }
+    }
+
+    private fun download(metadata: Map<*, *>?, result: MethodChannel.Result) {
         if (!allowed.get()) { result.error("playback", "Playback active", null); return }
+        if (installing.get()) { result.error("busy", "Installation in progress", null); return }
+        val userInitiatedInForeground = foreground()
+        executor.execute {
+            synchronized(workLock) {
+            try {
+                val request = metadata ?: throw UpdateError("invalidApk")
+                val key = transfer.key(request)
+                if (!allowed.get()) throw UpdateError("cancelled")
+                val old = currentWork()
+                val previous = transfer.request()
+                if (old != null && !old.state.isFinished) {
+                    if (previous == null || previous["_workId"] != old.id.toString() ||
+                        transfer.key(previous) != key || !old.tags.contains(AndroidUpdateWorker.TAG_PREFIX + key))
+                        throw UpdateError("busy")
+                    handler.post { observe(old.id, result) }
+                    return@execute
+                }
+                val verified = transfer.verified()
+                if (verified != null && transfer.key(verified) == key) {
+                    transfer.validate(transfer.installFile(), verified, true)
+                    handler.post { result.success(null) }
+                    return@execute
+                }
+                if (!userInitiatedInForeground) throw UpdateError("playback")
+                val worker = OneTimeWorkRequestBuilder<AndroidUpdateWorker>()
+                    .addTag(AndroidUpdateWorker.TAG_PREFIX + key)
+                    .setInputData(Data.Builder().putString(AndroidUpdateWorker.METADATA, JSONObject(request).toString())
+                        .putString(AndroidUpdateWorker.BINDING, key).build())
+                    .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+                    .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 10, TimeUnit.SECONDS)
+                    .build()
+                manager.enqueueUniqueWork(AndroidUpdateWorker.UNIQUE_WORK, ExistingWorkPolicy.KEEP, worker)
+                    .result.get(10, TimeUnit.SECONDS)
+                transfer.saveRequest(request, worker.id.toString())
+                handler.post { observe(worker.id, result) }
+            } catch (error: Exception) {
+                handler.post { result.error((error as? UpdateError)?.reason ?: "download", "Update transfer unavailable", null) }
+            }
+            }
+        }
+    }
+
+    private fun observe(id: UUID, result: MethodChannel.Result) {
+        detachObserver()
+        downloadResult?.error("detached", "Update observer replaced", null)
+        downloadResult = result
+        observedId = id
+        val listener = Observer<WorkInfo?> { work ->
+            if (work == null) return@Observer
+            val progress = work.progress.getDouble(AndroidUpdateWorker.PROGRESS, -1.0)
+            if (progress >= 0.0) channel.invokeMethod("progress", progress)
+            if (work.state.isFinished) {
+                val pending = downloadResult
+                downloadResult = null
+                detachObserver()
+                when (work.state) {
+                    WorkInfo.State.SUCCEEDED -> pending?.success(null)
+                    WorkInfo.State.CANCELLED -> pending?.error("cancelled", "Update cancelled", null)
+                    else -> pending?.error(work.outputData.getString(AndroidUpdateWorker.FAILURE) ?: "download", "Update download stopped", null)
+                }
+            }
+        }
+        observer = listener
+        manager.getWorkInfoByIdLiveData(id).observe(activity, listener)
+    }
+
+    private fun install(result: MethodChannel.Result) {
+        if (!foreground() || !allowed.get()) { result.error("playback", "Installation deferred", null); return }
         if (!canInstall()) { result.error("permission", "Install permission required", null); return }
-        if (!busy.compareAndSet(false, true)) { result.error("busy", "Update work in progress", null); return }
-        cancelled.set(false)
+        if (!installing.compareAndSet(false, true)) { result.error("busy", "Installation in progress", null); return }
         executor.execute {
             try {
-                validate(ready, verified ?: throw UpdateError("notVerified"), true)
+                if (currentWork()?.state?.isFinished == false) throw UpdateError("busy")
+                val verified = transfer.verified() ?: throw UpdateError("notVerified")
+                transfer.validate(transfer.installFile(), verified, true)
                 handler.post {
-                    if (!allowed.get() || !canInstall()) {
-                        busy.set(false)
+                    if (!foreground() || !allowed.get() || !canInstall()) {
+                        installing.set(false)
                         result.error("permission", "Installation deferred", null)
                     } else try {
-                        val uri = FileProvider.getUriForFile(activity, activity.packageName + ".update_provider", ready)
+                        val uri = FileProvider.getUriForFile(activity, activity.packageName + ".update_provider", transfer.installFile())
                         val intent = Intent(Intent.ACTION_VIEW).apply {
                             setDataAndType(uri, "application/vnd.android.package-archive")
                             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -106,110 +235,15 @@ class AndroidUpdateBridge(private val activity: AudioServiceFragmentActivity, me
                         installer.launch(intent)
                     } catch (_: Exception) {
                         installResult = null
-                        busy.set(false)
+                        installing.set(false)
                         result.error("systemBlocked", "System installer unavailable", null)
                     }
                 }
             } catch (error: Exception) {
-                busy.set(false)
+                installing.set(false)
                 handler.post { result.error((error as? UpdateError)?.reason ?: "invalidApk", "APK verification failed", null) }
             }
         }
-    }
-
-    private fun work(result: MethodChannel.Result, operation: () -> Any?) {
-        if (!allowed.get()) { result.error("playback", "Playback active", null); return }
-        if (!busy.compareAndSet(false, true)) { result.error("busy", "Update work in progress", null); return }
-        cancelled.set(false)
-        executor.execute {
-            try {
-                val value = operation()
-                handler.post { result.success(value) }
-            } catch (error: Exception) {
-                partial.delete()
-                ready.delete()
-                verified = null
-                val reason = if (cancelled.get()) "cancelled" else (error as? UpdateError)?.reason ?: "download"
-                handler.post { result.error(reason, "Update operation stopped", null) }
-            } finally {
-                connection?.disconnect()
-                connection = null
-                busy.set(false)
-            }
-        }
-    }
-
-    private fun checkAllowed() {
-        if (cancelled.get() || !allowed.get()) throw UpdateError("cancelled")
-    }
-
-    private fun download(metadata: Map<*, *>) {
-        val apk = metadata["apk"] as Map<*, *>
-        val expectedSize = (apk["size"] as Number).toLong()
-        if (expectedSize !in 1..UpdatePolicy.MAX_BYTES) throw UpdateError("size")
-        val repository = metadata["repository"] as String
-        var address = metadata["url"] as String
-        if (!UpdatePolicy.assetAllowed(address, repository)) throw UpdateError("source")
-        if (StatFs(directory.path).availableBytes < expectedSize * 2 + 16 * 1024 * 1024) throw UpdateError("space")
-        verified = null
-        ready.delete()
-        partial.delete()
-        var response: HttpURLConnection? = null
-        for (redirect in 0..5) {
-            checkAllowed()
-            val candidate = URL(address).openConnection() as HttpURLConnection
-            connection = candidate
-            candidate.instanceFollowRedirects = false
-            candidate.connectTimeout = 15000
-            candidate.readTimeout = 20000
-            candidate.setRequestProperty("User-Agent", "JMS-Android-Updater")
-            val status = candidate.responseCode
-            if (status in 300..399) {
-                val location = candidate.getHeaderField("Location") ?: throw UpdateError("source")
-                val next = URL(URL(address), location).toString()
-                candidate.disconnect()
-                if (!UpdatePolicy.redirectAllowed(next)) throw UpdateError("source")
-                address = next
-                continue
-            }
-            if (status != 200) { candidate.disconnect(); throw UpdateError("download") }
-            if (candidate.contentLengthLong >= 0 && candidate.contentLengthLong != expectedSize) throw UpdateError("size")
-            response = candidate
-            break
-        }
-        val stream = response?.inputStream ?: throw UpdateError("source")
-        val digest = MessageDigest.getInstance("SHA-256")
-        var received = 0L
-        var lastEvent = 0L
-        stream.use { input ->
-            partial.outputStream().use { output ->
-                val buffer = ByteArray(64 * 1024)
-                while (true) {
-                    checkAllowed()
-                    val count = input.read(buffer)
-                    if (count < 0) break
-                    received += count
-                    if (received > expectedSize) throw UpdateError("size")
-                    digest.update(buffer, 0, count)
-                    output.write(buffer, 0, count)
-                    val now = System.currentTimeMillis()
-                    if (now - lastEvent > 250) {
-                        lastEvent = now
-                        val progress = received.toDouble() / expectedSize
-                        handler.post { channel.invokeMethod("progress", progress) }
-                    }
-                }
-            }
-        }
-        checkAllowed()
-        if (!UpdatePolicy.matchingContent(received, expectedSize, hex(digest.digest()), apk["sha256"] as String))
-            throw UpdateError("hash")
-        validate(partial, metadata, false)
-        checkAllowed()
-        if (!partial.renameTo(ready)) throw UpdateError("space")
-        ready.setReadOnly()
-        verified = metadata
-        handler.post { channel.invokeMethod("progress", 1.0) }
     }
 
     @Suppress("DEPRECATION")
@@ -217,54 +251,22 @@ class AndroidUpdateBridge(private val activity: AudioServiceFragmentActivity, me
         if (Build.VERSION.SDK_INT >= 28) PackageManager.GET_SIGNING_CERTIFICATES else PackageManager.GET_SIGNATURES)
     @Suppress("DEPRECATION")
     private fun code(info: PackageInfo): Long = if (Build.VERSION.SDK_INT >= 28) info.longVersionCode else info.versionCode.toLong()
-    @Suppress("DEPRECATION")
-    private fun signers(info: PackageInfo): Set<String> {
-        val certificates = if (Build.VERSION.SDK_INT >= 28) info.signingInfo?.apkContentsSigners else info.signatures
-        return certificates?.map { hex(MessageDigest.getInstance("SHA-256").digest(it.toByteArray())) }?.toSet() ?: emptySet()
-    }
-    @Suppress("DEPRECATION")
-    private fun validate(file: File, metadata: Map<*, *>, rehash: Boolean) {
-        checkAllowed()
-        val apk = metadata["apk"] as Map<*, *>
-        if (!file.isFile || file.length() != (apk["size"] as Number).toLong()) throw UpdateError("size")
-        if (rehash) {
-            val digest = MessageDigest.getInstance("SHA-256")
-            file.inputStream().use { input ->
-                val buffer = ByteArray(64 * 1024)
-                while (true) {
-                    checkAllowed()
-                    val count = input.read(buffer)
-                    if (count < 0) break
-                    digest.update(buffer, 0, count)
-                }
-            }
-            if (hex(digest.digest()) != apk["sha256"]) throw UpdateError("hash")
-        }
-        val candidate = activity.packageManager.getPackageArchiveInfo(file.path,
-            if (Build.VERSION.SDK_INT >= 28) PackageManager.GET_SIGNING_CERTIFICATES else PackageManager.GET_SIGNATURES)
-            ?: throw UpdateError("invalidApk")
-        val installed = installed()
-        val abis = ZipFile(file).use { archive ->
-            if (archive.getEntry("classes.dex") == null || archive.getEntry("lib/arm64-v8a/libflutter.so") == null ||
-                archive.getEntry("lib/arm64-v8a/libapp.so") == null || !candidate.splitNames.isNullOrEmpty())
-                throw UpdateError("split")
-            archive.entries().asSequence().map { it.name }.filter { it.startsWith("lib/") && it.endsWith(".so") }
-                .map { it.split("/")[1] }.toSet()
-        }
-        if (metadata["applicationId"] != candidate.packageName ||
-            !UpdatePolicy.compatible(candidate.packageName, installed.packageName, code(candidate), code(installed),
-                (metadata["versionCode"] as Number).toLong(), candidate.versionName, metadata["versionName"] as String,
-                candidate.applicationInfo?.minSdkVersion ?: 0, (metadata["minSdk"] as Number).toInt(),
-                Build.VERSION.SDK_INT, abis, Build.SUPPORTED_ABIS.toSet())) throw UpdateError("incompatible")
-        if (!UpdatePolicy.matchingSigners(signers(installed), signers(candidate))) throw UpdateError("signature")
-    }
+    private fun foreground() = activity.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
     private fun canInstall() = Build.VERSION.SDK_INT < 26 || activity.packageManager.canRequestPackageInstalls()
-    private fun hex(bytes: ByteArray) = bytes.joinToString("") { "%02x".format(it) }
-    override fun onDestroy(owner: LifecycleOwner) {
-        cancelled.set(true)
-        connection?.disconnect()
-        executor.shutdownNow()
-        channel.setMethodCallHandler(null)
+    private fun detachObserver() {
+        val oldId = observedId
+        val oldObserver = observer
+        observedId = null
+        observer = null
+        if (oldId != null && oldObserver != null) manager.getWorkInfoByIdLiveData(oldId).removeObserver(oldObserver)
     }
-    private class UpdateError(val reason: String) : Exception()
+    override fun onDestroy(owner: LifecycleOwner) {
+        detachObserver()
+        downloadResult?.error("detached", "Update observer detached", null)
+        downloadResult = null
+        executor.shutdown()
+        channel.setMethodCallHandler(null)
+        // The application-context Worker owns transport; Activity destruction must not cancel it.
+    }
+    companion object { private val workLock = Any() }
 }
