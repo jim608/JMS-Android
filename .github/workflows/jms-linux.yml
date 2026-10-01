@@ -1,0 +1,120 @@
+name: JMS Linux 驗證
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_commit:
+        description: 已推送至 jms 的完整共用來源提交
+        required: true
+        type: string
+      candidate_run:
+        description: 已完成的候選工作流程編號；空白時建置新候選
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: jms-linux-${{ inputs.source_commit }}
+  cancel-in-progress: false
+
+jobs:
+  linux:
+    if: github.repository == 'jim608/JMS-Android' && github.ref == 'refs/heads/jms'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4.1.1
+        with:
+          ref: ${{ inputs.source_commit }}
+          fetch-depth: 0
+          submodules: recursive
+      - name: 核對已推送的共用來源
+        env:
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+        run: |
+          [[ "$SOURCE_COMMIT" =~ ^[a-f0-9]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          git fetch origin jms
+          git merge-base --is-ancestor "$SOURCE_COMMIT" origin/jms
+          test -z "$(git status --porcelain)"
+          VERSION=$(sed -n 's/^version: \([^+]*\)+.*/\1/p' pubspec.yaml)
+          test -n "$VERSION"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "BUILD_ID=JMS-$VERSION-linux-${SOURCE_COMMIT:0:12}" >> "$GITHUB_ENV"
+      - name: 建置並檢查安全工作階段
+        if: inputs.candidate_run == ''
+        env:
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+        run: |
+          docker build --target package -f Dockerfile.linux --build-arg JMS_BUILD_ID="$BUILD_ID" --build-arg JMS_SOURCE_COMMIT="$SOURCE_COMMIT" -t jms-linux-candidate .
+          docker create --name jms-linux-export jms-linux-candidate /bin/true
+          mkdir candidate
+          docker cp jms-linux-export:/output/. candidate/
+          docker run --rm -v "$PWD:/src:ro" -e JMS_ISOLATED_SECRET_TEST=1 jms-linux-candidate bash -ec 'apt-get update >/dev/null; apt-get install -y --no-install-recommends gnome-keyring procps >/dev/null; bash /src/scripts/test_jms_linux_secret.sh' > candidate/secret-service-test.log
+          python3 - <<'PY'
+          import json, os, pathlib
+          pathlib.Path('candidate/runner-source.json').write_text(json.dumps({key: os.environ[key] for key in ('SOURCE_COMMIT', 'VERSION', 'BUILD_ID', 'GITHUB_RUN_ID')}, indent=2))
+          PY
+      - name: 接續既有候選
+        if: inputs.candidate_run != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.candidate_run }}
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+        run: |
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]]
+          gh run download "$RUN_ID" --name "jms-linux-$SOURCE_COMMIT" --dir candidate
+      - name: 核對候選身分與校驗清單
+        env:
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+        run: |
+          (cd candidate && sha256sum --check SHA256SUMS.txt)
+          python3 - <<'PY'
+          import json, os, pathlib
+          build = json.loads(pathlib.Path('candidate/build-manifest.json').read_text())['build']
+          for key, expected in {'sourceCommit': os.environ['SOURCE_COMMIT'], 'versionName': os.environ['VERSION'], 'buildId': os.environ['BUILD_ID'], 'platform': 'linux-x64'}.items():
+              assert build[key] == expected, 'Candidate identity differs: ' + key
+          assert 'cross-process restore, daemon restart, isolation, clear' in pathlib.Path('candidate/secret-service-test.log').read_text()
+          PY
+      - name: 驗證診斷接收器與三種 Web 容器
+        env:
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+        run: |
+          docker build -f Dockerfile.web --build-arg JMS_VERSION="$VERSION" --build-arg JMS_SOURCE_COMMIT="$SOURCE_COMMIT" --build-arg JMS_BUILD_ID="JMS-$VERSION-web-${SOURCE_COMMIT:0:12}" -t jms-diagnostics-web-test .
+          docker create --name jms-diagnostics-web-export jms-diagnostics-web-test
+          mkdir -p build/web
+          docker cp jms-diagnostics-web-export:/usr/share/nginx/html/. build/web/
+          JMS_ISOLATED_DIAGNOSTICS_TEST=1 JMS_DIAGNOSTICS_WEB_IMAGE=jms-diagnostics-web-test bash scripts/test_jms_diagnostics_container.sh
+      - uses: actions/upload-artifact@v4
+        if: inputs.candidate_run == ''
+        with:
+          name: jms-linux-${{ inputs.source_commit }}
+          path: |
+            candidate/*.pkg.tar.xz
+            candidate/*.tar.gz
+            candidate/build-manifest.json
+            candidate/build-packages.tsv
+            candidate/SHA256SUMS.txt
+            candidate/secret-service-test.log
+            candidate/runner-source.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: 取得已發布的升級基線
+        run: |
+          curl --fail --location https://github.com/jim608/JMS-Linux/releases/download/v0.11.1-jms.22/JMS-Linux-0.11.1-jms.22-x86_64.pkg.tar.xz -o candidate/previous.pkg.tar.xz
+          echo 'cfc45e8aff6ecd53ac702b190031b06ab6789bb5fadc1c9365de0f76138ac915  candidate/previous.pkg.tar.xz' | sha256sum --check
+      - name: 驗證 Arch 安裝、升級、啟動與設定保留
+        run: |
+          mkdir validation
+          docker run --rm -v "$PWD/candidate:/candidate:ro" -v "$PWD/validation:/output" -v "$PWD/scripts/test_jms_linux_install.sh:/test.sh:ro" -e JMS_ISOLATED_INSTALL_TEST=1 archlinux:base bash /test.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jms-linux-install-validation-${{ inputs.source_commit }}
+          path: validation/
+          if-no-files-found: warn
+          retention-days: 14

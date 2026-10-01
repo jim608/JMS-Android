@@ -22,10 +22,38 @@ for url in "${BASE_URL:-}" "${SEERR_BASE_URL:-}"; do
   esac
 done
 
+diagnostics_endpoint="${JMS_DIAGNOSTICS_ENDPOINT:-}"
+diagnostics_upstream="${JMS_DIAGNOSTICS_UPSTREAM:-}"
+if [ -n "$diagnostics_endpoint" ]; then
+  printf '%s' "$diagnostics_endpoint" | grep -Eq '^(/api/jms/diagnostics/v1|https://[A-Za-z0-9.-]+(:[0-9]+)?/api/jms/diagnostics/v1)$' || exit 1
+fi
+: > /tmp/jms-diagnostics.conf
+if [ -n "$diagnostics_upstream" ]; then
+  printf '%s' "$diagnostics_upstream" | grep -Eq '^http://[A-Za-z0-9_.-]+:[0-9]+$' || exit 1
+  cat > /tmp/jms-diagnostics.conf <<EOF
+location = /api/jms/diagnostics/v1 {
+    if (\$request_method != POST) { return 405; }
+    client_max_body_size 4k;
+    client_body_timeout 3s;
+    access_log off;
+    error_log /dev/null;
+    proxy_connect_timeout 2s;
+    proxy_read_timeout 5s;
+    proxy_send_timeout 5s;
+    proxy_set_header Authorization "";
+    proxy_set_header Cookie "";
+    proxy_set_header X-Forwarded-For "";
+    proxy_set_header X-Real-IP "";
+    proxy_pass $diagnostics_upstream;
+}
+EOF
+fi
+
 config_file=/usr/share/nginx/html/assets/config/config.json
 config_temp=$(mktemp /tmp/jms-config.XXXXXX)
 jq -n --arg baseUrl "${BASE_URL:-}" --arg seerrBaseUrl "${SEERR_BASE_URL:-}" \
-  '{baseUrl: (if $baseUrl == "" then null else $baseUrl end), seerrBaseUrl: (if $seerrBaseUrl == "" then null else $seerrBaseUrl end)}' \
+  --arg diagnosticsEndpoint "$diagnostics_endpoint" \
+  '{baseUrl: (if $baseUrl == "" then null else $baseUrl end), seerrBaseUrl: (if $seerrBaseUrl == "" then null else $seerrBaseUrl end), diagnosticsEndpoint: (if $diagnosticsEndpoint == "" then null else $diagnosticsEndpoint end)}' \
   > "$config_temp"
 mv "$config_temp" "$config_file"
 
@@ -43,6 +71,7 @@ server {
     listen 8080;
     listen [::]:8080;
     server_name _;
+    include /tmp/jms-diagnostics.conf;
     root /usr/share/nginx/html;
     add_header X-Content-Type-Options nosniff always;
     add_header Referrer-Policy no-referrer always;

@@ -3,6 +3,7 @@ FROM debian:bookworm-slim@sha256:3783cc01769c7b2b1b83a5c5ad96c815348e28ed7da68e2
 ARG FLUTTER_VERSION=3.35.7
 ARG FLUTTER_REVISION=adc901062556672b4138e18a4dc62a4be8f4b3c2
 ARG JMS_BUILD_ID=LOCAL-UNSTAMPED
+ARG JMS_SOURCE_COMMIT=unknown
 
 ENV FLUTTER_SUPPRESS_ANALYTICS=true \
     PUB_CACHE=/root/.pub-cache \
@@ -19,7 +20,8 @@ WORKDIR /workspace
 COPY . .
 RUN flutter pub get --enforce-lockfile && \
     flutter build web --release --no-wasm-dry-run \
-      --dart-define="JMS_BUILD_ID=$JMS_BUILD_ID"
+      --dart-define="JMS_BUILD_ID=$JMS_BUILD_ID" \
+      --dart-define="JMS_SOURCE_COMMIT=$JMS_SOURCE_COMMIT"
 
 FROM nginx:1.28-alpine@sha256:a8b39bd9cf0f83869a2162827a0caf6137ddf759d50a171451b335cecc87d236
 
@@ -42,7 +44,9 @@ RUN chmod 755 /docker-entrypoint.sh
 
 ENV BASE_URL="" \
     SEERR_BASE_URL="" \
-    JMS_WEBPATH="/"
+    JMS_WEBPATH="/" \
+    JMS_DIAGNOSTICS_ENDPOINT="" \
+    JMS_DIAGNOSTICS_UPSTREAM=""
 
 USER nginx
 EXPOSE 8080
