@@ -5851,7 +5851,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading_data/dsa-1023line.pem",
     "sha256": "86a84b9d9a115e713d0329f7229e2539d921d9604da37da477f4b29cc345464b",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -5867,7 +5868,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading_data/dsa-1024line.pem",
     "sha256": "b916fd56ea467f5a5c48568125200dc038bb31664b5515bad70092b72b47b80a",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -5883,7 +5885,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading_data/dsa-1025line.pem",
     "sha256": "f8384acfbc6d764651b8b779783c3177974af98c0de2ece081250235701d8bf3",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -5899,7 +5902,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading_data/dsa-255line.pem",
     "sha256": "da42ebabe328c6d8d3199b7fefb4dc2ed53f42a174666dfcd4cde484b2cfef6f",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -5915,7 +5919,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading_data/dsa-256line.pem",
     "sha256": "89ff66bbd376329bf66b6a3e1dab6976eec5b115d46ee073f45d646822f0da49",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -5931,7 +5936,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading_data/dsa-257line.pem",
     "sha256": "4da1d2c2481367ed4c5b7c5d23b6283ff3c7499a97b82a54118a20150bce1e57",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -5947,7 +5953,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading_data/dsa-blankline.pem",
     "sha256": "b0ae63e0103c4ab0070471a2277f9c1eb9e988d7d8264e5834102fa985c354c5",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -5963,7 +5970,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading_data/dsa-comment.pem",
     "sha256": "120b03431d05c79132921ecb64511219f33990b20cfdfc99d3e03ca10fefa90c",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -5979,7 +5987,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading_data/dsa-corruptedheader.pem",
     "sha256": "d08fd9a7c2f415e26e18e2d5a7d817efd3827bcc5496c9cab488a842f46f9293",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -5995,7 +6004,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading_data/dsa-corruptiv.pem",
     "sha256": "2c33d450c2d18afc33cc1c158ac645ffd5d420f75b5b522e36039fdd85105865",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -6011,7 +6021,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading_data/dsa-earlypad.pem",
     "sha256": "fe6ddf9af4359226877392504e5686ac27c0ebd42f58cb2425b2e13f906b2f96",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -6027,7 +6038,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading_data/dsa-extrapad.pem",
     "sha256": "9b20b4d3fc3f8565d0619dac3305646e78dbb0938cef97b2ef148b1aed814755",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -6043,7 +6055,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading_data/dsa-infixwhitespace.pem",
     "sha256": "2da049e48f0a26cafaf736bc777b7de6ee85a626def559e7195c2f84bf1016d3",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -6059,7 +6072,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading_data/dsa-junk.pem",
     "sha256": "247fcc128dac8319f060166b58392f92c36a3c6e74d3fa20e9c6c76d4e322e84",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -6075,7 +6089,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading_data/dsa-leadingwhitespace.pem",
     "sha256": "aef7de8d5ee7e2afdf0b2117d0511179dab6ff5592c4a9063e006ea8e7b84e57",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -6091,7 +6106,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading_data/dsa-longline.pem",
     "sha256": "bfe430d9cde396fb8823a391bdea412d185fd8c5c5a8350e5ba95a5b63f5ec8b",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -6107,7 +6123,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading_data/dsa-misalignedpad.pem",
     "sha256": "9527f82566eec2ec8b7de3d8fbbbd71d47ba13587c732c5329cce3bbc393d1a1",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -6123,7 +6140,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading_data/dsa-onecolumn.pem",
     "sha256": "f9a54c395473a05b2b4363142399351da39c476fc2285f5b019f5ba58a045980",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -6139,7 +6157,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading_data/dsa-oneline.pem",
     "sha256": "25d363362f72be64f2adac2c61cf2a211737dde9dcea0908af13498c5c1ae359",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -6155,7 +6174,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading_data/dsa-onelineheader.pem",
     "sha256": "1c847d834994d231ff9afe47c23d001e6a16f6750ce4bb49815b2156dacc4116",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -6171,7 +6191,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading_data/dsa-shortandlongline.pem",
     "sha256": "c41bb10d8db7c0bb6e3df56c134d5020ff39ebc3f45ad1f669bb1f7ba8c4b94a",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -6187,7 +6208,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading_data/dsa-shortline.pem",
     "sha256": "2d39a10f855192251c09ed3d3e0583800abd05554f8a6ddef38b7dda7a2dcf43",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -6203,7 +6225,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading_data/dsa-threecolumn.pem",
     "sha256": "f334ab7b7d665ac631bb5167f7463d497ca4ccf1ea1923ba7a4427dccd6f1426",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -6219,7 +6242,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading_data/dsa-trailingwhitespace.pem",
     "sha256": "23bcc7db93121381ee9504952d008826ad5d6dece2c0051168a2921ff8471afd",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -6235,7 +6259,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/04-test_pem_reading_data/dsa.pem",
     "sha256": "5ff0c641c2feff5475e0c917a9f2a9e4f9400f301db1659f4b7db6c3928575fe",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -10313,7 +10338,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/key-pass-12345.pem",
     "sha256": "fc8ccd0034c92c6fe970582549cec2ab84fa8fac95c85ead2a5981578d5da86e",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -10803,7 +10829,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/61-test_bio_pw_callback_data/private_key.pem",
     "sha256": "eadb9ced71a3c36e60feba3e3566dce79c15dd8a37092161e4113aa8af924463",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -11489,7 +11516,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/testdsa.pem",
     "sha256": "7146685c894fbbac2435ed117b674d7bd2ef46f3d7aa8fa637bb1b05d32ba341",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -11555,7 +11583,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/testec-sm2.pem",
     "sha256": "b7b71b23b2ce563dad83e1ec74290ec4e8b23caaa2e092d90784f522cee1d04a",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -14376,7 +14405,8 @@
     "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/dsa.1024.pem",
     "sha256": "2683747ba3c58a01a5296f102c98a5111216b2fc49e4f0054e73ca303f4f7010",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
     "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
@@ -14398,7 +14428,8 @@
     "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/dsa.2048.pem",
     "sha256": "9d78e0491e40947612759418f2d750f3ae1a5fdd420354857ab3dfde01f7ee7c",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
     "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
@@ -14420,7 +14451,8 @@
     "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/dsa.3072.pem",
     "sha256": "155d4ead110fd271d9293928ee0a29788a553d76db73c36e2594e6e4af4c5ceb",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
     "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
@@ -14662,7 +14694,8 @@
     "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-ca-dsa.pem",
     "sha256": "b27238b1d8affda5120626f4e06454de1e453034bb904aea31d795199e8af303",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
     "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
@@ -14729,7 +14762,8 @@
     "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-dsa.pem",
     "sha256": "5570184b5494204f95925a65433e7622313cf3a3bf082157df08e5fbba49dd32",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
     "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
@@ -14865,7 +14899,8 @@
     "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-subca-dsa.pem",
     "sha256": "58dbbf82dac50e44de7ee7d2755200bbed8ab4a2181c6bdec8bbb10c1befd87c",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
     "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
@@ -15088,7 +15123,8 @@
     "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/p8key-illegal.pem",
     "sha256": "4b5c6cc5c5ae0d68b7a18957e607d753fde53ae87894c13fa88f4995128c6179",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
     "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
@@ -15909,7 +15945,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_cmp_http_data/Mock/new_pass_12345.key",
     "sha256": "fc8ccd0034c92c6fe970582549cec2ab84fa8fac95c85ead2a5981578d5da86e",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
     "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
@@ -26976,7 +27013,8 @@
     "member": "mingw-w64-python/Python-3.14.7.tar.xz/Python-3.14.7/Lib/test/certdata/keycert.passwd.pem",
     "sha256": "caff62434dfabca13cc763636c2f5e1147a9460102701c7615b32f3f186cff0c",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact named certdata input selected by data_file() in the CPython SSL test harness. That harness identifies its generated test keys and deliberately invalid certificate inputs and consumes them through local SSL test contexts. Public server certificates, where used, are verification certificates rather than private secrets; no external authentication is attempted.",
     "evidence": {
@@ -27162,7 +27200,8 @@
     "member": "mingw-w64-python/Python-3.14.7.tar.xz/Python-3.14.7/Lib/test/certdata/ssl_key.passwd.pem",
     "sha256": "406e1ed28f83ef98b5d174758e2c5c739438834e72bc282fb87a03356ef3e4a2",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact named certdata input selected by data_file() in the CPython SSL test harness. That harness identifies its generated test keys and deliberately invalid certificate inputs and consumes them through local SSL test contexts. Public server certificates, where used, are verification certificates rather than private secrets; no external authentication is attempted.",
     "evidence": {
@@ -27364,7 +27403,8 @@
     "member": "mingw-w64-glib2/glib-2.90.0.tar.xz/glib-2.90.0/gio/tests/cert-tests/key8enc.pem",
     "sha256": "cc7a0a8759557bdf6cc5d4462c76b1ed97ad6ac479fcb9983e0d6891c49dbd8a",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact cert-tests filename resolved through g_test_get_filename and read by GLib TLS certificate parser tests. The source exercises valid, encrypted, reordered and deliberately malformed key/certificate inputs through local parser APIs; no external service or signing identity is used.",
     "evidence": {
@@ -28059,7 +28099,8 @@
     "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/enc2pkcs8.pem",
     "sha256": "6d25276d1d4cc19f88ef9a1d6dfe2d41dda690d044564dc031fa055a5b2453da",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "The exact fixture is selected by an explicitly enumerated literal shell loop in the pinned GnuTLS test. The loop passes its filename to certtool key decoding or compares its expected textual key output. The positional filename assignment and source-relative consumer were checked without executing the upstream test or attempting any service login.",
     "testReference": "pkcs8-decode.sh -> tests/cert-tests/data/enc2pkcs8.pem",
@@ -28081,7 +28122,8 @@
     "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/encpkcs8.pem",
     "sha256": "1f05abcf78f42ff1233dd15f2cb02a7742b95bfb6fcabf4578e9411835b647d8",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "The exact fixture is selected by an explicitly enumerated literal shell loop in the pinned GnuTLS test. The loop passes its filename to certtool key decoding or compares its expected textual key output. The positional filename assignment and source-relative consumer were checked without executing the upstream test or attempting any service login.",
     "testReference": "pkcs8-decode.sh -> tests/cert-tests/data/encpkcs8.pem",
@@ -28368,7 +28410,8 @@
     "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/pkcs8-pbes1-des-md5.pem",
     "sha256": "9693b38412655412614466b85c7731a94ff0eb2e5a66e8268b1a437990f82f00",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "The exact fixture is selected by an explicitly enumerated literal shell loop in the pinned GnuTLS test. The loop passes its filename to certtool key decoding or compares its expected textual key output. The positional filename assignment and source-relative consumer were checked without executing the upstream test or attempting any service login.",
     "testReference": "pkcs8-decode.sh -> tests/cert-tests/data/pkcs8-pbes1-des-md5.pem",
@@ -28390,7 +28433,8 @@
     "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/pkcs8-pbes2-sha256.pem",
     "sha256": "8852388822b3ab2d5094cc98145aca9568920b17275ac2b2bfd5de29f7d19fd6",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "The exact fixture is selected by an explicitly enumerated literal shell loop in the pinned GnuTLS test. The loop passes its filename to certtool key decoding or compares its expected textual key output. The positional filename assignment and source-relative consumer were checked without executing the upstream test or attempting any service login.",
     "testReference": "pkcs8-decode.sh -> tests/cert-tests/data/pkcs8-pbes2-sha256.pem",
@@ -42015,14 +42059,14 @@
     "explanation": "The credential-pattern match in the shipped libssh.dll is not a valid PEM/private key. Local binary inspection found one regex span at offset 504208, length 5761, SHA256 298b5b9fb6ca5a3af5f78695dc3c4d40c8e06abfd34b7b5b846d68934087ac1f, containing 603 NUL bytes; its stripped body is not valid base64/DER. NUL-split segments are public parser/format sentinel strings such as BEGIN/END RSA, EC and OPENSSH PRIVATE KEY plus SSH SIGNATURE markers, traced to libssh 0.12.2 source headers from the official source archive SHA256 b935d915b5392e573f65855c491e476ae38860d3929d2b564e507aa660c3e05b. The evidence archive contains only those exact upstream parser header files, avoiding unrelated test private-key fixtures.",
     "evidence": {
       "kind": "upstream-parser-format-sentinel",
-      "archiveSha256": "add886881554fa172db36e89c50e45e00b946e6a97bea9f90991e4b8bafa3fe4",
+      "archiveSha256": "b935d915b5392e573f65855c491e476ae38860d3929d2b564e507aa660c3e05b",
       "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/include/libssh/pki_priv.h",
       "sha256": "6f9c784d9bd2b4255e112d83be9ccda0697e1ede5453af70f8e7c915999451af"
     },
     "additionalEvidence": [
       {
         "kind": "upstream-parser-format-sentinel",
-        "archiveSha256": "add886881554fa172db36e89c50e45e00b946e6a97bea9f90991e4b8bafa3fe4",
+        "archiveSha256": "b935d915b5392e573f65855c491e476ae38860d3929d2b564e507aa660c3e05b",
         "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/include/libssh/pki.h",
         "sha256": "ed2ba0060253de3b360305af93a4763bc72a61460e6bc68eaf3fc5d7d19f7f52"
       }
@@ -42039,7 +42083,7 @@
     "explanation": "The shipped GnuTLS DLL contains public asymmetric-key self-test fixtures from GnuTLS 3.8.13 lib/crypto-selftests-pk.c, used by gnutls_pk_self_test via test_sig/test_known_sig. Local review reconstructed and unescaped the C string literals before comparison: 12 DLL PEM spans matched the 12 source *_privkey constants by SHA256. Four EC constants matched exactly as stored; eight constants matched after the final source newline byte was omitted in the DLL string storage. No production credential or private user material was identified.",
     "evidence": {
       "kind": "upstream-cryptographic-self-test",
-      "archiveSha256": "7e01b5af221532f3c2e12b4232d58bfee70ea221c92207eba7f8e536b8c272d8",
+      "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
       "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/lib/crypto-selftests-pk.c",
       "sha256": "6e596be00754107fd7f7d1f132c2dc8cd0ff12bbdfc6de08c162a1dd5eedc7e8"
     },
@@ -42092,7 +42136,7 @@
   },
   {
     "source": "https://www.libssh.org/files/0.12/libssh-0.12.2.tar.xz",
-    "archiveSha256": "add886881554fa172db36e89c50e45e00b946e6a97bea9f90991e4b8bafa3fe4",
+    "archiveSha256": "b935d915b5392e573f65855c491e476ae38860d3929d2b564e507aa660c3e05b",
     "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/include/libssh/pki_priv.h",
     "sha256": "6f9c784d9bd2b4255e112d83be9ccda0697e1ede5453af70f8e7c915999451af",
     "rules": [
@@ -42101,14 +42145,14 @@
     "explanation": "Header contains public PEM boundary constants used by libssh parser code. The paired upstream src/pki.c evidence compares these sentinels while importing private-key formats; this is parser syntax, not a private-key payload. The original official source archive SHA256 is b935d915b5392e573f65855c491e476ae38860d3929d2b564e507aa660c3e05b.",
     "evidence": {
       "kind": "upstream-format-parser",
-      "archiveSha256": "add886881554fa172db36e89c50e45e00b946e6a97bea9f90991e4b8bafa3fe4",
+      "archiveSha256": "b935d915b5392e573f65855c491e476ae38860d3929d2b564e507aa660c3e05b",
       "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/src/pki.c",
       "sha256": "73da13289d79ad1e6b0e7ac348376d1925ad5449113c714cc712a5b05377e6ff"
     }
   },
   {
     "source": "https://mirror.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
-    "archiveSha256": "7e01b5af221532f3c2e12b4232d58bfee70ea221c92207eba7f8e536b8c272d8",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
     "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/lib/crypto-selftests-pk.c",
     "sha256": "6e596be00754107fd7f7d1f132c2dc8cd0ff12bbdfc6de08c162a1dd5eedc7e8",
     "rules": [
@@ -42117,7 +42161,7 @@
     "explanation": "GnuTLS public-key self-test fixture source. lib/Makefile.am includes crypto-selftests-pk.c with crypto-selftests.c in the library source list, and local comparison reconstructed the source literals before matching them to the shipped DLL. This review covers the evidence zip copy of that exact upstream file only. The original MSYS2 source archive SHA256 is 7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435.",
     "evidence": {
       "kind": "upstream-build-self-test-context",
-      "archiveSha256": "7e01b5af221532f3c2e12b4232d58bfee70ea221c92207eba7f8e536b8c272d8",
+      "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
       "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/lib/Makefile.am",
       "sha256": "552f42ad67fcfba79ba609c926b740de7595aa5cf566a3ed60a1ea7619eaa1da"
     },
@@ -43378,7 +43422,8 @@
     "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/leaf-encrypted.key",
     "sha256": "52a2162334f5fbf09e0ffd65105d692f02f78188e79fea7cd1d801f20163e90a",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "The SSL API regression explicitly selects this named key through its certsdir fixture path or certificate-chain test helper. The recipe passes the original test/certs directory to sslapitest; these inputs exercise handshake, key loading, OCSP or private-key error behavior in the local test harness. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
     "testReference": "test/sslapitest.c; test/recipes/90-test_sslapi.t",
