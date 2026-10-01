@@ -15,6 +15,18 @@ from check_jms_git_privacy import load_policy, scan_packages_cached, tree_entrie
 REPOSITORIES = {'windows': 'jim608/JMS-Desktop', 'linux': 'jim608/JMS-Linux', 'web': 'jim608/JMS-Web'}
 
 
+def release_tag(record):
+    version = record.get('versionName')
+    code = record.get('versionCode')
+    if not isinstance(version, str) or not version or type(code) is not int or code < 0:
+        raise ReleaseError('Invalid release version identity')
+    default = 'v' + version
+    tag = record.get('releaseTag', default)
+    if tag not in (default, default + '+' + str(code)):
+        raise ReleaseError('Release tag must match the exact application version')
+    return tag
+
+
 def validate_web_inventory(directory):
     record = json.loads((directory / 'web-publication.json').read_text(encoding='utf-8'))
     if record['repository'] != REPOSITORIES['web'] or record['platform'] != 'web':
@@ -177,6 +189,7 @@ def publish_desktop(args):
     directory = Path(args.artifact_directory).resolve()
     record, files = (validate_web_inventory(directory) if args.platform == 'web'
                      else validate_inventory(directory, args.platform))
+    tag = release_tag(record)
     # The source SHA is a shared-source commit; the release tag belongs to the release repository.
     remote_source = git('ls-remote', 'https://github.com/jim608/JMS-Android.git', 'refs/heads/jms').split()[0]
     git('merge-base', '--is-ancestor', record['sourceCommit'], remote_source)
@@ -192,9 +205,8 @@ def publish_desktop(args):
     notes = (directory / 'RELEASE_NOTES.md').read_text(encoding='utf-8').strip()
     if args.dry_run:
         print(json.dumps({'repository': record['repository'], 'sourceCommit': record['sourceCommit'],
-                          'releaseCommit': release_commit, 'assets': len(files)}))
+                          'releaseCommit': release_commit, 'tag': tag, 'assets': len(files)}))
         return
-    tag = 'v' + record['versionName']
     github = Github(repository=record['repository'])
     github.authenticate()
     existing = git('ls-remote', 'origin', 'refs/tags/' + tag, cwd=checkout)
