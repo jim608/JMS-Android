@@ -81,7 +81,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Dependency lock validation failed' }
 $previousRustFlags = $env:CARGO_ENCODED_RUSTFLAGS
 try {
     $env:CARGO_ENCODED_RUSTFLAGS = Get-JmsWindowsRustFlags -ProjectRoot $projectRoot
-    & rtk proxy $flutterPath build windows --release --no-pub "--build-name=$version" "--build-number=$versionCode" "--dart-define=JMS_BUILD_ID=$buildId" @privateDefines
+    & rtk proxy $flutterPath build windows --release --no-pub "--build-name=$version" "--build-number=$versionCode" "--dart-define=JMS_BUILD_ID=$buildId" "--dart-define=JMS_SOURCE_COMMIT=$SourceCommit" @privateDefines
     if ($LASTEXITCODE -ne 0) { throw 'Windows x64 build failed' }
 } finally {
     $env:CARGO_ENCODED_RUSTFLAGS = $previousRustFlags

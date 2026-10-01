@@ -62,7 +62,7 @@ if ($SourceCommit -ne '') {
 $record = [ordered]@{ buildId = $buildId; version = $Version; baseVersionCode = $VersionCode; mode = $Mode; sourceCommit = $SourceCommit; workspaceCommit = $workspaceCommit; gitSourceVerified = ($PSBoundParameters.ContainsKey('SourceCommit')); publicationSnapshot = ($PSBoundParameters.ContainsKey('SourceCommit')); inputs = $inputs }
 $record | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath "artifacts/checks/build-$Version-inputs.json" -Encoding UTF8
 Write-Output "Build ID: $buildId"
-& rtk proxy $flutterPath build apk "--$Mode" --flavor production "--build-name=$Version" "--build-number=$VersionCode" "--dart-define=JMS_BUILD_ID=$buildId" "--dart-define=JMS_UPDATE_OWNER=$($updateSource.owner)" "--dart-define=JMS_UPDATE_REPO=$($updateSource.repo)" --target-platform android-arm64 --split-per-abi --no-pub
+& rtk proxy $flutterPath build apk "--$Mode" --flavor production "--build-name=$Version" "--build-number=$VersionCode" "--dart-define=JMS_BUILD_ID=$buildId" "--dart-define=JMS_SOURCE_COMMIT=$SourceCommit" "--dart-define=JMS_UPDATE_OWNER=$($updateSource.owner)" "--dart-define=JMS_UPDATE_REPO=$($updateSource.repo)" --target-platform android-arm64 --split-per-abi --no-pub
 if ($LASTEXITCODE -ne 0) { throw 'APK build failed' }
 foreach ($inputFile in $inputs) {
     if ((Get-FileHash -LiteralPath $inputFile.path -Algorithm SHA256).Hash.ToLowerInvariant() -ne $inputFile.sha256) {

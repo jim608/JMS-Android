@@ -13,9 +13,11 @@ WORKDIR /workspace
 FROM toolchain AS build
 RUN apt-get update && apt-get install -y --no-install-recommends libsecret-1-dev && rm -rf /var/lib/apt/lists/*
 ARG JMS_BUILD_ID=LOCAL-UNSTAMPED
+ARG JMS_SOURCE_COMMIT
 COPY . .
 RUN flutter pub get --enforce-lockfile && flutter build linux --release --no-pub \
-    --dart-define="JMS_BUILD_ID=$JMS_BUILD_ID"
+    --dart-define="JMS_BUILD_ID=$JMS_BUILD_ID" \
+    --dart-define="JMS_SOURCE_COMMIT=$JMS_SOURCE_COMMIT"
 RUN ! find build/linux/x64/release/bundle -iname '*mdk*' -o -iname '*fvp*' | grep .
 
 FROM scratch AS export
