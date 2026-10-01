@@ -47351,7 +47351,13 @@
       "archiveSha256": "b935d915b5392e573f65855c491e476ae38860d3929d2b564e507aa660c3e05b",
       "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/src/pki.c",
       "sha256": "73da13289d79ad1e6b0e7ac348376d1925ad5449113c714cc712a5b05377e6ff"
-    }
+    },
+    "distributions": [
+      {
+        "archiveSha256": "add886881554fa172db36e89c50e45e00b946e6a97bea9f90991e4b8bafa3fe4",
+        "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/include/libssh/pki_priv.h"
+      }
+    ]
   },
   {
     "source": "https://mirror.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
@@ -47368,7 +47374,13 @@
       "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/lib/Makefile.am",
       "sha256": "552f42ad67fcfba79ba609c926b740de7595aa5cf566a3ed60a1ea7619eaa1da"
     },
-    "testReference": "gnutls_pk_self_test -> test_sig/test_known_sig"
+    "testReference": "gnutls_pk_self_test -> test_sig/test_known_sig",
+    "distributions": [
+      {
+        "archiveSha256": "7e01b5af221532f3c2e12b4232d58bfee70ea221c92207eba7f8e536b8c272d8",
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/lib/crypto-selftests-pk.c"
+      }
+    ]
   },
   {
     "source": "https://chromium.googlesource.com/chromium/src/third_party/zlib/+/bf1e8de6cc305fdab82db1b65bed76b70bd96c8b",
@@ -55902,6 +55914,405 @@
       {
         "archiveSha256": "7e292724ce2a651bc3854b7c49c8c88081d129e99b52941a7e8241f234a3189f",
         "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/90-test_gost_data/server-key2012.pem"
+      }
+    ]
+  },
+  {
+    "archiveSha256": "c990699d82561bad1e73e4def5de0c77d025a8798c2df746ddd464d289bf4d2a",
+    "member": "JMS-Windows-0.11.1-jms.25-x64/libgio-2.0-0.dll",
+    "sha256": "6457697b77638c9cc20baa3c19228dcecc15aeea886e72815b2079cdb0b8d941",
+    "rules": [
+      "credential pattern"
+    ],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-glib2-2.90.0-1.src.tar.zst",
+    "explanation": "The exact MSYS2 GLib 2.90.0-1 libgio binary contains one PKCS#8 encrypted-key PEM boundary string. It matches PEM_PKCS8_ENCRYPTED_HEADER in the fixed gtlscertificate.c parser; there is no complete embedded private-key PEM payload. The source compares this delimiter and returns the unsupported-encrypted-key error. This approves only the parser-format rule for this exact binary and candidate container, not private policy findings or changed bytes.",
+    "testReference": "gio/gtlscertificate.c:419,430-449: PEM_PKCS8_ENCRYPTED_HEADER -> parse_private_key() -> unsupported-encrypted-key error",
+    "evidence": {
+      "kind": "upstream-parser-format-constant",
+      "member": "mingw-w64-glib2/glib-2.90.0.tar.xz/glib-2.90.0/gio/gtlscertificate.c",
+      "sha256": "eda02f00d80143be985d339cd364eb1f3856c92258443a9131dcd80d85eebc74",
+      "archiveSha256": "580246fb9db6083e0191ac7fd0e44af71df6ec0dc52cfd384b5ae07f8665cc9e"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-vulkan-loader-1~1.4.357.0-1.src.tar.zst",
+    "archiveSha256": "af28ead397f61609c07a8260279441b3e3113a42cbaaf04cec86933b65c60dc4",
+    "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/docs/LoaderDriverInterface.md",
+    "sha256": "6d30a1cf7c154932ac8356eef1d0c36c157cf2cba0f351c9116fee5a543eff54",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Official fixed Vulkan-Loader developer documentation. The path matches occur in explicit VK_DRIVER_FILES/VK_ADD_DRIVER_FILES examples or fictional-user Linux/macOS driver/layer manifest search-path examples. The current changed document content was independently checked against the fixed official Git tree and its actual usage context. Only the personal filesystem path rule is reviewed for this exact member/content; credential and private policy rules remain blocking.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/docs/LoaderDriverInterface.md",
+      "sha256": "6d30a1cf7c154932ac8356eef1d0c36c157cf2cba0f351c9116fee5a543eff54"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-vulkan-loader-1~1.4.357.0-1.src.tar.zst",
+    "archiveSha256": "af28ead397f61609c07a8260279441b3e3113a42cbaaf04cec86933b65c60dc4",
+    "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/docs/LoaderLayerInterface.md",
+    "sha256": "aeeb96c4c48107d63a9cf8115fa0b4d005563001df2b1bbd1c689d993d96928e",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Official fixed Vulkan-Loader developer documentation. The path matches occur in explicit VK_DRIVER_FILES/VK_ADD_DRIVER_FILES examples or fictional-user Linux/macOS driver/layer manifest search-path examples. The current changed document content was independently checked against the fixed official Git tree and its actual usage context. Only the personal filesystem path rule is reviewed for this exact member/content; credential and private policy rules remain blocking.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/docs/LoaderLayerInterface.md",
+      "sha256": "aeeb96c4c48107d63a9cf8115fa0b4d005563001df2b1bbd1c689d993d96928e"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-vulkan-loader-1~1.4.357.0-1.src.tar.zst",
+    "archiveSha256": "af28ead397f61609c07a8260279441b3e3113a42cbaaf04cec86933b65c60dc4",
+    "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/docs/images/svgs/function_instance_chain.svg",
+    "sha256": "45ae5ad72cc737bbd5b76cf96547fb7f77c0cca4c560f36190a5b5eec8ca3e70",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Official fixed Vulkan-Loader documentation diagram source. The path occurs only in Inkscape export-filename editor metadata for the upstream illustration. The current source was independently checked against the fixed official Git tree, including the changed member content. Only the personal filesystem path rule is reviewed for this exact member/content; no author-wide, directory-wide or credential exemption is granted.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/docs/images/svgs/function_instance_chain.svg",
+      "sha256": "45ae5ad72cc737bbd5b76cf96547fb7f77c0cca4c560f36190a5b5eec8ca3e70"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-vulkan-loader-1~1.4.357.0-1.src.tar.zst",
+    "archiveSha256": "af28ead397f61609c07a8260279441b3e3113a42cbaaf04cec86933b65c60dc4",
+    "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/docs/images/svgs/high_level_loader.svg",
+    "sha256": "e70717df41f84334bffc5c3b0b340832f0287b073818ac29d481120fbbbf5fe4",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Official fixed Vulkan-Loader documentation diagram source. The path occurs only in Inkscape export-filename editor metadata for the upstream illustration. The current source was independently checked against the fixed official Git tree, including the changed member content. Only the personal filesystem path rule is reviewed for this exact member/content; no author-wide, directory-wide or credential exemption is granted.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/docs/images/svgs/high_level_loader.svg",
+      "sha256": "e70717df41f84334bffc5c3b0b340832f0287b073818ac29d481120fbbbf5fe4"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-vulkan-loader-1~1.4.357.0-1.src.tar.zst",
+    "archiveSha256": "af28ead397f61609c07a8260279441b3e3113a42cbaaf04cec86933b65c60dc4",
+    "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/docs/images/svgs/loader_device_chain_app.svg",
+    "sha256": "f53abd026fe77d2051c6279e8f81906133cabaf1cca6a8e8891ad67622562e31",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Official fixed Vulkan-Loader documentation diagram source. The path occurs only in Inkscape export-filename editor metadata for the upstream illustration. The current source was independently checked against the fixed official Git tree, including the changed member content. Only the personal filesystem path rule is reviewed for this exact member/content; no author-wide, directory-wide or credential exemption is granted.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/docs/images/svgs/loader_device_chain_app.svg",
+      "sha256": "f53abd026fe77d2051c6279e8f81906133cabaf1cca6a8e8891ad67622562e31"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-vulkan-loader-1~1.4.357.0-1.src.tar.zst",
+    "archiveSha256": "af28ead397f61609c07a8260279441b3e3113a42cbaaf04cec86933b65c60dc4",
+    "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/docs/images/svgs/loader_device_chain_loader.svg",
+    "sha256": "b5a1596e1ac8c5e479a4ad5ad51e609217a69f8da5513c9a03fe6b29eea4168e",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Official fixed Vulkan-Loader documentation diagram source. The path occurs only in Inkscape export-filename editor metadata for the upstream illustration. The current source was independently checked against the fixed official Git tree, including the changed member content. Only the personal filesystem path rule is reviewed for this exact member/content; no author-wide, directory-wide or credential exemption is granted.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/docs/images/svgs/loader_device_chain_loader.svg",
+      "sha256": "b5a1596e1ac8c5e479a4ad5ad51e609217a69f8da5513c9a03fe6b29eea4168e"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-vulkan-loader-1~1.4.357.0-1.src.tar.zst",
+    "archiveSha256": "af28ead397f61609c07a8260279441b3e3113a42cbaaf04cec86933b65c60dc4",
+    "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/docs/images/svgs/loader_device_surface_chain.svg",
+    "sha256": "ca0a5678f4e5ae15278376cac6b89cd09e47610dfc541dfb8618865bd553f39e",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Official fixed Vulkan-Loader documentation diagram source. The path occurs only in Inkscape export-filename editor metadata for the upstream illustration. The current source was independently checked against the fixed official Git tree, including the changed member content. Only the personal filesystem path rule is reviewed for this exact member/content; no author-wide, directory-wide or credential exemption is granted.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/docs/images/svgs/loader_device_surface_chain.svg",
+      "sha256": "ca0a5678f4e5ae15278376cac6b89cd09e47610dfc541dfb8618865bd553f39e"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-vulkan-loader-1~1.4.357.0-1.src.tar.zst",
+    "archiveSha256": "af28ead397f61609c07a8260279441b3e3113a42cbaaf04cec86933b65c60dc4",
+    "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/docs/images/svgs/loader_instance_chain.svg",
+    "sha256": "97b29fe2d6eed5a3ff11d0c9488a2a1a2c41cdcb46209d90b496171cd8c8f15b",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Official fixed Vulkan-Loader documentation diagram source. The path occurs only in Inkscape export-filename editor metadata for the upstream illustration. The current source was independently checked against the fixed official Git tree, including the changed member content. Only the personal filesystem path rule is reviewed for this exact member/content; no author-wide, directory-wide or credential exemption is granted.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/docs/images/svgs/loader_instance_chain.svg",
+      "sha256": "97b29fe2d6eed5a3ff11d0c9488a2a1a2c41cdcb46209d90b496171cd8c8f15b"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-vulkan-loader-1~1.4.357.0-1.src.tar.zst",
+    "archiveSha256": "af28ead397f61609c07a8260279441b3e3113a42cbaaf04cec86933b65c60dc4",
+    "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/docs/images/svgs/loader_layer_order.svg",
+    "sha256": "ae77634453141a247e2b525f4e44b5cda790974bb3b76d8ccab0f416c8a26536",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Official fixed Vulkan-Loader documentation diagram source. The path occurs only in Inkscape export-filename editor metadata for the upstream illustration. The current source was independently checked against the fixed official Git tree, including the changed member content. Only the personal filesystem path rule is reviewed for this exact member/content; no author-wide, directory-wide or credential exemption is granted.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/docs/images/svgs/loader_layer_order.svg",
+      "sha256": "ae77634453141a247e2b525f4e44b5cda790974bb3b76d8ccab0f416c8a26536"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-vulkan-loader-1~1.4.357.0-1.src.tar.zst",
+    "archiveSha256": "af28ead397f61609c07a8260279441b3e3113a42cbaaf04cec86933b65c60dc4",
+    "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/docs/images/svgs/loader_layer_order_calls.svg",
+    "sha256": "abf09dcda870ad5874867258f49616df39f45d0e9babcc0c670920cb57371197",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Official fixed Vulkan-Loader documentation diagram source. The path occurs only in Inkscape export-filename editor metadata for the upstream illustration. The current source was independently checked against the fixed official Git tree, including the changed member content. Only the personal filesystem path rule is reviewed for this exact member/content; no author-wide, directory-wide or credential exemption is granted.",
+    "evidence": {
+      "kind": "upstream-non-secret-path-context",
+      "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/docs/images/svgs/loader_layer_order_calls.svg",
+      "sha256": "abf09dcda870ad5874867258f49616df39f45d0e9babcc0c670920cb57371197"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-vulkan-loader-1~1.4.357.0-1.src.tar.zst",
+    "archiveSha256": "af28ead397f61609c07a8260279441b3e3113a42cbaaf04cec86933b65c60dc4",
+    "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/data/binaries/dummy_library_elf_32.dll",
+    "sha256": "3b7de3d9bf7ff2f4e85b03ba5c94ea2e5fe5d78337e5fc06c56d53b973ec9b43",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Official fixed Vulkan-Loader regression fixture for rejecting wrong ELF/PE file format or 32/64-bit libraries. The current framework header selects this exact prebuilt file and loader_regression_tests.cpp uses it in TryLoadWrongBinaries. The preserved CMake generator compiles only stub.cpp (void dummy() {}) and copies the result under intentional DLL/SO names. This content is byte-identical to the previously reviewed fixture; matches are ELF debug-line paths or PE CodeView RSDS PDB references. Only the personal filesystem path rule is reviewed for this exact member/content; other privacy rules remain blocking.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/framework_config.h.in",
+      "sha256": "0015a6398f060596d5e9f51bf333478dfef1e197bbee76c3c460dd89ea11cb2a"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/data/CMakeLists.txt",
+        "sha256": "39a69feaf207798a80316f5ff420a20f4e96348a387c86b913df1f698ec9c1ad"
+      },
+      {
+        "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/data/stub.cpp",
+        "sha256": "6b8b40cc7bc2204b463997c1e865df7db858607de3f8dbe965ea047e7490742b"
+      },
+      {
+        "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/loader_regression_tests.cpp",
+        "sha256": "92dd0d0bce50584fa3c6e8bb769ee451b7f4598dba0e5535e2fc98d1b600f1c7"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-vulkan-loader-1~1.4.357.0-1.src.tar.zst",
+    "archiveSha256": "af28ead397f61609c07a8260279441b3e3113a42cbaaf04cec86933b65c60dc4",
+    "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/data/binaries/dummy_library_elf_64.dll",
+    "sha256": "83188e04c3aff11c225b6b252e9ac99ce0d5af389e8f4880120e032ce8d56371",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Official fixed Vulkan-Loader regression fixture for rejecting wrong ELF/PE file format or 32/64-bit libraries. The current framework header selects this exact prebuilt file and loader_regression_tests.cpp uses it in TryLoadWrongBinaries. The preserved CMake generator compiles only stub.cpp (void dummy() {}) and copies the result under intentional DLL/SO names. This content is byte-identical to the previously reviewed fixture; matches are ELF debug-line paths or PE CodeView RSDS PDB references. Only the personal filesystem path rule is reviewed for this exact member/content; other privacy rules remain blocking.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/framework_config.h.in",
+      "sha256": "0015a6398f060596d5e9f51bf333478dfef1e197bbee76c3c460dd89ea11cb2a"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/data/CMakeLists.txt",
+        "sha256": "39a69feaf207798a80316f5ff420a20f4e96348a387c86b913df1f698ec9c1ad"
+      },
+      {
+        "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/data/stub.cpp",
+        "sha256": "6b8b40cc7bc2204b463997c1e865df7db858607de3f8dbe965ea047e7490742b"
+      },
+      {
+        "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/loader_regression_tests.cpp",
+        "sha256": "92dd0d0bce50584fa3c6e8bb769ee451b7f4598dba0e5535e2fc98d1b600f1c7"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-vulkan-loader-1~1.4.357.0-1.src.tar.zst",
+    "archiveSha256": "af28ead397f61609c07a8260279441b3e3113a42cbaaf04cec86933b65c60dc4",
+    "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/data/binaries/dummy_library_pe_32.dll",
+    "sha256": "fad538175ca6300f1765700c8ee493e7b13f0bfd73a7da53861e8a50c9aaec8c",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Official fixed Vulkan-Loader regression fixture for rejecting wrong ELF/PE file format or 32/64-bit libraries. The current framework header selects this exact prebuilt file and loader_regression_tests.cpp uses it in TryLoadWrongBinaries. The preserved CMake generator compiles only stub.cpp (void dummy() {}) and copies the result under intentional DLL/SO names. This content is byte-identical to the previously reviewed fixture; matches are ELF debug-line paths or PE CodeView RSDS PDB references. Only the personal filesystem path rule is reviewed for this exact member/content; other privacy rules remain blocking.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/framework_config.h.in",
+      "sha256": "0015a6398f060596d5e9f51bf333478dfef1e197bbee76c3c460dd89ea11cb2a"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/data/CMakeLists.txt",
+        "sha256": "39a69feaf207798a80316f5ff420a20f4e96348a387c86b913df1f698ec9c1ad"
+      },
+      {
+        "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/data/stub.cpp",
+        "sha256": "6b8b40cc7bc2204b463997c1e865df7db858607de3f8dbe965ea047e7490742b"
+      },
+      {
+        "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/loader_regression_tests.cpp",
+        "sha256": "92dd0d0bce50584fa3c6e8bb769ee451b7f4598dba0e5535e2fc98d1b600f1c7"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-vulkan-loader-1~1.4.357.0-1.src.tar.zst",
+    "archiveSha256": "af28ead397f61609c07a8260279441b3e3113a42cbaaf04cec86933b65c60dc4",
+    "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/data/binaries/dummy_library_pe_32.so",
+    "sha256": "fad538175ca6300f1765700c8ee493e7b13f0bfd73a7da53861e8a50c9aaec8c",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Official fixed Vulkan-Loader regression fixture for rejecting wrong ELF/PE file format or 32/64-bit libraries. The current framework header selects this exact prebuilt file and loader_regression_tests.cpp uses it in TryLoadWrongBinaries. The preserved CMake generator compiles only stub.cpp (void dummy() {}) and copies the result under intentional DLL/SO names. This content is byte-identical to the previously reviewed fixture; matches are ELF debug-line paths or PE CodeView RSDS PDB references. Only the personal filesystem path rule is reviewed for this exact member/content; other privacy rules remain blocking.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/framework_config.h.in",
+      "sha256": "0015a6398f060596d5e9f51bf333478dfef1e197bbee76c3c460dd89ea11cb2a"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/data/CMakeLists.txt",
+        "sha256": "39a69feaf207798a80316f5ff420a20f4e96348a387c86b913df1f698ec9c1ad"
+      },
+      {
+        "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/data/stub.cpp",
+        "sha256": "6b8b40cc7bc2204b463997c1e865df7db858607de3f8dbe965ea047e7490742b"
+      },
+      {
+        "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/loader_regression_tests.cpp",
+        "sha256": "92dd0d0bce50584fa3c6e8bb769ee451b7f4598dba0e5535e2fc98d1b600f1c7"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-vulkan-loader-1~1.4.357.0-1.src.tar.zst",
+    "archiveSha256": "af28ead397f61609c07a8260279441b3e3113a42cbaaf04cec86933b65c60dc4",
+    "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/data/binaries/dummy_library_pe_64.dll",
+    "sha256": "8f846aac866af38b645ae0fbd775d84b0ee37a0ab337cf4ae23fb0a30389d2e6",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Official fixed Vulkan-Loader regression fixture for rejecting wrong ELF/PE file format or 32/64-bit libraries. The current framework header selects this exact prebuilt file and loader_regression_tests.cpp uses it in TryLoadWrongBinaries. The preserved CMake generator compiles only stub.cpp (void dummy() {}) and copies the result under intentional DLL/SO names. This content is byte-identical to the previously reviewed fixture; matches are ELF debug-line paths or PE CodeView RSDS PDB references. Only the personal filesystem path rule is reviewed for this exact member/content; other privacy rules remain blocking.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/framework_config.h.in",
+      "sha256": "0015a6398f060596d5e9f51bf333478dfef1e197bbee76c3c460dd89ea11cb2a"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/data/CMakeLists.txt",
+        "sha256": "39a69feaf207798a80316f5ff420a20f4e96348a387c86b913df1f698ec9c1ad"
+      },
+      {
+        "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/data/stub.cpp",
+        "sha256": "6b8b40cc7bc2204b463997c1e865df7db858607de3f8dbe965ea047e7490742b"
+      },
+      {
+        "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/loader_regression_tests.cpp",
+        "sha256": "92dd0d0bce50584fa3c6e8bb769ee451b7f4598dba0e5535e2fc98d1b600f1c7"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-vulkan-loader-1~1.4.357.0-1.src.tar.zst",
+    "archiveSha256": "af28ead397f61609c07a8260279441b3e3113a42cbaaf04cec86933b65c60dc4",
+    "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/data/binaries/dummy_library_pe_64.so",
+    "sha256": "8f846aac866af38b645ae0fbd775d84b0ee37a0ab337cf4ae23fb0a30389d2e6",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Official fixed Vulkan-Loader regression fixture for rejecting wrong ELF/PE file format or 32/64-bit libraries. The current framework header selects this exact prebuilt file and loader_regression_tests.cpp uses it in TryLoadWrongBinaries. The preserved CMake generator compiles only stub.cpp (void dummy() {}) and copies the result under intentional DLL/SO names. This content is byte-identical to the previously reviewed fixture; matches are ELF debug-line paths or PE CodeView RSDS PDB references. Only the personal filesystem path rule is reviewed for this exact member/content; other privacy rules remain blocking.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/framework_config.h.in",
+      "sha256": "0015a6398f060596d5e9f51bf333478dfef1e197bbee76c3c460dd89ea11cb2a"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/data/CMakeLists.txt",
+        "sha256": "39a69feaf207798a80316f5ff420a20f4e96348a387c86b913df1f698ec9c1ad"
+      },
+      {
+        "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/data/stub.cpp",
+        "sha256": "6b8b40cc7bc2204b463997c1e865df7db858607de3f8dbe965ea047e7490742b"
+      },
+      {
+        "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/loader_regression_tests.cpp",
+        "sha256": "92dd0d0bce50584fa3c6e8bb769ee451b7f4598dba0e5535e2fc98d1b600f1c7"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-vulkan-loader-1~1.4.357.0-1.src.tar.zst",
+    "archiveSha256": "af28ead397f61609c07a8260279441b3e3113a42cbaaf04cec86933b65c60dc4",
+    "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/data/binaries/libdummy_library_elf_32.so",
+    "sha256": "3b7de3d9bf7ff2f4e85b03ba5c94ea2e5fe5d78337e5fc06c56d53b973ec9b43",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Official fixed Vulkan-Loader regression fixture for rejecting wrong ELF/PE file format or 32/64-bit libraries. The current framework header selects this exact prebuilt file and loader_regression_tests.cpp uses it in TryLoadWrongBinaries. The preserved CMake generator compiles only stub.cpp (void dummy() {}) and copies the result under intentional DLL/SO names. This content is byte-identical to the previously reviewed fixture; matches are ELF debug-line paths or PE CodeView RSDS PDB references. Only the personal filesystem path rule is reviewed for this exact member/content; other privacy rules remain blocking.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/framework_config.h.in",
+      "sha256": "0015a6398f060596d5e9f51bf333478dfef1e197bbee76c3c460dd89ea11cb2a"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/data/CMakeLists.txt",
+        "sha256": "39a69feaf207798a80316f5ff420a20f4e96348a387c86b913df1f698ec9c1ad"
+      },
+      {
+        "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/data/stub.cpp",
+        "sha256": "6b8b40cc7bc2204b463997c1e865df7db858607de3f8dbe965ea047e7490742b"
+      },
+      {
+        "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/loader_regression_tests.cpp",
+        "sha256": "92dd0d0bce50584fa3c6e8bb769ee451b7f4598dba0e5535e2fc98d1b600f1c7"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-vulkan-loader-1~1.4.357.0-1.src.tar.zst",
+    "archiveSha256": "af28ead397f61609c07a8260279441b3e3113a42cbaaf04cec86933b65c60dc4",
+    "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/data/binaries/libdummy_library_elf_64.so",
+    "sha256": "83188e04c3aff11c225b6b252e9ac99ce0d5af389e8f4880120e032ce8d56371",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Official fixed Vulkan-Loader regression fixture for rejecting wrong ELF/PE file format or 32/64-bit libraries. The current framework header selects this exact prebuilt file and loader_regression_tests.cpp uses it in TryLoadWrongBinaries. The preserved CMake generator compiles only stub.cpp (void dummy() {}) and copies the result under intentional DLL/SO names. This content is byte-identical to the previously reviewed fixture; matches are ELF debug-line paths or PE CodeView RSDS PDB references. Only the personal filesystem path rule is reviewed for this exact member/content; other privacy rules remain blocking.",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/framework_config.h.in",
+      "sha256": "0015a6398f060596d5e9f51bf333478dfef1e197bbee76c3c460dd89ea11cb2a"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/data/CMakeLists.txt",
+        "sha256": "39a69feaf207798a80316f5ff420a20f4e96348a387c86b913df1f698ec9c1ad"
+      },
+      {
+        "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/framework/data/stub.cpp",
+        "sha256": "6b8b40cc7bc2204b463997c1e865df7db858607de3f8dbe965ea047e7490742b"
+      },
+      {
+        "member": "mingw-w64-vulkan-loader/Vulkan-Loader-1.4.357.0.tar.gz/Vulkan-Loader-vulkan-sdk-1.4.357.0/tests/loader_regression_tests.cpp",
+        "sha256": "92dd0d0bce50584fa3c6e8bb769ee451b7f4598dba0e5535e2fc98d1b600f1c7"
       }
     ]
   }
