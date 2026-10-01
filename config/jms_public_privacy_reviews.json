@@ -49882,5 +49882,381 @@
       "version": "3.8.13-3",
       "binarySha256": "f7f05c96572506c81f2ffa89b518234afa4af2603aad8903db257a4f1e97e9e6"
     }
+  },
+  {
+    "member": "mingw-w64-glib2/glib-2.90.0.tar.xz/glib-2.90.0/gio/gtlscertificate.c",
+    "sha256": "eda02f00d80143be985d339cd364eb1f3856c92258443a9131dcd80d85eebc74",
+    "rules": [
+      "credential pattern"
+    ],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-glib2-2.90.0-1.src.tar.zst",
+    "archiveSha256": "580246fb9db6083e0191ac7fd0e44af71df6ec0dc52cfd384b5ae07f8665cc9e",
+    "explanation": "TLS 憑證解析器辨識不支援的 PKCS#8 加密 PEM 標頭；唯一命中是格式常數，沒有金鑰內容。",
+    "testReference": "gio/gtlscertificate.c:419,430-449: PEM_PKCS8_ENCRYPTED_HEADER -> parse_private_key() -> unsupported-encrypted-key error",
+    "evidence": {
+      "kind": "upstream-parser-format-constant",
+      "member": "mingw-w64-glib2/glib-2.90.0.tar.xz/glib-2.90.0/gio/gtlscertificate.c",
+      "sha256": "eda02f00d80143be985d339cd364eb1f3856c92258443a9131dcd80d85eebc74"
+    }
+  },
+  {
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-ca-1234.p8",
+    "sha256": "e0b6e128bddf2d52300e31a9ecba656b99483d2232bec5aa6a59231c63befd44",
+    "rules": [
+      "credential pattern"
+    ],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "explanation": "PKCS#8 已存加密金鑰的固定密碼讀取回歸；來源包固定測試資料，消費程式及相同封存均逐位元核對，並非 JMS 使用者憑證。",
+    "testReference": "tests/cert-tests/pkcs8.sh:59-64: exact filename/constructed expected-output selection -> certtool decode/info or comparison regression",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs8.sh",
+      "sha256": "9301cee39e124f25a5ea06d57a73b7963550a9aa1491b75adfb18608b0d9245f"
+    },
+    "additionalEvidence": [
+      {
+        "kind": "upstream-test-distribution-definition",
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/Makefile.am",
+        "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
+      }
+    ]
+  },
+  {
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-ca-null.p8",
+    "sha256": "4ba3d1fda526231b246bb1c78d75275d23b460707d0abc9d56c80427b675c697",
+    "rules": [
+      "credential pattern"
+    ],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "explanation": "PKCS#8 NULL 密碼轉換及已存金鑰讀取回歸；來源包固定測試資料，消費程式及相同封存均逐位元核對，並非 JMS 使用者憑證。",
+    "testReference": "tests/cert-tests/pkcs8.sh:95-119: exact filename/constructed expected-output selection -> certtool decode/info or comparison regression",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs8.sh",
+      "sha256": "9301cee39e124f25a5ea06d57a73b7963550a9aa1491b75adfb18608b0d9245f"
+    },
+    "additionalEvidence": [
+      {
+        "kind": "upstream-test-distribution-definition",
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/Makefile.am",
+        "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
+      }
+    ]
+  },
+  {
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-corpus-rc2-1.p12.out",
+    "sha256": "532f593182e7d78e5aa0833dfb0b91cdeb8cee8933b21bdcfcdd9b43b2598e9c",
+    "rules": [
+      "credential pattern"
+    ],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "explanation": "PKCS#12 解析邊界測試的逐字輸出預期值；來源包固定測試資料，消費程式及相同封存均逐位元核對，並非 JMS 使用者憑證。",
+    "testReference": "tests/cert-tests/pkcs12-corner-cases.sh:60-94: exact filename/constructed expected-output selection -> certtool decode/info or comparison regression",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs12-corner-cases.sh",
+      "sha256": "b8e3b4ba5a677d833a941866d1bacd32b8059f37a5b1978d77d456cba1cc8caa"
+    },
+    "additionalEvidence": [
+      {
+        "kind": "upstream-test-distribution-definition",
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/Makefile.am",
+        "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
+      }
+    ]
+  },
+  {
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-gost01-2-enc.p8",
+    "sha256": "24006b669cdc077410acaef0108768714ce6b1e515fa5e624130233c062a1b52",
+    "rules": [
+      "credential pattern"
+    ],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "explanation": "GOST 2001 加密 PKCS#8 解析及固定預期輸出比較；來源包固定測試資料，消費程式及相同封存均逐位元核對，並非 JMS 使用者憑證。",
+    "testReference": "tests/cert-tests/pkcs8-gost.sh:40-63: exact filename/constructed expected-output selection -> certtool decode/info or comparison regression",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs8-gost.sh",
+      "sha256": "3876191a7b10c16d2ccf39f3d00f67025d7ddb5fd11f4a48bb7546fd0b215d90"
+    },
+    "additionalEvidence": [
+      {
+        "kind": "upstream-test-distribution-definition",
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/Makefile.am",
+        "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
+      }
+    ]
+  },
+  {
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-gost12-256-2-enc.p8",
+    "sha256": "572eeda844e7d7f06485e94ec5710bf2d8126abf4fcf702b2c3cb35dd4db3a69",
+    "rules": [
+      "credential pattern"
+    ],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "explanation": "GOST 2012 256-bit 加密 PKCS#8 解析及固定預期輸出比較；來源包固定測試資料，消費程式及相同封存均逐位元核對，並非 JMS 使用者憑證。",
+    "testReference": "tests/cert-tests/pkcs8-gost.sh:40-63: exact filename/constructed expected-output selection -> certtool decode/info or comparison regression",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs8-gost.sh",
+      "sha256": "3876191a7b10c16d2ccf39f3d00f67025d7ddb5fd11f4a48bb7546fd0b215d90"
+    },
+    "additionalEvidence": [
+      {
+        "kind": "upstream-test-distribution-definition",
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/Makefile.am",
+        "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
+      }
+    ]
+  },
+  {
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/openssl-3des.p8",
+    "sha256": "3aa27112bf5e6a6d75ff0967fe254423557eb46b369662b81f568e601d5999d1",
+    "rules": [
+      "credential pattern"
+    ],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "explanation": "PKCS#8 3DES 加密格式解析及固定預期輸出比較；來源包固定測試資料，消費程式及相同封存均逐位元核對，並非 JMS 使用者憑證。",
+    "testReference": "tests/cert-tests/pkcs8-decode.sh:71-88: exact filename/constructed expected-output selection -> certtool decode/info or comparison regression",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs8-decode.sh",
+      "sha256": "270523e9817f1baed5ab0a5d1cbdd06a4b6ed3f84379366f1e31f6f4ae3b52ad"
+    },
+    "additionalEvidence": [
+      {
+        "kind": "upstream-test-distribution-definition",
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/Makefile.am",
+        "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
+      }
+    ]
+  },
+  {
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/openssl-aes128.p8",
+    "sha256": "880085a9e2efa77354cba47bd0ee250a1c71b5c66ca78979a7e628604a1d9b80",
+    "rules": [
+      "credential pattern"
+    ],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "explanation": "PKCS#8 AES-128 加密格式解析及固定預期輸出比較；來源包固定測試資料，消費程式及相同封存均逐位元核對，並非 JMS 使用者憑證。",
+    "testReference": "tests/cert-tests/pkcs8-decode.sh:71-88: exact filename/constructed expected-output selection -> certtool decode/info or comparison regression",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs8-decode.sh",
+      "sha256": "270523e9817f1baed5ab0a5d1cbdd06a4b6ed3f84379366f1e31f6f4ae3b52ad"
+    },
+    "additionalEvidence": [
+      {
+        "kind": "upstream-test-distribution-definition",
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/Makefile.am",
+        "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
+      }
+    ]
+  },
+  {
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/openssl-aes256.p8",
+    "sha256": "87524293edae5a65b4e0d6c7e7cd0a7ccc13d6cf493a57997bfc0eab142f159a",
+    "rules": [
+      "credential pattern"
+    ],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "explanation": "PKCS#8 AES-256 加密格式解析及固定預期輸出比較；來源包固定測試資料，消費程式及相同封存均逐位元核對，並非 JMS 使用者憑證。",
+    "testReference": "tests/cert-tests/pkcs8-decode.sh:71-88: exact filename/constructed expected-output selection -> certtool decode/info or comparison regression",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/pkcs8-decode.sh",
+      "sha256": "270523e9817f1baed5ab0a5d1cbdd06a4b6ed3f84379366f1e31f6f4ae3b52ad"
+    },
+    "additionalEvidence": [
+      {
+        "kind": "upstream-test-distribution-definition",
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/Makefile.am",
+        "sha256": "8fde5688e031d9d6e6fa514d0fd1c2d7a4bc9ded77da78a3c63524de90321cad"
+      }
+    ]
+  },
+  {
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/pkcs12_s2k_pem.c",
+    "sha256": "d38f20cad587de703e984c97470c9da271e13024b1aaa22226e47017892fd4e5",
+    "rules": [
+      "credential pattern"
+    ],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "explanation": "PKCS#12 string-to-key 回歸的十個固定加密 PKCS#8 測資；每個巨集均由 keys[] 枚舉並送入 import_pkcs8，核對固定結果。",
+    "testReference": "tests/pkcs12_s2k_pem.c:27-29,41-241,255-269: ten PEM macros -> complete keys[] table -> gnutls_x509_privkey_import_pkcs8() expected-result loop",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/pkcs12_s2k_pem.c",
+      "sha256": "d38f20cad587de703e984c97470c9da271e13024b1aaa22226e47017892fd4e5"
+    },
+    "additionalEvidence": [
+      {
+        "kind": "upstream-test-build-definition",
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/Makefile.am",
+        "sha256": "72c9d87b97d2de93964c12109abe5c18ea0e4641cfae01bb36fd68f2136cdbc2"
+      }
+    ]
+  },
+  {
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/pkcs8-key-decode-encrypted.c",
+    "sha256": "09dc9adf2f92cbb75aff39e137063a83616d978025e343255a5b69521426f8a7",
+    "rules": [
+      "credential pattern"
+    ],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "explanation": "固定加密 PKCS#8 測資經 datum 送入 import_pkcs8；回歸核對錯誤密碼回傳解密失敗、固定測試密碼讀取成功。",
+    "testReference": "tests/pkcs8-key-decode-encrypted.c:30-37,39-75: PRIVATE_KEY -> datum -> wrong-password expected failure and fixture-password expected success",
+    "evidence": {
+      "kind": "upstream-test-reference",
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/pkcs8-key-decode-encrypted.c",
+      "sha256": "09dc9adf2f92cbb75aff39e137063a83616d978025e343255a5b69521426f8a7"
+    },
+    "additionalEvidence": [
+      {
+        "kind": "upstream-test-build-definition",
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/Makefile.am",
+        "sha256": "72c9d87b97d2de93964c12109abe5c18ea0e4641cfae01bb36fd68f2136cdbc2"
+      }
+    ]
+  },
+  {
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/25-test_req.t",
+    "sha256": "053a4045a9897654776e745073332cf3bf12cbf2cd9fe13c39786d9baf851b77",
+    "rules": [
+      "credential pattern"
+    ],
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "explanation": "OpenSSL req 的 cipher 選項回歸：兩處命中僅以正規表示式核對測試當場產生的金鑰輸出標頭，腳本沒有嵌入金鑰。",
+    "testReference": "test/recipes/25-test_req.t:407-455: generated RSA req cipher outputs -> read first line -> exact encrypted PEM format assertions",
+    "evidence": {
+      "kind": "upstream-test-format-assertion",
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/25-test_req.t",
+      "sha256": "053a4045a9897654776e745073332cf3bf12cbf2cd9fe13c39786d9baf851b77"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/apps/dsa-ca.pem",
+    "sha256": "840ab42f5a6754f9ddd6df488410a689e6c10ed37059a9f3ea2f7199458aab15",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "The exact retained bundle is unchanged from the fixed official regeneration of test certificates. Its encrypted DSA private block is bit-identical to the same-revision demo bundle, and both certificate public identities match offline. The bound historical verification recipe explicitly consumes certs/demo/*.pem. This proves retained demo/test CA material; no current direct import of the apps copy or decryption of its key is claimed. Only this exact archive/member/content and listed rules are accepted; no upstream code, signing, passwords or external authentication were used.",
+    "historicalProvenance": {
+      "revision": "d9e309a675900030d7308e36f614962a344816f9",
+      "source": "https://raw.githubusercontent.com/openssl/openssl/d9e309a675900030d7308e36f614962a344816f9/apps/dsa-ca.pem",
+      "pairedMember": "certs/demo/dsa-ca.pem",
+      "pairedMemberSha256": "1c01d8dcf63949ae1afea134839b2f1ca4e9134e7f954d2d167d9745410273f0",
+      "pairedSource": "https://github.com/openssl/openssl/blob/d9e309a675900030d7308e36f614962a344816f9/certs/demo/dsa-ca.pem",
+      "encryptedPrivateBlockSha256": "8009081447c89c41405230bf6fa227ebc108345cb0b8ffa15e94af25d7d2f29c"
+    },
+    "evidence": {
+      "member": "d9e309a675900030d7308e36f614962a344816f9/test/recipes/25-test_verify.t",
+      "sha256": "c783c277c0015dfa7f4266a23e09bab34b0142ac5d830f5391d872b669c71147",
+      "archiveSha256": "30bba421f626a1a96b603d55cce0066201ccf0fb913cdb8e0c0e3463c2b8018f",
+      "source": "https://github.com/openssl/openssl/blob/d9e309a675900030d7308e36f614962a344816f9/test/recipes/25-test_verify.t",
+      "kind": "fixed-historical-upstream-test-consumer"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/apps/dsa-pca.pem",
+    "sha256": "6551544012b1e3c4c58f0b64200b75f03b2a39eb69681872f41e6793b0d524be",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "The exact retained bundle is unchanged from the fixed official regeneration of test certificates. Its encrypted DSA private block is bit-identical to the same-revision demo bundle, and both certificate public identities match offline. The bound historical verification recipe explicitly consumes certs/demo/*.pem. This proves retained demo/test CA material; no current direct import of the apps copy or decryption of its key is claimed. Only this exact archive/member/content and listed rules are accepted; no upstream code, signing, passwords or external authentication were used.",
+    "historicalProvenance": {
+      "revision": "d9e309a675900030d7308e36f614962a344816f9",
+      "source": "https://raw.githubusercontent.com/openssl/openssl/d9e309a675900030d7308e36f614962a344816f9/apps/dsa-pca.pem",
+      "pairedMember": "certs/demo/dsa-pca.pem",
+      "pairedMemberSha256": "42060ad61cc7b11287f755780aa335b83458b7101d042d6160b26a4af1ea29a5",
+      "pairedSource": "https://github.com/openssl/openssl/blob/d9e309a675900030d7308e36f614962a344816f9/certs/demo/dsa-pca.pem",
+      "encryptedPrivateBlockSha256": "3f843ee170a715ab3a4e5a69d6044f280b568c6f9efe7b26158ccf8d5a3ac3e9"
+    },
+    "evidence": {
+      "member": "d9e309a675900030d7308e36f614962a344816f9/test/recipes/25-test_verify.t",
+      "sha256": "c783c277c0015dfa7f4266a23e09bab34b0142ac5d830f5391d872b669c71147",
+      "archiveSha256": "30bba421f626a1a96b603d55cce0066201ccf0fb913cdb8e0c0e3463c2b8018f",
+      "source": "https://github.com/openssl/openssl/blob/d9e309a675900030d7308e36f614962a344816f9/test/recipes/25-test_verify.t",
+      "kind": "fixed-historical-upstream-test-consumer"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/90-test_gost_data/server-key2001.pem",
+    "sha256": "50011042e2fbe0a4352246057f8b27f7765a35bd9d8805ddf66fc304de3aba18",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "The exact retained GOST key is byte-identical to the fixed official introduction of the GOST TLS protocol-negotiation regression. The bound historical recipe explicitly passes this filename to gosttest, which imports the selected key/certificate to check that GOST is not negotiated for TLS 1.3. The current source retains the data but no longer contains that historical test; no current test invocation is claimed. Only this exact archive/member/content and listed rules are accepted; no upstream code, signing, passwords or external authentication were used.",
+    "historicalProvenance": {
+      "revision": "1e839545803107b230a8177875de5994f85984de",
+      "source": "https://raw.githubusercontent.com/openssl/openssl/1e839545803107b230a8177875de5994f85984de/test/recipes/90-test_gost_data/server-key2001.pem"
+    },
+    "evidence": {
+      "member": "1e839545803107b230a8177875de5994f85984de/test/recipes/90-test_gost.t",
+      "sha256": "b0a72add99d210a239815e268ba5dc118257cf0e6abf83a80abeb004d75279e9",
+      "archiveSha256": "30bba421f626a1a96b603d55cce0066201ccf0fb913cdb8e0c0e3463c2b8018f",
+      "source": "https://github.com/openssl/openssl/blob/1e839545803107b230a8177875de5994f85984de/test/recipes/90-test_gost.t",
+      "kind": "fixed-historical-upstream-test-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "1e839545803107b230a8177875de5994f85984de/test/gosttest.c",
+        "sha256": "d7843ed412b89e18b6526d7d5c1c093df7ea7c69054e02868fed71427b40f69c",
+        "archiveSha256": "30bba421f626a1a96b603d55cce0066201ccf0fb913cdb8e0c0e3463c2b8018f",
+        "source": "https://github.com/openssl/openssl/blob/1e839545803107b230a8177875de5994f85984de/test/gosttest.c"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/90-test_gost_data/server-key2012.pem",
+    "sha256": "b0f32100011b828faa40c746a25bf04d65398145619dcc7c53261ce7df404b22",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "The exact retained GOST key is byte-identical to the fixed official introduction of the GOST TLS protocol-negotiation regression. The bound historical recipe explicitly passes this filename to gosttest, which imports the selected key/certificate to check that GOST is not negotiated for TLS 1.3. The current source retains the data but no longer contains that historical test; no current test invocation is claimed. Only this exact archive/member/content and listed rules are accepted; no upstream code, signing, passwords or external authentication were used.",
+    "historicalProvenance": {
+      "revision": "1e839545803107b230a8177875de5994f85984de",
+      "source": "https://raw.githubusercontent.com/openssl/openssl/1e839545803107b230a8177875de5994f85984de/test/recipes/90-test_gost_data/server-key2012.pem"
+    },
+    "evidence": {
+      "member": "1e839545803107b230a8177875de5994f85984de/test/recipes/90-test_gost.t",
+      "sha256": "b0a72add99d210a239815e268ba5dc118257cf0e6abf83a80abeb004d75279e9",
+      "archiveSha256": "30bba421f626a1a96b603d55cce0066201ccf0fb913cdb8e0c0e3463c2b8018f",
+      "source": "https://github.com/openssl/openssl/blob/1e839545803107b230a8177875de5994f85984de/test/recipes/90-test_gost.t",
+      "kind": "fixed-historical-upstream-test-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "1e839545803107b230a8177875de5994f85984de/test/gosttest.c",
+        "sha256": "d7843ed412b89e18b6526d7d5c1c093df7ea7c69054e02868fed71427b40f69c",
+        "archiveSha256": "30bba421f626a1a96b603d55cce0066201ccf0fb913cdb8e0c0e3463c2b8018f",
+        "source": "https://github.com/openssl/openssl/blob/1e839545803107b230a8177875de5994f85984de/test/gosttest.c"
+      }
+    ]
   }
 ]
