@@ -162,6 +162,15 @@ def validate_inventory(directory, platform):
     return record, files
 
 
+def resume_publication_state(path, planned):
+    if not path.exists():
+        return planned
+    saved = json.loads(path.read_text(encoding='utf-8'))
+    if any(saved.get(field) != value for field, value in planned.items()):
+        raise ReleaseError('Saved desktop publication identity differs; mutation refused')
+    return saved
+
+
 def publish_desktop(args):
     if not args.artifact_directory:
         raise ReleaseError('Desktop publication requires a prepared artifact directory')
@@ -204,10 +213,12 @@ def publish_desktop(args):
     state = {'releaseId': release['id'], 'tag': tag, 'version': record['versionName'],
              'notes': notes, 'prerelease': args.channel == 'prerelease', 'sourceCommit': record['sourceCommit'],
              'releaseCommit': release_commit}
+    state_path = directory / 'publication-state.json'
+    state = resume_publication_state(state_path, state)
     verification = directory / 'verification'
     verification.mkdir(exist_ok=True)
     upload_complete_release(github, state, files,
-        lambda: save_json(directory / 'publication-state.json', state), verification)
+        lambda: save_json(state_path, state), verification)
     public = github.api('repos/' + record['repository'] + '/releases/' + str(release['id']))
     anonymous = directory / 'anonymous-verification'
     anonymous.mkdir(exist_ok=True)
@@ -216,5 +227,5 @@ def publish_desktop(args):
         anonymous_download(asset['browser_download_url'], anonymous / asset['name'],
             expected['size'], expected['sha256'], repository=record['repository'])
     state['anonymousVerified'] = True
-    save_json(directory / 'publication-state.json', state)
+    save_json(state_path, state)
     print(public['html_url'])
