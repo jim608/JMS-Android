@@ -298,7 +298,7 @@ MAX_ARCHIVE_MEMBER_BYTES = 512 * 1024 * 1024
 
 class ArchiveScan:
     def __init__(self, domains, reviews=None, *, max_bytes=4 * 1024**3,
-                 max_members=200000, max_seconds=1800, max_depth=6):
+                 max_members=200000, max_seconds=1800, max_depth=6, project=None):
         import time
         self.domains = domains
         self.reviews = load_public_reviews() if reviews is None else reviews
@@ -306,6 +306,7 @@ class ArchiveScan:
         self.max_members = max_members
         self.max_seconds = max_seconds
         self.max_depth = max_depth
+        self.registry_project = project
         self.started = time.monotonic()
         self.expanded = 0
         self.members = 0
@@ -368,7 +369,16 @@ class ArchiveScan:
         self.check_budget(len(data))
         self.expanded += len(data)
         self.members += 1
-        problems = reviewed_archive_findings(name, data, self.domains, contexts, self.reviews)
+        source_registry = ('JMS/config/jms_public_privacy_reviews.json')
+        if (depth == 1 and len(contexts) == 1 and contexts[0][1] == source_registry
+                and name.endswith('.zip/' + source_registry)):
+            # The committed source archive carries the same formal registry.
+            # Reuse its exact origin/member/evidence validation; this does not
+            # approve other JSON paths, container metadata or package contents.
+            problems = git_blob_findings('config/jms_public_privacy_reviews.json', data,
+                                         self.domains, self.registry_project)
+        else:
+            problems = reviewed_archive_findings(name, data, self.domains, contexts, self.reviews)
         results = [(name, problems)]
         approvals = matching_reviews(data, contexts, self.reviews)
         digest = hashlib.sha256(data).hexdigest()

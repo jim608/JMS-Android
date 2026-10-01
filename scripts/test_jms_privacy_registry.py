@@ -96,6 +96,34 @@ class RegistryMemberTests(unittest.TestCase):
         scanner = privacy.ArchiveScan((), [self.review])
         self.assertTrue(any(rules for _, rules in scanner.scan('fixture-1.zip', changed.getvalue())))
 
+    def source_archive_findings(self, review=None, member='JMS/config/jms_public_privacy_reviews.json', domains=()):
+        stream = io.BytesIO()
+        with zipfile.ZipFile(stream, 'w') as archive:
+            archive.writestr(member, json.dumps([review or self.review]).encode())
+        scanner = privacy.ArchiveScan(domains, [], project=self.project)
+        return [rule for _, rules in scanner.scan('source.zip', stream.getvalue()) for rule in rules]
+
+    def test_verified_registry_in_exact_source_member_uses_same_validation(self):
+        self.assertEqual([], self.source_archive_findings())
+        self.assertIn('personal filesystem path', self.source_archive_findings(member='JMS/other.json'))
+        self.assertIn('personal filesystem path', self.source_archive_findings(member='other/config/jms_public_privacy_reviews.json'))
+
+    def test_source_registry_changed_hash_fake_path_or_origin_are_rejected(self):
+        altered = self.review['sha256'][:-1] + ('0' if self.review['sha256'][-1] != '0' else '1')
+        for changes in ({'sha256': altered}, {'archiveSha256': '0' * 64},
+                        {'member': (self.fixture_directory / 'forged.desktop').as_posix()},
+                        {'source': 'https://unknown.example.invalid/fixture-1.zip'}):
+            with self.subTest(changes=changes):
+                self.assertIn('personal filesystem path', self.source_archive_findings(dict(self.review, **changes)))
+
+    def test_source_registry_private_fields_and_missing_evidence_remain_blocked(self):
+        changed = dict(self.review, localNote='https://service.private.example')
+        self.assertIn('private domain', self.source_archive_findings(changed, domains=['private.example']))
+        changed = dict(self.review, localNote='password="' + 'x' * 32 + '"')
+        self.assertIn('credential assignment', self.source_archive_findings(changed))
+        self.material.unlink()
+        self.assertIn('personal filesystem path', self.source_archive_findings())
+
 
 if __name__ == '__main__':
     unittest.main()
