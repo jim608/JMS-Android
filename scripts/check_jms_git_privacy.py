@@ -44,7 +44,7 @@ def blob_findings(entries, domains):
             raise ValueError('Git blob verification failed')
         data = stream.read(int(header[2]))
         stream.read(1)
-        result.append((name, findings(name, data, domains)))
+        result.append((name, git_blob_findings(name, data, domains)))
     return result
 
 
@@ -136,6 +136,151 @@ def valid_evidence(review):
                 and bool(review['rawContentReview'].get('method'))
                 and bool(review['rawContentReview'].get('conclusion')))
     return True
+
+
+def verified_registry_member(review, project=None):
+    """Verify a relative review path against locally pinned official materials.
+
+    This inspects only the selected origin/reference bytes. Complete release
+    container inspection remains the responsibility of ArchiveScan.
+    """
+    project = Path(project or Path(__file__).resolve().parents[1])
+    allowed = {'source', 'archiveSha256', 'member', 'sha256', 'rules',
+               'explanation', 'testReference', 'evidence', 'additionalEvidence'}
+    if (set(review) - allowed or not valid_evidence(review)
+            or review.get('rules') != ['personal filesystem path']
+            or not isinstance(review.get('explanation'), str) or not review['explanation']):
+        return False
+    source = review.get('source', '')
+    prefixes = ('https://repo.msys2.org/mingw/sources/',
+                'https://mirror.msys2.org/mingw/sources/')
+    prefix = next((value for value in prefixes if source.startswith(value)), None)
+    if prefix is None:
+        return False
+    filename = source[len(prefix):]
+    if not filename or '/' in filename or '\\' in filename or ':' in filename:
+        return False
+    targets = {}
+    for item in [review, review['evidence']] + review.get('additionalEvidence', []):
+        member = item.get('member', '')
+        digest = item.get('sha256', '')
+        if (not isinstance(member, str) or member.startswith('/') or '\\' in member
+                or ':' in member or any(part in ('', '.', '..') for part in member.split('/'))
+                or not re.fullmatch(r'[0-9a-f]{64}', digest)
+                or item.get('archiveSha256', review.get('archiveSha256')) != review.get('archiveSha256')):
+            return False
+        if member in targets and targets[member] != digest:
+            return False
+        targets[member] = digest
+    try:
+        manifest = json.loads((project / 'config/jms_windows_native.json').read_text(encoding='utf-8'))
+        binding = manifest['sources'][filename]
+        if binding['sha256'] != review['archiveSha256']:
+            return False
+        locations = (project / 'artifacts/checks/windows-release-closeout/native-ready',
+                     project / 'artifacts/checks/m32/msys')
+        material = next((folder / filename for folder in locations
+                         if (folder / filename).is_file()), None)
+        if material is None or material.stat().st_size != binding['size']:
+            return False
+        with material.open('rb') as payload:
+            if hashlib.file_digest(payload, 'sha256').hexdigest() != binding['sha256']:
+                return False
+        if material.stat().st_size > MAX_ARCHIVE_MEMBER_BYTES:
+            return False
+        budget = {'bytes': 0, 'members': 0}
+        started = time.monotonic()
+
+        def inspect(name, data, parent='', depth=0):
+            if depth > 6 or time.monotonic() - started > 60:
+                raise ValueError('Registry evidence inspection limit')
+            raw = io.BytesIO(data)
+            if name.endswith('.zip'):
+                archive = zipfile.ZipFile(raw)
+                members = ((entry.filename, entry.file_size, not entry.is_dir(),
+                            lambda entry=entry: archive.open(entry)) for entry in archive.infolist())
+            else:
+                if name.endswith('.zst'):
+                    import zstandard
+                    raw = zstandard.ZstdDecompressor().stream_reader(raw)
+                archive = tarfile.open(fileobj=raw, mode='r|*')
+                members = ((entry.name.removeprefix('./'), entry.size, entry.isfile(),
+                            lambda entry=entry: archive.extractfile(entry)) for entry in archive)
+            with raw, archive:
+                for member, size, regular, opener in members:
+                    budget['members'] += 1
+                    if budget['members'] > 200000 or time.monotonic() - started > 60:
+                        raise ValueError('Registry evidence inspection limit')
+                    full = parent + member
+                    if not regular or not any(target == full or target.startswith(full + '/') for target in targets):
+                        continue
+                    budget['bytes'] += size
+                    if size > MAX_ARCHIVE_MEMBER_BYTES or budget['bytes'] > 1024**3:
+                        raise ValueError('Registry evidence inspection limit')
+                    with opener() as payload:
+                        value = payload.read(size + 1)
+                    if len(value) != size:
+                        raise ValueError('Incomplete registry evidence member')
+                    if full in targets:
+                        if hashlib.sha256(value).hexdigest() != targets.pop(full):
+                            raise ValueError('Registry evidence member mismatch')
+                    elif any(target.startswith(full + '/') for target in targets):
+                        inspect(member, value, full + '/', depth + 1)
+                    if not targets:
+                        return
+
+        inspect(filename, material.read_bytes())
+        return not targets
+    except (OSError, ValueError, KeyError, TypeError, zipfile.BadZipFile, tarfile.TarError):
+        return False
+
+
+def git_blob_findings(name, data, domains, project=None):
+    """Recognize only proven public relative member fields in the review file."""
+    original = findings(name, data, domains)
+    if name != 'config/jms_public_privacy_reviews.json' or 'personal filesystem path' not in original:
+        return original
+    try:
+        reviews = json.loads(data)
+        if not isinstance(reviews, list):
+            return original
+        for review in reviews:
+            if not isinstance(review, dict):
+                return original
+            member = review.get('member', '')
+            if ('personal filesystem path' in findings('member', str(member).encode(), domains)
+                    and verified_registry_member(review, project)):
+                review['member'] = '[verified public relative archive member]'
+        checked = findings(name, json.dumps(reviews, ensure_ascii=False).encode(), domains)
+
+        def inspect_fields(value, depth=0):
+            if depth > 20:
+                raise ValueError('Registry metadata nesting limit')
+            if isinstance(value, str):
+                for reason in findings('registry string', value.encode(), domains):
+                    if reason not in checked:
+                        checked.append(reason)
+            elif isinstance(value, list):
+                for entry in value:
+                    inspect_fields(entry, depth + 1)
+            elif isinstance(value, dict):
+                for key, entry in value.items():
+                    inspect_fields(key, depth + 1)
+                    inspect_fields(entry, depth + 1)
+                    if isinstance(entry, str):
+                        for reason in findings('registry assignment', (key + '=\"' + entry + '\"').encode(), domains):
+                            if reason not in checked:
+                                checked.append(reason)
+
+        inspect_fields(reviews)
+        # Private policy is checked against the original bytes, including fields
+        # whose public relative archive path has been verified above.
+        for problem in original:
+            if problem != 'personal filesystem path' and problem not in checked:
+                checked.append(problem)
+        return checked
+    except (ValueError, TypeError):
+        return original
 
 
 def reviewed_archive_findings(name, data, domains, contexts=(), reviews=None):
@@ -495,7 +640,7 @@ def main():
         if git('ls-files', '--stage', '--', name).startswith(b'160000 '):
             continue  # Only the external commit pointer is stored in this repository.
         data = git('show', f'{tree}:{name}')
-        problems = findings(name, data, domains)
+        problems = git_blob_findings(name, data, domains)
         checked += 1
         if problems:
             failures += 1
