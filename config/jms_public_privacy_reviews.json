@@ -43928,5 +43928,331 @@
       "kind": "upstream-explicit-fixture-consumer"
     },
     "additionalEvidence": []
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/fuzz/certs.h",
+    "sha256": "a5bf04fa351bc9a64f599f40dd85fb5644b58bdb62ec36de31481c52e20095d2",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "The sole PEM key literal is rawpk_private_key_pem1, wrapped as rawpk_private_key1 and explicitly imported by the local raw-public-key client fuzzer through its credential-memory API. Only the exact fixed fixture/source member and listed rules are accepted. Review did not execute the tests, sign data, try a password or authenticate to an external service.",
+    "testReference": "fuzz/gnutls_client_rawpk_fuzzer.c",
+    "evidence": {
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/fuzz/gnutls_client_rawpk_fuzzer.c",
+      "sha256": "74822b69902cfa332f98ac7e754bae7b0d2b780b0b2651a792b3e2b41dab62b1",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-reencoding.sh",
+    "sha256": "b098ac52dff18de607f737663f61907df4aa0a6bf683cde52e37857c6c63ccb8",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "Both embedded key here-documents are written into SERVER_KEY_FILE/CLIENT_KEY_FILE and explicitly selected by the local certificate reencoding test-server/client commands. Only the exact fixed fixture/source member and listed rules are accepted. Review did not execute the tests, sign data, try a password or authenticate to an external service.",
+    "testReference": "tests/cert-reencoding.sh; tests/Makefile.am",
+    "evidence": {
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-reencoding.sh",
+      "sha256": "b098ac52dff18de607f737663f61907df4aa0a6bf683cde52e37857c6c63ccb8",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/Makefile.am",
+        "sha256": "72c9d87b97d2de93964c12109abe5c18ea0e4641cfae01bb36fd68f2136cdbc2"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-repro-20170915.h",
+    "sha256": "2a99703c41e8d7f586f780cb2378f0f97e6afc6984795bf347d10783ec52a401",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "The two embedded repro keys are wrapped in server_repro_key/client_repro_key and explicitly supplied to dtls_try_with_key_mtu by the DTLS regression. Its shared local handshake helper imports the selected certificate/key memory. Only the exact fixed fixture/source member and listed rules are accepted. Review did not execute the tests, sign data, try a password or authenticate to an external service.",
+    "testReference": "tests/dtls-repro-20170915.c; tests/common-cert-key-exchange.c",
+    "evidence": {
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/dtls-repro-20170915.c",
+      "sha256": "179ca2df146d4d3059a29b633135fc5740fe6cf31a4e271bd82f93aae8076df5",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/common-cert-key-exchange.c",
+        "sha256": "7a2147d3bd2b170815f8e2f7f2e117435e941b94f2d4f5cc0f023590cc98ddbb"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/certs/rawpk_priv.pem",
+    "sha256": "71f633151e637db57a6aeab3f80cdc765568d7b276611a38f60fa378bad5d317",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "This exact source-relative credential or OCSP response filename is explicitly selected by the local OCSP/RAWPK regression. The consumer generates local fixture certificates, creates or parses fixed OCSP responses, or loads the raw-public-key API fixture; it is not an application session or external service identity. Only the exact fixed fixture/source member and listed rules are accepted. Review did not execute the tests, sign data, try a password or authenticate to an external service.",
+    "testReference": "tests/rawpk-api.c",
+    "evidence": {
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/rawpk-api.c",
+      "sha256": "8626866358d2d853703bbb98148a7f01157023cb8b8d89c9aa96b9e233ef6f33",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/gnutls-cli-invalid-crl.sh",
+    "sha256": "e07c7e401d3199e5f1d0be44bca49557db0f1aaf1c3f6c4de6fc91ff756f8b25",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "The embedded key here-document is written to TMPFILE and selected by launch_server for the invalid-CRL regression. Only the exact fixed fixture/source member and listed rules are accepted. Review did not execute the tests, sign data, try a password or authenticate to an external service.",
+    "testReference": "tests/gnutls-cli-invalid-crl.sh; tests/Makefile.am",
+    "evidence": {
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/gnutls-cli-invalid-crl.sh",
+      "sha256": "e07c7e401d3199e5f1d0be44bca49557db0f1aaf1c3f6c4de6fc91ff756f8b25",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/Makefile.am",
+        "sha256": "72c9d87b97d2de93964c12109abe5c18ea0e4641cfae01bb36fd68f2136cdbc2"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/gnutls-cli-rawpk.sh",
+    "sha256": "d5744bbfaa9de05d99ece581fa9e726103c78825e057701086a881fa5803ef33",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "Both embedded keys are written to the named CERTFILE1/CERTFILE2 fixtures and consumed by the local raw-public-key negotiation server/client regression. Only the exact fixed fixture/source member and listed rules are accepted. Review did not execute the tests, sign data, try a password or authenticate to an external service.",
+    "testReference": "tests/gnutls-cli-rawpk.sh; tests/Makefile.am",
+    "evidence": {
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/gnutls-cli-rawpk.sh",
+      "sha256": "d5744bbfaa9de05d99ece581fa9e726103c78825e057701086a881fa5803ef33",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/Makefile.am",
+        "sha256": "72c9d87b97d2de93964c12109abe5c18ea0e4641cfae01bb36fd68f2136cdbc2"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/gnutls-cli-self-signed.sh",
+    "sha256": "51ad2d2b79ed234c6c49087e481e4fdcd4af685a3a897eb5c9e008deb5d6ed91",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "The embedded key is written to TMPFILE and selected by launch_server for the self-signed-certificate regression. Only the exact fixed fixture/source member and listed rules are accepted. Review did not execute the tests, sign data, try a password or authenticate to an external service.",
+    "testReference": "tests/gnutls-cli-self-signed.sh; tests/Makefile.am",
+    "evidence": {
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/gnutls-cli-self-signed.sh",
+      "sha256": "51ad2d2b79ed234c6c49087e481e4fdcd4af685a3a897eb5c9e008deb5d6ed91",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/Makefile.am",
+        "sha256": "72c9d87b97d2de93964c12109abe5c18ea0e4641cfae01bb36fd68f2136cdbc2"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/key-openssl.c",
+    "sha256": "8bd0cf529dbc4fed68f2abde02cdad35752b13692c95d3cd3aa5fea9edcc7e53",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "The fixed plain_key/key1/key2/key_lowercase_iv and newline variants are selected explicitly by key.data assignments and consumed by the OpenSSL-format import regression, using its known local test passwords and expected success/failure assertions. Only the exact fixed fixture/source member and listed rules are accepted. Review did not execute the tests, sign data, try a password or authenticate to an external service.",
+    "testReference": "tests/key-openssl.c; tests/Makefile.am",
+    "evidence": {
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/key-openssl.c",
+      "sha256": "8bd0cf529dbc4fed68f2abde02cdad35752b13692c95d3cd3aa5fea9edcc7e53",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/Makefile.am",
+        "sha256": "72c9d87b97d2de93964c12109abe5c18ea0e4641cfae01bb36fd68f2136cdbc2"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/ocsp-tests/certs/ca.key",
+    "sha256": "9925573e4f51a0e3c02d82b428a84ee87b0e09ce8d765b712743a25540e76118",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "This exact source-relative credential or OCSP response filename is explicitly selected by the local OCSP/RAWPK regression. The consumer generates local fixture certificates, creates or parses fixed OCSP responses, or loads the raw-public-key API fixture; it is not an application session or external service identity. Only the exact fixed fixture/source member and listed rules are accepted. Review did not execute the tests, sign data, try a password or authenticate to an external service.",
+    "testReference": "tests/ocsp-tests/ocsp-tls-connection.sh",
+    "evidence": {
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/ocsp-tests/ocsp-tls-connection.sh",
+      "sha256": "a4194f1e2f14703af4594cb0cf3b4843cf081ffd1f07577b480f0315cb9d9cc6",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/ocsp-tests/certs/ocsp-server.key",
+    "sha256": "b329837088d3ea895124b404dfe238d914a3522c8a82d99f6f2258f4b95f61c1",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "This exact source-relative credential or OCSP response filename is explicitly selected by the local OCSP/RAWPK regression. The consumer generates local fixture certificates, creates or parses fixed OCSP responses, or loads the raw-public-key API fixture; it is not an application session or external service identity. Only the exact fixed fixture/source member and listed rules are accepted. Review did not execute the tests, sign data, try a password or authenticate to an external service.",
+    "testReference": "tests/ocsp-tests/ocsp-must-staple-connection.sh",
+    "evidence": {
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/ocsp-tests/ocsp-must-staple-connection.sh",
+      "sha256": "47d1941a02d09fe2d630a04aad2416ac8db2c53b81f6ccb606816302dc204182",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/ocsp-tests/certs/server_good.key",
+    "sha256": "eb59676a6c94c22c0fb5915312a4f7ea6ae460b93a9dc8a3745b67c4f217115a",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "This exact source-relative credential or OCSP response filename is explicitly selected by the local OCSP/RAWPK regression. The consumer generates local fixture certificates, creates or parses fixed OCSP responses, or loads the raw-public-key API fixture; it is not an application session or external service identity. Only the exact fixed fixture/source member and listed rules are accepted. Review did not execute the tests, sign data, try a password or authenticate to an external service.",
+    "testReference": "tests/ocsp-tests/ocsp-tls-connection.sh",
+    "evidence": {
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/ocsp-tests/ocsp-tls-connection.sh",
+      "sha256": "a4194f1e2f14703af4594cb0cf3b4843cf081ffd1f07577b480f0315cb9d9cc6",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/ocsp-tests/response1.pem",
+    "sha256": "e17f8abd859ef2724b7fa4632b06e3cbe8b1a4c92b84e03973192891ac8795a4",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "This exact source-relative credential or OCSP response filename is explicitly selected by the local OCSP/RAWPK regression. The consumer generates local fixture certificates, creates or parses fixed OCSP responses, or loads the raw-public-key API fixture; it is not an application session or external service identity. Only the exact fixed fixture/source member and listed rules are accepted. Review did not execute the tests, sign data, try a password or authenticate to an external service.",
+    "testReference": "tests/ocsp-tests/ocsptool.sh",
+    "evidence": {
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/ocsp-tests/ocsptool.sh",
+      "sha256": "7eea2371d5956c5d721c5c1643d5370999b85bbb6ccea00e80f3b366170a4a3c",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/pkcs8-key-decode.c",
+    "sha256": "633ebb6255df7c829850fa3a54570e8644dcd9e37c5bd804a937789b5f6a45af",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "The fixed PRIVATE_KEY macro is wrapped in the data datum and passed to the private-key importer by test_load, invoked by the local PKCS8 decode regression. Only the exact fixed fixture/source member and listed rules are accepted. Review did not execute the tests, sign data, try a password or authenticate to an external service.",
+    "testReference": "tests/pkcs8-key-decode.c; tests/Makefile.am",
+    "evidence": {
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/pkcs8-key-decode.c",
+      "sha256": "633ebb6255df7c829850fa3a54570e8644dcd9e37c5bd804a937789b5f6a45af",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/Makefile.am",
+        "sha256": "72c9d87b97d2de93964c12109abe5c18ea0e4641cfae01bb36fd68f2136cdbc2"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/profile-tests.sh",
+    "sha256": "710ce800693d78e3e72e5014220f2e22514095c89b3418f3f34446261fe3576c",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "The local certificate profile regression selects the embedded key/certificate here-document file as both its KEY and CERT input to launch_server, and tests the expected verification profiles. Only the exact fixed fixture/source member and listed rules are accepted. Review did not execute the tests, sign data, try a password or authenticate to an external service.",
+    "testReference": "tests/profile-tests.sh; tests/Makefile.am",
+    "evidence": {
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/profile-tests.sh",
+      "sha256": "710ce800693d78e3e72e5014220f2e22514095c89b3418f3f34446261fe3576c",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/Makefile.am",
+        "sha256": "72c9d87b97d2de93964c12109abe5c18ea0e4641cfae01bb36fd68f2136cdbc2"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/sign-verify-deterministic.c",
+    "sha256": "894e9b34f0f6cd0c9e7f85ae9d0bca808de60ac4e8e8209295c020848fdcb54e",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "The fixed DSA/ECDSA RFC6979 key literals populate the tests table. The registered deterministic-signature regression loops over those entries, imports each tests[i].key and compares its fixed-message signature with the expected vector. Only the exact fixed fixture/source member and listed rules are accepted. Review did not execute the tests, sign data, try a password or authenticate to an external service.",
+    "testReference": "tests/sign-verify-deterministic.c; tests/Makefile.am",
+    "evidence": {
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/sign-verify-deterministic.c",
+      "sha256": "894e9b34f0f6cd0c9e7f85ae9d0bca808de60ac4e8e8209295c020848fdcb54e",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/Makefile.am",
+        "sha256": "72c9d87b97d2de93964c12109abe5c18ea0e4641cfae01bb36fd68f2136cdbc2"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/x509sign-verify-error.c",
+    "sha256": "abd759e2948e5ebbc547c2b96bdf50797e6c639b5f5274ecdb51cae8fffbb498",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "Both embedded RSA/DSA key literals populate key_dat. The registered signing-error regression loops over each datum and passes it to the private-key importer before its expected error-state checks. Only the exact fixed fixture/source member and listed rules are accepted. Review did not execute the tests, sign data, try a password or authenticate to an external service.",
+    "testReference": "tests/x509sign-verify-error.c; tests/Makefile.am",
+    "evidence": {
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/x509sign-verify-error.c",
+      "sha256": "abd759e2948e5ebbc547c2b96bdf50797e6c639b5f5274ecdb51cae8fffbb498",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/Makefile.am",
+        "sha256": "72c9d87b97d2de93964c12109abe5c18ea0e4641cfae01bb36fd68f2136cdbc2"
+      }
+    ]
   }
 ]
