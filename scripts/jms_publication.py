@@ -217,12 +217,33 @@ class Github:
     def asset_bytes(self, asset, destination):
         if not 0 < asset['size'] <= MAX_ASSET or asset.get('state') != 'uploaded':
             raise ReleaseError('Remote asset incomplete or too large')
-        with Path(destination).open('wb') as output:
-            result = subprocess.run(['rtk', 'proxy', str(self.executable), 'api',
-                f'repos/{self.repository}/releases/assets/{asset["id"]}', '-H', 'Accept: application/octet-stream'],
-                cwd=ROOT, env=self.environment, stdout=output, stderr=subprocess.PIPE, timeout=600)
-        if result.returncode or Path(destination).stat().st_size != asset['size']:
-            raise ReleaseError('Authenticated draft asset download/size verification failed')
+        for attempt in range(2):
+            # Truncate partial bytes before the sole permitted read-only retry.
+            with Path(destination).open('wb') as output:
+                try:
+                    result = subprocess.run(['rtk', 'proxy', str(self.executable), 'api',
+                        f'repos/{self.repository}/releases/assets/{asset["id"]}', '-H', 'Accept: application/octet-stream'],
+                        cwd=ROOT, env=self.environment, stdout=output, stderr=subprocess.PIPE, timeout=600)
+                except subprocess.TimeoutExpired:
+                    failure = 'network timeout'
+                    transient = True
+                else:
+                    if result.returncode == 0:
+                        if Path(destination).stat().st_size != asset['size']:
+                            raise ReleaseError('Authenticated asset download size mismatch')
+                        return
+                    diagnostic = (result.stderr or b'').lower()
+                    if re.search(rb'\b(?:401|403|forbidden|unauthori[sz]ed)\b', diagnostic):
+                        failure, transient = 'permission denied', False
+                    elif re.search(rb'\b(?:timeout|timed out|deadline exceeded|unexpected eof|eof|'
+                                   rb'connection reset|tls handshake)\b|'
+                                   rb'\b(?:http(?:/[\d.]+)?\s+|status(?: code)?[: =]+)5\d\d\b', diagnostic):
+                        failure, transient = 'transient network error', True
+                    else:
+                        failure, transient = 'unrecognized download error', False
+            if not transient or attempt == 1:
+                # CLI diagnostics may contain signed redirects or credentials.
+                raise ReleaseError('Authenticated asset download failed: ' + failure)
 
 
 def allowed_url(url, *, redirect=False, repository=REPOSITORY):

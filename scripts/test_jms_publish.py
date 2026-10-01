@@ -143,6 +143,87 @@ class PublisherTests(unittest.TestCase):
         self.assertTrue(github.release['draft'])
         self.assertEqual(github.publishes, 0)
 
+    def asset_download_runner(self, responses):
+        pending = iter(responses)
+        def run(command, **arguments):
+            response = next(pending)
+            if isinstance(response, Exception):
+                raise response
+            returncode, diagnostic, content = response
+            arguments['stdout'].write(content)
+            arguments['stdout'].flush()
+            return policy.subprocess.CompletedProcess(command, returncode, stderr=diagnostic)
+        return run
+
+    def test_authenticated_download_retries_known_network_failure_once(self):
+        content = b'complete synthetic asset'
+        asset = {'id': 41, 'size': len(content), 'state': 'uploaded'}
+        github = policy.Github()
+        destination = self.root / 'network-download'
+        for diagnostic in [b'i/o timeout', b'connection timed out', b'unexpected EOF',
+                           b'connection reset by peer', b'net/http: TLS handshake timeout',
+                           b'HTTP 502 Bad Gateway', b'HTTP/2.0 503 Service Unavailable',
+                           b'status code: 504']:
+            with self.subTest(diagnostic=diagnostic), patch.object(policy.subprocess, 'run',
+                    side_effect=self.asset_download_runner([(1, diagnostic, b'partial'), (0, b'', content)])) as run:
+                github.asset_bytes(asset, destination)
+                self.assertEqual(run.call_count, 2)
+                self.assertEqual(destination.read_bytes(), content)
+                self.assertEqual(run.call_args_list[0].args, run.call_args_list[1].args)
+
+    def test_authenticated_download_process_timeout_retries_once(self):
+        content = b'complete synthetic asset'
+        asset = {'id': 41, 'size': len(content), 'state': 'uploaded'}
+        with patch.object(policy.subprocess, 'run', side_effect=self.asset_download_runner([
+                policy.subprocess.TimeoutExpired('synthetic-gh', 600), (0, b'', content)])) as run:
+            destination = self.root / 'timeout-download'
+            policy.Github().asset_bytes(asset, destination)
+            self.assertEqual(run.call_count, 2)
+            self.assertEqual(destination.read_bytes(), content)
+
+    def test_authenticated_download_second_network_failure_stops(self):
+        asset = {'id': 41, 'size': 23, 'state': 'uploaded'}
+        with patch.object(policy.subprocess, 'run', side_effect=self.asset_download_runner([
+                (1, b'unexpected EOF', b'partial'), (1, b'connection reset upstream diagnostic hidden', b'')])) as run:
+            with self.assertRaisesRegex(policy.ReleaseError, '^Authenticated asset download failed: transient network error$'):
+                policy.Github().asset_bytes(asset, self.root / 'failed-download')
+            self.assertEqual(run.call_count, 2)
+
+    def test_authenticated_download_permission_unknown_or_size_error_never_retries(self):
+        asset = {'id': 41, 'size': 23, 'state': 'uploaded'}
+        for response, classification in [
+                ((1, b'HTTP 401 unauthorized with unexpected EOF', b''), 'permission denied'),
+                ((1, b'HTTP 403 forbidden with TLS handshake timeout', b''), 'permission denied'),
+                ((1, b'unrecognized upstream diagnostic hidden', b''), 'unrecognized download error'),
+                ((0, b'unexpected EOF', b'wrong size'), 'size mismatch')]:
+            with self.subTest(response=response), patch.object(policy.subprocess, 'run',
+                    side_effect=self.asset_download_runner([response])) as run:
+                with self.assertRaises(policy.ReleaseError) as caught:
+                    policy.Github().asset_bytes(asset, self.root / 'no-retry-download')
+                self.assertIn(classification, str(caught.exception))
+                self.assertNotIn('upstream diagnostic hidden', str(caught.exception))
+                self.assertEqual(run.call_count, 1)
+
+    def test_authenticated_download_retry_preserves_digest_gate(self):
+        files = self.assets()
+        github = FakeGithub(files)
+        name = 'test.apk'
+        expected = files[name]
+        github.release['assets'] = [{'id': 41, 'name': name, 'size': expected['size'],
+                                    'state': 'uploaded', 'digest': 'sha256:' + expected['sha256']}]
+        github.asset_bytes = policy.Github().asset_bytes
+        target = self.root / 'wrong-digest-download'
+        target.mkdir()
+        wrong_content = b'x' * expected['size']
+        with patch.object(policy.subprocess, 'run', side_effect=self.asset_download_runner([
+                (1, b'unexpected EOF', b''), (0, b'', wrong_content)])) as run:
+            with self.assertRaisesRegex(policy.ReleaseError, 'Draft asset content differs'):
+                policy.upload_complete_release(github, self.state(), files, lambda: None, target)
+            self.assertEqual(run.call_count, 2)
+        self.assertTrue(github.release['draft'])
+        self.assertEqual(github.publishes, 0)
+        self.assertEqual(github.uploads, [])
+
     def test_exclusive_lock_recovers_after_exception(self):
         lock = self.root / 'release.lock'
         with self.assertRaisesRegex(RuntimeError, 'fixture'):
