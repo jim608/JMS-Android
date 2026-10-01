@@ -10,7 +10,7 @@ if ($build.platform -cne 'windows-x64' -or $build.sourceCommit -cnotmatch '^[a-f
     throw 'A reviewed source-commit build is required; local dirty builds cannot become updates'
 }
 $python = Join-Path $root '.jms-tools/python/Scripts/python.exe'
-& rtk proxy $python scripts/verify_jms_snapshot.py --commit $build.sourceCommit
+& rtk proxy $python scripts/verify_jms_snapshot.py --commit $build.sourceCommit --recorded-windows-candidate (Join-Path $artifact 'build-manifest.json')
 if ($LASTEXITCODE -ne 0) { throw 'Source snapshot mismatch' }
 & rtk proxy $python scripts/check_jms_git_privacy.py --tree $build.sourceCommit
 if ($LASTEXITCODE -ne 0) { throw 'Source privacy check failed' }
