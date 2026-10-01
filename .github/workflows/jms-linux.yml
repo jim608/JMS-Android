@@ -81,6 +81,7 @@ jobs:
           assert 'cross-process restore, daemon restart, isolation, clear' in pathlib.Path('candidate/secret-service-test.log').read_text()
           PY
       - name: 驗證診斷接收器與三種 Web 容器
+        if: inputs.candidate_run == ''
         env:
           SOURCE_COMMIT: ${{ inputs.source_commit }}
         run: |
@@ -108,9 +109,13 @@ jobs:
           curl --fail --location https://github.com/jim608/JMS-Linux/releases/download/v0.11.1-jms.22/JMS-Linux-0.11.1-jms.22-x86_64.pkg.tar.xz -o candidate/previous.pkg.tar.xz
           echo 'cfc45e8aff6ecd53ac702b190031b06ab6789bb5fadc1c9365de0f76138ac915  candidate/previous.pkg.tar.xz' | sha256sum --check
       - name: 驗證 Arch 安裝、升級、啟動與設定保留
+        env:
+          VALIDATION_COMMIT: ${{ github.sha }}
         run: |
           mkdir validation
-          docker run --rm -v "$PWD/candidate:/candidate:ro" -v "$PWD/validation:/output" -v "$PWD/scripts/test_jms_linux_install.sh:/test.sh:ro" -e JMS_ISOLATED_INSTALL_TEST=1 archlinux:base bash /test.sh
+          git show "$VALIDATION_COMMIT:scripts/test_jms_linux_install.sh" > validation/install-test.sh
+          printf '%s\n' "$VALIDATION_COMMIT" > validation/validation-tools-commit.txt
+          docker run --rm -v "$PWD/candidate:/candidate:ro" -v "$PWD/validation:/output" -v "$PWD/validation/install-test.sh:/test.sh:ro" -e JMS_ISOLATED_INSTALL_TEST=1 archlinux:base bash /test.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
