@@ -20,6 +20,10 @@ RECORDED_CANDIDATE_REVIEW_PATHS = frozenset({
     'scripts/verify_jms_snapshot.py',
     'scripts/test_jms_snapshot_batch.py',
     'scripts/prepare_jms_windows_update.ps1',
+    'config/jms_source_derivations.json',
+    'scripts/check_jms_git_privacy.py',
+    'scripts/jms_source_derivations.py',
+    'scripts/test_jms_source_derivations.py',
 })
 
 

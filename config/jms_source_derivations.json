@@ -1,0 +1,551 @@
+[
+  {
+    "archiveSha256": "7e292724ce2a651bc3854b7c49c8c88081d129e99b52941a7e8241f234a3189f",
+    "manifestSha256": "21321fe19c5807ac4878fcc6ce4fce35cba49578503f8cef57da26288cd164a5",
+    "origin": {
+      "archive": "mingw-w64-openssl-3.6.4-1.src.tar.zst",
+      "sha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+      "url": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst"
+    },
+    "sourceMember": "mingw-w64-openssl/openssl-3.6.4.tar.gz",
+    "removed": [
+      {
+        "member": "openssl-3.6.4/apps/privkey.pem",
+        "sha256": "64795d8b4aac68c76ba833da4cfb54e739b7a90161ab3866d441ae0205da6fa9",
+        "reason": "Legacy key data outside the fixed shared DLL compile, install and runtime graph; credential safety not approved.",
+        "evidence": [
+          {
+            "member": "openssl-3.6.4/CHANGES.md",
+            "sha256": "4260fc83da75b4987b5ff829a71b81d75e94cd3628fa4e9c52ab24e1e15a4449"
+          },
+          {
+            "member": "openssl-3.6.4/Configurations/00-base-templates.conf",
+            "sha256": "29362786b6daeeea7c137283158e2c0454c2495b3a329d88b2f2adfc98f17a7b"
+          },
+          {
+            "member": "openssl-3.6.4/Configurations/10-main.conf",
+            "sha256": "f29bb8de5bfbace12cbf9f4fbf952fccc7a34e105d50105d35e99754df53f2df"
+          },
+          {
+            "member": "openssl-3.6.4/Configurations/15-android.conf",
+            "sha256": "c6bc311480b0886aeeb47143d3726d66cc2984cf1aefbbe9e878039a282c0901"
+          },
+          {
+            "member": "openssl-3.6.4/Configurations/unix-Makefile.tmpl",
+            "sha256": "cc02bca6ac2c5a32c89661d391bc1c610116fa2c98f7a202a41056c05a25f8b8"
+          },
+          {
+            "member": "openssl-3.6.4/Configurations/windows-makefile.tmpl",
+            "sha256": "e1a8d9a44afb425c84a02e98d68527bcbdf098efbcd614445b596b210ba829d2"
+          },
+          {
+            "member": "openssl-3.6.4/Configure",
+            "sha256": "622e9c7013848b2b14adf5e5d20cadd5cc1555928bfcb9b9715c0099ae578e36"
+          },
+          {
+            "member": "openssl-3.6.4/apps/build.info",
+            "sha256": "9ff591669eaefd8db77242f899ae4ac8f6fe4dea5446b5cb1f417cbf68f6f09f"
+          },
+          {
+            "member": "openssl-3.6.4/apps/lib/win32_init.c",
+            "sha256": "a328c3473981b70116eb60fe07d92fc67ec9cb91c54903505940acc72338bde8"
+          },
+          {
+            "member": "openssl-3.6.4/build.info",
+            "sha256": "f37b88ff8ef303ecd462e7d96e6ffb1533dd37074716fb8ff6331eb2dd80de11"
+          },
+          {
+            "member": "openssl-3.6.4/crypto/LPdir_unix.c",
+            "sha256": "5b08afaef95f9fae98635c98d767c3180fb237aa70da612df8fe76dae127d895"
+          },
+          {
+            "member": "openssl-3.6.4/crypto/build.info",
+            "sha256": "09c92ed9a227774640b9dcdf456443337e521c764369be3f5263bf36778760fb"
+          },
+          {
+            "member": "openssl-3.6.4/demos/http3/gen_nghttp3.pl",
+            "sha256": "9f4e32a8807da8dad748dd126864e560195b6e6f18971b59386f4deaa934021d"
+          },
+          {
+            "member": "openssl-3.6.4/doc/build.info.in",
+            "sha256": "c509a2d213f77c3c588e9b3d0898081463171608ef399e6533681fd68575a726"
+          },
+          {
+            "member": "openssl-3.6.4/external/perl/Text-Template-1.56/Changes",
+            "sha256": "72069c3d66671f504bcc6f6b6ebd98d10459e41dd9a89be8fbdd02287ee2d15b"
+          },
+          {
+            "member": "openssl-3.6.4/external/perl/Text-Template-1.56/lib/Text/Template.pm",
+            "sha256": "41815a23764f0ec4cb610718c0b2b012d9f0c91db75a6784d409b30a7c1a4b98"
+          },
+          {
+            "member": "openssl-3.6.4/external/perl/Text-Template-1.56/t/basic.t",
+            "sha256": "c302204f5c09b2e9f798697467ae8b9818fc7028b959cbe07b5af23e78ebdaed"
+          },
+          {
+            "member": "openssl-3.6.4/ssl/build.info",
+            "sha256": "b53c2118e1f7a882e071ab90c400ad745dfd7a219102da04f993aacb5eeb071f"
+          },
+          {
+            "member": "openssl-3.6.4/test/README.ssltest.md",
+            "sha256": "b00080516aa367dd1de123170fe4c96eaa270f54cbf9c51e5fabad76ce3f8b1e"
+          },
+          {
+            "member": "openssl-3.6.4/test/build.info",
+            "sha256": "47326ba664c3c78acfd01a757c9e977ca6728ea24850f7cabdb8f83a8ee17811"
+          },
+          {
+            "member": "openssl-3.6.4/test/certs/setup.sh",
+            "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+          },
+          {
+            "member": "openssl-3.6.4/test/recipes/04-test_pem_reading_data/NOTES.txt",
+            "sha256": "6ef166ef626ab83baae418760004b30f3931b8d9a1d0f3894d11bc4f5c13fd2f"
+          },
+          {
+            "member": "openssl-3.6.4/test/recipes/15-test_dsaparam.t",
+            "sha256": "c0cbec94a5bf0d307fc22e0d36cb85e6e0b6bddf327c39a14e277197d9fe1e66"
+          },
+          {
+            "member": "openssl-3.6.4/test/recipes/15-test_ecparam.t",
+            "sha256": "2b93a768a3cee6bf470b8a4099cf1013a30521117b82b18001a979b037248d09"
+          },
+          {
+            "member": "openssl-3.6.4/test/recipes/20-test_dhparam_check.t",
+            "sha256": "b73158aac055053f3a654ed0ab67ae63c067a3d398777db3aa6cef2e4d5cc385"
+          },
+          {
+            "member": "openssl-3.6.4/test/recipes/25-test_verify.t",
+            "sha256": "5ba87fccf8a3f9b0d65fdb442744829d9873eebe3d3ca51aa74a8da80515ecc6"
+          },
+          {
+            "member": "openssl-3.6.4/test/recipes/40-test_rehash.t",
+            "sha256": "4a881497e396a44925b8113620735994b2988646859fd2e93bdd06608ce8244a"
+          },
+          {
+            "member": "openssl-3.6.4/test/recipes/70-test_quic_multistream_data/verify-qlog.py",
+            "sha256": "84a1b72749ee40db72adcd0356af3151b1ebee11fffd4ddf3c6726222d64c034"
+          },
+          {
+            "member": "openssl-3.6.4/test/recipes/80-test_ssl_new.t",
+            "sha256": "89e2abaa16e32c1ec714982b24692481622c4e037623152708fa611081253f46"
+          },
+          {
+            "member": "openssl-3.6.4/test/run_tests.pl",
+            "sha256": "a8e9f54f435780419be643e5b9ac3c1c0f2eac1a26375120d2a87cd27cc41660"
+          },
+          {
+            "member": "openssl-3.6.4/tools/c_rehash.in",
+            "sha256": "0c512346aa0a359902736124a7ee143a59e3005d0e1480831c8b2d78ff2ea349"
+          },
+          {
+            "member": "openssl-3.6.4/util/ck_errf.pl",
+            "sha256": "2fdd62a995295642058b65c6ce1583e7f029db40bc5d86add682fa93c7a75e44"
+          },
+          {
+            "member": "openssl-3.6.4/util/copy.pl",
+            "sha256": "50a328ae75bf158cc2dbd9c0ee2526230f8ae76a4debb168d28cd497a013319c"
+          },
+          {
+            "member": "openssl-3.6.4/util/find-doc-nits",
+            "sha256": "db4aed2b7ede0d32ee406549dac57dfb511944e74ec1c53f0714bc2608e52b7d"
+          },
+          {
+            "member": "openssl-3.6.4/util/fix-includes",
+            "sha256": "9d3aa292f3ca7af1917e481f0a086b77655c5fded8bad2101dab68e03681f178"
+          },
+          {
+            "member": "openssl-3.6.4/util/mkerr.pl",
+            "sha256": "e9cc0cc32e3b5304ae7fd546b1f3aaa77b0c7836bf42ba9d44b02e11bfe67b82"
+          },
+          {
+            "member": "openssl-3.6.4/util/perl/OpenSSL/Glob.pm",
+            "sha256": "4100606067f0b577d3e6d2d2aaca93d826fb66105639eb94ff76c70ae8c526c9"
+          },
+          {
+            "member": "openssl-3.6.4/util/perl/OpenSSL/Test.pm",
+            "sha256": "f22bfb7feb6ec4301c5358c782674de042111c046272fdb80a421cc89981cc64"
+          },
+          {
+            "member": "openssl-3.6.4/util/perl/OpenSSL/fallback.pm",
+            "sha256": "9c457d583bd46e3d18c87a4a29a2fde7db1a16d007b1769429a53b865d22380a"
+          },
+          {
+            "member": "openssl-3.6.4/util/platform_symbols/unix-symbols.txt",
+            "sha256": "e15781e0ab9051a5f279bdaaf016076c8b22a4e0a31718129a28a9e2307cbaeb"
+          },
+          {
+            "member": "openssl-3.6.4/util/withlibctx.pl",
+            "sha256": "5dacb877ca32933e58642efe8fb850995cf06804f1c3e74d8b8cb287d2760e0f"
+          },
+          {
+            "member": "openssl-3.6.4/apps/req.c",
+            "sha256": "9a74c39a83fb5ece2483a0e7f5411f5e0322b3b0f9c9262f3b60f451f9afba80"
+          },
+          {
+            "member": "openssl-3.6.4/doc/man1/openssl-req.pod.in",
+            "sha256": "4c61efab8d779c3d552bd211d802b93086d3ef93114febe7eb0361fd0fa8aafd"
+          }
+        ]
+      },
+      {
+        "member": "openssl-3.6.4/apps/rsa8192.pem",
+        "sha256": "24f69b9f93919a7cc85159762f269b3b3a7e807dec24ebf90ccf166e1d63fe6b",
+        "reason": "Legacy key data outside the fixed shared DLL compile, install and runtime graph; credential safety not approved.",
+        "evidence": [
+          {
+            "member": "openssl-3.6.4/CHANGES.md",
+            "sha256": "4260fc83da75b4987b5ff829a71b81d75e94cd3628fa4e9c52ab24e1e15a4449"
+          },
+          {
+            "member": "openssl-3.6.4/Configurations/00-base-templates.conf",
+            "sha256": "29362786b6daeeea7c137283158e2c0454c2495b3a329d88b2f2adfc98f17a7b"
+          },
+          {
+            "member": "openssl-3.6.4/Configurations/10-main.conf",
+            "sha256": "f29bb8de5bfbace12cbf9f4fbf952fccc7a34e105d50105d35e99754df53f2df"
+          },
+          {
+            "member": "openssl-3.6.4/Configurations/15-android.conf",
+            "sha256": "c6bc311480b0886aeeb47143d3726d66cc2984cf1aefbbe9e878039a282c0901"
+          },
+          {
+            "member": "openssl-3.6.4/Configurations/unix-Makefile.tmpl",
+            "sha256": "cc02bca6ac2c5a32c89661d391bc1c610116fa2c98f7a202a41056c05a25f8b8"
+          },
+          {
+            "member": "openssl-3.6.4/Configurations/windows-makefile.tmpl",
+            "sha256": "e1a8d9a44afb425c84a02e98d68527bcbdf098efbcd614445b596b210ba829d2"
+          },
+          {
+            "member": "openssl-3.6.4/Configure",
+            "sha256": "622e9c7013848b2b14adf5e5d20cadd5cc1555928bfcb9b9715c0099ae578e36"
+          },
+          {
+            "member": "openssl-3.6.4/apps/build.info",
+            "sha256": "9ff591669eaefd8db77242f899ae4ac8f6fe4dea5446b5cb1f417cbf68f6f09f"
+          },
+          {
+            "member": "openssl-3.6.4/apps/lib/win32_init.c",
+            "sha256": "a328c3473981b70116eb60fe07d92fc67ec9cb91c54903505940acc72338bde8"
+          },
+          {
+            "member": "openssl-3.6.4/build.info",
+            "sha256": "f37b88ff8ef303ecd462e7d96e6ffb1533dd37074716fb8ff6331eb2dd80de11"
+          },
+          {
+            "member": "openssl-3.6.4/crypto/LPdir_unix.c",
+            "sha256": "5b08afaef95f9fae98635c98d767c3180fb237aa70da612df8fe76dae127d895"
+          },
+          {
+            "member": "openssl-3.6.4/crypto/build.info",
+            "sha256": "09c92ed9a227774640b9dcdf456443337e521c764369be3f5263bf36778760fb"
+          },
+          {
+            "member": "openssl-3.6.4/demos/http3/gen_nghttp3.pl",
+            "sha256": "9f4e32a8807da8dad748dd126864e560195b6e6f18971b59386f4deaa934021d"
+          },
+          {
+            "member": "openssl-3.6.4/doc/build.info.in",
+            "sha256": "c509a2d213f77c3c588e9b3d0898081463171608ef399e6533681fd68575a726"
+          },
+          {
+            "member": "openssl-3.6.4/external/perl/Text-Template-1.56/Changes",
+            "sha256": "72069c3d66671f504bcc6f6b6ebd98d10459e41dd9a89be8fbdd02287ee2d15b"
+          },
+          {
+            "member": "openssl-3.6.4/external/perl/Text-Template-1.56/lib/Text/Template.pm",
+            "sha256": "41815a23764f0ec4cb610718c0b2b012d9f0c91db75a6784d409b30a7c1a4b98"
+          },
+          {
+            "member": "openssl-3.6.4/external/perl/Text-Template-1.56/t/basic.t",
+            "sha256": "c302204f5c09b2e9f798697467ae8b9818fc7028b959cbe07b5af23e78ebdaed"
+          },
+          {
+            "member": "openssl-3.6.4/ssl/build.info",
+            "sha256": "b53c2118e1f7a882e071ab90c400ad745dfd7a219102da04f993aacb5eeb071f"
+          },
+          {
+            "member": "openssl-3.6.4/test/README.ssltest.md",
+            "sha256": "b00080516aa367dd1de123170fe4c96eaa270f54cbf9c51e5fabad76ce3f8b1e"
+          },
+          {
+            "member": "openssl-3.6.4/test/build.info",
+            "sha256": "47326ba664c3c78acfd01a757c9e977ca6728ea24850f7cabdb8f83a8ee17811"
+          },
+          {
+            "member": "openssl-3.6.4/test/certs/setup.sh",
+            "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+          },
+          {
+            "member": "openssl-3.6.4/test/recipes/04-test_pem_reading_data/NOTES.txt",
+            "sha256": "6ef166ef626ab83baae418760004b30f3931b8d9a1d0f3894d11bc4f5c13fd2f"
+          },
+          {
+            "member": "openssl-3.6.4/test/recipes/15-test_dsaparam.t",
+            "sha256": "c0cbec94a5bf0d307fc22e0d36cb85e6e0b6bddf327c39a14e277197d9fe1e66"
+          },
+          {
+            "member": "openssl-3.6.4/test/recipes/15-test_ecparam.t",
+            "sha256": "2b93a768a3cee6bf470b8a4099cf1013a30521117b82b18001a979b037248d09"
+          },
+          {
+            "member": "openssl-3.6.4/test/recipes/20-test_dhparam_check.t",
+            "sha256": "b73158aac055053f3a654ed0ab67ae63c067a3d398777db3aa6cef2e4d5cc385"
+          },
+          {
+            "member": "openssl-3.6.4/test/recipes/25-test_verify.t",
+            "sha256": "5ba87fccf8a3f9b0d65fdb442744829d9873eebe3d3ca51aa74a8da80515ecc6"
+          },
+          {
+            "member": "openssl-3.6.4/test/recipes/40-test_rehash.t",
+            "sha256": "4a881497e396a44925b8113620735994b2988646859fd2e93bdd06608ce8244a"
+          },
+          {
+            "member": "openssl-3.6.4/test/recipes/70-test_quic_multistream_data/verify-qlog.py",
+            "sha256": "84a1b72749ee40db72adcd0356af3151b1ebee11fffd4ddf3c6726222d64c034"
+          },
+          {
+            "member": "openssl-3.6.4/test/recipes/80-test_ssl_new.t",
+            "sha256": "89e2abaa16e32c1ec714982b24692481622c4e037623152708fa611081253f46"
+          },
+          {
+            "member": "openssl-3.6.4/test/run_tests.pl",
+            "sha256": "a8e9f54f435780419be643e5b9ac3c1c0f2eac1a26375120d2a87cd27cc41660"
+          },
+          {
+            "member": "openssl-3.6.4/tools/c_rehash.in",
+            "sha256": "0c512346aa0a359902736124a7ee143a59e3005d0e1480831c8b2d78ff2ea349"
+          },
+          {
+            "member": "openssl-3.6.4/util/ck_errf.pl",
+            "sha256": "2fdd62a995295642058b65c6ce1583e7f029db40bc5d86add682fa93c7a75e44"
+          },
+          {
+            "member": "openssl-3.6.4/util/copy.pl",
+            "sha256": "50a328ae75bf158cc2dbd9c0ee2526230f8ae76a4debb168d28cd497a013319c"
+          },
+          {
+            "member": "openssl-3.6.4/util/find-doc-nits",
+            "sha256": "db4aed2b7ede0d32ee406549dac57dfb511944e74ec1c53f0714bc2608e52b7d"
+          },
+          {
+            "member": "openssl-3.6.4/util/fix-includes",
+            "sha256": "9d3aa292f3ca7af1917e481f0a086b77655c5fded8bad2101dab68e03681f178"
+          },
+          {
+            "member": "openssl-3.6.4/util/mkerr.pl",
+            "sha256": "e9cc0cc32e3b5304ae7fd546b1f3aaa77b0c7836bf42ba9d44b02e11bfe67b82"
+          },
+          {
+            "member": "openssl-3.6.4/util/perl/OpenSSL/Glob.pm",
+            "sha256": "4100606067f0b577d3e6d2d2aaca93d826fb66105639eb94ff76c70ae8c526c9"
+          },
+          {
+            "member": "openssl-3.6.4/util/perl/OpenSSL/Test.pm",
+            "sha256": "f22bfb7feb6ec4301c5358c782674de042111c046272fdb80a421cc89981cc64"
+          },
+          {
+            "member": "openssl-3.6.4/util/perl/OpenSSL/fallback.pm",
+            "sha256": "9c457d583bd46e3d18c87a4a29a2fde7db1a16d007b1769429a53b865d22380a"
+          },
+          {
+            "member": "openssl-3.6.4/util/platform_symbols/unix-symbols.txt",
+            "sha256": "e15781e0ab9051a5f279bdaaf016076c8b22a4e0a31718129a28a9e2307cbaeb"
+          },
+          {
+            "member": "openssl-3.6.4/util/withlibctx.pl",
+            "sha256": "5dacb877ca32933e58642efe8fb850995cf06804f1c3e74d8b8cb287d2760e0f"
+          },
+          {
+            "member": "openssl-3.6.4/apps/req.c",
+            "sha256": "9a74c39a83fb5ece2483a0e7f5411f5e0322b3b0f9c9262f3b60f451f9afba80"
+          },
+          {
+            "member": "openssl-3.6.4/doc/man1/openssl-req.pod.in",
+            "sha256": "4c61efab8d779c3d552bd211d802b93086d3ef93114febe7eb0361fd0fa8aafd"
+          }
+        ]
+      },
+      {
+        "member": "openssl-3.6.4/test/certs/ncca-key.pem",
+        "sha256": "045409cc24a17bede92d82ad1322f77b4f3a67b21e017460d75fef3076d57616",
+        "reason": "Legacy key data outside the fixed shared DLL compile, install and runtime graph; credential safety not approved.",
+        "evidence": [
+          {
+            "member": "openssl-3.6.4/CHANGES.md",
+            "sha256": "4260fc83da75b4987b5ff829a71b81d75e94cd3628fa4e9c52ab24e1e15a4449"
+          },
+          {
+            "member": "openssl-3.6.4/Configurations/00-base-templates.conf",
+            "sha256": "29362786b6daeeea7c137283158e2c0454c2495b3a329d88b2f2adfc98f17a7b"
+          },
+          {
+            "member": "openssl-3.6.4/Configurations/10-main.conf",
+            "sha256": "f29bb8de5bfbace12cbf9f4fbf952fccc7a34e105d50105d35e99754df53f2df"
+          },
+          {
+            "member": "openssl-3.6.4/Configurations/15-android.conf",
+            "sha256": "c6bc311480b0886aeeb47143d3726d66cc2984cf1aefbbe9e878039a282c0901"
+          },
+          {
+            "member": "openssl-3.6.4/Configurations/unix-Makefile.tmpl",
+            "sha256": "cc02bca6ac2c5a32c89661d391bc1c610116fa2c98f7a202a41056c05a25f8b8"
+          },
+          {
+            "member": "openssl-3.6.4/Configurations/windows-makefile.tmpl",
+            "sha256": "e1a8d9a44afb425c84a02e98d68527bcbdf098efbcd614445b596b210ba829d2"
+          },
+          {
+            "member": "openssl-3.6.4/Configure",
+            "sha256": "622e9c7013848b2b14adf5e5d20cadd5cc1555928bfcb9b9715c0099ae578e36"
+          },
+          {
+            "member": "openssl-3.6.4/apps/build.info",
+            "sha256": "9ff591669eaefd8db77242f899ae4ac8f6fe4dea5446b5cb1f417cbf68f6f09f"
+          },
+          {
+            "member": "openssl-3.6.4/apps/lib/win32_init.c",
+            "sha256": "a328c3473981b70116eb60fe07d92fc67ec9cb91c54903505940acc72338bde8"
+          },
+          {
+            "member": "openssl-3.6.4/build.info",
+            "sha256": "f37b88ff8ef303ecd462e7d96e6ffb1533dd37074716fb8ff6331eb2dd80de11"
+          },
+          {
+            "member": "openssl-3.6.4/crypto/LPdir_unix.c",
+            "sha256": "5b08afaef95f9fae98635c98d767c3180fb237aa70da612df8fe76dae127d895"
+          },
+          {
+            "member": "openssl-3.6.4/crypto/build.info",
+            "sha256": "09c92ed9a227774640b9dcdf456443337e521c764369be3f5263bf36778760fb"
+          },
+          {
+            "member": "openssl-3.6.4/demos/http3/gen_nghttp3.pl",
+            "sha256": "9f4e32a8807da8dad748dd126864e560195b6e6f18971b59386f4deaa934021d"
+          },
+          {
+            "member": "openssl-3.6.4/doc/build.info.in",
+            "sha256": "c509a2d213f77c3c588e9b3d0898081463171608ef399e6533681fd68575a726"
+          },
+          {
+            "member": "openssl-3.6.4/external/perl/Text-Template-1.56/Changes",
+            "sha256": "72069c3d66671f504bcc6f6b6ebd98d10459e41dd9a89be8fbdd02287ee2d15b"
+          },
+          {
+            "member": "openssl-3.6.4/external/perl/Text-Template-1.56/lib/Text/Template.pm",
+            "sha256": "41815a23764f0ec4cb610718c0b2b012d9f0c91db75a6784d409b30a7c1a4b98"
+          },
+          {
+            "member": "openssl-3.6.4/external/perl/Text-Template-1.56/t/basic.t",
+            "sha256": "c302204f5c09b2e9f798697467ae8b9818fc7028b959cbe07b5af23e78ebdaed"
+          },
+          {
+            "member": "openssl-3.6.4/ssl/build.info",
+            "sha256": "b53c2118e1f7a882e071ab90c400ad745dfd7a219102da04f993aacb5eeb071f"
+          },
+          {
+            "member": "openssl-3.6.4/test/README.ssltest.md",
+            "sha256": "b00080516aa367dd1de123170fe4c96eaa270f54cbf9c51e5fabad76ce3f8b1e"
+          },
+          {
+            "member": "openssl-3.6.4/test/build.info",
+            "sha256": "47326ba664c3c78acfd01a757c9e977ca6728ea24850f7cabdb8f83a8ee17811"
+          },
+          {
+            "member": "openssl-3.6.4/test/certs/setup.sh",
+            "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b"
+          },
+          {
+            "member": "openssl-3.6.4/test/recipes/04-test_pem_reading_data/NOTES.txt",
+            "sha256": "6ef166ef626ab83baae418760004b30f3931b8d9a1d0f3894d11bc4f5c13fd2f"
+          },
+          {
+            "member": "openssl-3.6.4/test/recipes/15-test_dsaparam.t",
+            "sha256": "c0cbec94a5bf0d307fc22e0d36cb85e6e0b6bddf327c39a14e277197d9fe1e66"
+          },
+          {
+            "member": "openssl-3.6.4/test/recipes/15-test_ecparam.t",
+            "sha256": "2b93a768a3cee6bf470b8a4099cf1013a30521117b82b18001a979b037248d09"
+          },
+          {
+            "member": "openssl-3.6.4/test/recipes/20-test_dhparam_check.t",
+            "sha256": "b73158aac055053f3a654ed0ab67ae63c067a3d398777db3aa6cef2e4d5cc385"
+          },
+          {
+            "member": "openssl-3.6.4/test/recipes/25-test_verify.t",
+            "sha256": "5ba87fccf8a3f9b0d65fdb442744829d9873eebe3d3ca51aa74a8da80515ecc6"
+          },
+          {
+            "member": "openssl-3.6.4/test/recipes/40-test_rehash.t",
+            "sha256": "4a881497e396a44925b8113620735994b2988646859fd2e93bdd06608ce8244a"
+          },
+          {
+            "member": "openssl-3.6.4/test/recipes/70-test_quic_multistream_data/verify-qlog.py",
+            "sha256": "84a1b72749ee40db72adcd0356af3151b1ebee11fffd4ddf3c6726222d64c034"
+          },
+          {
+            "member": "openssl-3.6.4/test/recipes/80-test_ssl_new.t",
+            "sha256": "89e2abaa16e32c1ec714982b24692481622c4e037623152708fa611081253f46"
+          },
+          {
+            "member": "openssl-3.6.4/test/run_tests.pl",
+            "sha256": "a8e9f54f435780419be643e5b9ac3c1c0f2eac1a26375120d2a87cd27cc41660"
+          },
+          {
+            "member": "openssl-3.6.4/tools/c_rehash.in",
+            "sha256": "0c512346aa0a359902736124a7ee143a59e3005d0e1480831c8b2d78ff2ea349"
+          },
+          {
+            "member": "openssl-3.6.4/util/ck_errf.pl",
+            "sha256": "2fdd62a995295642058b65c6ce1583e7f029db40bc5d86add682fa93c7a75e44"
+          },
+          {
+            "member": "openssl-3.6.4/util/copy.pl",
+            "sha256": "50a328ae75bf158cc2dbd9c0ee2526230f8ae76a4debb168d28cd497a013319c"
+          },
+          {
+            "member": "openssl-3.6.4/util/find-doc-nits",
+            "sha256": "db4aed2b7ede0d32ee406549dac57dfb511944e74ec1c53f0714bc2608e52b7d"
+          },
+          {
+            "member": "openssl-3.6.4/util/fix-includes",
+            "sha256": "9d3aa292f3ca7af1917e481f0a086b77655c5fded8bad2101dab68e03681f178"
+          },
+          {
+            "member": "openssl-3.6.4/util/mkerr.pl",
+            "sha256": "e9cc0cc32e3b5304ae7fd546b1f3aaa77b0c7836bf42ba9d44b02e11bfe67b82"
+          },
+          {
+            "member": "openssl-3.6.4/util/perl/OpenSSL/Glob.pm",
+            "sha256": "4100606067f0b577d3e6d2d2aaca93d826fb66105639eb94ff76c70ae8c526c9"
+          },
+          {
+            "member": "openssl-3.6.4/util/perl/OpenSSL/Test.pm",
+            "sha256": "f22bfb7feb6ec4301c5358c782674de042111c046272fdb80a421cc89981cc64"
+          },
+          {
+            "member": "openssl-3.6.4/util/perl/OpenSSL/fallback.pm",
+            "sha256": "9c457d583bd46e3d18c87a4a29a2fde7db1a16d007b1769429a53b865d22380a"
+          },
+          {
+            "member": "openssl-3.6.4/util/platform_symbols/unix-symbols.txt",
+            "sha256": "e15781e0ab9051a5f279bdaaf016076c8b22a4e0a31718129a28a9e2307cbaeb"
+          },
+          {
+            "member": "openssl-3.6.4/util/withlibctx.pl",
+            "sha256": "5dacb877ca32933e58642efe8fb850995cf06804f1c3e74d8b8cb287d2760e0f"
+          },
+          {
+            "member": "openssl-3.6.4/apps/req.c",
+            "sha256": "9a74c39a83fb5ece2483a0e7f5411f5e0322b3b0f9c9262f3b60f451f9afba80"
+          },
+          {
+            "member": "openssl-3.6.4/doc/man1/openssl-req.pod.in",
+            "sha256": "4c61efab8d779c3d552bd211d802b93086d3ef93114febe7eb0361fd0fa8aafd"
+          }
+        ]
+      }
+    ]
+  }
+]

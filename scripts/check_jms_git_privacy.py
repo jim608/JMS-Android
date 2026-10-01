@@ -313,6 +313,9 @@ class ArchiveScan:
         self.raw_samples = []
         self.seen = set()
         self.used_reviews = []
+        from jms_source_derivations import policy_entries
+        self.source_derivations = policy_entries(project)
+        self.source_lineage = {}
         self.stream_bytes = 0
         self.current_member = None
         self.expected_evidence = set()
@@ -382,8 +385,19 @@ class ArchiveScan:
         results = [(name, problems)]
         approvals = matching_reviews(data, contexts, self.reviews)
         digest = hashlib.sha256(data).hexdigest()
+        if depth == 0:
+            from jms_source_derivations import verify_lineage
+            for derivation in self.source_derivations:
+                if derivation.get('archiveSha256') == digest:
+                    self.source_lineage.update(verify_lineage(data, derivation, self.registry_project))
         self.seen.update(identity for archive, member in contexts
                          if (identity := (archive, member, digest)) in self.expected_evidence)
+        # Only an actually scanned, unchanged retained member can supply its
+        # original identity. Excluded members and changed containers never do.
+        for archive, member in contexts:
+            origin = self.source_lineage.get((archive, member, digest))
+            if origin in self.expected_evidence:
+                self.seen.add(origin)
         self.used_reviews.extend(approvals)
         raw = [r for r in approvals if r.get('inspection') == 'raw-public-test-sample'
                and r.get('testReference') and r.get('rawContentReview')]
@@ -483,7 +497,9 @@ def scan_package_cached(path, domains, cache_directory=None):
     data = path.read_bytes()
     reviews = load_public_reviews()
     scanner = ArchiveScan(domains, reviews)
+    from jms_source_derivations import lineage_cache_inputs
     inputs = {'material': hashlib.sha256(data).hexdigest(), 'name': path.name,
+              'sourceLineage': lineage_cache_inputs([hashlib.sha256(data).hexdigest()]),
               'scanner': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
               'reviews': hashlib.sha256(json.dumps(reviews, sort_keys=True).encode()).hexdigest(),
               'policy': hashlib.sha256(json.dumps(sorted(domains)).encode()).hexdigest(),
@@ -522,7 +538,9 @@ def scan_packages_cached(paths, domains, cache_directory=None):
         with path.open('rb') as stream:
             materials.append({'name': path.name, 'sha256': hashlib.file_digest(stream, 'sha256').hexdigest()})
     reviews = load_public_reviews()
+    from jms_source_derivations import lineage_cache_inputs
     inputs = {'materials': materials,
+              'sourceLineage': lineage_cache_inputs([item['sha256'] for item in materials]),
               'scanner': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
               'reviews': hashlib.sha256(json.dumps(reviews, sort_keys=True).encode()).hexdigest(),
               'policy': hashlib.sha256(json.dumps(sorted(domains)).encode()).hexdigest(),
