@@ -34315,7 +34315,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbe_sha1_1024_2des.pem",
     "sha256": "7af1096ceca43dae032b481d883e553fba9f222fea125144add0be3b990ee190",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:127. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34337,7 +34338,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbe_sha1_1024_3des.pem",
     "sha256": "1971878eef033bd7848c08b815398671a58e8daad5ed01c4afb13205199126d9",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:79. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34359,7 +34361,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbe_sha1_2048_2des.pem",
     "sha256": "50c2f177ca4d72d06bef23514df39c1d59ac317b7905eff5d73452f22b5fcde2",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:139. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34381,7 +34384,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbe_sha1_2048_3des.pem",
     "sha256": "cde352fa9773ed8fd8888f9bb69d33a1b9dd13dab18f58620f9106b27d603c7a",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:91. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34403,7 +34407,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbe_sha1_4096_2des.pem",
     "sha256": "7577944396863a97be6fae436361303947778616d165b687b319f9353e80d4dd",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:151. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34425,7 +34430,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbe_sha1_4096_3des.pem",
     "sha256": "9a37049edb24ddbdaa1a65cd374068bca32d0049048e88c8c6e38094924213d6",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:103. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34447,7 +34453,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_1024_3des.pem",
     "sha256": "4a89853da284ffc3faa351fd7590af5cf161818c1751140317c63dcd66e759d3",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:175. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34469,7 +34476,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_1024_3des_sha224.pem",
     "sha256": "085440d612122680999baf05e4efe8a196f5c39422a2a6c97093e49ddd93f911",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:319. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34491,7 +34499,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_1024_3des_sha256.pem",
     "sha256": "0c9768289c6b43939c29b864bb984b42c9011c88fa8494f3856ad284fa5edf88",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:463. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34513,7 +34522,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_1024_3des_sha384.pem",
     "sha256": "740a53af16f5499b17a9b2e59e839f2b95b3669238d631ef06aed63cf8135725",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:607. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34535,7 +34545,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_1024_3des_sha512.pem",
     "sha256": "7533d5a146e37001dc57d1f53e8a38182e3925747bf02a1667331332f584709a",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:751. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34557,7 +34568,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_1024_des.pem",
     "sha256": "708e7466c2c45ba4681528d62b598a708480eb8fe8b28025e53cf340bd12c55a",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:247. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34579,7 +34591,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_1024_des_sha224.pem",
     "sha256": "7c80e405d73324a7145ce944f1101275ccdaa2d33dc67d5a5c8e0ad53299709a",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:391. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34601,7 +34614,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_1024_des_sha256.pem",
     "sha256": "98162c6a985e733250cdb9a717c57560ea48ae804800020b997bb9cc633f81fa",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:535. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34623,7 +34637,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_1024_des_sha384.pem",
     "sha256": "8653bc8407ef8d9f96b46b1ee6342210234eaf4b5a947acb7807d9f79853a3f5",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:679. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34645,7 +34660,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_1024_des_sha512.pem",
     "sha256": "2d7a6c0e119bce4a94717956ea740989866046bf318454c5ea501975e2c16094",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:823. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34667,7 +34683,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_2048_3des.pem",
     "sha256": "d15cba2d636473deca31d86aeecb0197c966f179910b3b86e92736227146752c",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:187. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34689,7 +34706,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_2048_3des_sha224.pem",
     "sha256": "a14337e04dc979d9a3bf67a7c14376568b158249cfd904b91f863f821d811415",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:331. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34711,7 +34729,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_2048_3des_sha256.pem",
     "sha256": "f2c46ab52e1f0d2eea7b99dcce07fef029472bd43444dec83a24da7517616fcb",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:475. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34733,7 +34752,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_2048_3des_sha384.pem",
     "sha256": "df6de7e2ed97fd20b4476d15e849ba8a03449b2baf8984c4660fbc45e2fc3154",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:619. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34755,7 +34775,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_2048_3des_sha512.pem",
     "sha256": "948f06fc1775e2ef3ffa518bef5b047801cd0c6ad5515285451704ecd873280b",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:763. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34777,7 +34798,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_2048_des.pem",
     "sha256": "8d94de2021aea75f8c2be923b10dc2dde5ae20611ac59d11e1a33d020c656ef5",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:259. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34799,7 +34821,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_2048_des_sha224.pem",
     "sha256": "65cfceefaf228bcdcd2c4132b27bf14f59bc006dbb00e6cc315340b971f03a10",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:403. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34821,7 +34844,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_2048_des_sha256.pem",
     "sha256": "87a64aef803b3f878b21441d4363bd92d339f67c3cb0018dafd3a1d2d01935b1",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:547. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34843,7 +34867,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_2048_des_sha384.pem",
     "sha256": "68955f866f9fd9b804d128d862a5180e64903bba63b36184ebcd61215078bee1",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:691. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34865,7 +34890,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_2048_des_sha512.pem",
     "sha256": "f6bc393737cd3757742966fb7db6912f1e817c2fabdef1f812828c2d5f374387",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:835. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34887,7 +34913,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_4096_3des.pem",
     "sha256": "9736c1fd60bdcb63665cb2903a6eec86df2f72c59c82d54eddcc7bb58f4b6e5a",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:199. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34909,7 +34936,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_4096_3des_sha224.pem",
     "sha256": "d905f3b6b08e38c7d303c90648917da59e0bb03ed7fcbb25b9093f8b2cb1ae41",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:343. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34931,7 +34959,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_4096_3des_sha256.pem",
     "sha256": "f1523efc7496c198189d9f37298dda2e410ce28af16281e851d4c39a9ba49668",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:487. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34953,7 +34982,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_4096_3des_sha384.pem",
     "sha256": "c899858881141168e0daf871d54e201ce659548fe76efda6cbf8be8c43a75dc5",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:631. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34975,7 +35005,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_4096_3des_sha512.pem",
     "sha256": "7380b0697efe46ee612f70660d9465831e38aef10d1264d55b9b615373b1e282",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:775. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -34997,7 +35028,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_4096_des.pem",
     "sha256": "0d6a32350b7caf5e179cc7acfa18a1918897494cd617f1de067bc0d250a00f38",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:271. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -35019,7 +35051,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_4096_des_sha224.pem",
     "sha256": "94fed3e23676ac1d14652e6c9c9238fecade01cc1838fc8f2abffe15e53ef160",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:415. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -35041,7 +35074,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_4096_des_sha256.pem",
     "sha256": "b583d5be7de2d3a854527436ac421da0f10ce1307be213e5eb0c24fcf814a826",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:559. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -35063,7 +35097,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_4096_des_sha384.pem",
     "sha256": "ef178d8836c7f8b6d5e24b495d1b2ee842b22eed17f55a51b8186ccd8eab7ef0",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:703. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -35085,7 +35120,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/rsa_pkcs8_pbes2_pbkdf2_4096_des_sha512.pem",
     "sha256": "8778569cfdb0b38397064f2f01a64e0e3168a70f28dacf7a0e43b39714545e58",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Mbed TLS 3.4.0 fixture consumed as a file argument by the upstream pk_parse_keyfile_rsa test at mbedtls-3.4.0/tests/suites/test_suite_pkparse.data:847. The matching test function loads the sample to validate parsing or cryptographic behavior, including expected errors. Public test-only material, not a JMS account or deployed credential. No source tests or external authentication executed.",
     "evidence": {
@@ -37878,7 +37914,8 @@
     "member": "mbedtls-3.4.0/tests/data_files/ec_prv.pk8.pw.pem",
     "sha256": "d58913cbb587fca417bcbd8c2ec09c858206cee88de3a1351aa8601791066c82",
     "rules": [
-      "private file type"
+      "private file type",
+      "credential pattern"
     ],
     "explanation": "Exact Git blob matches the fixed upstream commit a9e54129b5b7fc9c690fd12cb7c20fcf014b12b3. The included commit evidence records the PKCS8 test-key generation recipe or the x509_verify concatenated-CRL regression references and expected errors. Historical test use established independently of the filename; no source code or external login executed.",
     "evidence": {
