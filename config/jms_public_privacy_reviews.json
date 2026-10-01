@@ -44776,5 +44776,310 @@
         "sha256": "775f61ff30e4619c1be0dd5ae279435940ab0ec5cdf16f8b0b3fa9009f8c17e0"
       }
     ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-common.h",
+    "sha256": "12d4fcf198b73c6dd6ac1b58206f2ff546704d9802f064c863269f3998a84f36",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "Every one of the 28 embedded private-key arrays was traced separately: 26 datum aliases are explicitly supplied to local import/handshake/token regression consumers; subca3 and cligost01 are retained test-chain/client signing material, byte-identical to their fixed upstream introductions. Their public keys match their paired synthetic test certificates offline; the intermediate certificate is consumed by X509/OCSP tests, and the GOST fixture is explicitly documented as the GOST2001 TLS client in the common test header. The two retained private datums have no established current runtime consumer; no such consumer is claimed. Only this exact source archive/member/content and listed rules are accepted. No upstream tests, external authentication or signing were performed.",
+    "testReference": "tests/key-import-export.c; tests/crt_apis.c; tests/auto-verify.c; tests/dtls-max-record.c; tests/gnutls_x509_privkey_import.c; tests/crl_apis.c; tests/crt_type-neg-common.c; tests/client_dsa_key.c; tests/tls12-cert-key-exchange.c; tests/dtls12-cert-key-exchange.c; tests/pkcs11/pkcs11-eddsa-privkey-test.c; tests/server-kx-neg-common.c; tests/insecure_key.c; tests/tls13-cert-key-exchange.c; tests/common-cert-key-exchange.c; tests/x509cert.c; tests/tls13/ocsp-client.c; tests/cert-common.h",
+    "evidence": {
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/key-import-export.c",
+      "sha256": "7326b3751638425712b2341e34a97460af2aef72fcc46ef50e03a2ca46dd4721",
+      "kind": "upstream-specific-fixture-provenance"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/crt_apis.c",
+        "sha256": "6ed00a850f0625e2d2ed25cc7a331d192e2b678f2878289b9a7a0290d49f708c"
+      },
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/auto-verify.c",
+        "sha256": "6e7975c8ef11f6230802a149411cb0aab2b78b56436d490889cc67756b259734"
+      },
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/dtls-max-record.c",
+        "sha256": "f4c65a9bf45d31d594a6feb1c2293236ed4355321126e4fe130f52586e485d63"
+      },
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/gnutls_x509_privkey_import.c",
+        "sha256": "94ee2c4790f0b35ed8980733263426b21d0a0e70e2f41f84fb0aa99ecb278f6c"
+      },
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/crl_apis.c",
+        "sha256": "f9e850431177307a0e90207e4160d199c94661294bfc6f6487242d61db598218"
+      },
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/crt_type-neg-common.c",
+        "sha256": "9bfb60ad0fc7795dbeca477696a634a3f56ee4ef7096e185b99458a0b8884241"
+      },
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/client_dsa_key.c",
+        "sha256": "abdf10f51a46129f442370cfe944ae81347cce37344131f24c9246803d838400"
+      },
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/tls12-cert-key-exchange.c",
+        "sha256": "de6e50cea8044c64e0aeb250c6e34f7cc0a8986554e01d99905e17f1073f071c"
+      },
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/dtls12-cert-key-exchange.c",
+        "sha256": "531ede2d1cbf28b0f02756eabb1d059de1e903961b09ab8117eb5dec6e2c6eda"
+      },
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/pkcs11/pkcs11-eddsa-privkey-test.c",
+        "sha256": "de0f2e8ec17b4710aea52a3a0dba2c7d877bfb56ac69a7ddb6c6e2e88eaae471"
+      },
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/server-kx-neg-common.c",
+        "sha256": "4ebdb67503a30c33513945903c918a6f947521a59e471565fb22bddf16f41f4c"
+      },
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/insecure_key.c",
+        "sha256": "29631fc136ba847b0100cfbdb11500eb453a12df83335d12c4a549f24ac7445b"
+      },
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/tls13-cert-key-exchange.c",
+        "sha256": "640ed188a6b460a5a837c931c428806c36100a665f77dfbd8c89e2f04efa5964"
+      },
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/common-cert-key-exchange.c",
+        "sha256": "7a2147d3bd2b170815f8e2f7f2e117435e941b94f2d4f5cc0f023590cc98ddbb"
+      },
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/x509cert.c",
+        "sha256": "83eaf43008ea99885bf325312a61f9760ea473ab63c767f11cbec4b08213636c"
+      },
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/tls13/ocsp-client.c",
+        "sha256": "1817415766638a188715b856e511ec143072fe7a9219f59e532955e49ed7ad2c"
+      },
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-common.h",
+        "sha256": "12d4fcf198b73c6dd6ac1b58206f2ff546704d9802f064c863269f3998a84f36"
+      }
+    ],
+    "embeddedKeyCoverage": {
+      "explicitDatumConsumers": 26,
+      "retainedDocumentedTestMaterial": 2
+    },
+    "historicalProvenance": [
+      {
+        "symbol": "subca3_key_pem",
+        "revision": "11833bfd026392d952504abb02ed8ca229d788c7",
+        "initializerSha256": "6655481e8fa23651393ae6881bc9718701d96e4fb78c5861dfedfe2b9777ad38",
+        "source": "https://github.com/gnutls/gnutls/blob/11833bfd026392d952504abb02ed8ca229d788c7/tests/cert-common.h"
+      },
+      {
+        "symbol": "cligost01_ca3_key_pem",
+        "revision": "5554615fe4e5b7331b5220688badfadbeea35528",
+        "initializerSha256": "f099c1c7ababcf774cdcb8e228b9ea7a487bece5783acba08f8f89a2c29ac5c7",
+        "source": "https://github.com/gnutls/gnutls/blob/5554615fe4e5b7331b5220688badfadbeea35528/tests/cert-common.h"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-mldsa-inconsistent2.pem",
+    "sha256": "1357e2c750dfebeb6d8a863779e9a35157bb22e159f299fe4cc072b88548b649",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "This exact MLDSA negative key fixture is byte-identical to its fixed introducing upstream commit and differs from the documented valid expanded-key fixture by one byte in expandedKey. The upstream shell source explicitly documents variants 2/3 as signing-detectable inconsistent keys. The current shell loop tests variant 1 only; this review establishes the deliberately mutated test-material role and does not claim that variant 2/3 is executed by the current test. Only this exact source archive/member/content and listed rules are accepted. No upstream tests, external authentication or signing were performed.",
+    "testReference": "tests/cert-tests/mldsa.sh; tests/cert-tests/data/key-mldsa44-expanded.pem",
+    "evidence": {
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/mldsa.sh",
+      "sha256": "30e50c0057bb04e3453eb92a8ddf0330af2559d78f6f5f79155239a62fcc182b",
+      "kind": "upstream-specific-fixture-provenance"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-mldsa44-expanded.pem",
+        "sha256": "0ce3ae87683cfd06578e710a9367514bf94c33b2b87627b90ccbb8e6386125f6"
+      }
+    ],
+    "historicalProvenance": {
+      "revision": "66b78875f1ad28bef852ce44e13f5db5c2175b0c",
+      "source": "https://github.com/gnutls/gnutls/blob/66b78875f1ad28bef852ce44e13f5db5c2175b0c/tests/cert-tests/data/key-mldsa-inconsistent2.pem",
+      "changedField": "expandedKey",
+      "changedOffsets": [
+        64
+      ]
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
+    "archiveSha256": "7889cd73810d909642c0f122b40cfe0eaec5b0d2985804f145cd90c6a51c0435",
+    "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-mldsa-inconsistent3.pem",
+    "sha256": "ec1ddc56c68caaf0cedaafb557dd72fcc4513917dd258c240bd7ae332951817e",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "This exact MLDSA negative key fixture is byte-identical to its fixed introducing upstream commit and differs from the documented valid expanded-key fixture by one byte in expandedKey. The upstream shell source explicitly documents variants 2/3 as signing-detectable inconsistent keys. The current shell loop tests variant 1 only; this review establishes the deliberately mutated test-material role and does not claim that variant 2/3 is executed by the current test. Only this exact source archive/member/content and listed rules are accepted. No upstream tests, external authentication or signing were performed.",
+    "testReference": "tests/cert-tests/mldsa.sh; tests/cert-tests/data/key-mldsa44-expanded.pem",
+    "evidence": {
+      "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/mldsa.sh",
+      "sha256": "30e50c0057bb04e3453eb92a8ddf0330af2559d78f6f5f79155239a62fcc182b",
+      "kind": "upstream-specific-fixture-provenance"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-gnutls/gnutls-3.8.13.tar.xz/gnutls-3.8.13/tests/cert-tests/data/key-mldsa44-expanded.pem",
+        "sha256": "0ce3ae87683cfd06578e710a9367514bf94c33b2b87627b90ccbb8e6386125f6"
+      }
+    ],
+    "historicalProvenance": {
+      "revision": "66b78875f1ad28bef852ce44e13f5db5c2175b0c",
+      "source": "https://github.com/gnutls/gnutls/blob/66b78875f1ad28bef852ce44e13f5db5c2175b0c/tests/cert-tests/data/key-mldsa-inconsistent3.pem",
+      "changedField": "expandedKey",
+      "changedOffsets": [
+        896
+      ]
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-libssh-0.12.2-1.src.tar.zst",
+    "archiveSha256": "b935d915b5392e573f65855c491e476ae38860d3929d2b564e507aa660c3e05b",
+    "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/tests/torture_key.c",
+    "sha256": "200ab617517a5caa99e8d8a1b37954f53e1689bdfb7cc446fb57558e51c1cf3e",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "All 38 embedded private-key string constants are explicitly returned by the test-key format/algorithm dispatchers. The public torture_get_testkey/torture_get_openssh_testkey wrappers select those dispatchers for the local PKI import/format regressions, including encrypted negative/roundtrip fixtures. The count covers every embedded private-key marker in this fixed source member. Only this exact source archive/member/content and listed rules are accepted. No upstream tests, external authentication or signing were performed.",
+    "testReference": "tests/torture_key.c; tests/unittests/torture_pki_rsa.c; tests/unittests/torture_pki_ecdsa.c",
+    "evidence": {
+      "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/tests/torture_key.c",
+      "sha256": "200ab617517a5caa99e8d8a1b37954f53e1689bdfb7cc446fb57558e51c1cf3e",
+      "kind": "upstream-specific-fixture-provenance"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/tests/unittests/torture_pki_rsa.c",
+        "sha256": "07439861cd1678fca613167ac6262458ee4a403ec4e88d947e2a7b94efeda373"
+      },
+      {
+        "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/tests/unittests/torture_pki_ecdsa.c",
+        "sha256": "ccdccaf2a2e86c617074c606f165258f12530ddedd2014ed4aa27918ffd64afe"
+      }
+    ],
+    "embeddedKeyCoverage": {
+      "returnedPrivateKeyConstants": 38
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/ee-key-768.pem",
+    "sha256": "1129008513ca091d780fd31541c4f67b286e3475d5bd7af57a71bd3b95470fb7",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "The exact named key is selected as the key/CA-key/CT-log-key parameter by the upstream test-certificate setup recipe. mkcert.sh resolves the named parameter to its PEM input and generates the local test certificate or deterministic CT fixture. This proves its test-generation role without executing the recipe. Only this exact source archive/member/content and listed rules are accepted. No upstream tests, external authentication or signing were performed.",
+    "testReference": "test/certs/setup.sh; test/certs/mkcert.sh",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b",
+      "kind": "upstream-specific-fixture-provenance"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/embeddedSCTs1_issuer-key.pem",
+    "sha256": "025e2876845388b85e518f6d968bc395fd0482fb56422906a70d55deab9cd5ae",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "The exact named key is selected as the key/CA-key/CT-log-key parameter by the upstream test-certificate setup recipe. mkcert.sh resolves the named parameter to its PEM input and generates the local test certificate or deterministic CT fixture. This proves its test-generation role without executing the recipe. Only this exact source archive/member/content and listed rules are accepted. No upstream tests, external authentication or signing were performed.",
+    "testReference": "test/certs/setup.sh; test/certs/mkcert.sh",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b",
+      "kind": "upstream-specific-fixture-provenance"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/ct-server-key.pem",
+    "sha256": "af48ba7434275bb5313bc99ec63a7e4009b56fbc27f70e699f89fa3a09280d8c",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "The exact named key is selected as the key/CA-key/CT-log-key parameter by the upstream test-certificate setup recipe. mkcert.sh resolves the named parameter to its PEM input and generates the local test certificate or deterministic CT fixture. This proves its test-generation role without executing the recipe. Only this exact source archive/member/content and listed rules are accepted. No upstream tests, external authentication or signing were performed.",
+    "testReference": "test/certs/setup.sh; test/certs/mkcert.sh",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b",
+      "kind": "upstream-specific-fixture-provenance"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/rootkey.pem",
+    "sha256": "793703dc4c12f4e65e084a9eaadf062e9e63373482bd498a5a76fac30fee15e2",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "The exact named key is selected as the key/CA-key/CT-log-key parameter by the upstream test-certificate setup recipe. mkcert.sh resolves the named parameter to its PEM input and generates the local test certificate or deterministic CT fixture. This proves its test-generation role without executing the recipe. Only this exact source archive/member/content and listed rules are accepted. No upstream tests, external authentication or signing were performed.",
+    "testReference": "test/certs/setup.sh; test/certs/mkcert.sh",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/setup.sh",
+      "sha256": "4a8fe41edd76e97a09d4d752251ec2ee5f6b4881daa3796cd37ca49818031b5b",
+      "kind": "upstream-specific-fixture-provenance"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/mkcert.sh",
+        "sha256": "d8687d7cf5cd51a2f4733cf3881c234b8f34225441417e8d9c3be0f0bb509aae"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/sm2-root.key",
+    "sha256": "46bc1a91e14f02aea0641102efa8a45683c1dbe913302c5fbdae4db678e81890",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "The exact SM2 key filename is selected as the CA-key input by the local CA regression recipe together with its corresponding source-distributed certificate. Only this exact source archive/member/content and listed rules are accepted. No upstream tests, external authentication or signing were performed.",
+    "testReference": "test/recipes/80-test_ca.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_ca.t",
+      "sha256": "246c839ae012159e74bafab5cc7b39de105455516d0d3f493a48398b45c04fd0",
+      "kind": "upstream-specific-fixture-provenance"
+    },
+    "additionalEvidence": []
   }
 ]
