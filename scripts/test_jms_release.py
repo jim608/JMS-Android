@@ -30,6 +30,10 @@ class ReleaseToolTests(unittest.TestCase):
             self.assertTrue(tool.validate_source_name(name))
         self.assertFalse(tool.validate_source_name('AGENTS.md'))
         self.assertFalse(tool.validate_source_name('docs/JMS_STATUS.md'))
+        self.assertTrue(tool.validate_source_name('Dockerfile.diagnostics'))
+        self.assertTrue(tool.validate_source_name('server/diagnostics_receiver.py'))
+        self.assertFalse(tool.validate_source_name('server/deployment.json'))
+        self.assertFalse(tool.validate_source_name('server/diagnostics.sqlite3'))
 
     def test_publication_guard(self):
         record = {"signerSha256": tool.TEST_CERT, "testSigning": True, "repository": "", "nativeSourceAudit": "BLOCKED"}

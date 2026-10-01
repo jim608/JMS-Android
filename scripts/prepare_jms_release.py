@@ -17,7 +17,8 @@ ALLOWED_ROOTS = {"lib", "assets", "icons", "android", "ios", "linux", "macos", "
 ALLOWED_FILES = {"pubspec.yaml", "pubspec.lock", "l10n.yaml", "analysis_options.yaml", "build.yaml",
                  "LICENSE", "README.md", "CHANGELOG.md", "NOTICE", ".metadata", ".gitignore",
                  "build.jms_ambient.yaml", ".fvmrc", "Dockerfile.web", "Dockerfile", "Dockerfile-rootless",
-                 ".dockerignore", "docker-compose.yml", "docker-entrypoint.sh", "DEVELOPEMENT.md", "INSTALL.md"}
+                 ".dockerignore", "docker-compose.yml", "docker-entrypoint.sh", "DEVELOPEMENT.md", "INSTALL.md",
+                 "Dockerfile.diagnostics"}
 PRIVATE_NAMES = {"key.properties", "local.properties", ".env", "credentials.json", "google-services.json"}
 SECRET = re.compile(rb"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}")
 
@@ -40,7 +41,8 @@ def validate_source_name(name):
         raise ValueError("Private or unsafe source path: " + name)
     if path.suffix.lower() in {".jks", ".keystore", ".p12", ".pfx", ".pem", ".key", ".apk", ".aab"}:
         raise ValueError("Private or generated source path: " + name)
-    return len(path.parts) == 1 and name in ALLOWED_FILES or path.parts[0] in ALLOWED_ROOTS
+    return (len(path.parts) == 1 and name in ALLOWED_FILES or path.parts[0] in ALLOWED_ROOTS
+            or name == 'server/diagnostics_receiver.py')
 
 def require_bound_sources(record):
     for entry in record["inputs"]:

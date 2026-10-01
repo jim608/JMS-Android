@@ -73,7 +73,7 @@ def quality_checks(files):
     ]
     for name, command in commands:
         path = PUBLICATION / (name + '.log')
-        scopes = ('scripts/', 'config/') if name == 'publication-tests' else ('lib/', 'test/', 'integration_test/', 'assets/', 'icons/', 'android/', 'third_party/')
+        scopes = ('scripts/', 'config/', 'server/') if name == 'publication-tests' else ('lib/', 'test/', 'integration_test/', 'assets/', 'icons/', 'android/', 'third_party/')
         inputs = {entry: checksum for entry, checksum in files.items()
                   if entry.startswith(scopes) or entry in ('pubspec.yaml', 'pubspec.lock', '.fvmrc', 'analysis_options.yaml', 'l10n.yaml', 'config/config.json', 'config/jms_updates.json')}
         fingerprint = source_fingerprint(inputs)
