@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fladder/screens/crash_screen/crash_screen.dart';
 import 'package:fladder/screens/settings/settings_scaffold.dart';
 import 'package:fladder/screens/settings/widgets/settings_update_information.dart';
+import 'package:fladder/screens/settings/widgets/settings_diagnostics_information.dart';
 import 'package:fladder/screens/shared/fladder_icon.dart';
 import 'package:fladder/screens/shared/fladder_logo.dart';
 import 'package:fladder/screens/shared/media/external_urls.dart';
@@ -31,7 +32,8 @@ class AboutSettingsPage extends ConsumerWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(context.localized.aboutVersion(applicationInfo.versionAndPlatform)),
+            Text(context.localized
+                .aboutVersion(applicationInfo.versionAndPlatform)),
             Text(context.localized.aboutBuild(applicationInfo.buildNumber)),
             const SelectableText(JmsBuildInfo.id),
             const SizedBox(height: 16),
@@ -85,6 +87,7 @@ class AboutSettingsPage extends ConsumerWidget {
           ],
         ),
         const SettingsUpdateInformation(),
+        const SettingsDiagnosticsInformation(),
       ].addInBetween(const SizedBox(height: 16)),
     );
   }

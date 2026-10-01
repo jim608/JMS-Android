@@ -9,10 +9,15 @@ class FladderConfig {
   String? _baseUrl;
 
   static String? get seerrBaseUrl => _instance._seerrBaseUrl;
-  static set seerrBaseUrl(String? value) => _instance._seerrBaseUrl = normalizeConfiguredSeerrSource(value);
+  static set seerrBaseUrl(String? value) =>
+      _instance._seerrBaseUrl = normalizeConfiguredSeerrSource(value);
   String? _seerrBaseUrl;
 
-  static void fromJson(Map<String, dynamic> json) => _instance = FladderConfig._fromJson(json);
+  static String? get diagnosticsEndpoint => _instance._diagnosticsEndpoint;
+  String? _diagnosticsEndpoint;
+
+  static void fromJson(Map<String, dynamic> json) =>
+      _instance = FladderConfig._fromJson(json);
 
   factory FladderConfig._fromJson(Map<String, dynamic> json) {
     final config = FladderConfig._();
@@ -21,6 +26,9 @@ class FladderConfig {
 
     config._baseUrl = newUrl?.isEmpty == true ? null : newUrl;
     config._seerrBaseUrl = normalizeConfiguredSeerrSource(newSeerrUrl);
+    config._diagnosticsEndpoint = json['diagnosticsEndpoint'] is String
+        ? json['diagnosticsEndpoint'] as String
+        : null;
 
     return config;
   }

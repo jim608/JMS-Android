@@ -1,4 +1,13 @@
 {
+  "jmsDiagnosticsTitle": "匿名錯誤與畫面效能回報",
+  "jmsDiagnosticsHint": "同意後自動回報錯誤類別與慢幀統計，可隨時關閉。",
+  "jmsDiagnosticsUnconfigured": "先設定 HTTPS 診斷接收網址，再選擇是否啟用。",
+  "jmsDiagnosticsConsent": "啟用後，JMS 會自動向您設定的診斷伺服器傳送版本、建置識別、平台、錯誤類別及彙總畫面幀耗時。不傳送帳號、媒體名稱、服務網址、密碼、Cookie、Token、錯誤全文或堆疊；接收伺服器仍會看到連線 IP。預設關閉，您可隨時停用。",
+  "jmsDiagnosticsEnable": "同意並啟用",
+  "jmsDiagnosticsEndpoint": "診斷接收網址",
+  "jmsDiagnosticsEndpointHint": "完整 HTTPS 網址，路徑為 /api/jms/diagnostics/v1，不含帳密或查詢參數。僅保存在此裝置，不納入設定備份。",
+  "jmsDiagnosticsInvalidEndpoint": "網址無效或無法儲存；請使用不含帳密的 HTTPS 診斷網址。",
+  "jmsDiagnosticsSaveError": "無法儲存回報偏好，原設定保留。",
   "jmsWindowsMdkUnavailable": "JMS Windows 不再包含 MDK，改用 MPV 播放；原後端偏好及其他設定保持不變。",
   "jmsAndroidMdkUnavailable": "JMS Android 不含 MDK，已改用 MPV；原有偏好仍保留。亦可選擇 Native 後端。",
   "jmsSearchError": "搜尋失敗，點此重試。",

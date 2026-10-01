@@ -12,6 +12,7 @@ import 'package:fladder/util/locale_resolver.dart';
 import 'package:fladder/localization_delegates.dart';
 import 'package:fladder/providers/arguments_provider.dart';
 import 'package:fladder/providers/crash_log_provider.dart';
+import 'package:fladder/providers/diagnostics_provider.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
 import 'package:fladder/providers/shared_provider.dart';
 import 'package:fladder/providers/sync_provider.dart';
@@ -55,6 +56,7 @@ class Main extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(diagnosticsProvider);
     if (!kIsWeb) ref.watch(updateProvider.select((value) => value.ready));
     return PlatformAppWrapper(
       builder: (context, autoRouter) {

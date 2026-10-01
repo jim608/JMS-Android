@@ -1,4 +1,13 @@
 {
+  "jmsDiagnosticsTitle": "Anonymous error and frame-performance reports",
+  "jmsDiagnosticsHint": "After consent, automatically report error categories and slow-frame counts. You can turn this off at any time.",
+  "jmsDiagnosticsUnconfigured": "Set an HTTPS diagnostic endpoint before choosing to enable reports.",
+  "jmsDiagnosticsConsent": "After you enable this, JMS sends your configured diagnostic server the version, build ID, platform, error category and aggregate frame timings. It excludes accounts, media names, service URLs, passwords, cookies, tokens, error text and stack traces. The receiving server can still see your connection IP. Reports are off by default and can be disabled at any time.",
+  "jmsDiagnosticsEnable": "Agree and enable",
+  "jmsDiagnosticsEndpoint": "Diagnostic endpoint",
+  "jmsDiagnosticsEndpointHint": "An HTTPS URL ending in /api/jms/diagnostics/v1, without credentials or query parameters. Saved on this device only and excluded from settings backups.",
+  "jmsDiagnosticsInvalidEndpoint": "Invalid URL or storage failure. Use an HTTPS diagnostic URL without credentials.",
+  "jmsDiagnosticsSaveError": "Unable to save the reporting preference. The previous setting is retained.",
   "jmsAndroidMdkUnavailable": "MDK is not included in JMS Android. MPV is used instead; your saved preference is retained. You can also select Native.",
   "jmsWindowsMdkUnavailable": "MDK is no longer included in JMS Windows. MPV is used instead; your saved preference and other settings are retained.",
   "jmsSearchError": "Search failed. Tap to retry.",
