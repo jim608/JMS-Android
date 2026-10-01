@@ -33,7 +33,7 @@ $update = Join-Path $artifact 'update.json'
 if ((Test-Path -LiteralPath $source) -or (Test-Path -LiteralPath $update)) {
     throw 'Prepared materials already exist; refusing to replace them'
 }
-& rtk proxy git archive --format=zip --prefix=JMS/ "--output=$source" $build.sourceCommit
+& rtk proxy $python scripts/package_jms_sources.py --commit $build.sourceCommit --output $source
 if ($LASTEXITCODE -ne 0) { throw 'Source archive failed' }
 $data = [ordered]@{
     schemaVersion = 1
