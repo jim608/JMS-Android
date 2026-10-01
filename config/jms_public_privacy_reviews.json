@@ -43136,5 +43136,797 @@
       "member": "mingw-w64-python/Python-3.14.7.tar.xz/Python-3.14.7/Lib/test/test_configparser.py",
       "sha256": "2a3450337ffc13b6d1ced50ea66996f2aa9d12c1bb14ac892719da0decf28c37"
     }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/apps/openssl-vms.cnf",
+    "sha256": "889af378bce04e7a21e9fe8708f229535b469221aa9edd395c460972cd6612c9",
+    "rules": [
+      "private network endpoint"
+    ],
+    "explanation": "The only private-network URL is a commented proxy-setting example in the upstream OpenSSL sample configuration. It is not an active connection target or JMS deployment endpoint; all other configuration bytes remain subject to the normal rules. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "apps/openssl-vms.cnf",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/apps/openssl-vms.cnf",
+      "sha256": "889af378bce04e7a21e9fe8708f229535b469221aa9edd395c460972cd6612c9",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/apps/openssl.cnf",
+    "sha256": "a65a2cb9f4ee8ffdc7ef4f0ac600c0bdafb95b7b1ab457188ac610a62f5ad6b3",
+    "rules": [
+      "private network endpoint"
+    ],
+    "explanation": "The only private-network URL is a commented proxy-setting example in the upstream OpenSSL sample configuration. It is not an active connection target or JMS deployment endpoint; all other configuration bytes remain subject to the normal rules. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "apps/openssl.cnf",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/apps/openssl.cnf",
+      "sha256": "a65a2cb9f4ee8ffdc7ef4f0ac600c0bdafb95b7b1ab457188ac610a62f5ad6b3",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/doc/man1/openssl-cmp.pod.in",
+    "sha256": "285cce9d6ea7542155b17d5509fb21587db726eba0f8d6636991318b9be47530",
+    "rules": [
+      "private network endpoint"
+    ],
+    "explanation": "The sole private-network URL is the proxy argument in the documented CMP command example. Its purpose is explicitly the EXAMPLES section of the fixed upstream command manual, not an application service origin. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "doc/man1/openssl-cmp.pod.in",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/doc/man1/openssl-cmp.pod.in",
+      "sha256": "285cce9d6ea7542155b17d5509fb21587db726eba0f8d6636991318b9be47530",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/doc/man3/PEM_read.pod",
+    "sha256": "46c0c181b8882eae8ea608f10c2a2e0e93897101354aabb8d4077fb9b62a498e",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "The sole private-key marker pair is a PEM-format documentation illustration with explicit ellipsis/base64 placeholder text, not a complete private-key object. The surrounding section describes serialization/encryption grammar. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "doc/man3/PEM_read.pod",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/doc/man3/PEM_read.pod",
+      "sha256": "46c0c181b8882eae8ea608f10c2a2e0e93897101354aabb8d4077fb9b62a498e",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/doc/man3/PEM_read_bio_PrivateKey.pod",
+    "sha256": "ebb7e9772391f43542c08a8c0f8f5e487580f60c0fc8049dff557f44986ae765",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "The sole private-key marker pair is a PEM-format documentation illustration with explicit ellipsis/base64 placeholder text, not a complete private-key object. The surrounding section describes serialization/encryption grammar. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "doc/man3/PEM_read_bio_PrivateKey.pod",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/doc/man3/PEM_read_bio_PrivateKey.pod",
+      "sha256": "ebb7e9772391f43542c08a8c0f8f5e487580f60c0fc8049dff557f44986ae765",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/doc/man7/openssl-glossary.pod",
+    "sha256": "8437c819231db56ff64d831be97e9f717e0c1e84c46357ae8d6d6d377dfe7445",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "The sole private-key marker pair is a PEM-format documentation illustration with explicit ellipsis/base64 placeholder text, not a complete private-key object. The surrounding section describes serialization/encryption grammar. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "doc/man7/openssl-glossary.pod",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/doc/man7/openssl-glossary.pod",
+      "sha256": "8437c819231db56ff64d831be97e9f717e0c1e84c46357ae8d6d6d377dfe7445",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/client-ed25519-key.pem",
+    "sha256": "54a69dcf7169928f08c6c07a74510677c6fbc2fc560b46be31fc3923d869e831",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "The SSL regression configuration explicitly assigns this exact TEST_CERTS_DIR filename as PrivateKey. The ssl_test recipe binds that directory to the upstream test/certs fixtures and invokes its local handshake test runner. This is a configured synthetic TLS regression identity, not a production key. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/ssl-tests/20-cert-select.cnf; test/recipes/80-test_ssl_new.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ssl-tests/20-cert-select.cnf",
+      "sha256": "101ab2b0e31f54bd25ae8dc66c6526c565d2d08c69d79d52c545984252a52f9d",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_ssl_new.t",
+        "sha256": "89e2abaa16e32c1ec714982b24692481622c4e037623152708fa611081253f46"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/client-ed448-key.pem",
+    "sha256": "e4affa395830a3b20f18bb16c5cc14432b75cdc5f0efa0a23ef60e8f57bb403f",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "The SSL regression configuration explicitly assigns this exact TEST_CERTS_DIR filename as PrivateKey. The ssl_test recipe binds that directory to the upstream test/certs fixtures and invokes its local handshake test runner. This is a configured synthetic TLS regression identity, not a production key. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/ssl-tests/20-cert-select.cnf; test/recipes/80-test_ssl_new.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ssl-tests/20-cert-select.cnf",
+      "sha256": "101ab2b0e31f54bd25ae8dc66c6526c565d2d08c69d79d52c545984252a52f9d",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_ssl_new.t",
+        "sha256": "89e2abaa16e32c1ec714982b24692481622c4e037623152708fa611081253f46"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/ec_privkey_with_chain.pem",
+    "sha256": "d997f26e5990a8bdc5e15d5a8b0540fecd106a65c027d6dd129801a906d429af",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "The X509 certificate/private-key matching regression explicitly names this fixture and checks the expected success/count or failure outcome for certificate and request parsing. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/recipes/60-test_x509_check_cert_pkey.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/60-test_x509_check_cert_pkey.t",
+      "sha256": "2a2b93e38916be873fc581728047ea22283f86f6f3d3ef36278a728fdd51d301",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/ee-key-8192.pem",
+    "sha256": "7d02a539f9b49a82a66f4468a8168f4a550a2e69d3c10387850305eb5a728088",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "The SSL API regression explicitly selects this named key through its certsdir fixture path or certificate-chain test helper. The recipe passes the original test/certs directory to sslapitest; these inputs exercise handshake, key loading, OCSP or private-key error behavior in the local test harness. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/sslapitest.c; test/recipes/90-test_sslapi.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/sslapitest.c",
+      "sha256": "7801fc7949140799829e43b243337438102313e103939f09d1971bb403c176b1",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/90-test_sslapi.t",
+        "sha256": "775f61ff30e4619c1be0dd5ae279435940ab0ec5cdf16f8b0b3fa9009f8c17e0"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/embeddedSCTs1-key.pem",
+    "sha256": "fb8cee1e7c1cca1f03dbee2728ec8a3bbeea5868fa202553cadfd1295495fe74",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "The SSL regression configuration explicitly assigns this exact TEST_CERTS_DIR filename as PrivateKey. The ssl_test recipe binds that directory to the upstream test/certs fixtures and invokes its local handshake test runner. This is a configured synthetic TLS regression identity, not a production key. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/ssl-tests/12-ct.cnf; test/recipes/80-test_ssl_new.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ssl-tests/12-ct.cnf",
+      "sha256": "0b9863dcb341d617154dba739f92e69344288ec8197edf5bf4f7016463afa214",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_ssl_new.t",
+        "sha256": "89e2abaa16e32c1ec714982b24692481622c4e037623152708fa611081253f46"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/interCA.key",
+    "sha256": "b76c6eadcd2aab336a92ff4dd820c70787a29417de7f6597d41967b824b40db8",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "The SSL API regression explicitly selects this named key through its certsdir fixture path or certificate-chain test helper. The recipe passes the original test/certs directory to sslapitest; these inputs exercise handshake, key loading, OCSP or private-key error behavior in the local test harness. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/sslapitest.c; test/recipes/90-test_sslapi.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/sslapitest.c",
+      "sha256": "7801fc7949140799829e43b243337438102313e103939f09d1971bb403c176b1",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/90-test_sslapi.t",
+        "sha256": "775f61ff30e4619c1be0dd5ae279435940ab0ec5cdf16f8b0b3fa9009f8c17e0"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/leaf-encrypted.key",
+    "sha256": "52a2162334f5fbf09e0ffd65105d692f02f78188e79fea7cd1d801f20163e90a",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "The SSL API regression explicitly selects this named key through its certsdir fixture path or certificate-chain test helper. The recipe passes the original test/certs directory to sslapitest; these inputs exercise handshake, key loading, OCSP or private-key error behavior in the local test harness. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/sslapitest.c; test/recipes/90-test_sslapi.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/sslapitest.c",
+      "sha256": "7801fc7949140799829e43b243337438102313e103939f09d1971bb403c176b1",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/90-test_sslapi.t",
+        "sha256": "775f61ff30e4619c1be0dd5ae279435940ab0ec5cdf16f8b0b3fa9009f8c17e0"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/leaf.key",
+    "sha256": "66d21d966a7dde3100abc32fd83efb18f89b961b7dd8a6bce7b8d8b158012989",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "The SSL API regression explicitly selects this named key through its certsdir fixture path or certificate-chain test helper. The recipe passes the original test/certs directory to sslapitest; these inputs exercise handshake, key loading, OCSP or private-key error behavior in the local test harness. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/sslapitest.c; test/recipes/90-test_sslapi.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/sslapitest.c",
+      "sha256": "7801fc7949140799829e43b243337438102313e103939f09d1971bb403c176b1",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/90-test_sslapi.t",
+        "sha256": "775f61ff30e4619c1be0dd5ae279435940ab0ec5cdf16f8b0b3fa9009f8c17e0"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/p256-ee-rsa-ca-key.pem",
+    "sha256": "d6f4dec6ce2c60e98abdc5c42919ffa7756dd35980f273333fa69f2161063cc6",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "The SSL API regression explicitly selects this named key through its certsdir fixture path or certificate-chain test helper. The recipe passes the original test/certs directory to sslapitest; these inputs exercise handshake, key loading, OCSP or private-key error behavior in the local test harness. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/sslapitest.c; test/recipes/90-test_sslapi.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/sslapitest.c",
+      "sha256": "7801fc7949140799829e43b243337438102313e103939f09d1971bb403c176b1",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/90-test_sslapi.t",
+        "sha256": "775f61ff30e4619c1be0dd5ae279435940ab0ec5cdf16f8b0b3fa9009f8c17e0"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/p256-server-key.pem",
+    "sha256": "dd9eb4da7daa41a264d9352123a1ea2879882ecb170a2905aa4261b8941f0040",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "The SSL regression configuration explicitly assigns this exact TEST_CERTS_DIR filename as PrivateKey. The ssl_test recipe binds that directory to the upstream test/certs fixtures and invokes its local handshake test runner. This is a configured synthetic TLS regression identity, not a production key. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/ssl-tests/20-cert-select.cnf; test/recipes/80-test_ssl_new.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ssl-tests/20-cert-select.cnf",
+      "sha256": "101ab2b0e31f54bd25ae8dc66c6526c565d2d08c69d79d52c545984252a52f9d",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_ssl_new.t",
+        "sha256": "89e2abaa16e32c1ec714982b24692481622c4e037623152708fa611081253f46"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/p384-server-key.pem",
+    "sha256": "f9cce1336fe249613c15dd0f758ff6778da14fb3dba2626f4f9b9dd8a76576e0",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "The SSL regression configuration explicitly assigns this exact TEST_CERTS_DIR filename as PrivateKey. The ssl_test recipe binds that directory to the upstream test/certs fixtures and invokes its local handshake test runner. This is a configured synthetic TLS regression identity, not a production key. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/ssl-tests/20-cert-select.cnf; test/recipes/80-test_ssl_new.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ssl-tests/20-cert-select.cnf",
+      "sha256": "101ab2b0e31f54bd25ae8dc66c6526c565d2d08c69d79d52c545984252a52f9d",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_ssl_new.t",
+        "sha256": "89e2abaa16e32c1ec714982b24692481622c4e037623152708fa611081253f46"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/rootCA.key",
+    "sha256": "4456c6d7b1f469f2d83a51702ee3c4a21f70d1949ca777c65d0374eabaf19ab3",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "The SSL API regression explicitly selects this named key through its certsdir fixture path or certificate-chain test helper. The recipe passes the original test/certs directory to sslapitest; these inputs exercise handshake, key loading, OCSP or private-key error behavior in the local test harness. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/sslapitest.c; test/recipes/90-test_sslapi.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/sslapitest.c",
+      "sha256": "7801fc7949140799829e43b243337438102313e103939f09d1971bb403c176b1",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/90-test_sslapi.t",
+        "sha256": "775f61ff30e4619c1be0dd5ae279435940ab0ec5cdf16f8b0b3fa9009f8c17e0"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/server-cecdsa-key.pem",
+    "sha256": "6f326428a3bde95dcc9f7a0ede95380ee819953b230f4196702385957928f78f",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "The SSL regression configuration explicitly assigns this exact TEST_CERTS_DIR filename as PrivateKey. The ssl_test recipe binds that directory to the upstream test/certs fixtures and invokes its local handshake test runner. This is a configured synthetic TLS regression identity, not a production key. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/ssl-tests/20-cert-select.cnf; test/recipes/80-test_ssl_new.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ssl-tests/20-cert-select.cnf",
+      "sha256": "101ab2b0e31f54bd25ae8dc66c6526c565d2d08c69d79d52c545984252a52f9d",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_ssl_new.t",
+        "sha256": "89e2abaa16e32c1ec714982b24692481622c4e037623152708fa611081253f46"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/server-ec-compressed-key.pem",
+    "sha256": "73054638f92aaa831631d2882856eca862f7a273a0705d8aa1017bdb4f1cb259",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "The SSL regression configuration explicitly assigns this exact TEST_CERTS_DIR filename as PrivateKey. The ssl_test recipe binds that directory to the upstream test/certs fixtures and invokes its local handshake test runner. This is a configured synthetic TLS regression identity, not a production key. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/ssl-tests/33-compressed-spki.cnf; test/recipes/80-test_ssl_new.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ssl-tests/33-compressed-spki.cnf",
+      "sha256": "1ea3b0876d779b6d963638e60a83fbe51b6a5238a5aae2003751a2c1e2a586ee",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_ssl_new.t",
+        "sha256": "89e2abaa16e32c1ec714982b24692481622c4e037623152708fa611081253f46"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/server-ecdsa-brainpoolP256r1-key.pem",
+    "sha256": "ec39a5edb401b443439a41d9cb61f32f22a16467ea66c4132a620a60640d74ac",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "The SSL regression configuration explicitly assigns this exact TEST_CERTS_DIR filename as PrivateKey. The ssl_test recipe binds that directory to the upstream test/certs fixtures and invokes its local handshake test runner. This is a configured synthetic TLS regression identity, not a production key. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/ssl-tests/20-cert-select.cnf; test/recipes/80-test_ssl_new.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ssl-tests/20-cert-select.cnf",
+      "sha256": "101ab2b0e31f54bd25ae8dc66c6526c565d2d08c69d79d52c545984252a52f9d",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_ssl_new.t",
+        "sha256": "89e2abaa16e32c1ec714982b24692481622c4e037623152708fa611081253f46"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/server-ml-dsa-44-key.pem",
+    "sha256": "ce9eb6cce75afadfdb035d016e2f65f388da04b2c262db305fc460159746526e",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "The SSL regression configuration explicitly assigns this exact TEST_CERTS_DIR filename as PrivateKey. The ssl_test recipe binds that directory to the upstream test/certs fixtures and invokes its local handshake test runner. This is a configured synthetic TLS regression identity, not a production key. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/ssl-tests/20-cert-select.cnf; test/recipes/80-test_ssl_new.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ssl-tests/20-cert-select.cnf",
+      "sha256": "101ab2b0e31f54bd25ae8dc66c6526c565d2d08c69d79d52c545984252a52f9d",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_ssl_new.t",
+        "sha256": "89e2abaa16e32c1ec714982b24692481622c4e037623152708fa611081253f46"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/server-pss-key.pem",
+    "sha256": "596b4fa16cbb1878c9effd11bb72b3d89b2de995a5adf231ee51f4e3cbae795b",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "The SSL regression configuration explicitly assigns this exact TEST_CERTS_DIR filename as PrivateKey. The ssl_test recipe binds that directory to the upstream test/certs fixtures and invokes its local handshake test runner. This is a configured synthetic TLS regression identity, not a production key. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/ssl-tests/20-cert-select.cnf; test/recipes/80-test_ssl_new.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/ssl-tests/20-cert-select.cnf",
+      "sha256": "101ab2b0e31f54bd25ae8dc66c6526c565d2d08c69d79d52c545984252a52f9d",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_ssl_new.t",
+        "sha256": "89e2abaa16e32c1ec714982b24692481622c4e037623152708fa611081253f46"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/subinterCA.key",
+    "sha256": "751b68e77c88e27650a858d29a31a9e8511069c7bbede4bb8f7b14dee8e953f6",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "The SSL API regression explicitly selects this named key through its certsdir fixture path or certificate-chain test helper. The recipe passes the original test/certs directory to sslapitest; these inputs exercise handshake, key loading, OCSP or private-key error behavior in the local test harness. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/sslapitest.c; test/recipes/90-test_sslapi.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/sslapitest.c",
+      "sha256": "7801fc7949140799829e43b243337438102313e103939f09d1971bb403c176b1",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/90-test_sslapi.t",
+        "sha256": "775f61ff30e4619c1be0dd5ae279435940ab0ec5cdf16f8b0b3fa9009f8c17e0"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/wrongkey.pem",
+    "sha256": "7449156738a02669eb7c6e1cd07fd5fb59b515bcc9c8830dae02247b5cb296f5",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "The X509 certificate/private-key matching regression explicitly names this fixture and checks the expected success/count or failure outcome for certificate and request parsing. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/recipes/60-test_x509_check_cert_pkey.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/60-test_x509_check_cert_pkey.t",
+      "sha256": "2a2b93e38916be873fc581728047ea22283f86f6f3d3ef36278a728fdd51d301",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/pemtest.c",
+    "sha256": "27eb47adf14b4c7a0e45610604b87cf97ef9bf828dac91081e322871c85ff025",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "The sole embedded encrypted private-key-format input is protectedpay in test_protected_params. The registered PEM regression attempts parameter decoding and asserts that it yields NULL. This fixed negative parser sample is explicitly part of the upstream local unit test. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/pemtest.c",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/pemtest.c",
+      "sha256": "27eb47adf14b4c7a0e45610604b87cf97ef9bf828dac91081e322871c85ff025",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/provider_pkey_test.c",
+    "sha256": "732c69f7ea39ccea7c0c71812ff9178c1f0a125323a59788589f848bae7e3c8c",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "The marker is the source comment rendering of pem_rsa_priv_key, a fixed byte array passed through BIO_write to the local PEM decoder by the provider-key unit test. The same test examines its DER public key and PKCS8 encoding; the sample is a registered parser/provider regression input. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/provider_pkey_test.c",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/provider_pkey_test.c",
+      "sha256": "732c69f7ea39ccea7c0c71812ff9178c1f0a125323a59788589f848bae7e3c8c",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_pkey_provided/DH.priv.pem",
+    "sha256": "8365682b056b53ef74b7991d5e51e0316cc6b650d7fab348f17d8e8d23c73397",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "The EVP provider-key regression enumerates this algorithm and resolves its PRIV_PEM reference using the exact algorithm.priv.pem naming rule. Its registered recipe supplies this fixture directory. compare_with_file reads the expected fixture with BIO_read_ex and TEST_mem_eq compares it with the fixed test key serialization, rather than using it as an application identity. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/evp_pkey_provided_test.c; test/recipes/30-test_evp_pkey_provided.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/evp_pkey_provided_test.c",
+      "sha256": "44b26027ecf4f0a55e06e413d52fe1474a46fff342e5de0a8f5632bf33a05687",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_pkey_provided.t",
+        "sha256": "394553da84f00f3351138c151e3752f3c53160f741eaee87a9a219deec3140e8"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_pkey_provided/DSA.priv.pem",
+    "sha256": "6bf9aebe0a6248639234218d7eab0d54f896ede5ac4932fa686d7f830d310e60",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "The EVP provider-key regression enumerates this algorithm and resolves its PRIV_PEM reference using the exact algorithm.priv.pem naming rule. Its registered recipe supplies this fixture directory. compare_with_file reads the expected fixture with BIO_read_ex and TEST_mem_eq compares it with the fixed test key serialization, rather than using it as an application identity. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/evp_pkey_provided_test.c; test/recipes/30-test_evp_pkey_provided.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/evp_pkey_provided_test.c",
+      "sha256": "44b26027ecf4f0a55e06e413d52fe1474a46fff342e5de0a8f5632bf33a05687",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_pkey_provided.t",
+        "sha256": "394553da84f00f3351138c151e3752f3c53160f741eaee87a9a219deec3140e8"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_pkey_provided/EC.priv.pem",
+    "sha256": "0e5ba131d7655491c6a34b0f43abd614b851eed6d46ab3843296a728aa8c5dcf",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "The EVP provider-key regression enumerates this algorithm and resolves its PRIV_PEM reference using the exact algorithm.priv.pem naming rule. Its registered recipe supplies this fixture directory. compare_with_file reads the expected fixture with BIO_read_ex and TEST_mem_eq compares it with the fixed test key serialization, rather than using it as an application identity. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/evp_pkey_provided_test.c; test/recipes/30-test_evp_pkey_provided.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/evp_pkey_provided_test.c",
+      "sha256": "44b26027ecf4f0a55e06e413d52fe1474a46fff342e5de0a8f5632bf33a05687",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_pkey_provided.t",
+        "sha256": "394553da84f00f3351138c151e3752f3c53160f741eaee87a9a219deec3140e8"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_pkey_provided/RSA.priv.pem",
+    "sha256": "7b23fdc1a6fb5d9df5c65b5c841a55f302917593471248e5f0e488950332bec1",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "The EVP provider-key regression enumerates this algorithm and resolves its PRIV_PEM reference using the exact algorithm.priv.pem naming rule. Its registered recipe supplies this fixture directory. compare_with_file reads the expected fixture with BIO_read_ex and TEST_mem_eq compares it with the fixed test key serialization, rather than using it as an application identity. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/evp_pkey_provided_test.c; test/recipes/30-test_evp_pkey_provided.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/evp_pkey_provided_test.c",
+      "sha256": "44b26027ecf4f0a55e06e413d52fe1474a46fff342e5de0a8f5632bf33a05687",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": [
+      {
+        "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/30-test_evp_pkey_provided.t",
+        "sha256": "394553da84f00f3351138c151e3752f3c53160f741eaee87a9a219deec3140e8"
+      }
+    ]
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_cms_data/authenticated_attrs.pem",
+    "sha256": "ef419ccc164ce0a1833a28f654984216c6854da4473497f6e0b324f92ee10983",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "The CMS/S/MIME regression explicitly selects this named fixture through its original data or smime-certs directory and passes it to the local CMS decode/decrypt/verify test commands. Expected positive and negative outputs are checked by this recipe; the extension does not identify a JMS secret. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/recipes/80-test_cms.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_cms.t",
+      "sha256": "c6ed484bd363ca0fe9fef7ccf2a029fead164800f1615f4fe2825b1d4335d1ba",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_cms_data/authenveloped_attrs.pem",
+    "sha256": "1303f6b4985ce138b0a082f7e6d3f45372fcc847c2db3f36de315487c8937510",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "The CMS/S/MIME regression explicitly selects this named fixture through its original data or smime-certs directory and passes it to the local CMS decode/decrypt/verify test commands. Expected positive and negative outputs are checked by this recipe; the extension does not identify a JMS secret. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/recipes/80-test_cms.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_cms.t",
+      "sha256": "c6ed484bd363ca0fe9fef7ccf2a029fead164800f1615f4fe2825b1d4335d1ba",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_cms_data/bad_authenveloped_attrs.pem",
+    "sha256": "0bdaf1db745ebfdacda7f9e8ad735d2963f8642ec9a1fa5c46172d7f1538fa2c",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "The CMS/S/MIME regression explicitly selects this named fixture through its original data or smime-certs directory and passes it to the local CMS decode/decrypt/verify test commands. Expected positive and negative outputs are checked by this recipe; the extension does not identify a JMS secret. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/recipes/80-test_cms.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_cms.t",
+      "sha256": "c6ed484bd363ca0fe9fef7ccf2a029fead164800f1615f4fe2825b1d4335d1ba",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/serverinfo2.pem",
+    "sha256": "fc27a105f2819cb0041a28ee88ee3fb1809f329adb519e507c92f4c29b708497",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "The TLS 1.3 message regression explicitly passes serverinfo2.pem as its -serverinfo extension input to the local test server. The fixture holds server-info serialization data and is not a private-key or application configuration. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/recipes/70-test_tls13messages.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/70-test_tls13messages.t",
+      "sha256": "f4c5b4ca2bd3d36efc720167f63ecd2af6bb7cbbfbe267d2a1c32d6e881eac81",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/smec3.pem",
+    "sha256": "d940ac0bb1e4880c2679e48a0527d38cab19d4a712d42f402b65ecff3c2e26be",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "The CMS/S/MIME regression explicitly selects this named fixture through its original data or smime-certs directory and passes it to the local CMS decode/decrypt/verify test commands. Expected positive and negative outputs are checked by this recipe; the extension does not identify a JMS secret. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/recipes/80-test_cms.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_cms.t",
+      "sha256": "c6ed484bd363ca0fe9fef7ccf2a029fead164800f1615f4fe2825b1d4335d1ba",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/smime-certs/smrsa1024.pem",
+    "sha256": "e794a7d802ce13a105c07b503aba3bd7120571c4ac30237c850add80406c50f9",
+    "rules": [
+      "credential pattern",
+      "private file type"
+    ],
+    "explanation": "The CMS/S/MIME regression explicitly selects this named fixture through its original data or smime-certs directory and passes it to the local CMS decode/decrypt/verify test commands. Expected positive and negative outputs are checked by this recipe; the extension does not identify a JMS secret. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/recipes/80-test_cms.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/80-test_cms.t",
+      "sha256": "c6ed484bd363ca0fe9fef7ccf2a029fead164800f1615f4fe2825b1d4335d1ba",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/testsid.pem",
+    "sha256": "d5ab3bb7b0659bbf32c131371b0b49461ba38d17b3ea790e1f1e777bfd2e662c",
+    "rules": [
+      "private file type"
+    ],
+    "explanation": "The named SSL session-format regression runs sid conversions on testsid.pem through the explicit recipe fixture path. It is fixed serializer test data, not a saved JMS session. No external session resumption or authentication was attempted. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/recipes/25-test_sid.t",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/recipes/25-test_sid.t",
+      "sha256": "21be0a2903096619d233a5f953951f21d425a1b797c0faf4e0c4d4a152731aaa",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": []
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/threadstest.c",
+    "sha256": "afbb1064fffb4acb8ddef4d471c6e69e23336cee4ff0fc0808dc797ddf693962",
+    "rules": [
+      "credential pattern"
+    ],
+    "explanation": "The sole marker pair belongs to pemdataraw, assembled by glue_strings and consumed by test_pem_read_one through the PEM private-key reader. This fixed input exercises the upstream multi-threaded decoding regression; it is not an application signing or service identity. Only these fixed original bytes, archive location and listed rules are accepted. The source was inspected without executing tests, signing data, authenticating to a service or attempting to use a credential.",
+    "testReference": "test/threadstest.c",
+    "evidence": {
+      "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/threadstest.c",
+      "sha256": "afbb1064fffb4acb8ddef4d471c6e69e23336cee4ff0fc0808dc797ddf693962",
+      "kind": "upstream-explicit-fixture-consumer"
+    },
+    "additionalEvidence": []
   }
 ]
