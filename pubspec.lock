@@ -132,10 +132,9 @@ packages:
   background_downloader:
     dependency: "direct main"
     description:
-      name: background_downloader
-      sha256: a913b37cc47a656a225e9562b69576000d516f705482f392e2663500e6ff6032
-      url: "https://pub.dev"
-    source: hosted
+      path: "third_party/background_downloader"
+      relative: true
+    source: path
     version: "9.3.0"
   boolean_selector:
     dependency: transitive

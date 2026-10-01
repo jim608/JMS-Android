@@ -1,0 +1,422 @@
+{
+  "package": "background_downloader",
+  "version": "9.3.0",
+  "source": "https://pub.dev/api/archives/background_downloader-9.3.0.tar.gz",
+  "archiveSha256": "a913b37cc47a656a225e9562b69576000d516f705482f392e2663500e6ff6032",
+  "includedRoots": [
+    "android",
+    "ios",
+    "lib"
+  ],
+  "members": [
+    {
+      "member": "analysis_options.yaml",
+      "sha256": "d4a4a210dd55cfec4b537204103b8c82d620f21acb951cc6437bbd8f53a22a3b"
+    },
+    {
+      "member": "lib/src/localstore/document_ref.dart",
+      "sha256": "ae9b73358c1376b9c6011c283d280d9380e7f6643e7fc77680aefb7adeb9d9e5"
+    },
+    {
+      "member": "lib/src/localstore/document_ref_impl.dart",
+      "sha256": "a394ed69122528b7064d79b4ca041631c9bd2bfd88d182f63962444094825f6b"
+    },
+    {
+      "member": "lib/src/localstore/localstore_base.dart",
+      "sha256": "066ab881b65a14f0af8e0f731e87af31d7159739fcf752f5748d26e07f20ceb8"
+    },
+    {
+      "member": "lib/src/localstore/collection_ref.dart",
+      "sha256": "76871772f8b546679da533a06f944a76acfc2337660544022f884b5c5c4f2eda"
+    },
+    {
+      "member": "lib/src/localstore/localstore.dart",
+      "sha256": "574378eb04a3a6c3090800c1b08a203fd661abff124106c69971b3e3f7eccad2"
+    },
+    {
+      "member": "lib/src/localstore/utils/io.dart",
+      "sha256": "179ab7685c1a3a1aaffc01b76a85affc97b8e5d10e878e0ae1e6705310fbe0d3"
+    },
+    {
+      "member": "lib/src/localstore/utils/utils_impl.dart",
+      "sha256": "d24fb50290ef696588648b010a62e890395b8a3795a9ffd444cf77b3ae83da33"
+    },
+    {
+      "member": "lib/src/localstore/utils/html.dart",
+      "sha256": "d9096a2575280f074bda2ba0de81253a9906526a33a5a9ed62b75308f69fba0c"
+    },
+    {
+      "member": "lib/src/localstore/localstore_impl.dart",
+      "sha256": "8cac0ebf4a93a3468f2d4b7aa9c1c08d8f8cd1f2080577797c7fca5e603602d0"
+    },
+    {
+      "member": "lib/src/localstore/set_option.dart",
+      "sha256": "73bb8e59b1b3a18cce0a5a6be42f5a16ce82da4557277661502ab82f4dcc0427"
+    },
+    {
+      "member": "lib/src/localstore/collection_ref_impl.dart",
+      "sha256": "040d9ed9a1a84992e48a1ca3626ec73661c579494ff88348c8e87960eb55fd67"
+    },
+    {
+      "member": "lib/src/progress_widget.dart",
+      "sha256": "b02a3396c5357220be0d9c4896fa1bc690fb7c203cfca944d245d381b884dc3b"
+    },
+    {
+      "member": "lib/src/models.dart",
+      "sha256": "053219a433809abdf6b1b4d2b1067de943400b78bb3744ad06f7d1311d227f88"
+    },
+    {
+      "member": "lib/src/uri/uri_utils.dart",
+      "sha256": "06e3c2c5674c1efa5f24e699fa21a85b68da6b62cec19ebb9eec8b328f6db454"
+    },
+    {
+      "member": "lib/src/uri/uri_task.dart",
+      "sha256": "314a572f83e753964277457c0ef29b767b723d96e7154cc7333ce403b281bcd2"
+    },
+    {
+      "member": "lib/src/uri/uri_helpers.dart",
+      "sha256": "f3d0ed4c18200e404a0557603d563a15eb238e0a788330130572c8a6a77558ae"
+    },
+    {
+      "member": "lib/src/permissions.dart",
+      "sha256": "c77ca3b4cb181adecab7c34debb19252fc6e2ad0ae70e9977cb3460932069be4"
+    },
+    {
+      "member": "lib/src/native_downloader.dart",
+      "sha256": "859c9c06efa10ca016bab57e53a9f7577f2faed7fc7591be2fccbdaaa4a6732f"
+    },
+    {
+      "member": "lib/src/queue/task_queue.dart",
+      "sha256": "90d3e40abba14036ee2e662c90f6c1b37f026224ce90bd4d78ba30cb326c9da9"
+    },
+    {
+      "member": "lib/src/exceptions.dart",
+      "sha256": "7b12c77f552c7ffc59c2f871874387e799e16e084befeaf57c60a9eec3cf3424"
+    },
+    {
+      "member": "lib/src/task.dart",
+      "sha256": "0e3901596d11189974655c2f32f0223d124321b01a231b7a5386106e9d9ae45f"
+    },
+    {
+      "member": "lib/src/chunk.dart",
+      "sha256": "d86ffc648cae1581f880da4be467ddee981963d366732168e628d8a25958d363"
+    },
+    {
+      "member": "lib/src/database.dart",
+      "sha256": "1980298c029c85040411eba9d493623f4fb4ae18732ffc47c6596084ec47c5af"
+    },
+    {
+      "member": "lib/src/desktop/download_isolate.dart",
+      "sha256": "76f2e366e0cf44c3561f8b1ea9432fecb30e871e9be277eed2385353fc105b06"
+    },
+    {
+      "member": "lib/src/desktop/isolate.dart",
+      "sha256": "2ec58d13ab2763446cd694919d758d6a934590e1c9c4ee883b2537c09338d0f8"
+    },
+    {
+      "member": "lib/src/desktop/upload_isolate.dart",
+      "sha256": "78a685d653797b4070ff720a2b08036546f50eb1af83bea56ccfbffb42bf02cf"
+    },
+    {
+      "member": "lib/src/desktop/parallel_download_isolate.dart",
+      "sha256": "e11c294682b7bcc763a0405c50e0f3e2675d6eaa01afd9dde4bc443db57d95f7"
+    },
+    {
+      "member": "lib/src/desktop/data_isolate.dart",
+      "sha256": "730a95d0a69f457dc8768826d6417fc6f507e173883424b1174ccff833c9e046"
+    },
+    {
+      "member": "lib/src/desktop/desktop_downloader.dart",
+      "sha256": "fe23a8d63049286aa72f33a2c1b014132e24167bc8bce0a19987dc256de16bee"
+    },
+    {
+      "member": "lib/src/web_downloader.dart",
+      "sha256": "1206d76e93a431925b26ac2c746c98bc9a34318d24b0a1d736ffc4c0a6daf6e6"
+    },
+    {
+      "member": "lib/src/persistent_storage.dart",
+      "sha256": "3248a83019dd1c50a348384a29357916f88d9c845fa88a064d0d9c47769dd5fd"
+    },
+    {
+      "member": "lib/src/utils.dart",
+      "sha256": "be3035e0a83a0d7832135ca078305afe41f5d2974f24b94c8c32d0e537ced578"
+    },
+    {
+      "member": "lib/src/base_downloader.dart",
+      "sha256": "8267a0b74279742c9eaf0841062772f1c5df34bfa54efd03a8b1343ad9580362"
+    },
+    {
+      "member": "lib/src/file_downloader.dart",
+      "sha256": "a0c81ccc47d03ecdc14775bde1efda9b5fc705ca77a4be859bb079957775cb85"
+    },
+    {
+      "member": "lib/src/options/auth_callback.dart",
+      "sha256": "8346c024cd527e6d634937a892c6c4964e85d65fd254e6e8b16f1247f1e376ab"
+    },
+    {
+      "member": "lib/src/options/task_options.dart",
+      "sha256": "6f16fe9eaa673882ad71d4f6f20d97c50074476e1bd45ecd08d4233224ee13a5"
+    },
+    {
+      "member": "lib/src/options/auth.dart",
+      "sha256": "f8ea8aaae76ee71b9b818d6f175117c63cc445709457a9bced0eb28763c6659d"
+    },
+    {
+      "member": "lib/background_downloader.dart",
+      "sha256": "149af0fe36703d5851b0a183f1226d7d7dd46903c615c80e0d40257848f29093"
+    },
+    {
+      "member": "android/src/main/kotlin/com/bbflight/background_downloader/DataTaskWorker.kt",
+      "sha256": "b04959447460dd5fb7d0690d7bd133948b337db5914b547924fa842d5413bc38"
+    },
+    {
+      "member": "android/src/main/kotlin/com/bbflight/background_downloader/TaskWorker.kt",
+      "sha256": "3fb30f54e6769b3b16cb9a19599129ccd202116b8630ca7c018c866ee8142ba9"
+    },
+    {
+      "member": "android/src/main/kotlin/com/bbflight/background_downloader/SharedStorage.kt",
+      "sha256": "ee14587bf434e305d23e439d156c9d810ef88c1fb0d6d23fef536c8575abdeec"
+    },
+    {
+      "member": "android/src/main/kotlin/com/bbflight/background_downloader/WiFi.kt",
+      "sha256": "efb112e7ba4064b7830382e1c6d5e5cc8f5d7f1afabb565dc189e4a8afc8ef41"
+    },
+    {
+      "member": "android/src/main/kotlin/com/bbflight/background_downloader/UploadTaskWorker.kt",
+      "sha256": "f0d62b11f4aaa5b4b064cb4b2efb74cb4822975bc827410fc43c3f1e1c48251f"
+    },
+    {
+      "member": "android/src/main/kotlin/com/bbflight/background_downloader/Auth.kt",
+      "sha256": "89121b5b84b8b4a4265960c5b8a42e9b2aebf931dc0c7e7e38dafeb01c87f689"
+    },
+    {
+      "member": "android/src/main/kotlin/com/bbflight/background_downloader/Models.kt",
+      "sha256": "7b8a6b35f668022010d80028c042de337116ce906c4ff44be19b5cca1e0f31ef"
+    },
+    {
+      "member": "android/src/main/kotlin/com/bbflight/background_downloader/UriUtils.kt",
+      "sha256": "ad6b483810d7510ca065b175f5837000af42dd99d56ad632504d213d2acf69dd"
+    },
+    {
+      "member": "android/src/main/kotlin/com/bbflight/background_downloader/BDPlugin.kt",
+      "sha256": "00906e5788847ff236caf5b3a2927e168df2d50d48253d4d728b8e7ab9489d54"
+    },
+    {
+      "member": "android/src/main/kotlin/com/bbflight/background_downloader/UpdateNotificationWorker.kt",
+      "sha256": "5c47dd9b387cf56930606e97a413cdc4e04686025cd4fc86f83c1eba0f4bc52a"
+    },
+    {
+      "member": "android/src/main/kotlin/com/bbflight/background_downloader/ParallelDownloadTaskWorker.kt",
+      "sha256": "e685e52294bd1405fe66216623e0107acf2f381975e7ad3379659fb1a86b57a1"
+    },
+    {
+      "member": "android/src/main/kotlin/com/bbflight/background_downloader/Helpers.kt",
+      "sha256": "0c8553148a6cd375c01c7b2f78e094a3500bed439eace886c490335a44218000"
+    },
+    {
+      "member": "android/src/main/kotlin/com/bbflight/background_downloader/HoldingQueue.kt",
+      "sha256": "344f577e224b701ed209357c49f8d41b393c36bb77f09aa6c7ae44dd118d3e44"
+    },
+    {
+      "member": "android/src/main/kotlin/com/bbflight/background_downloader/PermissionsService.kt",
+      "sha256": "d249919548f69a34aa6858b1b463f4bac49df6f01302912e9cd5363d128faf65"
+    },
+    {
+      "member": "android/src/main/kotlin/com/bbflight/background_downloader/DownloadTaskWorker.kt",
+      "sha256": "a5d6118eef7e960c80667d89cffc629db1b7c1398eeed027c1f7a257729e1748"
+    },
+    {
+      "member": "android/src/main/kotlin/com/bbflight/background_downloader/OpenFile.kt",
+      "sha256": "64e868ca39e726a311c590ffabcdfde6aee27e2ff0b37c672560316b8197a29f"
+    },
+    {
+      "member": "android/src/main/kotlin/com/bbflight/background_downloader/Notifications.kt",
+      "sha256": "60b6b70bda0342a4edc8668a3d8c86523e3afa22166975bc5e7d7c876d2f9e6f"
+    },
+    {
+      "member": "android/src/main/kotlin/com/bbflight/background_downloader/QueueService.kt",
+      "sha256": "caf7f7a0d2812272a406b2b152da0af26df32d2bf27dd2ad3bb70bfe5747c18f"
+    },
+    {
+      "member": "android/src/main/kotlin/com/bbflight/background_downloader/Callbacks.kt",
+      "sha256": "6993e063365c684bb90bdead8c9d246c71436568d5f4ed46b12d0be723e9afe4"
+    },
+    {
+      "member": "android/src/main/AndroidManifest.xml",
+      "sha256": "b2cfa1ede3269d22fc048cd709743a4c8b586e0b0347c1d20179d933e51311cd"
+    },
+    {
+      "member": "android/src/main/res/xml/bgd_file_paths.xml",
+      "sha256": "2d9dd3a54cd062f9e666ccc5af14f6e676cc957e909cfa8e2d7640764bf0f792"
+    },
+    {
+      "member": "android/src/main/res/values/strings.xml",
+      "sha256": "172d865bf8cea6c7f010c8b0bc323f64fc639a0ca6caf68fd136b5fbb8363d4c"
+    },
+    {
+      "member": "android/src/main/res/drawable/outline_download_done_24.xml",
+      "sha256": "cd5ff00a491805c730cce1b9db3aa69a071c892f21ba365b0923439c0516faaa"
+    },
+    {
+      "member": "android/src/main/res/drawable/outline_file_download_24.xml",
+      "sha256": "b2c9e7ba3245083fbc716e2012ef6aa403dc1a4c5e1c42f356438a6a4df4ee92"
+    },
+    {
+      "member": "android/src/main/res/drawable/outline_play_arrow_24.xml",
+      "sha256": "8501cd13c8a0978a12d19655adc4d06322235b8a6ea3c9d1498318b0ce88cb1b"
+    },
+    {
+      "member": "android/src/main/res/drawable/outline_error_outline_24.xml",
+      "sha256": "2aa1606086a3cb4e5810957f3bc3f95352332c9dfc771b753c2deb9209c5cf2c"
+    },
+    {
+      "member": "android/src/main/res/drawable/outline_file_upload_24.xml",
+      "sha256": "a8b782b22a5de9fc07b3990d8fe7574263b7d340b6d7bef496a794dfae65b5cc"
+    },
+    {
+      "member": "android/src/main/res/drawable/outline_cancel_24.xml",
+      "sha256": "1f5f599b085517772cd5ff66cb086263db39ac5e6d25621d72dbd3199ed73993"
+    },
+    {
+      "member": "android/src/main/res/drawable/outline_pause_24.xml",
+      "sha256": "40fcfeda734d4af3ba58b3b6e17433f5ef70b0edadb2fc9f9d931697591c441d"
+    },
+    {
+      "member": "android/src/test/kotlin/com/bbflight/background_downloader/HelpersTest.kt",
+      "sha256": "cbe96876b55e5ba755a7b4b144606a7903c2296fe2c6db5f39b6396ce3599246"
+    },
+    {
+      "member": "android/src/test/kotlin/com/bbflight/background_downloader/AuthTest.kt",
+      "sha256": "9599ac14fc65040a8e49b83ea32ede153b137d9d245fb86b83873c327f1abe40"
+    },
+    {
+      "member": "android/src/test/kotlin/com/bbflight/background_downloader/SerializationTest.kt",
+      "sha256": "5e22ac196abb0203e73f7b4d93a077e607d3410249b8e5d1f8b785af476a79df"
+    },
+    {
+      "member": "android/src/androidTest/kotlin/UriUtilsTest.kt",
+      "sha256": "c848bbcf447ddf65c10e2c6ab541e4b3b469171cd3ff8ae7b3f96b8d5b57bf3e"
+    },
+    {
+      "member": "android/settings.gradle",
+      "sha256": "73faebc5a215247ce809e7804b7f3eba4140ef4eae082ff6a7fe363658a31ae8"
+    },
+    {
+      "member": "android/build.gradle",
+      "sha256": "54526b730f448937c90d5e1e16efefeb22b58a7afb14b6d47d8592b374bf5161"
+    },
+    {
+      "member": "pubspec.yaml",
+      "sha256": "3514d315220113da0751ce6b112df2476610ea434cb39eaa633d5b5ef5cad810"
+    },
+    {
+      "member": "README.md",
+      "sha256": "a1267b6b5667694881fe4a4b3d10e58ba8e6ad2cab0eca53b5049e422270f097"
+    },
+    {
+      "member": "ios/background_downloader/Sources/background_downloader/OpenFile.swift",
+      "sha256": "3a556d0c27153f4a560b0b337b5c62a36e33832f0aad92252b472ce5dbf7db84"
+    },
+    {
+      "member": "ios/background_downloader/Sources/background_downloader/SharedStorage.swift",
+      "sha256": "36224dfc2c6b9911354910fb5a62f3f190863fde5b8f2e397d88aecf82a3e7f4"
+    },
+    {
+      "member": "ios/background_downloader/Sources/background_downloader/Task.swift",
+      "sha256": "b95f58b2bd35c42964055db5b761d338665c3c1d5ff827d17b38b2ec2996c957"
+    },
+    {
+      "member": "ios/background_downloader/Sources/background_downloader/WiFi.swift",
+      "sha256": "ac189277499ae4518a8394fc49b090c0934264383416cc28786cc4382a0f473e"
+    },
+    {
+      "member": "ios/background_downloader/Sources/background_downloader/UrlSessionDelegate.swift",
+      "sha256": "62b246a12c5bcc57ff510b8b0aad2055fd66be3c89b2f43465a1443697fc5974"
+    },
+    {
+      "member": "ios/background_downloader/Sources/background_downloader/BDPlugin.swift",
+      "sha256": "4d9154dba26085e49088fe78107545b07a71c22b79f551614031337d4c58dc48"
+    },
+    {
+      "member": "ios/background_downloader/Sources/background_downloader/PrivacyInfo.xcprivacy",
+      "sha256": "bcc1e3733089b2fe1f66239ae6c3e1db413d276586b92b930f99ed69e10e2d4e"
+    },
+    {
+      "member": "ios/background_downloader/Sources/background_downloader/ParallelDownloader.swift",
+      "sha256": "2691cdc3a629cf44b10e3ea57615f3e57159754461fd10984aba2cf64801d468"
+    },
+    {
+      "member": "ios/background_downloader/Sources/background_downloader/HoldingQueue.swift",
+      "sha256": "921d93302b23c2376acf8988be6a4163f68a0b1d306f344d0eacd7eda3615980"
+    },
+    {
+      "member": "ios/background_downloader/Sources/background_downloader/TaskFunctions.swift",
+      "sha256": "e160196e7579c4f8db74a3ded41e910f31c02d1709cb164311310d086ed3cbc2"
+    },
+    {
+      "member": "ios/background_downloader/Sources/background_downloader/Notifications.swift",
+      "sha256": "fa194c7495e9e33472bb99e3318fa40e78427da01c6ebcc66a008f31ceefd2fc"
+    },
+    {
+      "member": "ios/background_downloader/Sources/background_downloader/Uploader.swift",
+      "sha256": "e6b69fd853a797a64b259f2962f0845092fe9a33be4a352170832d79a4de6e67"
+    },
+    {
+      "member": "ios/background_downloader/Sources/background_downloader/BackgroundDownloaderPlugin.swift",
+      "sha256": "cdf7d85fde77cdb4c79a87407b9c5af762941dd846bebd82ca627df010c0ee42"
+    },
+    {
+      "member": "ios/background_downloader/Sources/background_downloader/Permissions.swift",
+      "sha256": "92a2a29fd92c47a84e39474ae87fadd64d51ea6d5e01491c256986dcbc7a496a"
+    },
+    {
+      "member": "ios/background_downloader/Sources/background_downloader/Helpers.swift",
+      "sha256": "df69317e6cf3af0274e52f67237bbfe636ef1774444b18dd5499a169c0ea6b2c"
+    },
+    {
+      "member": "ios/background_downloader/Sources/background_downloader/UriUtils.swift",
+      "sha256": "082d9aec29476a41b37aa0ff40eacc111caa2c260b54b6dd17d4aacb16cb103b"
+    },
+    {
+      "member": "ios/background_downloader/Sources/background_downloader/Auth.swift",
+      "sha256": "2b3948e4807fa70bdd89448fa5fb3d5ac49162649ea0364835fc7da8db5693a5"
+    },
+    {
+      "member": "ios/background_downloader/Sources/background_downloader/Callbacks.swift",
+      "sha256": "da69df69a9707e17cdaa3a1c9cabfd912ef80d9b52707b62f357c4ebd741f718"
+    },
+    {
+      "member": "ios/background_downloader/Package.swift",
+      "sha256": "7c55b9b62c3594b251591d562439b160ec6154d0308648f5a3a14db4a0ea0efd"
+    },
+    {
+      "member": "ios/background_downloader.podspec",
+      "sha256": "51159ef9339f95c0ae044006bdaaae0e04041525490fd69c53268ab755c24f2e"
+    },
+    {
+      "member": "CHANGELOG.md",
+      "sha256": "469239bbf2706d25461ef69ebf311c7369502a5d720a248f26e86aa6ef188af3"
+    },
+    {
+      "member": "LICENSE",
+      "sha256": "1436a440db343fe8af42524d3201b694748f2ae4c32487513b6858c85e219a4b"
+    }
+  ],
+  "excludedDevelopmentMaterial": {
+    "roots": [
+      "doc",
+      "example",
+      "test"
+    ],
+    "files": [
+      "AGENTS.md"
+    ],
+    "reason": "Not runtime or native build inputs; Android native tests and App regression tests are retained."
+  },
+  "localChanges": [
+    "Android foreground policy and initial service activation",
+    "Foreground-service notices independent of optional drawer permission",
+    "Explicit synthetic fixture labels in documentation examples"
+  ],
+  "license": "LICENSE retains BSD 3-Clause and embedded localstore MIT notices."
+}

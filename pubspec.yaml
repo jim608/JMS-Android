@@ -149,6 +149,8 @@ dependencies:
   chinese_font_library: ^1.2.0
 
 dependency_overrides:
+  background_downloader:
+    path: third_party/background_downloader
   screen_brightness_windows:
     path: third_party/screen_brightness_windows
   fvp:
