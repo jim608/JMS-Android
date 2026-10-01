@@ -105,6 +105,20 @@ class PrivacyTests(unittest.TestCase):
         self.assertIn('private network endpoint', findings('config.txt', b'https://' + b'192.168.1.2:8096', []))
         self.assertIn('private file type', findings('signing.keystore', b'\x00', []))
 
+    def test_all_private_key_labels_are_detected_after_renaming(self):
+        for algorithm in ('', 'RSA ', 'EC ', 'DSA ', 'OPENSSH ', 'ENCRYPTED ', 'MLDSA '):
+            with self.subTest(algorithm=algorithm):
+                header = ('-----BEGIN ' + algorithm + 'PRIVATE KEY-----').encode()
+                self.assertIn('credential pattern', findings('renamed.txt', header + b'\nfixture-only', []))
+
+    def test_private_key_markers_remain_blocked_in_archive_members(self):
+        stream = io.BytesIO()
+        header = ('-----BEGIN ' + 'DSA ' + 'PRIVATE KEY-----').encode()
+        with zipfile.ZipFile(stream, 'w') as archive:
+            archive.writestr('renamed.txt', header + b'\nfixture-only')
+        results = scan_archive('synthetic.zip', stream.getvalue(), [])
+        self.assertTrue(any('credential pattern' in rules for _, rules in results))
+
     def test_scans_index_not_sanitized_worktree_and_does_not_print_value(self):
         previous = Path.cwd()
         with tempfile.TemporaryDirectory() as folder:
