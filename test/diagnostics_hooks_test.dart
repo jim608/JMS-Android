@@ -171,6 +171,7 @@ void main() {
         buildId: 'JMS-0.11.1-jms.25-123456abcdef',
         platform: 'android');
     final first = create();
+    await first.activateServer(null, null);
     expect(first.enabled, false);
     expect(first.configured, false);
     expect(await first.setEnabled(true), false);
@@ -178,6 +179,8 @@ void main() {
     expect(await first.setEnabled(true), true);
     first.dispose();
     final second = create();
+    expect(second.enabled, false);
+    await second.activateServer(null, null);
     expect(second.enabled, true);
     expect(second.endpoint, endpoint);
     expect(await second.setEnabled(false), true);
@@ -185,6 +188,7 @@ void main() {
     expect(second.endpoint, endpoint);
     second.dispose();
     final third = create();
+    await third.activateServer(null, null);
     expect(third.enabled, false);
     third.dispose();
   });

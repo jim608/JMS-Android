@@ -39,6 +39,9 @@ class BackupChange {
 
 class SettingsBackup {
   static const maxBytes = 64 * 1024;
+  // Entry discovery caches, diagnostic receivers and consent are device-local,
+  // even if a future preference is accidentally added to the export rules.
+  static bool _deviceLocalKey(String key) => key.startsWith('jms.entry.') || key.startsWith('jms.diagnostics.');
   static const rules = {
     'client': {
       'themeMode': BackupRule.choice({'system', 'light', 'dark'}),
@@ -76,7 +79,8 @@ class SettingsBackup {
       'settings': {
         for (final group in rules.entries)
           group.key: {
-            for (final field in group.value.keys) field: current[group.key]![field],
+            for (final field in group.value.keys)
+              if (!_deviceLocalKey(field)) field: current[group.key]![field],
           },
       },
     };
@@ -100,11 +104,14 @@ class SettingsBackup {
       final result = <String, Map<String, dynamic>>{};
       for (final group in groups.entries) {
         final fields = group.value;
-        if (!rules.containsKey(group.key) || fields is! Map<String, dynamic> || fields.isEmpty) {
+        if (_deviceLocalKey(group.key) ||
+            !rules.containsKey(group.key) ||
+            fields is! Map<String, dynamic> ||
+            fields.isEmpty) {
           throw const SettingsBackupFailure('invalid');
         }
         for (final field in fields.entries) {
-          if (rules[group.key]![field.key]?.accepts(field.value) != true) {
+          if (_deviceLocalKey(field.key) || rules[group.key]![field.key]?.accepts(field.value) != true) {
             throw const SettingsBackupFailure('invalid');
           }
         }

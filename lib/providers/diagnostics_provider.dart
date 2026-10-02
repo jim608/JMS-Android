@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:ui';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fladder/providers/shared_provider.dart';
@@ -42,13 +45,22 @@ class DiagnosticsSettings extends ChangeNotifier {
     required this.platform,
     this.configuredEndpoint,
     this.webOrigin,
+    this.clientFactory,
   }) {
-    _enabled = preferences.getBool(consentKey) ?? false;
+    // Native server/account state is loaded later. A legacy global consent must
+    // not install hooks or send a report before that scope is known.
+    _awaitingActivation = platform != 'web';
+    _enabled = !_awaitingActivation &&
+        (preferences.getBool(consentKey) ?? false) &&
+        _receiverMatchesConsent(allowLegacy: true);
     _start();
   }
 
   static const consentKey = 'jms.diagnostics.consent.v1';
   static const endpointKey = 'jms.diagnostics.endpoint.v1';
+  static const _activeScopeKey = 'jms.diagnostics.active-scope.v1';
+  static const _migrationKey = 'jms.diagnostics.legacy-manual-migrated.v1';
+  static const _legacyScope = 'legacy';
   static const _buildEndpoint =
       String.fromEnvironment('JMS_DIAGNOSTICS_ENDPOINT');
   static const _sourceCommit = String.fromEnvironment('JMS_SOURCE_COMMIT');
@@ -58,50 +70,188 @@ class DiagnosticsSettings extends ChangeNotifier {
   final String platform;
   final String? configuredEndpoint;
   final Uri? webOrigin;
-  late bool _enabled;
+  @visibleForTesting
+  final http.Client Function()? clientFactory;
+  bool _enabled = false;
+  bool _awaitingActivation = false;
+  bool _activated = false;
+  bool _disposed = false;
+  int _generation = 0;
+  String? _serverScope;
+  String? _providedEndpoint;
   AppDiagnostics? _reporter;
   DiagnosticsHooks? _hooks;
 
+  static String _scopePrefix(String? scope) => scope == null
+      ? _legacyScope
+      : 'jms.diagnostics.server.v1.${sha256.convert(utf8.encode(scope))}';
+  String get _prefix => _scopePrefix(_serverScope);
+  String get _consentKey =>
+      _serverScope == null ? consentKey : '$_prefix.consent';
+  String get _endpointKey =>
+      _serverScope == null ? endpointKey : '$_prefix.endpoint';
+  String get _consentReceiverKey => _serverScope == null
+      ? 'jms.diagnostics.consent-receiver.v1'
+      : '$_prefix.consent-receiver';
+
   bool get enabled => _enabled;
-  String get endpointValue =>
-      preferences.getString(endpointKey) ??
-      configuredEndpoint ??
-      _buildEndpoint;
+  String? get activeServerScope => _serverScope;
+  bool get serverProvided =>
+      _serverScope != null &&
+      (preferences.getString(_endpointKey)?.isNotEmpty != true) &&
+      _providedEndpoint != null;
+  String get endpointValue {
+    final manual = preferences.getString(_endpointKey);
+    if (manual != null && manual.isNotEmpty) return manual;
+    if (_serverScope != null) return _providedEndpoint ?? '';
+    return manual ?? configuredEndpoint ?? _buildEndpoint;
+  }
+
   Uri? get endpoint => diagnosticEndpoint(endpointValue, webOrigin: webOrigin);
-  bool get configured => _reporter?.configured ?? false;
+  bool get configured =>
+      !_awaitingActivation && (_reporter?.configured ?? false);
+
+  bool _receiverMatchesConsent({bool allowLegacy = false}) {
+    final receiver = endpoint?.toString();
+    if (receiver == null) return false;
+    final accepted = preferences.getString(_consentReceiverKey);
+    return receiver == accepted || (allowLegacy && accepted == null);
+  }
+
+  /// Select only this server/account's receiver. Discovery never grants consent.
+  /// An unchanged persisted scope may resume its explicitly accepted receiver;
+  /// changing scope or receiver revokes both the old and selected consent.
+  Future<bool> activateServer(
+      String? serverScope, String? providedEndpoint) async {
+    final trimmed = serverScope?.trim();
+    final scope = trimmed == null || trimmed.isEmpty ? null : trimmed;
+    final provided =
+        diagnosticEndpoint(providedEndpoint, webOrigin: webOrigin)?.toString();
+    final prefix = _scopePrefix(scope);
+    final previousPrefix = _activated
+        ? _prefix
+        : preferences.getString(_activeScopeKey) ?? _legacyScope;
+    final previousReceiver = _activated ? endpoint?.toString() : null;
+    if (_disposed) return false;
+    if (_activated &&
+        !_awaitingActivation &&
+        scope == _serverScope &&
+        provided == _providedEndpoint) {
+      return true;
+    }
+    final oldConsentKey =
+        previousPrefix == _legacyScope ? consentKey : '$previousPrefix.consent';
+    final initialActivation = !_activated;
+    final generation = ++_generation;
+    _stopReporting();
+    _awaitingActivation = true;
+    _serverScope = scope;
+    _providedEndpoint = provided;
+    _activated = true;
+    final targetEndpointKey = _endpointKey;
+    final targetConsentKey = _consentKey;
+    notifyListeners();
+    try {
+      // Keep the legacy value intact. Only the first server can adopt it, and
+      // consent is deliberately not migrated along with an endpoint.
+      var migrated = false;
+      if (scope != null && preferences.getBool(_migrationKey) != true) {
+        final legacy = preferences.getString(endpointKey);
+        if (!preferences.containsKey(targetEndpointKey) &&
+            legacy != null &&
+            legacy.isNotEmpty &&
+            diagnosticEndpoint(legacy, webOrigin: webOrigin) != null) {
+          if (!await preferences.setString(targetEndpointKey, legacy)) {
+            return false;
+          }
+          migrated = true;
+        }
+        if (_disposed || generation != _generation) return false;
+        if (!await preferences.setBool(_migrationKey, true)) return false;
+      }
+      if (_disposed || generation != _generation) return false;
+      final sameScope = previousPrefix == prefix;
+      final sameReceiver = initialActivation
+          ? _receiverMatchesConsent(allowLegacy: scope == null)
+          : previousReceiver == endpoint?.toString();
+      final resume = sameScope && sameReceiver && !migrated;
+      if (!resume) {
+        if (!await preferences.setBool(oldConsentKey, false)) return false;
+        if (_disposed || generation != _generation) return false;
+        if (!await preferences.setBool(targetConsentKey, false)) return false;
+      }
+      if (_disposed || generation != _generation) return false;
+      if (!await preferences.setString(_activeScopeKey, prefix)) return false;
+      if (_disposed || generation != _generation) return false;
+      _awaitingActivation = false;
+      _enabled = resume && (preferences.getBool(_consentKey) ?? false);
+      _start();
+      notifyListeners();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
 
   Future<bool> setEnabled(bool value) async {
-    if (value && !configured) return false;
+    if (_disposed || (value && !configured)) return false;
+    final generation = ++_generation;
+    final consent = _consentKey;
+    final receiverKey = _consentReceiverKey;
+    final receiver = endpoint?.toString();
+    _stopReporting();
+    notifyListeners();
     try {
-      if (!await preferences.setBool(consentKey, value)) return false;
+      if (value && !await preferences.setString(receiverKey, receiver!)) {
+        return false;
+      }
+      if (_disposed || generation != _generation) return false;
+      if (!await preferences.setBool(consent, value)) return false;
+      if (_disposed || generation != _generation) return false;
     } catch (_) {
       return false;
     }
     _enabled = value;
     _reporter?.enabled = value;
-    if (value) {
-      _hooks?.start();
-    } else {
-      _hooks?.stop();
-    }
+    if (value) _hooks?.start();
     notifyListeners();
     return true;
   }
 
   Future<bool> setEndpoint(String value) async {
     final normalized = value.trim();
-    if (normalized.isNotEmpty &&
-        diagnosticEndpoint(normalized, webOrigin: webOrigin) == null) {
+    if (_disposed ||
+        (normalized.isNotEmpty &&
+            diagnosticEndpoint(normalized, webOrigin: webOrigin) == null)) {
       return false;
     }
+    final generation = ++_generation;
+    final endpointPreference = _endpointKey;
+    final consent = _consentKey;
+    final wasAwaitingActivation = _awaitingActivation;
+    _awaitingActivation = true;
+    _stopReporting();
+    notifyListeners();
     try {
-      if (!await preferences.setString(endpointKey, normalized)) return false;
+      if (!await preferences.setBool(consent, false)) return false;
+      if (_disposed || generation != _generation) return false;
+      if (!await preferences.setString(endpointPreference, normalized)) {
+        return false;
+      }
+      if (_disposed || generation != _generation) return false;
     } catch (_) {
       return false;
     }
+    _awaitingActivation = wasAwaitingActivation;
     _start();
     notifyListeners();
     return true;
+  }
+
+  void _stopReporting() {
+    _enabled = false;
+    _hooks?.stop();
+    _reporter?.enabled = false;
   }
 
   void _start() {
@@ -113,6 +263,7 @@ class DiagnosticsSettings extends ChangeNotifier {
       version: version,
       buildId: buildId,
       sourceCommit: _sourceCommit,
+      clientFactory: clientFactory,
     )..enabled = enabled;
     _hooks = DiagnosticsHooks(_reporter!);
     if (enabled && configured) _hooks!.start();
@@ -120,7 +271,9 @@ class DiagnosticsSettings extends ChangeNotifier {
 
   @override
   void dispose() {
-    _hooks?.stop();
+    _disposed = true;
+    _generation++;
+    _stopReporting();
     _reporter?.dispose();
     super.dispose();
   }

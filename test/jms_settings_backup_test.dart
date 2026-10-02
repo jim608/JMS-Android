@@ -69,6 +69,63 @@ void main() {
       expect(() => SettingsBackup.parse(bytes), throwsA(isA<SettingsBackupFailure>()));
     }
   });
+  test('entry and diagnostic caches are excluded from export and rejected on import', () {
+    const local = {
+      'jms.entry.cache.v1.synthetic': 'entry-cache-sentinel',
+      'jms.entry.server.v1.synthetic': 'entry-server-sentinel',
+      'jms.diagnostics.endpoint.v1': 'diagnostic-receiver-sentinel',
+      'jms.diagnostics.consent.v1': true,
+      'jms.diagnostics.server.v1.synthetic.consent': true,
+    };
+    final exported = SettingsBackup.capture(
+      {...client(), ...local},
+      {...player(), ...local},
+    );
+    final text = utf8.decode(exported.encode());
+    for (final entry in local.entries) {
+      expect(text.contains(entry.key), false);
+      if (entry.value is String) expect(text.contains(entry.value as String), false);
+      for (final group in ['client', 'player']) {
+        expect(
+          () => SettingsBackup.parse(document({
+            group: {entry.key: entry.value}
+          })),
+          throwsA(isA<SettingsBackupFailure>()),
+        );
+      }
+      expect(
+        () => SettingsBackup.parse(document({
+          entry.key: {'enabled': true}
+        })),
+        throwsA(isA<SettingsBackupFailure>()),
+      );
+    }
+  });
+  test('restoring allowed preferences cannot replace local discovery or consent caches', () async {
+    const local = {
+      'jms.entry.cache.v1.synthetic': 'entry-cache-sentinel',
+      'jms.diagnostics.server.v1.synthetic.endpoint': 'receiver-sentinel',
+      'jms.diagnostics.server.v1.synthetic.consent': true,
+    };
+    SharedPreferences.setMockInitialValues({
+      ...local,
+      'clientSettings': jsonEncode(client()),
+      'videoPlayerSettings': jsonEncode(player()),
+    });
+    final preferences = await SharedPreferences.getInstance();
+    final backup = SettingsBackup.parse(document({
+      'client': {'amoledBlack': true},
+      'player': {'ambientIntensity': 0.94},
+    }));
+    await SettingsBundleStore(preferences).replace(
+      backup.merge('client', client()),
+      backup.merge('player', player()),
+    );
+    for (final entry in local.entries) {
+      expect(preferences.get(entry.key), entry.value);
+    }
+    expect(SharedHelper(sharedPreferences: preferences).clientSettings.amoledBlack, true);
+  });
   test('preview and merge preserve non-exported settings', () {
     final backup = SettingsBackup.parse(document({
       'player': {'ambientIntensity': 0.95},

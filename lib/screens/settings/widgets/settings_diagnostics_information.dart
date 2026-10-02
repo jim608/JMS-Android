@@ -23,11 +23,14 @@ class SettingsDiagnosticsInformation extends ConsumerWidget {
               ? null
               : (value) async {
                   if (value) {
+                    final scope = settings.activeServerScope;
+                    final receiver = settings.endpointValue;
                     final accepted = await showDialog<bool>(
                       context: context,
                       builder: (context) => AlertDialog(
                         title: Text(labels.jmsDiagnosticsTitle),
-                        content: Text(labels.jmsDiagnosticsConsent),
+                        content: Text(
+                            '${labels.jmsDiagnosticsConsent}\n\n$receiver'),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(context, false),
@@ -40,7 +43,11 @@ class SettingsDiagnosticsInformation extends ConsumerWidget {
                         ],
                       ),
                     );
-                    if (accepted != true) return;
+                    if (accepted != true ||
+                        settings.activeServerScope != scope ||
+                        settings.endpointValue != receiver) {
+                      return;
+                    }
                   }
                   final saved = await settings.setEnabled(value);
                   if (!saved && context.mounted) {
@@ -50,9 +57,19 @@ class SettingsDiagnosticsInformation extends ConsumerWidget {
                 },
         ),
         ListTile(
-          leading: const Icon(Icons.cloud_outlined),
+          leading: Icon(settings.serverProvided
+              ? Icons.dns_outlined
+              : Icons.cloud_outlined),
           title: Text(labels.jmsDiagnosticsEndpoint),
-          subtitle: Text(labels.jmsDiagnosticsEndpointHint),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (settings.endpointValue.isNotEmpty)
+                Text(settings.endpointValue),
+              if (settings.serverProvided) Text(labels.server),
+              Text(labels.jmsDiagnosticsEndpointHint),
+            ],
+          ),
           trailing: const Icon(Icons.edit_outlined),
           onTap: () => _editEndpoint(context, settings),
         ),
@@ -63,11 +80,17 @@ class SettingsDiagnosticsInformation extends ConsumerWidget {
   Future<void> _editEndpoint(
       BuildContext context, DiagnosticsSettings settings) async {
     final labels = context.localized;
+    final scope = settings.activeServerScope;
+    final receiver = settings.endpointValue;
     final value = await showDialog<String>(
       context: context,
       builder: (context) => _EndpointDialog(value: settings.endpointValue),
     );
-    if (value == null) return;
+    if (value == null ||
+        settings.activeServerScope != scope ||
+        settings.endpointValue != receiver) {
+      return;
+    }
     final saved = await settings.setEndpoint(value);
     if (!saved && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
