@@ -51488,7 +51488,13 @@
       "packageMember": "ucrt64/bin/libmpv-2.dll",
       "version": "0.41.0-8",
       "binarySha256": "d5e3557e2875d868e1f8cc803912889fc2e9c49d12d7f6595e414acd32359394"
-    }
+    },
+    "distributions": [
+      {
+        "archiveSha256": "01326ea2501a34b74b49cb26f1583c550665806a3557cab6906e52f7ed25a1f8",
+        "member": "JMS-Windows-0.11.1-jms.30-x64/libmpv-2.dll"
+      }
+    ]
   },
   {
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-libdovi-3.4.0-1.src.tar.zst",
@@ -51621,7 +51627,13 @@
       "packageMember": "ucrt64/bin/libdovi.dll",
       "version": "3.4.0-1",
       "binarySha256": "75988509f0d2166e2060ed548913bd7b34556bc16b3f9a02469de1dd2347a7fb"
-    }
+    },
+    "distributions": [
+      {
+        "archiveSha256": "01326ea2501a34b74b49cb26f1583c550665806a3557cab6906e52f7ed25a1f8",
+        "member": "JMS-Windows-0.11.1-jms.30-x64/libdovi.dll"
+      }
+    ]
   },
   {
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-rav1e-0.8.1-1.src.tar.zst",
@@ -51850,7 +51862,13 @@
       "packageMember": "ucrt64/bin/librav1e.dll",
       "version": "0.8.1-1",
       "binarySha256": "bc549e2178589f371469d1bd23544859ff118e48218eae2bfca7126654988779"
-    }
+    },
+    "distributions": [
+      {
+        "archiveSha256": "01326ea2501a34b74b49cb26f1583c550665806a3557cab6906e52f7ed25a1f8",
+        "member": "JMS-Windows-0.11.1-jms.30-x64/librav1e.dll"
+      }
+    ]
   },
   {
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-librsvg-2.63.2-1.src.tar.zst",
@@ -55457,7 +55475,13 @@
       "packageMember": "ucrt64/bin/librsvg-2-2.dll",
       "version": "2.63.2-1",
       "binarySha256": "278bfe70d237c5e49fdde37e2b6e7fba1edf641c054798ec10dc79ccb97fab61"
-    }
+    },
+    "distributions": [
+      {
+        "archiveSha256": "01326ea2501a34b74b49cb26f1583c550665806a3557cab6906e52f7ed25a1f8",
+        "member": "JMS-Windows-0.11.1-jms.30-x64/librsvg-2-2.dll"
+      }
+    ]
   },
   {
     "source": "https://www.libssh.org/files/0.12/libssh-0.12.2.tar.xz",
@@ -55488,7 +55512,13 @@
       "packageMember": "ucrt64/bin/libssh.dll",
       "version": "0.12.2-1",
       "binarySha256": "dbaf4b60ccbcef6aa5d6385d8d1965d4f483999b9ced1d5a2afbf719028b3d1e"
-    }
+    },
+    "distributions": [
+      {
+        "archiveSha256": "01326ea2501a34b74b49cb26f1583c550665806a3557cab6906e52f7ed25a1f8",
+        "member": "JMS-Windows-0.11.1-jms.30-x64/libssh.dll"
+      }
+    ]
   },
   {
     "source": "https://mirror.msys2.org/mingw/sources/mingw-w64-gnutls-3.8.13-3.src.tar.zst",
@@ -55557,7 +55587,13 @@
       "packageMember": "ucrt64/bin/libgnutls-30.dll",
       "version": "3.8.13-3",
       "binarySha256": "f7f05c96572506c81f2ffa89b518234afa4af2603aad8903db257a4f1e97e9e6"
-    }
+    },
+    "distributions": [
+      {
+        "archiveSha256": "01326ea2501a34b74b49cb26f1583c550665806a3557cab6906e52f7ed25a1f8",
+        "member": "JMS-Windows-0.11.1-jms.30-x64/libgnutls-30.dll"
+      }
+    ]
   },
   {
     "member": "mingw-w64-glib2/glib-2.90.0.tar.xz/glib-2.90.0/gio/gtlscertificate.c",
@@ -55980,7 +56016,13 @@
       "member": "mingw-w64-glib2/glib-2.90.0.tar.xz/glib-2.90.0/gio/gtlscertificate.c",
       "sha256": "eda02f00d80143be985d339cd364eb1f3856c92258443a9131dcd80d85eebc74",
       "archiveSha256": "580246fb9db6083e0191ac7fd0e44af71df6ec0dc52cfd384b5ae07f8665cc9e"
-    }
+    },
+    "distributions": [
+      {
+        "archiveSha256": "01326ea2501a34b74b49cb26f1583c550665806a3557cab6906e52f7ed25a1f8",
+        "member": "JMS-Windows-0.11.1-jms.30-x64/libgio-2.0-0.dll"
+      }
+    ]
   },
   {
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-vulkan-loader-1~1.4.357.0-1.src.tar.zst",
