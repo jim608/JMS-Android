@@ -17,6 +17,7 @@ class SettingsUpdateInformation extends ConsumerWidget {
     final release = updates.latestRelease;
     final configured = updates.checker.source.configured;
     final canAct = updates.ready && !updates.busy && !updates.blocked;
+    final canCheck = updates.supported && !updates.busy && !updates.blocked;
     final hasRelease = release != null && !updates.deferred;
     final installReady = updates.hasVerifiedDownload;
     final needsPermission = updates.status == UpdateStatus.permissionRequired;
@@ -66,13 +67,14 @@ class SettingsUpdateInformation extends ConsumerWidget {
           title: Text(labels.autoCheckForUpdates),
           subtitle: Text(labels.jmsUpdateAutoHint),
           value: updates.automatic,
-          onChanged: updates.ready ? updates.setAutomatic : null,
+          onChanged: updates.settingsReady ? updates.setAutomatic : null,
         ),
         SwitchListTile(
           title: Text(labels.jmsUpdatePrerelease),
           value: updates.prerelease,
-          onChanged:
-              updates.ready && !updates.busy ? updates.setPrerelease : null,
+          onChanged: updates.settingsReady && !updates.busy
+              ? updates.setPrerelease
+              : null,
         ),
         Padding(
           padding: const EdgeInsets.all(12),
@@ -94,13 +96,13 @@ class SettingsUpdateInformation extends ConsumerWidget {
               if (!hasRelease)
                 FilledButton.icon(
                   key: const ValueKey('update-primary-check'),
-                  onPressed: canAct ? () => updates.check() : null,
+                  onPressed: canCheck ? () => updates.check() : null,
                   icon: const Icon(Icons.refresh),
                   label: Text(labels.jmsUpdateCheck),
                 )
               else ...[
                 OutlinedButton.icon(
-                  onPressed: canAct ? () => updates.check() : null,
+                  onPressed: canCheck ? () => updates.check() : null,
                   icon: const Icon(Icons.refresh),
                   label: Text(labels.jmsUpdateCheck),
                 ),

@@ -50,6 +50,44 @@ Future<void> mountUpdateUi(WidgetTester tester, UpdateController controller) =>
 
 void main() {
   testWidgets(
+      'failed Android initialization can retry from the visible check action',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({'jms.update.auto': false});
+    final bridge = FlowBridge()..deviceFailure = 'nativeUnavailable';
+    final checker =
+        FlowChecker(UpdateCheckResult(UpdateStatus.available, flowRelease()));
+    final controller = UpdateController(checker: checker, bridge: bridge);
+    await controller.initialize();
+    await mountUpdateUi(tester, controller);
+    await tester.pumpAndSettle();
+    expect(
+        find.text(
+            'Updater could not initialize. Tap Check for updates to retry.'),
+        findsOneWidget);
+    expect(
+        find.text('Installation blocked or verification failed'), findsNothing);
+    final check = find.byKey(const ValueKey('update-primary-check'));
+    expect(tester.widget<FilledButton>(check).onPressed, isNotNull);
+    for (final tile
+        in tester.widgetList<SwitchListTile>(find.byType(SwitchListTile))) {
+      expect(tile.onChanged, isNotNull);
+    }
+    await tester.ensureVisible(check);
+    await tester.tap(check);
+    await tester.pumpAndSettle();
+    expect(controller.ready, isFalse);
+    expect(tester.widget<FilledButton>(check).onPressed, isNotNull);
+    bridge.deviceFailure = null;
+    await tester.tap(check);
+    await tester.pumpAndSettle();
+    expect(controller.ready, isTrue);
+    expect(controller.status, UpdateStatus.available);
+    expect(checker.checks, 1);
+    expect(bridge.deviceCalls, 3);
+    expect(bridge.installs, 0);
+  });
+
+  testWidgets(
       'community Linux install shows manual recipe instructions without an install action',
       (tester) async {
     SharedPreferences.setMockInitialValues({'jms.update.auto': false});
@@ -254,6 +292,7 @@ void main() {
     UpdateStatus.noRelease: '已連上更新來源，此頻道尚無可用的已發布版本',
     UpdateStatus.sourceUnavailable: '無法存取更新儲存庫：不存在或沒有權限',
     UpdateStatus.rateLimited: 'GitHub 限流，請稍後再試',
+    UpdateStatus.initializationFailed: '更新器初始化失敗，請點「檢查更新」重試。',
   }.entries) {
     testWidgets('configured source displays distinct ${entry.key.name} status',
         (tester) async {

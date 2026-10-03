@@ -105,6 +105,8 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
   UpdateDevice? _device;
   Timer? _timer;
   bool _disposed = false;
+  bool _initializing = false;
+  bool _observingLifecycle = false;
   bool _checking = false;
   bool _installing = false;
   bool _downloading = false;
@@ -124,7 +126,8 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
   UpdateStatus status = UpdateStatus.idle;
   ReleaseInfo? latestRelease;
   String? get platform => _device?.platform;
-  bool get busy => _checking || _downloading || _installing;
+  bool get busy => _initializing || _checking || _downloading || _installing;
+  bool get settingsReady => _prefs != null;
   bool get blocked => playback || !_foreground;
   bool get _transferAllowed =>
       !playback && (_foreground || bridge.supportsBackgroundDownload);
@@ -207,10 +210,18 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> initialize() async {
-    if (!supported) return;
-    WidgetsBinding.instance.addObserver(this);
+    if (!supported || _disposed || ready || _initializing) return;
+    _initializing = true;
+    failure = null;
+    status = UpdateStatus.checking;
+    if (!_observingLifecycle) {
+      WidgetsBinding.instance.addObserver(this);
+      _observingLifecycle = true;
+    }
+    _notify();
+    var initializationFailure = 'initializationPreferences';
     try {
-      _prefs = await preferences();
+      _prefs ??= await preferences();
       if (_disposed) return;
       automatic = _prefs!.getBool('jms.update.auto') ?? automatic;
       prerelease = _prefs!.getBool('jms.update.prerelease') ?? false;
@@ -226,9 +237,16 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
       if (retry != null) {
         checker.retryAfter = DateTime.fromMillisecondsSinceEpoch(retry);
       }
+      initializationFailure = 'initializationDevice';
       _device = await bridge.device();
       if (_disposed) return;
+      initializationFailure = 'initializationBridge';
       await bridge.setAllowed(_transferAllowed);
+      if (_disposed) return;
+      initializationFailure = 'initializationPreferences';
+      status = checker.source.configured
+          ? UpdateStatus.idle
+          : UpdateStatus.unconfigured;
       final pending = _prefs!.getInt('jms.update.pending');
       if (pending != null && _device!.versionCode >= pending) {
         status = UpdateStatus.updated;
@@ -236,32 +254,44 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
       } else if (pending != null) {
         status = UpdateStatus.installPending;
       }
-      final transfer = await bridge.restoreTransfer();
-      if (_disposed) return;
-      final transferChannel = _prefs!.getBool('jms.update.transferChannel');
-      if (transfer != null &&
-          _validRelease(transfer.release) &&
-          (transferChannel == null
-              ? prerelease
-              : transferChannel == prerelease)) {
-        latestRelease = transfer.release;
-        status = transfer.status;
-        progress = transfer.progress;
-        failure = transfer.failure;
-        if (status == UpdateStatus.downloading) {
-          _downloading = true;
-          unawaited(_completeDownload(transfer.release, ++_generation));
-        } else if (status == UpdateStatus.downloaded) {
-          // The native restore contract rechecks the file before returning ready.
-          _verifiedAsset = _assetIdentity(transfer.release);
-          _verifiedChannel = prerelease;
+      try {
+        final transfer = await bridge.restoreTransfer();
+        if (_disposed) return;
+        final transferChannel = _prefs!.getBool('jms.update.transferChannel');
+        if (transfer != null &&
+            _validRelease(transfer.release) &&
+            (transferChannel == null
+                ? prerelease
+                : transferChannel == prerelease)) {
+          latestRelease = transfer.release;
+          status = transfer.status;
+          progress = transfer.progress;
+          failure = transfer.failure;
+          if (status == UpdateStatus.downloading) {
+            _downloading = true;
+            unawaited(_completeDownload(transfer.release, ++_generation));
+          } else if (status == UpdateStatus.downloaded) {
+            // Installation still revalidates the restored file natively.
+            _verifiedAsset = _assetIdentity(transfer.release);
+            _verifiedChannel = prerelease;
+          }
         }
+      } catch (_) {
+        // A stale transfer must not disable an otherwise initialized updater.
+        _invalidateDownload();
+        latestRelease = null;
+        failure = 'restore';
+        status = UpdateStatus.downloadFailed;
       }
+      if (_disposed) return;
       ready = true;
-      _notify();
       _schedule();
     } catch (_) {
-      status = UpdateStatus.installBlocked;
+      ready = false;
+      status = UpdateStatus.initializationFailed;
+      failure = initializationFailure;
+    } finally {
+      _initializing = false;
       _notify();
     }
   }
@@ -325,7 +355,7 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
 
   void _schedule() {
     _timer?.cancel();
-    if (!automatic || !checker.source.configured || _disposed) return;
+    if (!ready || !automatic || !checker.source.configured || _disposed) return;
     final last = _prefs?.getInt('jms.update.lastCheck') ?? 0;
     final next = DateTime.fromMillisecondsSinceEpoch(last)
         .add(const Duration(hours: 24));
@@ -335,7 +365,9 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> check({bool manual = true}) async {
-    if (_disposed || !supported || !ready || busy) return;
+    if (_disposed || !supported || busy) return;
+    if (!ready) await initialize();
+    if (_disposed || !ready || busy) return;
     if (blocked) {
       if (manual) {
         status = UpdateStatus.playbackBlocked;
@@ -512,6 +544,7 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
     final generation = _generation;
     final identity = _assetIdentity(release);
     _installing = true;
+    var pending = false;
     failure = null;
     _notify();
     try {
@@ -541,6 +574,7 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
         return;
       }
       final result = await bridge.install();
+      pending = result != 'installCancelled' && result != 'installBlocked';
       if (!_current(generation, identity)) return;
       status = switch (result) {
         'installCancelled' => UpdateStatus.installCancelled,
@@ -556,15 +590,26 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
         'signature',
         'incompatible',
         'source',
-        'notVerified'
+        'notVerified',
+        'invalidApk',
+        'split'
       }.contains(error.code)) {
         _invalidateDownload();
       }
-      status = UpdateStatus.installBlocked;
+      status = error.code == 'permission'
+          ? UpdateStatus.permissionRequired
+          : UpdateStatus.installBlocked;
     } catch (_) {
       if (!_current(generation, identity)) return;
       status = UpdateStatus.installBlocked;
     } finally {
+      if (!pending) {
+        try {
+          await _prefs?.remove('jms.update.pending');
+        } catch (_) {
+          // A settings write failure must not retain the active-operation lock.
+        }
+      }
       _installing = false;
       _notify();
     }

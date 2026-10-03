@@ -32,6 +32,7 @@ enum UpdateStatus {
   installPending,
   installCancelled,
   installBlocked,
+  initializationFailed,
   updated,
   playbackBlocked,
   unsupported,

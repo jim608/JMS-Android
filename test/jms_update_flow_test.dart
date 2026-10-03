@@ -29,11 +29,14 @@ ReleaseInfo flowRelease(
 
 class FlowChecker extends UpdateChecker {
   UpdateCheckResult result;
+  int checks = 0;
   FlowChecker(this.result) : super(source: source);
   @override
   Future<UpdateCheckResult> check(UpdateDevice device,
-          {bool prerelease = false}) async =>
-      result;
+      {bool prerelease = false}) async {
+    checks++;
+    return result;
+  }
 }
 
 class FlowBridge extends UpdateBridge {
@@ -42,16 +45,30 @@ class FlowBridge extends UpdateBridge {
   UpdateTransfer? restored;
   Completer<void>? transfer;
   Completer<bool>? permissionCheck;
+  Completer<UpdateDevice>? deviceCheck;
+  Completer<String>? installer;
+  String? deviceFailure;
+  Object? restoreFailure;
   String? downloadFailure;
   String? installFailure;
+  String installResult = 'installPending';
   UpdatePackageChannel packageChannel = UpdatePackageChannel.unknown;
-  int downloads = 0, installs = 0, cancellations = 0;
+  int downloads = 0, installs = 0, cancellations = 0, deviceCalls = 0;
   @override
   bool get supportsBackgroundDownload => true;
   @override
-  Future<UpdateDevice> device() async => installed;
+  Future<UpdateDevice> device() async {
+    deviceCalls++;
+    if (deviceFailure != null) throw PlatformException(code: deviceFailure!);
+    return deviceCheck == null ? installed : await deviceCheck!.future;
+  }
+
   @override
-  Future<UpdateTransfer?> restoreTransfer() async => restored;
+  Future<UpdateTransfer?> restoreTransfer() async {
+    if (restoreFailure != null) throw restoreFailure!;
+    return restored;
+  }
+
   @override
   Future<UpdatePackageChannel> currentPackageChannel() async => packageChannel;
   @override
@@ -82,7 +99,7 @@ class FlowBridge extends UpdateBridge {
   Future<String> install() async {
     installs++;
     if (installFailure != null) throw PlatformException(code: installFailure!);
-    return 'installPending';
+    return installer == null ? installResult : await installer!.future;
   }
 }
 
@@ -98,6 +115,182 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(
       () => SharedPreferences.setMockInitialValues({'jms.update.auto': false}));
+
+  test(
+      'failed device initialization retries once and remains unavailable on failure',
+      () async {
+    final bridge = FlowBridge()..deviceFailure = 'nativeUnavailable';
+    final checker =
+        FlowChecker(UpdateCheckResult(UpdateStatus.available, flowRelease()));
+    final controller = UpdateController(checker: checker, bridge: bridge);
+    await controller.initialize();
+    expect(controller.status, UpdateStatus.initializationFailed);
+    expect(controller.failure, 'initializationDevice');
+    expect(controller.ready, isFalse);
+    expect(controller.busy, isFalse);
+    await controller.check();
+    expect(controller.ready, isFalse);
+    expect(checker.checks, 0);
+    bridge.deviceFailure = null;
+    bridge.deviceCheck = Completer<UpdateDevice>();
+    final retry = controller.check();
+    await Future<void>.delayed(Duration.zero);
+    expect(controller.busy, isTrue);
+    await controller.check();
+    await controller.initialize();
+    expect(bridge.deviceCalls, 3);
+    bridge.deviceCheck!.complete(bridge.installed);
+    await retry;
+    expect(controller.ready, isTrue);
+    expect(controller.busy, isFalse);
+    expect(controller.failure, isNull);
+    expect(controller.status, UpdateStatus.available);
+    expect(checker.checks, 1);
+    expect(bridge.installs, 0);
+    controller.dispose();
+  });
+
+  test(
+      'preference initialization failure can retry without using an unknown device',
+      () async {
+    final bridge = FlowBridge();
+    var calls = 0;
+    final controller = UpdateController(
+      checker:
+          FlowChecker(UpdateCheckResult(UpdateStatus.available, flowRelease())),
+      bridge: bridge,
+      preferences: () async {
+        if (++calls == 1) throw StateError('TEST_ONLY preferences unavailable');
+        return SharedPreferences.getInstance();
+      },
+    );
+    await controller.initialize();
+    expect(controller.failure, 'initializationPreferences');
+    expect(controller.ready, isFalse);
+    expect(bridge.deviceCalls, 0);
+    await controller.download();
+    await controller.install();
+    expect(bridge.installs, 0);
+    await controller.check();
+    expect(controller.ready, isTrue);
+    expect(controller.status, UpdateStatus.available);
+    controller.dispose();
+  });
+
+  test(
+      'malformed native restore cannot block checking or grant verified readiness',
+      () async {
+    final bridge = AndroidUpdateBridge();
+    var installs = 0;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(AndroidUpdateBridge.channel, (call) async {
+      return switch (call.method) {
+        'device' => {
+            'applicationId': 'com.jim608.jms',
+            'versionCode': 2005,
+            'sdk': 35,
+            'abis': ['arm64-v8a'],
+          },
+        'restore' => {
+            'status': 'downloaded',
+            'metadata': {'schemaVersion': 1},
+          },
+        'install' => (++installs).toString(),
+        _ => null,
+      };
+    });
+    addTearDown(() => TestDefaultBinaryMessengerBinding
+        .instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(AndroidUpdateBridge.channel, null));
+    final controller = UpdateController(
+        checker: FlowChecker(
+            UpdateCheckResult(UpdateStatus.available, flowRelease())),
+        bridge: bridge);
+    await controller.initialize();
+    expect(controller.ready, isTrue);
+    expect(controller.status, UpdateStatus.downloadFailed);
+    expect(controller.failure, 'restore');
+    expect(controller.hasVerifiedDownload, isFalse);
+    await controller.check();
+    expect(controller.status, UpdateStatus.available);
+    await controller.install();
+    expect(installs, 0);
+    controller.dispose();
+  });
+
+  for (final reason in [
+    'hash',
+    'size',
+    'signature',
+    'incompatible',
+    'source',
+    'split',
+    'invalidApk',
+    'notVerified',
+    'permission',
+    'systemBlocked'
+  ]) {
+    test(
+        'terminal installer $reason clears pending and allows a verified retry',
+        () async {
+      final bridge = FlowBridge()..installFailure = reason;
+      final controller = await flowController(
+          FlowChecker(UpdateCheckResult(UpdateStatus.available, flowRelease())),
+          bridge);
+      await controller.download();
+      await controller.install();
+      expect(controller.ready, isTrue);
+      expect(controller.busy, isFalse);
+      expect(controller.failure, reason);
+      expect(
+          (await SharedPreferences.getInstance()).getInt('jms.update.pending'),
+          isNull);
+      expect(controller.hasVerifiedDownload,
+          reason == 'permission' || reason == 'systemBlocked');
+      controller.didChangeAppLifecycleState(AppLifecycleState.paused);
+      controller.didChangeAppLifecycleState(AppLifecycleState.resumed);
+      bridge.installFailure = null;
+      await controller.check();
+      if (!controller.hasVerifiedDownload) await controller.download();
+      await controller.install();
+      expect(bridge.installs, 2);
+      expect(controller.status, UpdateStatus.installPending);
+      expect(
+          (await SharedPreferences.getInstance()).getInt('jms.update.pending'),
+          controller.latestRelease!.manifest.versionCode);
+      controller.dispose();
+    });
+  }
+
+  test(
+      'returning from a cancelled installer unlocks one retry and clears pending',
+      () async {
+    final bridge = FlowBridge()..installer = Completer<String>();
+    final controller = await flowController(
+        FlowChecker(UpdateCheckResult(UpdateStatus.available, flowRelease())),
+        bridge);
+    await controller.download();
+    final install = controller.install();
+    await Future<void>.delayed(Duration.zero);
+    expect(controller.busy, isTrue);
+    expect(bridge.installs, 1);
+    controller.didChangeAppLifecycleState(AppLifecycleState.paused);
+    controller.didChangeAppLifecycleState(AppLifecycleState.resumed);
+    await controller.install();
+    expect(bridge.installs, 1);
+    bridge.installer!.complete('installCancelled');
+    await install;
+    expect(controller.status, UpdateStatus.installCancelled);
+    expect(controller.busy, isFalse);
+    expect(controller.hasVerifiedDownload, isTrue);
+    expect((await SharedPreferences.getInstance()).getInt('jms.update.pending'),
+        isNull);
+    bridge.installer = null;
+    await controller.install();
+    expect(bridge.installs, 2);
+    expect(controller.status, UpdateStatus.installPending);
+    controller.dispose();
+  });
 
   test(
       'an available release or manually assigned downloaded state cannot install',
