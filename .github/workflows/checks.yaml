@@ -34,14 +34,17 @@ jobs:
           cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:"
 
       - name: Get dependencies
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
-      - name: Setup Dart
-        uses: dart-lang/setup-dart@v1
+      - name: Generate localizations
+        run: flutter gen-l10n
 
       - name: Analyze Flutter
-        uses: ValentinVignal/action-dart-analyze@v2.0
-        with:
-          emojis: false
-          fail-on: info
-          line-length: 120
+        run: flutter analyze --no-pub
+
+      - name: Verify Discord consent and local IPC
+        run: >-
+          flutter test test/discord_presence_test.dart
+          test/discord_presence_settings_widget_test.dart
+          test/discord_ipc_client_test.dart test/discord_transport_test.dart
+          --no-pub
