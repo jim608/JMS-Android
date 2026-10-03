@@ -1,0 +1,5 @@
+{
+  "baseUrl": "https://example.invalid/jellyfin",
+  "seerrBaseUrl": "https://example.invalid/seerr",
+  "diagnosticsEndpoint": null
+}
