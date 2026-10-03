@@ -149,12 +149,22 @@ PY
 # 只在隔離容器明確同意互斥套件轉換；正式安裝由使用者確認。
 printf 'y\ny\n' | runuser -u jms-test -- bash -ec 'cd /aur; yay -Bi ./jms-bin --mflags "--force" --cleanmenu=false --diffmenu=false' > /output/aur-yay-install.log 2>&1
 pacman -Q jms-bin > /output/aur-package-version.txt
-! pacman -Q jms >/dev/null 2>&1
+pacman -Qq > /output/aur-installed-packages.txt
+test -s /output/aur-installed-packages.txt
+if grep -Fxq jms /output/aur-installed-packages.txt; then
+  echo 'Official JMS package remains installed after the community package transition.' >&2
+  exit 1
+fi
 cmp /aur-payload/opt/jms/jms /opt/jms/jms
 launch /opt/jms/jms aur
 printf 'y\ny\n' | pacman -U -- /candidate/JMS-Linux-*-x86_64.pkg.tar.xz
 pacman -Q jms > /output/restored-official-package-version.txt
-! pacman -Q jms-bin >/dev/null 2>&1
+pacman -Qq > /output/restored-official-installed-packages.txt
+test -s /output/restored-official-installed-packages.txt
+if grep -Fxq jms-bin /output/restored-official-installed-packages.txt; then
+  echo 'Community JMS package remains installed after the official package transition.' >&2
+  exit 1
+fi
 launch /opt/jms/jms restored-official
 useradd -m jms-fresh
 python - <<'PY'
