@@ -71,8 +71,29 @@ bsdtar -xOf /candidate/JMS-Linux-*-x86_64.pkg.tar.xz .PKGINFO | grep -Fx 'depend
 test -x /usr/bin/jms
 test -f /usr/share/applications/com.jim608.jms.desktop
 test -f /usr/share/icons/hicolor/512x512/apps/com.jim608.jms.png
-ldd /opt/jms/jms /opt/jms/lib/*.so > /output/dependencies.txt
-! grep 'not found' /output/dependencies.txt
+readelf -d /opt/jms/jms > /output/loader-dynamic.txt
+python - <<'PY'
+# JMS_LOADER_POLICY_BEGIN
+import json,pathlib,re
+
+def verified_loader_directory(description):
+    paths=re.findall(r'\((?:RUNPATH|RPATH)\).*?\[([^\]]+)\]',description)
+    needed=re.findall(r'\(NEEDED\).*?\[([^\]]+)\]',description)
+    if paths!=['$ORIGIN/lib'] or 'libflutter_linux_gtk.so' not in needed:
+        raise ValueError('Expected executable loader context missing')
+    return '/opt/jms/lib'
+
+if __name__=='__main__':
+    directory=verified_loader_directory(pathlib.Path('/output/loader-dynamic.txt').read_text())
+    pathlib.Path('/output/loader-validation.json').write_text(json.dumps({'executableRpath':'$ORIGIN/lib','standalonePluginLookup':directory,'flutterPreloadedByExecutable':True,'runtimeEnvironmentModified':False},indent=2))
+# JMS_LOADER_POLICY_END
+PY
+ldd /opt/jms/jms > /output/dependencies.txt
+if grep 'not found' /output/dependencies.txt; then exit 1; fi
+# Standalone plugin checks use the directory proven by the executable's own loader context.
+# Application launches below retain their normal environment and executable RPATH.
+LD_LIBRARY_PATH=/opt/jms/lib ldd /opt/jms/lib/*.so >> /output/dependencies.txt
+if grep 'not found' /output/dependencies.txt; then exit 1; fi
 launch /opt/jms/jms upgraded
 mkdir /portable
 tar -xzf /candidate/JMS-Linux-*-x64.tar.gz -C /portable
@@ -88,11 +109,19 @@ cp /candidate/JMS-Linux-*-x86_64.pkg.tar.xz /aur/jms-bin/
 chown -R jms-test:jms-test /aur
 runuser -u jms-test -- bash -ec '
   cd /aur/jms-bin
+  git init --initial-branch=jms-local
+  git add -- PKGBUILD .SRCINFO README.zh-Hant.md
+  git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "chore(package): 核對 JMS 本機配方"
+  git branch jms-local-source
+  git branch --set-upstream-to=jms-local-source jms-local
+  git rev-parse HEAD > /tmp/jms-local-recipe-commit.txt
+  test -z "$(git remote)"
   makepkg --printsrcinfo > .SRCINFO.generated
   diff -u .SRCINFO .SRCINFO.generated
   makepkg --verifysource --noconfirm
   makepkg --noconfirm --log
 ' > /output/aur-makepkg.log 2>&1
+cp /tmp/jms-local-recipe-commit.txt /output/aur-local-recipe-commit.txt
 aur_packages=(/aur/jms-bin/jms-bin-*-x86_64.pkg.tar.zst)
 test "${#aur_packages[@]}" = 1
 test -f "${aur_packages[0]}"
@@ -118,7 +147,7 @@ assert files>0 and symlinks>0
 pathlib.Path('/output/aur-payload-validation.json').write_text(json.dumps({'identicalPayloadFiles':files,'identicalSymlinks':symlinks,'appBinaryChanged':False},indent=2))
 PY
 # 只在隔離容器明確同意互斥套件轉換；正式安裝由使用者確認。
-printf 'y\ny\n' | runuser -u jms-test -- bash -ec 'cd /aur; yay -Bi ./jms-bin --mflags "--force"' > /output/aur-yay-install.log 2>&1
+printf 'y\ny\n' | runuser -u jms-test -- bash -ec 'cd /aur; yay -Bi ./jms-bin --mflags "--force" --nocleanmenu --nodiffmenu' > /output/aur-yay-install.log 2>&1
 pacman -Q jms-bin > /output/aur-package-version.txt
 ! pacman -Q jms >/dev/null 2>&1
 cmp /aur-payload/opt/jms/jms /opt/jms/jms
