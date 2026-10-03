@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -7,6 +9,7 @@ import 'package:http/testing.dart';
 import 'package:fladder/models/settings/video_player_settings.dart';
 import 'package:fladder/util/linux_update_bridge_io.dart';
 import 'package:fladder/util/update_checker.dart';
+import 'package:fladder/util/update_controller.dart';
 import 'package:fladder/util/update_source.dart';
 import 'package:flutter/foundation.dart';
 
@@ -33,6 +36,83 @@ Map<String, dynamic> linuxManifest() => {
     };
 
 void main() {
+  test('Linux identifies community packages before official packages',
+      () async {
+    final calls = <List<String>>[];
+    final bridge =
+        LinuxUpdateBridge(processRunner: (executable, arguments) async {
+      expect(executable, '/usr/bin/pacman');
+      calls.add(arguments);
+      return ProcessResult(1, 0, 'jms-bin 0.11.1_jms.29-31\n', '');
+    });
+    expect(
+        await bridge.currentPackageChannel(), UpdatePackageChannel.community);
+    expect(calls, [
+      ['-Q', 'jms-bin']
+    ]);
+  });
+
+  test('Linux identifies the exact official package after community is absent',
+      () async {
+    final calls = <List<String>>[];
+    final bridge =
+        LinuxUpdateBridge(processRunner: (executable, arguments) async {
+      expect(executable, '/usr/bin/pacman');
+      calls.add(arguments);
+      return arguments.last == 'jms-bin'
+          ? ProcessResult(1, 1, '', 'package not found')
+          : ProcessResult(1, 0, 'jms 0.11.1_jms.29-31\n', '');
+    });
+    expect(await bridge.currentPackageChannel(), UpdatePackageChannel.official);
+    expect(calls, [
+      ['-Q', 'jms-bin'],
+      ['-Q', 'jms']
+    ]);
+  });
+
+  test('Linux does not infer a package channel from untrusted pacman output',
+      () async {
+    for (final result in [
+      ProcessResult(1, 0, 'other 0.11.1-1\n', ''),
+      ProcessResult(1, 0, 'jms 0.11.1_jms.29-31\n', ''),
+      ProcessResult(1, 0, 'jms-bin 0.11.1-1\nother 1-1\n', ''),
+      ProcessResult(1, 0, 'jms-bin\n', ''),
+      ProcessResult(1, 0, 'jms-bin ../invalid\n', ''),
+      ProcessResult(1, 2, '', 'database error'),
+      ProcessResult(1, 1, 'unexpected output', ''),
+      ProcessResult(1, 0, <int>[1, 2, 3], ''),
+    ]) {
+      var calls = 0;
+      final bridge = LinuxUpdateBridge(processRunner: (_, __) async {
+        calls++;
+        return result;
+      });
+      expect(
+          await bridge.currentPackageChannel(), UpdatePackageChannel.unknown);
+      expect(calls, 1);
+    }
+  });
+
+  test('Linux returns unknown when neither supported package is installed',
+      () async {
+    final bridge = LinuxUpdateBridge(
+        processRunner: (_, __) async =>
+            ProcessResult(1, 1, '', 'package not found'));
+    expect(await bridge.currentPackageChannel(), UpdatePackageChannel.unknown);
+  });
+
+  test('Linux package queries fail closed on missing pacman or timeouts',
+      () async {
+    final missing = LinuxUpdateBridge(processRunner: (_, __) async {
+      throw const ProcessException('/usr/bin/pacman', ['-Q', 'jms-bin']);
+    });
+    final timeout = LinuxUpdateBridge(
+        processRunner: (_, __) => Completer<ProcessResult>().future,
+        packageQueryTimeout: Duration.zero);
+    expect(await missing.currentPackageChannel(), UpdatePackageChannel.unknown);
+    expect(await timeout.currentPackageChannel(), UpdatePackageChannel.unknown);
+  });
+
   test('Linux uses MPV without exposing the excluded SDK', () {
     debugDefaultTargetPlatformOverride = TargetPlatform.linux;
     addTearDown(() => debugDefaultTargetPlatformOverride = null);

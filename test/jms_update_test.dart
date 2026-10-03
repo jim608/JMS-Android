@@ -406,7 +406,8 @@ void main() {
   });
   test('Android restart rejoins a matching transfer and preserves progress',
       () async {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues(
+        {'jms.update.transferChannel': false});
     final release = (await checker().check(device)).release!;
     final bridge = FakeBridge()
       ..restoredTransfer =
@@ -426,7 +427,8 @@ void main() {
   test(
       'restore never accepts an update from another repository or installed version',
       () async {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues(
+        {'jms.update.transferChannel': false});
     final release = (await checker().check(device)).release!;
     final wrong = ReleaseInfo(release.manifest, '', release.published,
         release.apkUrl, 'fixture-owner/other');

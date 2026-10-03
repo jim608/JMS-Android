@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fladder/l10n/generated/app_localizations.dart';
 import 'package:fladder/providers/update_provider.dart';
@@ -16,28 +18,164 @@ import 'package:fladder/util/update_controller.dart';
 import 'package:fladder/util/update_source.dart';
 
 import 'jms_update_test.dart' show FakeBridge;
-import 'jms_windows_update_test.dart' show desktopRelease, desktopSource;
+import 'jms_windows_update_test.dart'
+    show desktopRelease, desktopSource, desktopDevice;
+import 'jms_update_flow_test.dart'
+    show FlowBridge, FlowChecker, flowController, flowRelease;
+import 'jms_linux_update_test.dart' show linuxDevice, linuxManifest;
 
 class DesktopUiBridge extends FakeBridge {
   @override
   bool get isDesktop => true;
+  @override
+  Future<UpdateDevice> device() async => desktopDevice;
 }
+
+Future<void> mountUpdateUi(WidgetTester tester, UpdateController controller) =>
+    tester.pumpWidget(ProviderScope(
+      overrides: [updateProvider.overrideWith((ref) => controller)],
+      child: const MaterialApp(
+        locale: Locale('en'),
+        localizationsDelegates: [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+            body: SingleChildScrollView(child: SettingsUpdateInformation())),
+      ),
+    ));
 
 void main() {
   testWidgets(
+      'community Linux install shows manual recipe instructions without an install action',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({'jms.update.auto': false});
+    final bridge = FlowBridge()
+      ..installed = linuxDevice
+      ..packageChannel = UpdatePackageChannel.community;
+    final controller = await flowController(
+        FlowChecker(UpdateCheckResult(UpdateStatus.available,
+            flowRelease(metadata: linuxManifest(), platform: 'linux-x64'))),
+        bridge);
+    await controller.download();
+    await controller.install();
+    await mountUpdateUi(tester, controller);
+    await tester.pumpAndSettle();
+    expect(find.text('JMS EndeavourOS / Arch Linux updates'), findsOneWidget);
+    expect(find.textContaining('yay -Bi ./jms-bin'), findsOneWidget);
+    expect(find.byKey(const ValueKey('update-primary-install')), findsNothing);
+    expect(find.byKey(const ValueKey('update-primary-download')), findsNothing);
+    expect(bridge.installs, 0);
+  });
+
+  testWidgets('available update has one primary action and collapsed notes',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({'jms.update.auto': false});
+    final controller = await flowController(
+        FlowChecker(UpdateCheckResult(UpdateStatus.available, flowRelease())),
+        FlowBridge());
+    await mountUpdateUi(tester, controller);
+    await tester.pumpAndSettle();
+    expect(
+        find.byKey(const ValueKey('update-primary-download')), findsOneWidget);
+    expect(find.byKey(const ValueKey('update-primary-install')), findsNothing);
+    expect(find.byType(FilledButton), findsOneWidget);
+    expect(find.text('TEST_ONLY notes'), findsNothing);
+    await tester
+        .ensureVisible(find.byKey(const ValueKey('update-release-notes')));
+    await tester.tap(find.text('Release notes'));
+    await tester.pumpAndSettle();
+    expect(find.text('TEST_ONLY notes'), findsOneWidget);
+  });
+
+  testWidgets(
+      'verified local installer replaces the download action after a network error',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({'jms.update.auto': false});
+    final checker =
+        FlowChecker(UpdateCheckResult(UpdateStatus.available, flowRelease()));
+    final bridge = FlowBridge();
+    final controller = await flowController(checker, bridge);
+    await controller.download();
+    checker.result = const UpdateCheckResult(UpdateStatus.network);
+    await controller.check();
+    await mountUpdateUi(tester, controller);
+    await tester.pumpAndSettle();
+    expect(
+        find.byKey(const ValueKey('update-primary-install')), findsOneWidget);
+    expect(find.byKey(const ValueKey('update-primary-download')), findsNothing);
+    expect(find.textContaining('still verified and available to install'),
+        findsOneWidget);
+    expect(find.byType(FilledButton), findsOneWidget);
+    await tester
+        .ensureVisible(find.byKey(const ValueKey('update-primary-install')));
+    await tester.tap(find.byKey(const ValueKey('update-primary-install')));
+    await tester.pumpAndSettle();
+    expect(bridge.installs, 1);
+  });
+
+  testWidgets(
+      'an active download shows progress and cancel, then one retry action',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({'jms.update.auto': false});
+    final bridge = FlowBridge()..transfer = Completer<void>();
+    final controller = await flowController(
+        FlowChecker(UpdateCheckResult(UpdateStatus.available, flowRelease())),
+        bridge);
+    final transfer = controller.download();
+    bridge.onProgress?.call(.35);
+    await mountUpdateUi(tester, controller);
+    await tester.pumpAndSettle();
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    expect(find.text('35%'), findsOneWidget);
+    expect(find.byKey(const ValueKey('update-primary-download')), findsNothing);
+    expect(find.byKey(const ValueKey('update-primary-install')), findsNothing);
+    await tester
+        .ensureVisible(find.byKey(const ValueKey('update-cancel-download')));
+    await tester.tap(find.byKey(const ValueKey('update-cancel-download')));
+    await transfer;
+    await tester.pumpAndSettle();
+    expect(find.text('Retry download'), findsOneWidget);
+    expect(find.byType(FilledButton), findsOneWidget);
+    expect(bridge.installs, 0);
+  });
+
+  testWidgets(
+      'permission is the sole primary action for a verified Android package',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({'jms.update.auto': false});
+    final bridge = FlowBridge()
+      ..permissionCheck = (Completer<bool>()..complete(false));
+    final controller = await flowController(
+        FlowChecker(UpdateCheckResult(UpdateStatus.available, flowRelease())),
+        bridge);
+    await controller.download();
+    await controller.install();
+    await mountUpdateUi(tester, controller);
+    await tester.pumpAndSettle();
+    expect(find.text('Open installation permission'), findsOneWidget);
+    expect(find.byType(FilledButton), findsOneWidget);
+    expect(find.byKey(const ValueKey('update-primary-download')), findsNothing);
+    expect(bridge.installs, 0);
+  });
+
+  testWidgets(
       'desktop installer requires explicit confirmation and can be cancelled',
       (tester) async {
+    SharedPreferences.setMockInitialValues({'jms.update.auto': false});
     final bridge = DesktopUiBridge();
     final controller = UpdateController(
-        checker: UpdateChecker(source: desktopSource), bridge: bridge)
-      ..ready = true
-      ..latestRelease = desktopRelease()
-      ..status = UpdateStatus.downloaded;
+        checker: UpdateChecker(source: desktopSource), bridge: bridge);
+    await controller.initialize();
+    controller.latestRelease = desktopRelease();
+    await controller.download();
     await tester.pumpWidget(ProviderScope(
       overrides: [updateProvider.overrideWith((ref) => controller)],
       child: const MaterialApp(
-        locale:
-            Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
+        locale: Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
         localizationsDelegates: [
           AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,

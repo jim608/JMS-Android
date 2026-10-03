@@ -7,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fladder/util/update_checker.dart';
 
+enum UpdatePackageChannel { official, community, unknown }
+
 abstract class UpdateBridge {
   bool get isDesktop => false;
   bool get supportsBackgroundDownload => false;
@@ -19,6 +21,8 @@ abstract class UpdateBridge {
   Future<void> permission();
   Future<String> install();
   Future<UpdateTransfer?> restoreTransfer() async => null;
+  Future<UpdatePackageChannel> currentPackageChannel() async =>
+      UpdatePackageChannel.unknown;
 }
 
 class UpdateTransfer {
@@ -103,6 +107,10 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
   bool _disposed = false;
   bool _checking = false;
   bool _installing = false;
+  bool _downloading = false;
+  int _generation = 0;
+  String? _verifiedAsset;
+  bool? _verifiedChannel;
   bool _foreground = true;
   bool playback = false;
   bool automatic = true;
@@ -112,13 +120,69 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
   bool ready = false;
   double progress = 0;
   String? failure;
+  UpdateStatus? checkWarning;
   UpdateStatus status = UpdateStatus.idle;
   ReleaseInfo? latestRelease;
-  bool get busy =>
-      _checking || status == UpdateStatus.downloading || _installing;
+  String? get platform => _device?.platform;
+  bool get busy => _checking || _downloading || _installing;
   bool get blocked => playback || !_foreground;
   bool get _transferAllowed =>
       !playback && (_foreground || bridge.supportsBackgroundDownload);
+  bool get hasVerifiedDownload =>
+      latestRelease != null &&
+      _validRelease(latestRelease!) &&
+      _verifiedAsset == _assetIdentity(latestRelease!) &&
+      _verifiedChannel == prerelease;
+
+  bool _validRelease(ReleaseInfo release) =>
+      _device != null &&
+      release.repository == checker.source.identity &&
+      checker.source.ownsAsset(release.apkUrl) &&
+      release.manifest.supports(_device!) &&
+      release.apkUrl.pathSegments.last == release.manifest.assetName &&
+      release.manifest.versionCode > _device!.versionCode;
+
+  String _assetIdentity(ReleaseInfo release) {
+    final manifest = Map<String, dynamic>.from(release.manifest.json)
+      ..removeWhere((key, _) => const {
+            'changelog',
+            'releaseNotes',
+            'notes',
+            'status',
+            'publishedAt',
+            'published_at',
+            // Native restore includes these transport fields; they are bound above.
+            'url',
+            'repository',
+          }.contains(key));
+    return jsonEncode([
+      release.repository,
+      release.apkUrl.toString(),
+      _canonicalValue(manifest),
+    ]);
+  }
+
+  Object? _canonicalValue(Object? value) {
+    if (value is Map) {
+      final keys = value.keys.cast<String>().toList()..sort();
+      return {for (final key in keys) key: _canonicalValue(value[key])};
+    }
+    if (value is List) return value.map(_canonicalValue).toList();
+    return value;
+  }
+
+  void _invalidateDownload() {
+    _verifiedAsset = null;
+    _verifiedChannel = null;
+    checkWarning = null;
+  }
+
+  bool _current(int generation, String identity) =>
+      !_disposed &&
+      generation == _generation &&
+      latestRelease != null &&
+      _validRelease(latestRelease!) &&
+      _assetIdentity(latestRelease!) == identity;
   bool get hasNewUpdate =>
       !blocked &&
       !deferred &&
@@ -136,7 +200,8 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
             ? UpdateStatus.idle
             : UpdateStatus.unconfigured;
     bridge.onProgress = (value) {
-      progress = value;
+      if (_disposed || !_downloading || !value.isFinite) return;
+      progress = value.clamp(0, 1);
       _notify();
     };
   }
@@ -173,24 +238,28 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
       }
       final transfer = await bridge.restoreTransfer();
       if (_disposed) return;
+      final transferChannel = _prefs!.getBool('jms.update.transferChannel');
       if (transfer != null &&
-          transfer.release.repository == checker.source.identity &&
-          checker.source.ownsAsset(transfer.release.apkUrl) &&
-          transfer.release.apkUrl.pathSegments.last ==
-              transfer.release.manifest.assetName &&
-          transfer.release.manifest.supports(_device!) &&
-          transfer.release.manifest.versionCode > _device!.versionCode) {
+          _validRelease(transfer.release) &&
+          (transferChannel == null
+              ? prerelease
+              : transferChannel == prerelease)) {
         latestRelease = transfer.release;
         status = transfer.status;
         progress = transfer.progress;
         failure = transfer.failure;
         if (status == UpdateStatus.downloading) {
-          unawaited(_completeDownload(transfer.release));
+          _downloading = true;
+          unawaited(_completeDownload(transfer.release, ++_generation));
+        } else if (status == UpdateStatus.downloaded) {
+          // The native restore contract rechecks the file before returning ready.
+          _verifiedAsset = _assetIdentity(transfer.release);
+          _verifiedChannel = prerelease;
         }
       }
       ready = true;
       _notify();
-      _timer = Timer(const Duration(seconds: 3), () => check(manual: false));
+      _schedule();
     } catch (_) {
       status = UpdateStatus.installBlocked;
       _notify();
@@ -206,7 +275,9 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> setPrerelease(bool value) async {
-    if (busy) return;
+    if (_disposed || busy || value == prerelease) return;
+    ++_generation;
+    _invalidateDownload();
     prerelease = value;
     latestRelease = null;
     status = checker.source.configured
@@ -249,6 +320,7 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
       }
     }
     if (_foreground) unawaited(check(manual: false));
+    _notify();
   }
 
   void _schedule() {
@@ -263,7 +335,7 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> check({bool manual = true}) async {
-    if (!supported || !ready || busy) return;
+    if (_disposed || !supported || !ready || busy) return;
     if (blocked) {
       if (manual) {
         status = UpdateStatus.playbackBlocked;
@@ -285,17 +357,18 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
       return;
     }
     _checking = true;
+    final generation = _generation;
     status = UpdateStatus.checking;
     failure = null;
+    checkWarning = null;
     if (manual) deferred = false;
     _notify();
     try {
       await _prefs!.setInt(
           'jms.update.lastCheck', DateTime.now().millisecondsSinceEpoch);
       final result = await checker.check(_device!, prerelease: prerelease);
-      if (_disposed) return;
-      status = result.status;
-      latestRelease = result.release;
+      if (_disposed || generation != _generation) return;
+      _acceptCheck(result);
       if (manual && latestRelease != null) skipped = null;
       await _prefs!.setString('jms.update.cache', jsonEncode(checker.cache));
       if (checker.retryAfter != null) {
@@ -303,7 +376,9 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
             checker.retryAfter!.millisecondsSinceEpoch);
       }
     } catch (_) {
-      status = UpdateStatus.network;
+      if (!_disposed && generation == _generation) {
+        _acceptCheck(const UpdateCheckResult(UpdateStatus.network));
+      }
     } finally {
       _checking = false;
       _schedule();
@@ -311,72 +386,183 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  void _acceptCheck(UpdateCheckResult result) {
+    if (hasVerifiedDownload &&
+        const {
+          UpdateStatus.network,
+          UpdateStatus.rateLimited,
+          UpdateStatus.sourceUnavailable,
+        }.contains(result.status)) {
+      checkWarning = result.status;
+      status = UpdateStatus.downloaded;
+      return;
+    }
+    final sameVerified = hasVerifiedDownload &&
+        result.release != null &&
+        _validRelease(result.release!) &&
+        _assetIdentity(result.release!) == _verifiedAsset;
+    if (!sameVerified) {
+      ++_generation;
+      _invalidateDownload();
+    }
+    checkWarning = null;
+    latestRelease = result.release;
+    status = sameVerified ? UpdateStatus.downloaded : result.status;
+  }
+
   Future<void> download() async {
-    if (busy || latestRelease == null) return;
+    if (_disposed || !ready || busy || latestRelease == null) return;
     if (blocked) {
       status = UpdateStatus.playbackBlocked;
       _notify();
       return;
     }
+    final release = latestRelease!;
+    if (!_validRelease(release)) {
+      _invalidateDownload();
+      status = UpdateStatus.downloadFailed;
+      failure = 'incompatible';
+      _notify();
+      return;
+    }
+    _invalidateDownload();
+    final generation = ++_generation;
+    _downloading = true;
     status = UpdateStatus.downloading;
     failure = null;
     progress = 0;
     _notify();
-    await _completeDownload(latestRelease!);
+    final savedChannel =
+        _prefs?.setBool('jms.update.transferChannel', prerelease);
+    final transfer = _completeDownload(release, generation);
+    try {
+      await savedChannel;
+    } catch (_) {
+      // A settings write must not interrupt a confirmed native transfer.
+    }
+    await transfer;
   }
 
-  Future<void> _completeDownload(ReleaseInfo release) async {
+  Future<void> _completeDownload(ReleaseInfo release, int generation) async {
+    final identity = _assetIdentity(release);
+    final channel = prerelease;
     try {
       await bridge.download(release);
+      if (!_current(generation, identity)) return;
+      _verifiedAsset = identity;
+      _verifiedChannel = channel;
+      progress = 1;
       status = UpdateStatus.downloaded;
     } on PlatformException catch (error) {
+      if (!_current(generation, identity)) return;
       failure = error.code;
       status = error.code == 'cancelled'
           ? UpdateStatus.cancelled
           : UpdateStatus.downloadFailed;
     } catch (_) {
+      if (!_current(generation, identity)) return;
       status = UpdateStatus.downloadFailed;
-    }
-    _notify();
-  }
-
-  Future<void> cancel() async {
-    try {
-      await bridge.cancel();
-    } catch (_) {
-      failure = 'download';
+    } finally {
+      if (!_disposed && generation == _generation) {
+        _downloading = false;
+        if (!_current(generation, identity) || prerelease != channel) {
+          _invalidateDownload();
+          failure = 'notVerified';
+          status = UpdateStatus.downloadFailed;
+        }
+      }
       _notify();
     }
   }
 
-  Future<void> install({bool openPermission = false}) async {
-    if (busy || latestRelease == null) return;
+  Future<void> cancel() async {
+    if (_disposed || !_downloading) return;
+    ++_generation;
+    _invalidateDownload();
+    status = UpdateStatus.cancelled;
+    try {
+      await bridge.cancel();
+    } catch (_) {
+      failure = 'download';
+    } finally {
+      _downloading = false;
+      _notify();
+    }
+  }
+
+  Future<void> install(
+      {bool openPermission = false, ReleaseInfo? expectedRelease}) async {
+    if (_disposed || !ready || busy || latestRelease == null) return;
     if (blocked) {
       status = UpdateStatus.playbackBlocked;
       _notify();
       return;
     }
+    if (!hasVerifiedDownload ||
+        (expectedRelease != null &&
+            _assetIdentity(expectedRelease) !=
+                _assetIdentity(latestRelease!))) {
+      _invalidateDownload();
+      failure = 'notVerified';
+      status = UpdateStatus.installBlocked;
+      _notify();
+      return;
+    }
+    final release = latestRelease!;
+    final generation = _generation;
+    final identity = _assetIdentity(release);
     _installing = true;
     failure = null;
     _notify();
     try {
+      if (release.manifest.linux &&
+          await bridge.currentPackageChannel() ==
+              UpdatePackageChannel.community) {
+        if (!_current(generation, identity)) return;
+        failure = 'packageChannel';
+        status = UpdateStatus.installBlocked;
+        return;
+      }
+      if (!_current(generation, identity) || !hasVerifiedDownload || blocked) {
+        return;
+      }
       if (!await bridge.canInstall()) {
+        if (!_current(generation, identity) || blocked) return;
         status = UpdateStatus.permissionRequired;
         if (openPermission) await bridge.permission();
         return;
       }
-      await _prefs!
-          .setInt('jms.update.pending', latestRelease!.manifest.versionCode);
+      if (!_current(generation, identity) || !hasVerifiedDownload || blocked) {
+        return;
+      }
+      await _prefs!.setInt('jms.update.pending', release.manifest.versionCode);
+      if (!_current(generation, identity) || !hasVerifiedDownload || blocked) {
+        await _prefs?.remove('jms.update.pending');
+        return;
+      }
       final result = await bridge.install();
+      if (!_current(generation, identity)) return;
       status = switch (result) {
         'installCancelled' => UpdateStatus.installCancelled,
         'installBlocked' => UpdateStatus.installBlocked,
         _ => UpdateStatus.installPending,
       };
     } on PlatformException catch (error) {
+      if (!_current(generation, identity)) return;
       failure = error.code;
+      if (const {
+        'hash',
+        'size',
+        'signature',
+        'incompatible',
+        'source',
+        'notVerified'
+      }.contains(error.code)) {
+        _invalidateDownload();
+      }
       status = UpdateStatus.installBlocked;
     } catch (_) {
+      if (!_current(generation, identity)) return;
       status = UpdateStatus.installBlocked;
     } finally {
       _installing = false;
@@ -391,6 +577,8 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
   @override
   void dispose() {
     _disposed = true;
+    ++_generation;
+    bridge.onProgress = null;
     _timer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     if (supported && !bridge.supportsBackgroundDownload) {

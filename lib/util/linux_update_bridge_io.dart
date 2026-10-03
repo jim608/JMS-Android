@@ -27,7 +27,17 @@ bool validLinuxPackageMetadata(String value, UpdateManifest manifest) {
 }
 
 class LinuxUpdateBridge extends WindowsUpdateBridge {
-  LinuxUpdateBridge({super.clientFactory, super.directory});
+  LinuxUpdateBridge({
+    super.clientFactory,
+    super.directory,
+    Future<ProcessResult> Function(String, List<String>)? processRunner,
+    Duration packageQueryTimeout = const Duration(seconds: 5),
+  })  : _runProcess = processRunner ?? Process.run,
+        _packageQueryTimeout = packageQueryTimeout;
+
+  final Future<ProcessResult> Function(String, List<String>) _runProcess;
+  final Duration _packageQueryTimeout;
+
   @override
   UpdateSource get source =>
       const UpdateSource(owner: 'jim608', repo: 'JMS-Linux');
@@ -35,6 +45,37 @@ class LinuxUpdateBridge extends WindowsUpdateBridge {
   String get targetPlatform => 'linux-x64';
   @override
   String get installerFileName => 'installer.pkg.tar.xz';
+
+  @override
+  Future<UpdatePackageChannel> currentPackageChannel() async {
+    for (final package in [
+      (name: 'jms-bin', channel: UpdatePackageChannel.community),
+      (name: 'jms', channel: UpdatePackageChannel.official),
+    ]) {
+      try {
+        final result =
+            await _runProcess('/usr/bin/pacman', ['-Q', package.name])
+                .timeout(_packageQueryTimeout);
+        final output = result.stdout;
+        if (result.exitCode == 1 && output is String && output.trim().isEmpty) {
+          continue;
+        }
+        if (result.exitCode != 0 || output is! String) {
+          return UpdatePackageChannel.unknown;
+        }
+        final match =
+            RegExp(r'^([a-z][a-z0-9-]*) ([A-Za-z0-9][A-Za-z0-9.+_:~-]*)$')
+                .firstMatch(output.trim());
+        if (match?.group(1) != package.name) {
+          return UpdatePackageChannel.unknown;
+        }
+        return package.channel;
+      } catch (_) {
+        return UpdatePackageChannel.unknown;
+      }
+    }
+    return UpdatePackageChannel.unknown;
+  }
 
   @override
   Future<UpdateDevice> device() async {
