@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fladder/models/account_model.dart';
 import 'package:fladder/models/item_base_model.dart';
 import 'package:fladder/models/media_playback_model.dart';
+import 'package:fladder/providers/incognito_mode_provider.dart';
 import 'package:fladder/providers/shared_provider.dart';
 import 'package:fladder/providers/settings/video_player_settings_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
@@ -19,12 +20,16 @@ import 'package:fladder/services/discord/discord_presence_controller.dart';
 export 'package:fladder/services/discord/discord_presence_client.dart'
     show DiscordConnectionState;
 
+final discordPresenceClientProvider = Provider<DiscordPresenceClient>(
+  (ref) => createDiscordPresenceClient(),
+);
+
 final discordPresenceSettingsProvider =
     ChangeNotifierProvider<DiscordPresenceSettings>((ref) {
   final settings = DiscordPresenceSettings(
     preferences: ref.read(sharedPreferencesProvider),
-    controller:
-        DiscordPresenceController(client: createDiscordPresenceClient()),
+    controller: DiscordPresenceController(
+        client: ref.read(discordPresenceClientProvider)),
   );
   String? previousScope;
   Object? previousAccountPlayback;
@@ -62,11 +67,12 @@ final discordPresenceSettingsProvider =
         duration: playback.duration,
         rate: ref.read(playbackRateProvider),
       ),
-      privateMode: account?.incognitoMode ?? true,
+      privateMode: scope == null || ref.read(incognitoProvider),
     );
   }
 
   ref.listen(userProvider, (_, __) => update());
+  ref.listen(incognitoProvider, (_, __) => update());
   ref.listen(mediaPlaybackProvider, (_, __) => update());
   ref.listen(playBackModel, (_, __) => update());
   ref.listen(playbackRateProvider, (_, __) => update());
