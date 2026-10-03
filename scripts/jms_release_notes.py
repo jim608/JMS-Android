@@ -73,7 +73,7 @@ def main():
     args = parser.parse_args()
     notes = release_notes_for(args.changelog, args.version)
     if args.write:
-        args.output.write_text(notes, encoding='utf-8')
+        args.output.write_text(notes, encoding='utf-8', newline='\n')
     else:
         require_current_notes(args.changelog, args.output, args.version)
     print(f'JMS {args.version} release notes verified')
