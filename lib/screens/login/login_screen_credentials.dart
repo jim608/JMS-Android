@@ -23,6 +23,8 @@ import 'package:fladder/screens/shared/animated_fade_size.dart';
 import 'package:fladder/screens/shared/fladder_notification_overlay.dart';
 import 'package:fladder/screens/shared/outlined_text_field.dart';
 import 'package:fladder/screens/shared/passcode_input.dart';
+import 'package:fladder/screens/settings/widgets/jms_entry_config_tile.dart';
+import 'package:fladder/screens/seerr/seerr_support_text.dart';
 import 'package:fladder/services/local_network_permission.dart';
 import 'package:fladder/util/auth_service.dart';
 import 'package:fladder/util/deep_link_helper.dart';
@@ -121,7 +123,8 @@ class _LoginScreenCredentialsState
       authProvider.select((value) => value.serverLoginModel),
       (previous, next) {
         if (next?.tempCredentials.url.isNotEmpty == true) {
-          serverTextController.text = next?.tempCredentials.url ?? "";
+          serverTextController.text =
+              provider.entryInput ?? next?.tempCredentials.url ?? "";
         }
       },
     );
@@ -156,7 +159,6 @@ class _LoginScreenCredentialsState
                     autocorrect: false,
                     textInputAction: TextInputAction.go,
                     label: context.localized.server,
-                    errorText: urlError,
                   ),
                 ),
               AspectRatio(
@@ -176,6 +178,57 @@ class _LoginScreenCredentialsState
             ],
           ),
         ),
+        if (provider.entryResolution?.isSuccess == false || urlError != null)
+          Semantics(
+            liveRegion: true,
+            child: Text(
+              provider.entryResolution?.isSuccess == false
+                  ? jmsEntryErrorText(context, provider.entryResolution?.error)
+                  : urlError!,
+              key: const Key('jms-entry-error'),
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+        if (provider.pendingEntryChange != null)
+          FilledButton(
+            key: const Key('jms-entry-confirm-change'),
+            onPressed: loading
+                ? null
+                : () async {
+                    final pending = provider.pendingEntryChange;
+                    if (pending != null &&
+                        await confirmJmsEntryServices(context, pending.config!,
+                            newJellyfin: true)) {
+                      await provider.confirmEntryChange(expected: pending);
+                    }
+                  },
+            child:
+                Text(seerrText(context, 'Review service changes', '查看並確認服務變更')),
+          ),
+        if (provider.entryInput != null &&
+            provider.pendingEntryChange == null &&
+            (provider.entryResolution?.isSuccess == false || urlError != null))
+          Wrap(spacing: 8, children: [
+            TextButton(
+                key: const Key('jms-entry-retry'),
+                onPressed: loading
+                    ? null
+                    : () => provider.setServer(serverTextController.text),
+                child: Text(seerrText(context, 'Retry', '重試'))),
+            TextButton(
+                key: const Key('jms-entry-direct'),
+                onPressed: loading
+                    ? null
+                    : () => provider.setServer(serverTextController.text,
+                        forceDirect: true),
+                child: Text(seerrText(
+                    context, 'Connect directly to Jellyfin', '直接連線 Jellyfin'))),
+          ]),
+        if (provider.entryResolution?.fromCache == true)
+          Text(seerrText(
+              context,
+              'Using the last valid entry configuration. You can retry the entry.',
+              '入口暫時無法讀取，已使用上次有效設定；可重新讀取。')),
         if (serverCredentials == null)
           Column(
             mainAxisSize: MainAxisSize.max,
@@ -381,6 +434,7 @@ class _LoginScreenCredentialsState
           usernameController.text,
           passwordController.text,
         );
+    if (!mounted) return;
 
     if (response?.isSuccessful == false) {
       FladderSnack.show(
@@ -393,6 +447,7 @@ class _LoginScreenCredentialsState
     }
 
     if (response?.body == null) {
+      FladderSnack.show(context.localized.unableToConnectHost, context: context);
       setState(() {
         loggingIn = false;
       });

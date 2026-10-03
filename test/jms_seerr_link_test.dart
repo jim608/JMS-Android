@@ -23,8 +23,9 @@ import 'fixtures/seerr_test_scope.dart';
 void main() {
   late SeerrFixture fixture;
   late ProviderContainer container;
-  setUp(() {
+  setUp(() async {
     fixture = SeerrFixture();
+    await fixture.initializePreferences();
     container = ProviderContainer(overrides: fixture.overrides());
   });
   tearDown(() {
@@ -353,7 +354,7 @@ void main() {
             apiKey: 'TEST_ONLY',
             sessionCookie: 'connect.sid=OLD',
             customHeaders: {'Authorization': 'TEST_ONLY'})));
-    container.read(userProvider.notifier).bindSeerrAccount(jmsSeerrSource);
+    await container.read(userProvider.notifier).bindSeerrAccount(jmsSeerrSource);
     final credentials = container.read(userProvider)!.seerrCredentials!;
     expect(credentials.apiKey, 'TEST_ONLY');
     expect(credentials.customHeaders, {'Authorization': 'TEST_ONLY'});

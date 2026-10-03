@@ -3,11 +3,13 @@ import 'package:chopper/chopper.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fladder/models/account_model.dart';
 import 'package:fladder/models/credentials_model.dart';
 import 'package:fladder/models/seerr_credentials_model.dart';
 import 'package:fladder/providers/seerr_api_provider.dart';
 import 'package:fladder/providers/seerr_service_provider.dart';
+import 'package:fladder/providers/shared_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/seerr/seerr_chopper_service.dart';
 import 'package:fladder/seerr/seerr_cookie_jar.dart';
@@ -146,6 +148,13 @@ class SeerrFixtureStore extends SeerrSessionStore {
 }
 
 class SeerrFixture {
+  SharedPreferences? preferences;
+
+  Future<void> initializePreferences() async {
+    SharedPreferences.setMockInitialValues({});
+    preferences = await SharedPreferences.getInstance();
+  }
+
   final calls = <http.Request>[];
   final clients = <ChopperClient>[];
   final store = SeerrFixtureStore();
@@ -338,6 +347,8 @@ class SeerrFixture {
   }
 
   List<Override> overrides({AccountModel? account}) => [
+        if (preferences != null)
+          sharedPreferencesProvider.overrideWithValue(preferences!),
         userProvider.overrideWith(
             () => SeerrFixtureUser(account ?? seerrFixtureAccount())),
         seerrSessionStoreProvider.overrideWithValue(store),

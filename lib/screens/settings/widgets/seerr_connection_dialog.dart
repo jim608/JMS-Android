@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fladder/providers/auth_provider.dart';
+import 'package:fladder/providers/jms_entry_provider.dart';
 import 'package:fladder/providers/seerr_api_provider.dart';
 import 'package:fladder/providers/seerr_link_provider.dart';
+import 'package:fladder/providers/shared_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/screens/seerr/seerr_link_panel.dart';
 import 'package:fladder/screens/seerr/seerr_support_text.dart';
@@ -198,8 +200,10 @@ class _SeerrConnectionDialogState extends ConsumerState<SeerrConnectionDialog> {
     final source = account == null
         ? normalizeConfiguredSeerrSource(FladderConfig.seerrBaseUrl) ??
             normalizeConfiguredSeerrSource(jmsSeerrSource)
-        : seerrSourceForLogin(account,
-            configuredSource: FladderConfig.seerrBaseUrl);
+        : JmsEntrySettings(ref.read(sharedPreferencesProvider))
+            .effectiveSeerrCredentials(account,
+                configuredSource: FladderConfig.seerrBaseUrl)
+            .serverUrl;
     final needsVerification = {
       'needs_auth',
       'session_missing',
@@ -207,6 +211,8 @@ class _SeerrConnectionDialogState extends ConsumerState<SeerrConnectionDialog> {
       'authentication_failed'
     }.contains(status);
     final bound = account != null &&
+        source?.isNotEmpty == true &&
+        credentials?.serverUrl == source &&
         credentials?.serverUrl.isNotEmpty == true &&
         credentials?.linkedServerId == account.credentials.serverId;
     final oldSource = credentials?.serverUrl;
@@ -221,7 +227,7 @@ class _SeerrConnectionDialogState extends ConsumerState<SeerrConnectionDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                  '${seerrText(context, 'Service', '服務')}：${source ?? seerrText(context, 'Not configured', '尚未設定')}'),
+                  '${seerrText(context, 'Service', '服務')}：${source == null || source.isEmpty ? seerrText(context, 'Not configured', '尚未設定') : source}'),
               const SizedBox(height: 8),
               Text(
                   '${seerrText(context, 'Account', '帳號')}：${account?.name ?? '—'}'),
@@ -272,7 +278,9 @@ class _SeerrConnectionDialogState extends ConsumerState<SeerrConnectionDialog> {
                       context, 'Link my Jellyfin account', '連結我的 Jellyfin 帳號')),
                 ),
               ],
-              if (needsVerification && account != null) ...[
+              if (needsVerification &&
+                  account != null &&
+                  source?.isNotEmpty == true) ...[
                 const SizedBox(height: 12),
                 Text(seerrText(
                     context, 'Verify Jellyfin account', '驗證 Jellyfin 帳號')),

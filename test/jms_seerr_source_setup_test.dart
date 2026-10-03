@@ -15,6 +15,7 @@ void main() {
       'Linux sign-in offers source setup and retains explicit link consent',
       (tester) async {
     final fixture = SeerrFixture();
+    await fixture.initializePreferences();
     final container = ProviderContainer(
         overrides: fixture.overrides(
       account:

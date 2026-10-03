@@ -2,17 +2,20 @@ import 'dart:convert';
 
 import 'package:chopper/chopper.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart' show StateProvider;
+import 'package:flutter_riverpod/flutter_riverpod.dart'
+    show Provider, StateProvider;
+import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:fladder/models/account_model.dart';
+import 'package:fladder/providers/jms_entry_provider.dart';
+import 'package:fladder/providers/shared_provider.dart';
 import 'package:fladder/providers/seerr_service_provider.dart';
 import 'package:fladder/providers/seerr_link_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/seerr/seerr_chopper_service.dart';
 import 'package:fladder/seerr/seerr_json_converter.dart';
 import 'package:fladder/seerr/seerr_connection.dart';
-import 'package:fladder/seerr/seerr_source.dart';
 import 'package:fladder/seerr/seerr_diagnostic.dart';
 import 'package:fladder/seerr/seerr_cookie_jar.dart';
 import 'package:fladder/seerr/seerr_csrf_client.dart';
@@ -22,6 +25,9 @@ import 'package:fladder/util/seerr_http_client.dart'
     if (dart.library.html) 'package:fladder/util/seerr_http_client_web.dart';
 
 part 'seerr_api_provider.g.dart';
+
+final seerrHttpClientFactoryProvider =
+    Provider<http.Client Function()>((ref) => createSeerrHttpClient);
 
 final seerrDiagnosticProvider = StateProvider<SeerrDiagnostic?>((ref) {
   ref.watch(userProvider.select((account) => (
@@ -39,12 +45,14 @@ class SeerrApi extends _$SeerrApi {
     final scope = ref.watch(userProvider.select((account) => (
           account?.id,
           account?.credentials.serverId,
-          account?.seerrCredentials
+          account?.seerrCredentials,
+          account?.credentials.url,
         )));
-    final credentials = effectiveJmsSeerrCredentials(scope.$3,
-        configuredSource: FladderConfig.seerrBaseUrl);
-    final server = credentials.serverUrl;
     final account = ref.read(userProvider);
+    final credentials = JmsEntrySettings(ref.read(sharedPreferencesProvider))
+        .effectiveSeerrCredentials(account,
+            configuredSource: FladderConfig.seerrBaseUrl);
+    final server = credentials.serverUrl;
     bool active = true;
 
     final requestInterceptor = SeerrRequest(
@@ -55,7 +63,7 @@ class SeerrApi extends _$SeerrApi {
             cookie: credentials.sessionCookie),
         credentials.linkedServerId.isNotEmpty ? {} : credentials.customHeaders,
         () => active,
-        account: account,
+        account: account?.copyWith(seerrCredentials: credentials),
         sessionStore: ref.read(seerrSessionStoreProvider),
         expectedJellyfinUserId: scope.$1, onDiagnostic: (diagnostic) {
       if (active) {
@@ -73,7 +81,7 @@ class SeerrApi extends _$SeerrApi {
         }
       });
     });
-    final transport = createSeerrHttpClient();
+    final transport = ref.watch(seerrHttpClientFactoryProvider)();
     final chopperClient = ChopperClient(
       client: !kIsWeb && server.isNotEmpty
           ? SeerrCsrfClient(transport, server, () => active)

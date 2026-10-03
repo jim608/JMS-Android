@@ -14,9 +14,12 @@ void main() {
       () async {
     final fixture = SeerrFixture()
       ..advertisedJellyfin = 'https://jellyfin.example.invalid';
+    await fixture.initializePreferences();
     final container = ProviderContainer(overrides: [
       ...fixture.overrides(
-          account: seerrFixtureAccount().copyWith(seerrCredentials: null)),
+          account: seerrFixtureAccount().copyWith(
+              seerrCredentials: const SeerrCredentialsModel(
+                  serverUrl: 'https://selected.example.invalid'))),
       seerrJellyfinLinkFactoryProvider
           .overrideWithValue((account, {anonymous = false}) {
         expect(anonymous, isTrue);
@@ -30,7 +33,7 @@ void main() {
     addTearDown(container.dispose);
     addTearDown(fixture.dispose);
     final auth = container.read(authProvider.notifier);
-    auth.setTempSeerrUrl('https://selected.example.invalid');
+    auth.setTempSeerrUrl('https://another.example.invalid');
     await auth.beginSeerrSession(username: 'fixture', password: 'TEST_ONLY');
     expect(container.read(seerrLinkProvider), 'connected');
     expect(
@@ -72,6 +75,7 @@ void main() {
 
   test('saved bound source connects without a compiled default', () async {
     final fixture = SeerrFixture();
+    await fixture.initializePreferences();
     final account = seerrFixtureAccount().copyWith(
         seerrCredentials: const SeerrCredentialsModel(
             serverUrl: 'https://saved.example.invalid',

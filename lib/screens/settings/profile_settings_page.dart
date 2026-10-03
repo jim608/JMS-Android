@@ -16,9 +16,11 @@ import 'package:fladder/providers/seerr_user_provider.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
 import 'package:fladder/providers/update_notifications_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
+import 'package:fladder/providers/jms_entry_provider.dart';
 import 'package:fladder/screens/settings/settings_list_tile.dart';
 import 'package:fladder/screens/settings/settings_scaffold.dart';
 import 'package:fladder/screens/settings/widgets/home_preferences_editors.dart';
+import 'package:fladder/screens/settings/widgets/jms_entry_config_tile.dart';
 import 'package:fladder/screens/settings/widgets/password_reset_dialog.dart';
 import 'package:fladder/screens/settings/widgets/seerr_connection_dialog.dart';
 import 'package:fladder/screens/settings/widgets/settings_label_divider.dart';
@@ -326,9 +328,14 @@ class _UserSettingsPageState extends ConsumerState<ProfileSettingsPage> with Wid
           [
             SettingsListTile(
               label: const Text('Jellyseerr / Seerr'),
-              subLabel: Text(_seerrStatusLabel(context, user?.seerrCredentials, seerrUser)),
+              subLabel: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(_seerrStatusLabel(context, user?.seerrCredentials, seerrUser)),
+                if (user != null && ref.read(jmsEntrySettingsProvider).isServerProvided(user))
+                  Text(seerrText(context, 'Provided by server', '由伺服器提供')),
+              ]),
               onTap: () => showSeerrConnectionDialog(context),
             ),
+            const JmsEntryConfigTile(),
             if (seerrUser?.canManageRequests ?? false)
               SettingsListTileCheckbox(
                 label: Text(context.localized.seerrRequestNotifications),

@@ -162,6 +162,16 @@ final jmsEntrySettingsProvider = Provider<JmsEntrySettings>((ref) {
     }
   });
   final current = ref.read(userProvider);
-  if (current != null) activate(current);
+  if (current != null) {
+    var active = true;
+    ref.onDispose(() => active = false);
+    Future.microtask(() {
+      if (!active) return;
+      final latest = ref.read(userProvider);
+      if (latest != null && entryDiagnosticsScope(latest) == entryDiagnosticsScope(current)) {
+        activate(latest);
+      }
+    });
+  }
   return settings;
 });

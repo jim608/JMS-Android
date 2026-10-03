@@ -302,11 +302,14 @@ class User extends _$User {
     userState = current.copyWith(seerrCredentials: updated);
   }
 
-  void bindSeerrAccount(String source) {
+  Future<void> bindSeerrAccount(String source) async {
     final user = state;
     if (user == null || user.credentials.serverId.isEmpty) return;
+    final settings = JmsEntrySettings(ref.read(sharedPreferencesProvider));
+    final provided = settings.isServerProvided(user) &&
+        settings.forAccount(user)?.config.seerrBaseUrl == source;
     final previous = user.seerrCredentials;
-    userState = user.copyWith(
+    final updated = user.copyWith(
         seerrCredentials: SeerrCredentialsModel(
             serverUrl: source,
             apiKey: previous?.serverUrl == source ? previous!.apiKey : '',
@@ -319,6 +322,8 @@ class User extends _$User {
                 : const {},
             linkedServerId: user.credentials.serverId),
         seerrRequestsEnabled: true);
+    userState = updated;
+    if (provided) await settings.markAutomaticSeerr(updated, source);
   }
 
   void setSeerrCustomHeaders(Map<String, String> headers) {

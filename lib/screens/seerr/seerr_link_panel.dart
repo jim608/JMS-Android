@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fladder/providers/jms_entry_provider.dart';
+import 'package:fladder/providers/shared_provider.dart';
 import 'package:fladder/providers/seerr_api_provider.dart';
 import 'package:fladder/providers/seerr_link_provider.dart';
 import 'package:fladder/providers/seerr_dashboard_provider.dart';
@@ -8,15 +10,28 @@ import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/screens/seerr/seerr_support_text.dart';
 import 'package:fladder/screens/settings/widgets/seerr_connection_dialog.dart';
 import 'package:fladder/seerr/seerr_connection.dart';
-import 'package:fladder/seerr/seerr_source.dart';
 import 'package:fladder/util/fladder_config.dart';
 
 Future<void> openSeerrAccountLink(BuildContext context, WidgetRef ref) async {
   final account = ref.read(userProvider);
   if (account == null) return;
-  final source = effectiveJmsSeerrCredentials(account.seerrCredentials,
+  final entrySettings = JmsEntrySettings(ref.read(sharedPreferencesProvider));
+  final source = entrySettings
+      .effectiveSeerrCredentials(account,
           configuredSource: FladderConfig.seerrBaseUrl)
       .serverUrl;
+  bool sameScopeAndSource() {
+    final current = ref.read(userProvider);
+    return current != null &&
+        current.sameIdentity(account) &&
+        current.credentials.url == account.credentials.url &&
+        entrySettings
+                .effectiveSeerrCredentials(current,
+                    configuredSource: FladderConfig.seerrBaseUrl)
+                .serverUrl ==
+            source;
+  }
+
   if (source.isEmpty) {
     await showSeerrConnectionDialog(context);
     return;
@@ -42,12 +57,17 @@ Future<void> openSeerrAccountLink(BuildContext context, WidgetRef ref) async {
                         context, 'Confirm same service', '確認同一服務並連動')))
               ],
             ));
-    if (consent != true ||
-        !context.mounted ||
-        ref.read(userProvider)?.sameIdentity(account) != true) {
+    if (consent != true || !context.mounted || !sameScopeAndSource()) {
       return;
     }
-    ref.read(userProvider.notifier).bindSeerrAccount(source);
+    await ref.read(userProvider.notifier).bindSeerrAccount(source);
+    final bound = ref.read(userProvider);
+    if (bound == null ||
+        !bound.sameIdentity(account) ||
+        bound.credentials.url != account.credentials.url ||
+        bound.seerrCredentials?.serverUrl != source) {
+      return;
+    }
   }
   final diagnostic = ref.read(seerrDiagnosticProvider);
   final quickConnectRejected = ref.read(seerrLinkProvider) == 'needs_auth' &&
@@ -56,8 +76,7 @@ Future<void> openSeerrAccountLink(BuildContext context, WidgetRef ref) async {
   if (!quickConnectRejected) {
     await ref.read(seerrLinkProvider.notifier).ensure(manual: true);
   }
-  if (!context.mounted ||
-      ref.read(userProvider)?.sameIdentity(account) != true) {
+  if (!context.mounted || !sameScopeAndSource()) {
     return;
   }
   final status = ref.read(seerrLinkProvider);
@@ -70,7 +89,9 @@ Future<void> openSeerrAccountLink(BuildContext context, WidgetRef ref) async {
     await showDialog<void>(
         context: context, builder: (_) => const _SeerrReauthenticate());
   }
-  if (context.mounted && ref.read(seerrLinkProvider) == 'connected') {
+  if (context.mounted &&
+      sameScopeAndSource() &&
+      ref.read(seerrLinkProvider) == 'connected') {
     await ref.read(seerrDashboardProvider.notifier).fetchDashboard();
   }
 }
