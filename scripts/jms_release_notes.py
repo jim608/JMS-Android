@@ -64,6 +64,17 @@ def require_current_notes(changelog, notes_path, version):
     return expected
 
 
+def release_body_for_candidate(notes, version, source_commit, build_id):
+    canonical = validate_release_notes(notes, version)
+    if not re.fullmatch(r'[a-f0-9]{40}', source_commit):
+        raise ValueError('Release body requires the complete candidate source commit')
+    if not re.fullmatch(re.escape('JMS-' + version + '-') + r'(?:[a-z]+-)?[a-f0-9]{12}', build_id):
+        raise ValueError('Release body Build ID differs from the candidate version')
+    return canonical.rstrip() + (
+        f'\n\n來源：[jim608/JMS-Android](https://github.com/jim608/JMS-Android/tree/{source_commit})\n\n'
+        f'來源提交：`{source_commit}`\n\n建置識別：`{build_id}`\n')
+
+
 def main():
     parser = argparse.ArgumentParser(description='Render or verify one JMS release note from CHANGELOG.md')
     parser.add_argument('--version', required=True)

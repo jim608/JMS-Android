@@ -13,7 +13,7 @@ from jms_publication import (
     evidence_file, execute, native_hashes, publication_gates, read_json, release_lock,
     save_json, sha256, source_files, source_fingerprint, upload_complete_release,
 )
-from jms_release_notes import require_current_notes
+from jms_release_notes import require_current_notes, release_body_for_candidate
 from jms_git_release import committed_source, check_upstream, push_release, verify_build_record, GitReleaseError
 from prepare_jms_release import apk_info, require_bound_sources
 from verify_jms_snapshot import verify_snapshot
@@ -198,6 +198,19 @@ def verify_remote(github, state, files, state_directory, policy):
             time.sleep((3, 10)[attempt])
 
 
+def bind_release_body(state, record):
+    # Existing state lacks this marker and retains its exact published body.
+    if 'canonicalNotes' not in state:
+        return
+    if record['sourceCommit'] != state['sourceCommit'] or record['version'] != state['version']:
+        raise ReleaseError('Release body candidate source/version differs')
+    body = release_body_for_candidate(state['canonicalNotes'], state['version'],
+                                      record['sourceCommit'], record['buildId'])
+    if state.get('releaseId') and state['notes'] != body:
+        raise ReleaseError('Existing release body differs; mutation refused')
+    state['notes'] = body
+
+
 def publish(args):
     PUBLICATION.mkdir(parents=True, exist_ok=True)
     with release_lock(PUBLICATION / 'publisher.lock'):
@@ -289,7 +302,8 @@ def publish(args):
             parent = refs.get('refs/heads/jms')
             notes = require_current_notes(ROOT / 'CHANGELOG.md', ROOT / 'docs/JMS_RELEASE_NOTES.zh-Hant.md', version)
             state = {'tag': tag, 'version': version, 'versionCode': code, 'prerelease': args.channel == 'prerelease',
-                     'sourceFingerprint': fingerprint, 'parent': parent, 'notes': notes, 'published': False}
+                     'sourceFingerprint': fingerprint, 'parent': parent, 'notes': notes, 'published': False,
+                     'canonicalNotes': notes, 'canonicalNotesCommit': publication_commit}
             state['sourceCommit'] = commit
             state['gitHistoryMode'] = 'jms-commits-v1'
             save_json(state_path, state)
@@ -323,6 +337,7 @@ def publish(args):
             if args.channel == 'stable' and stable.get('apkSha256') != sha256(apk):
                 raise ReleaseError('Stable acceptance is not bound to this exact APK')
             state.update(buildId=record['buildId'], apkName=apk.name, apkSha256=sha256(apk))
+            bind_release_body(state, record)
             save()
             directory = ROOT / 'artifacts/releases' / record['buildId']
             if not directory.exists():
