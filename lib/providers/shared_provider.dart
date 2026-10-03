@@ -12,6 +12,7 @@ import 'package:fladder/models/settings/home_settings_model.dart';
 import 'package:fladder/models/settings/subtitle_settings_model.dart';
 import 'package:fladder/models/settings/video_player_settings.dart';
 import 'package:fladder/providers/api_provider.dart';
+import 'package:fladder/providers/jms_entry_provider.dart';
 import 'package:fladder/providers/service_provider.dart';
 import 'package:fladder/providers/settings/book_viewer_settings_provider.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
@@ -155,7 +156,12 @@ class SharedHelper {
   }
 
   List<AccountModel> getAccounts() {
-    return _storedAccounts().map(migrateJmsSeerrSource).toList();
+    final entries = JmsEntrySettings(sharedPreferences);
+    return _storedAccounts()
+        .map((account) => entries.forAccount(account) == null
+            ? migrateJmsSeerrSource(account)
+            : account)
+        .toList();
   }
 
   List<AccountModel> _storedAccounts() {
@@ -178,6 +184,7 @@ class SharedHelper {
   }
 
   Future<int> migrateJmsSeerrAccounts() async {
+    final entries = JmsEntrySettings(sharedPreferences);
     final rawAccounts =
         sharedPreferences.getStringList(SharedKeys._loginCredentialsKey) ?? [];
     final scrubbedAccounts = <String>[];
@@ -201,7 +208,8 @@ class SharedHelper {
           }
           try {
             final account = AccountModel.fromJson(decoded);
-            if (needsJmsSeerrSourceMigration(account)) {
+            if (entries.forAccount(account) == null &&
+                needsJmsSeerrSourceMigration(account)) {
               affected.add(account);
               nextEntry = jsonEncode(migrateJmsSeerrSource(account));
               changed = true;

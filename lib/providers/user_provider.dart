@@ -15,6 +15,7 @@ import 'package:fladder/models/library_filters_model.dart';
 import 'package:fladder/models/seerr_credentials_model.dart';
 import 'package:fladder/providers/api_provider.dart';
 import 'package:fladder/providers/image_provider.dart';
+import 'package:fladder/providers/jms_entry_provider.dart';
 import 'package:fladder/providers/service_provider.dart';
 import 'package:fladder/providers/shared_provider.dart';
 import 'package:fladder/providers/sync_provider.dart';
@@ -36,7 +37,15 @@ class User extends _$User {
   late final JellyService api = ref.read(jellyApiProvider);
 
   set userState(AccountModel? account) {
-    final migrated = account == null ? null : migrateJmsSeerrSource(account);
+    final entry = account == null
+        ? null
+        : JmsEntrySettings(ref.read(sharedPreferencesProvider))
+            .forAccount(account);
+    final migrated = account == null
+        ? null
+        : entry != null
+            ? account
+            : migrateJmsSeerrSource(account);
     state = migrated?.copyWith(lastUsed: DateTime.now());
     if (migrated != null) {
       ref.read(sharedUtilityProvider).updateAccountInfo(migrated);
@@ -214,9 +223,15 @@ class User extends _$User {
     userState = state;
   }
 
-  Future<void> setSeerrServerUrl(String? value) async {
+  Future<void> setSeerrServerUrl(String? value,
+      {bool serverProvided = false}) async {
     final user = state;
     if (user == null) return;
+    if (!serverProvided) {
+      await JmsEntrySettings(ref.read(sharedPreferencesProvider))
+          .markManualSeerr(user);
+      if (state == null || !state!.sameIdentity(user) || state!.credentials.url != user.credentials.url) return;
+    }
     final previous = user.seerrCredentials ?? const SeerrCredentialsModel();
     final nextUrl = (normalizeConfiguredSeerrSource(value) ?? '')
         .replaceAll(RegExp(r'/+$'), '');
@@ -227,6 +242,7 @@ class User extends _$User {
       final current = state;
       if (current == null ||
           !current.sameIdentity(user) ||
+          current.credentials.url != user.credentials.url ||
           current.seerrCredentials?.serverUrl !=
               user.seerrCredentials?.serverUrl) {
         return;
