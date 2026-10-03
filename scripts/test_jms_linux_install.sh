@@ -147,7 +147,7 @@ assert files>0 and symlinks>0
 pathlib.Path('/output/aur-payload-validation.json').write_text(json.dumps({'identicalPayloadFiles':files,'identicalSymlinks':symlinks,'appBinaryChanged':False},indent=2))
 PY
 # 只在隔離容器明確同意互斥套件轉換；正式安裝由使用者確認。
-printf 'y\ny\n' | runuser -u jms-test -- bash -ec 'cd /aur; yay -Bi ./jms-bin --mflags "--force" --nocleanmenu --nodiffmenu' > /output/aur-yay-install.log 2>&1
+printf 'y\ny\n' | runuser -u jms-test -- bash -ec 'cd /aur; yay -Bi ./jms-bin --mflags "--force" --cleanmenu=false --diffmenu=false' > /output/aur-yay-install.log 2>&1
 pacman -Q jms-bin > /output/aur-package-version.txt
 ! pacman -Q jms >/dev/null 2>&1
 cmp /aur-payload/opt/jms/jms /opt/jms/jms
