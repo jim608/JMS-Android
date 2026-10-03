@@ -26,13 +26,18 @@ JMS（Jim608 Media Server）桌面版與 Android、Web 共用同一份 Flutter �
 
 提供配方的 Release 另附 `JMS-Linux-版本-jms-bin-aur.tar.gz`，內含 `PKGBUILD`、`.SRCINFO` 與使用說明。配方固定下載同一 Release 的 x86_64 安裝套件，核對 SHA256、App 版本、來源提交與 Build ID，再將原始程式檔案封裝為 `jms-bin`，不重新編譯或修改原生二進位。
 
-從該 Release 下載並核對 `SHA256SUMS.txt` 後解開配方封存，先閱讀 `jms-bin/PKGBUILD`，再以一般使用者執行：
+從該 Release 下載並核對 `SHA256SUMS.txt` 後解開配方封存，先閱讀 `jms-bin/PKGBUILD`。yay 的本機配方操作需要 Git 工作目錄與本機追蹤分支；在解開封存後、包含 `jms-bin` 的目錄，以一般使用者執行以下步驟，不要重設既有 Git 倉庫。提交身分可換成自己的公開 noreply 身分：
 
 ```bash
+git init --initial-branch=jms-local ./jms-bin
+git -C ./jms-bin add -- PKGBUILD .SRCINFO README.zh-Hant.md
+git -C ./jms-bin -c user.name=jim608 -c user.email=60721672+jim608@users.noreply.github.com commit -m "chore(package): 核對 JMS Linux 本機配方"
+git -C ./jms-bin branch jms-local-source
+git -C ./jms-bin branch --set-upstream-to=jms-local-source jms-local
 yay -Bi ./jms-bin
 ```
 
-[yay 官方文件](https://github.com/Jguer/yay#examples-of-custom-operations) 支援從本機目錄建置配方。未使用 yay 時，可改用：
+[yay 官方文件](https://github.com/Jguer/yay#examples-of-custom-operations) 支援從本機目錄建置配方。兩個本機分支指向同一筆已核對的配方提交，不需要設定遠端或推送。未使用 yay 時，可改用：
 
 ```bash
 cd jms-bin
