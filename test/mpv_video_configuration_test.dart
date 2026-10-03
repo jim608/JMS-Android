@@ -3,11 +3,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('Windows uses hardware copyback without disabling GPU rendering', () {
+  test('Windows preserves hardware decoding with a compatible software texture',
+      () {
     final configuration = mpvVideoConfiguration(
         hardwareAcceleration: true, platform: TargetPlatform.windows);
     expect(configuration.hwdec, 'auto-copy');
-    expect(configuration.enableHardwareAcceleration, isTrue);
+    expect(configuration.enableHardwareAcceleration, isFalse);
     expect(configuration.vo, isNull);
   });
 
@@ -45,6 +46,10 @@ void main() {
             hardwareAcceleration: true, currentDecoder: current);
     expect(diagnostics('d3d11va-copy')['Windows decoder fallback'],
         'hardware active (d3d11va-copy)');
+    expect(diagnostics('d3d11va-copy')['Windows renderer (requested)'],
+        'software texture / libmpv (Windows compatibility)');
+    expect(diagnostics('d3d11va-copy')['Windows renderer output limit'],
+        '1920x1080 (pinned software texture renderer)');
     expect(diagnostics('no')['Windows decoder fallback'],
         'software active after auto-copy request');
     expect(

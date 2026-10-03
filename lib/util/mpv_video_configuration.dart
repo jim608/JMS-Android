@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
-/// Windows libmpv renders through ANGLE. Copy decoded frames back instead of
-/// sharing decoder surfaces across the decoder, ANGLE and Flutter adapters.
-/// mpv still chooses a supported hardware decoder and falls back to software.
+/// Windows uses the software texture transfer path to avoid ANGLE shared
+/// surface failures. Hardware decoding remains enabled through copyback.
+/// The pinned Windows software renderer limits output to 1920x1080.
 VideoControllerConfiguration mpvVideoConfiguration({
   required bool hardwareAcceleration,
   TargetPlatform? platform,
@@ -12,7 +12,7 @@ VideoControllerConfiguration mpvVideoConfiguration({
   final windows =
       !web && (platform ?? defaultTargetPlatform) == TargetPlatform.windows;
   return VideoControllerConfiguration(
-    enableHardwareAcceleration: hardwareAcceleration,
+    enableHardwareAcceleration: windows ? false : hardwareAcceleration,
     hwdec: windows ? (hardwareAcceleration ? 'auto-copy' : 'no') : null,
   );
 }
@@ -25,7 +25,9 @@ Map<String, String> windowsMpvDecodeDiagnostics({
       'Windows hardware acceleration (saved)': '$hardwareAcceleration',
       'Windows decoder (requested)': hardwareAcceleration ? 'auto-copy' : 'no',
       'Windows renderer (requested)':
-          hardwareAcceleration ? 'ANGLE / libmpv' : 'software / libmpv',
+          'software texture / libmpv (Windows compatibility)',
+      'Windows renderer output limit':
+          '1920x1080 (pinned software texture renderer)',
       'Windows decoder fallback': !hardwareAcceleration
           ? 'software requested'
           : currentDecoder == 'no'
