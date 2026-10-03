@@ -26,6 +26,7 @@ import 'package:fladder/screens/video_player/video_player.dart' as video_screen;
 import 'package:fladder/util/subtitle_position_calculator.dart';
 import 'package:fladder/util/mpv_subtitle_route.dart';
 import 'package:fladder/util/mpv_subtitle_selection.dart';
+import 'package:fladder/util/mpv_video_configuration.dart';
 import 'package:fladder/wrappers/players/base_player.dart';
 import 'package:fladder/wrappers/players/player_states.dart';
 
@@ -98,10 +99,12 @@ class LibMPV extends BasePlayer {
     if (_player != null) {
       _controller = VideoController(
         _player!,
-        configuration: VideoControllerConfiguration(
-          enableHardwareAcceleration: settings.hardwareAccel,
-        ),
+        configuration: mpvVideoConfiguration(hardwareAcceleration: settings.hardwareAccel),
       );
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
+        // Apply the fixed decoder policy and create the texture before open().
+        await _controller!.platform.future.timeout(const Duration(seconds: 10));
+      }
       _setupPlayerStreams(_player!);
     }
 
@@ -635,6 +638,12 @@ class LibMPV extends BasePlayer {
       values[name] = value.isEmpty ? 'unknown' : value;
     }
     final codec = await MpvSubtitleRoute.selectedCodec((name) => _readProperty(player, name));
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
+      values.addAll(windowsMpvDecodeDiagnostics(
+        hardwareAcceleration: _settings.hardwareAccel,
+        currentDecoder: values['hwdec-current'] ?? 'unknown',
+      ));
+    }
     values['subtitle codec (selected / requested)'] = '${codec.isEmpty ? 'unknown' : codec} / $_currentSubtitleCodec';
     values['subtitle delivery (requested)'] = _subtitleDelivery;
     values['subtitle renderer'] = MpvSubtitleRoute(

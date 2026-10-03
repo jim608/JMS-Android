@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fladder/util/brand.dart';
 
 import 'package:flutter/foundation.dart';
@@ -23,12 +25,45 @@ class DefaultTitleBar extends ConsumerStatefulWidget {
 
 class _DefaultTitleBarState extends ConsumerState<DefaultTitleBar> with WindowListener {
   bool hovering = false;
+  bool _maximized = false;
+  bool _changingWindowState = false;
+  int _windowStateGeneration = 0;
 
   @override
   void initState() {
     windowManager.addListener(this);
     super.initState();
+    if (!kIsWeb &&
+        {TargetPlatform.windows, TargetPlatform.linux, TargetPlatform.macOS}.contains(defaultTargetPlatform)) {
+      unawaited(_refreshWindowState());
+    }
   }
+
+  Future<void> _refreshWindowState() async {
+    final generation = ++_windowStateGeneration;
+    try {
+      final maximized = await windowManager.isMaximized();
+      if (mounted && generation == _windowStateGeneration) {
+        setState(() => _maximized = maximized);
+      }
+    } catch (_) {
+      // Window events remain authoritative if the window is being disposed.
+    }
+  }
+
+  void _setMaximized(bool maximized) {
+    ++_windowStateGeneration;
+    if (mounted) setState(() => _maximized = maximized);
+  }
+
+  @override
+  void onWindowMaximize() => _setMaximized(true);
+
+  @override
+  void onWindowUnmaximize() => _setMaximized(false);
+
+  @override
+  void onWindowRestore() => unawaited(_refreshWindowState());
 
   @override
   void dispose() {
@@ -137,36 +172,34 @@ class _DefaultTitleBarState extends ConsumerState<DefaultTitleBar> with WindowLi
                                     ),
                                   );
                                 }),
-                                FutureBuilder<List<bool>>(
-                                  future: Future.microtask(() async {
-                                    final isMaximized = await windowManager.isMaximized();
-                                    return [isMaximized];
-                                  }),
-                                  builder: (BuildContext context, AsyncSnapshot<List<bool>> snapshot) {
-                                    final maximized = snapshot.data?.firstOrNull ?? false;
+                                Builder(
+                                  builder: (BuildContext context) {
                                     return IconButton(
+                                      key: const Key('jms-window-maximize'),
                                       style: IconButton.styleFrom(
                                         hoverColor: brightness == Brightness.light
                                             ? Colors.black.withValues(alpha: 0.1)
                                             : Colors.white.withValues(alpha: 0.2),
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
                                       ),
-                                      onPressed: () async {
-                                        fullScreenHelper.closeFullScreen(ref);
-                                        if (maximized) {
-                                          await windowManager.unmaximize();
-                                          return;
-                                        }
-                                        if (!maximized) {
-                                          await windowManager.maximize();
-                                        } else {
-                                          await windowManager.unmaximize();
+                                      onPressed: _changingWindowState ? null : () async {
+                                        setState(() => _changingWindowState = true);
+                                        try {
+                                          await fullScreenHelper.closeFullScreen(ref);
+                                          if (await windowManager.isMaximized()) {
+                                            await windowManager.unmaximize();
+                                          } else {
+                                            await windowManager.maximize();
+                                          }
+                                          await _refreshWindowState();
+                                        } finally {
+                                          if (mounted) setState(() => _changingWindowState = false);
                                         }
                                       },
                                       icon: Transform.translate(
                                         offset: const Offset(0, 0),
                                         child: Icon(
-                                          maximized ? Icons.maximize_rounded : Icons.crop_square_rounded,
+                                          _maximized ? Icons.filter_none_rounded : Icons.crop_square_rounded,
                                           color: iconColor,
                                           size: 19,
                                         ),
