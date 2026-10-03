@@ -3,9 +3,30 @@ set -euo pipefail
 test "${JMS_ISOLATED_INSTALL_TEST:-}" = 1
 test "$(id -u)" = 0
 test -d /candidate
-pacman -Syu --noconfirm --needed gtk3 mpv alsa-lib sqlite polkit libarchive xdg-user-dirs libsecret gnome-keyring xorg-server-xvfb xorg-xauth xorg-xwininfo dbus procps-ng pulseaudio python networkmanager
+pacman -Syu --noconfirm --needed base-devel git gtk3 mpv alsa-lib sqlite polkit libarchive xdg-user-dirs libsecret gnome-keyring xorg-server-xvfb xorg-xauth xorg-xwininfo dbus procps-ng pulseaudio python networkmanager
 useradd -m jms-test
 mkdir -p /output /run/dbus
+python - <<'PY'
+import hashlib,json,pathlib,tarfile,urllib.request
+tag='v13.0.1'
+name='yay_13.0.1_x86_64.tar.gz'
+expected='1fdfcb5f7f387bc858d3a5754bdf4e4575bfbddac9560535a716d0ed7189c057'
+with urllib.request.urlopen(f'https://github.com/Jguer/yay/releases/download/{tag}/{name}',timeout=30) as response:
+    data=response.read(5*1024*1024+1)
+assert len(data)<=5*1024*1024 and hashlib.sha256(data).hexdigest()==expected, 'Fixed yay source differs'
+archive=pathlib.Path('/tmp/yay-fixed.tar.gz'); archive.write_bytes(data)
+with tarfile.open(archive) as source:
+    member=source.getmember('yay_13.0.1_x86_64/yay')
+    assert member.isfile() and member.size<=16*1024*1024
+    binary=source.extractfile(member).read()
+destination=pathlib.Path('/usr/local/bin/yay'); destination.write_bytes(binary); destination.chmod(0o755)
+pathlib.Path('/output/yay-tool-verification.json').write_text(json.dumps({'officialRelease':f'https://github.com/Jguer/yay/releases/tag/{tag}','archiveSha256':expected,'binarySha256':hashlib.sha256(binary).hexdigest(),'platform':'x86_64'},indent=2))
+PY
+yay --version > /output/yay-version.txt
+# Only the isolated test user receives pacman access inside this disposable container.
+printf 'jms-test ALL=(root) NOPASSWD: /usr/bin/pacman\n' > /etc/sudoers.d/jms-isolated-test
+chmod 0440 /etc/sudoers.d/jms-isolated-test
+visudo -cf /etc/sudoers.d/jms-isolated-test
 systemd-sysusers
 dbus-uuidgen --ensure
 dbus-daemon --system --fork
@@ -56,6 +77,56 @@ launch /opt/jms/jms upgraded
 mkdir /portable
 tar -xzf /candidate/JMS-Linux-*-x64.tar.gz -C /portable
 launch /portable/JMS/jms portable
+
+# 本機配方來源使用已校驗的同版候選，不要求尚未公開的 Release 可下載。
+recipe_archives=(/candidate/JMS-Linux-*-jms-bin-aur.tar.gz)
+test "${#recipe_archives[@]}" = 1
+test -f "${recipe_archives[0]}"
+mkdir /aur
+tar -xzf "${recipe_archives[0]}" -C /aur
+cp /candidate/JMS-Linux-*-x86_64.pkg.tar.xz /aur/jms-bin/
+chown -R jms-test:jms-test /aur
+runuser -u jms-test -- bash -ec '
+  cd /aur/jms-bin
+  makepkg --printsrcinfo > .SRCINFO.generated
+  diff -u .SRCINFO .SRCINFO.generated
+  makepkg --verifysource --noconfirm
+  makepkg --noconfirm --log
+' > /output/aur-makepkg.log 2>&1
+aur_packages=(/aur/jms-bin/jms-bin-*-x86_64.pkg.tar.zst)
+test "${#aur_packages[@]}" = 1
+test -f "${aur_packages[0]}"
+mkdir /aur-payload
+bsdtar -xf "${aur_packages[0]}" -C /aur-payload
+python - <<'PY'
+import hashlib,json,pathlib,tarfile
+candidate=list(pathlib.Path('/candidate').glob('JMS-Linux-*-x86_64.pkg.tar.xz'))
+assert len(candidate)==1
+files=symlinks=0
+with tarfile.open(candidate[0],'r:xz') as source:
+    for member in source:
+        if not member.name.startswith(('opt/','usr/')): continue
+        installed=pathlib.Path('/aur-payload')/member.name
+        if member.isfile():
+            assert installed.is_file() and not installed.is_symlink(), 'AUR payload type differs'
+            assert hashlib.sha256(installed.read_bytes()).digest()==hashlib.sha256(source.extractfile(member).read()).digest(), 'AUR payload bytes differ'
+            files+=1
+        elif member.issym():
+            assert installed.is_symlink() and str(installed.readlink())==member.linkname, 'AUR shortcut differs'
+            symlinks+=1
+assert files>0 and symlinks>0
+pathlib.Path('/output/aur-payload-validation.json').write_text(json.dumps({'identicalPayloadFiles':files,'identicalSymlinks':symlinks,'appBinaryChanged':False},indent=2))
+PY
+# 只在隔離容器明確同意互斥套件轉換；正式安裝由使用者確認。
+printf 'y\ny\n' | runuser -u jms-test -- bash -ec 'cd /aur; yay -Bi ./jms-bin --mflags "--force"' > /output/aur-yay-install.log 2>&1
+pacman -Q jms-bin > /output/aur-package-version.txt
+! pacman -Q jms >/dev/null 2>&1
+cmp /aur-payload/opt/jms/jms /opt/jms/jms
+launch /opt/jms/jms aur
+printf 'y\ny\n' | pacman -U -- /candidate/JMS-Linux-*-x86_64.pkg.tar.xz
+pacman -Q jms > /output/restored-official-package-version.txt
+! pacman -Q jms-bin >/dev/null 2>&1
+launch /opt/jms/jms restored-official
 useradd -m jms-fresh
 python - <<'PY'
 import pathlib,pwd
@@ -73,5 +144,5 @@ values=json.loads(p.read_text()); key=next(k for k in values if k.endswith('clie
 settings=json.loads(values[key]); assert settings['themeMode']=='dark' and settings['checkForUpdates'] is False
 fresh=list(pathlib.Path(pwd.getpwnam('jms-fresh').pw_dir).rglob('shared_preferences.json'))
 assert len(fresh)==1 and fresh[0]!=p, 'Fresh install must create its own isolated profile'
-pathlib.Path('/output/validation.json').write_text(json.dumps({'launch':True,'portableLaunch':True,'upgrade':True,'freshInstall':True,'settingsRetained':['themeMode','checkForUpdates'],'environment':'Isolated Arch x86_64, Xvfb, PulseAudio and system/session D-Bus','physicalDesktop':False},indent=2))
+pathlib.Path('/output/validation.json').write_text(json.dumps({'launch':True,'portableLaunch':True,'upgrade':True,'freshInstall':True,'aurLocalMakepkg':True,'yayLocalRecipeInstall':True,'aurMetadataMatches':True,'officialAurRoundtrip':True,'settingsRetained':['themeMode','checkForUpdates'],'environment':'Isolated Arch x86_64, Xvfb, PulseAudio and system/session D-Bus','physicalDesktop':False,'aurPublic':False,'polkitInteractive':False},indent=2))
 PY
