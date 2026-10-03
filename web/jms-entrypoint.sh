@@ -22,6 +22,32 @@ for url in "${BASE_URL:-}" "${SEERR_BASE_URL:-}"; do
   esac
 done
 
+# Entry configuration remains a host-managed, read-only mount. Never copy it
+# into Flutter assets or the image; an absent configuration returns JSON 404.
+entry_config=/run/jms-private/jms-config.json
+if [ -e "$entry_config" ]; then
+  test -r "$entry_config" || { echo "Entry configuration is not readable" >&2; exit 1; }
+  jq -e 'type == "object" and
+    ((keys - ["baseUrl", "seerrBaseUrl", "diagnosticsEndpoint"]) | length == 0) and
+    (.baseUrl | type == "string" and length > 0) and
+    (.seerrBaseUrl == null or (.seerrBaseUrl | type == "string")) and
+    (.diagnosticsEndpoint == null or (.diagnosticsEndpoint | type == "string"))' \
+    "$entry_config" >/dev/null || { echo "Entry configuration is invalid" >&2; exit 1; }
+  for key in baseUrl seerrBaseUrl diagnosticsEndpoint; do
+    url=$(jq -r --arg key "$key" '.[$key] // ""' "$entry_config")
+    [ -z "$url" ] && continue
+    printf '%s' "$url" | grep -Eq '^https://[A-Za-z0-9.-]+(:[0-9]+)?(/[^[:space:]]*)?$' || exit 1
+    case "$url" in
+      *@*|*\?*|*\#*) echo "Entry service URL is invalid" >&2; exit 1 ;;
+    esac
+    if [ "$key" = diagnosticsEndpoint ]; then
+      printf '%s' "$url" | grep -Eq '^https://[A-Za-z0-9.-]+(:[0-9]+)?/api/jms/diagnostics/v1$' || exit 1
+    fi
+  done
+fi
+sed "s|location = /jms-config.json {|location = ${webpath}jms-config.json {|" \
+  /etc/nginx/jms-entry-config.template > /tmp/jms-entry-config.conf
+
 diagnostics_endpoint="${JMS_DIAGNOSTICS_ENDPOINT:-}"
 diagnostics_upstream="${JMS_DIAGNOSTICS_UPSTREAM:-}"
 if [ -n "$diagnostics_endpoint" ]; then
@@ -72,6 +98,7 @@ server {
     listen [::]:8080;
     server_name _;
     include /tmp/jms-diagnostics.conf;
+    include /tmp/jms-entry-config.conf;
     root /usr/share/nginx/html;
     add_header X-Content-Type-Options nosniff always;
     add_header Referrer-Policy no-referrer always;

@@ -22,7 +22,31 @@ class WebContainerTests(unittest.TestCase):
     def test_public_config_not_cached(self):
         with self.fetch('assets/config/config.json') as response:
             self.assertIn('no-store', response.headers.get('Cache-Control', ''))
-            self.assertEqual(set(json.load(response)), {'baseUrl', 'seerrBaseUrl'})
+            self.assertEqual(set(json.load(response)), {'baseUrl', 'seerrBaseUrl', 'diagnosticsEndpoint'})
+
+    def test_entry_config_json_without_spa_fallback(self):
+        expected = os.environ.get('JMS_TEST_ENTRY_CONFIG') == 'present'
+        try:
+            response = self.fetch('jms-config.json')
+        except urllib.error.HTTPError as error:
+            self.assertFalse(expected)
+            self.assertEqual(error.code, 404)
+            response = error
+        with response:
+            self.assertIn('application/json', response.headers.get('Content-Type', ''))
+            self.assertIn('no-store', response.headers.get('Cache-Control', ''))
+            config = json.load(response)
+            if expected:
+                self.assertTrue(config['baseUrl'].startswith('https://'))
+                self.assertLessEqual(set(config), {'baseUrl', 'seerrBaseUrl', 'diagnosticsEndpoint'})
+            else:
+                self.assertEqual(config, {'error': 'configuration_not_found'})
+
+    def test_entry_config_rejects_write_requests(self):
+        request = urllib.request.Request(self.base + 'jms-config.json', data=b'{}', method='POST')
+        with self.assertRaises(urllib.error.HTTPError) as caught:
+            urllib.request.urlopen(request, timeout=10)
+        self.assertEqual(caught.exception.code, 405)
 
     def test_spa_and_title(self):
         with self.fetch('library/example-route') as response:

@@ -32,6 +32,10 @@ App 不內建部署者的私人服務網址；使用者設定後，裝置仍會�
 
 ## 沿用既有 nginx 產生流程
 
+新版 `Dockerfile.web` 映像已內建入口設定路由。將私人 JSON 唯讀掛載到 `/run/jms-private/jms-config.json` 即可；路由會配合 `JMS_WEBPATH`，不存在時回傳 JSON 404，首頁與原本的 Web 設定維持既有流程。設定不合法或掛載不可讀時，容器啟動會拒絕使用該設定。
+
+以下啟動包裝方式僅供尚未包含入口路由的舊映像使用；新版不需重複加入 nginx 片段。
+
 此範本適用於 `Dockerfile.web` 使用的 `web/jms-entrypoint.sh`，容器內路徑為 `/docker-entrypoint.sh`。它會依環境產生 `/tmp/jms.conf`；把片段直接放到 `conf.d/` 不會自動載入，也不要新增第二個同埠的 server。
 
 在既有 Compose 設定中，將下列欄位合併到 JMS 服務。保留原本的環境變數、連接埠、網路與資料掛載；服務名稱以實際設定為準。這個啟動命令每次從原入口程式產生暫存副本，只加入一個 include；原映像、入口程式及完整 server 設定不必另存一份。
