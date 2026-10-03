@@ -42,6 +42,9 @@ final seerrDiagnosticProvider = StateProvider<SeerrDiagnostic?>((ref) {
 class SeerrApi extends _$SeerrApi {
   @override
   SeerrService build() {
+    // Link restoration also reads this client outside dashboard listeners.
+    // Keep it until its watched account/source changes, not just one frame.
+    ref.keepAlive();
     final scope = ref.watch(userProvider.select((account) => (
           account?.id,
           account?.credentials.serverId,
@@ -54,6 +57,7 @@ class SeerrApi extends _$SeerrApi {
             configuredSource: FladderConfig.seerrBaseUrl);
     final server = credentials.serverUrl;
     bool active = true;
+    bool unauthorizedScheduled = false;
 
     final requestInterceptor = SeerrRequest(
         server,
@@ -70,14 +74,18 @@ class SeerrApi extends _$SeerrApi {
         ref.read(seerrDiagnosticProvider.notifier).state = diagnostic;
       }
     }, onUnauthorized: () {
+      if (!active || unauthorizedScheduled || !credentials.isConfigured) return;
+      unauthorizedScheduled = true;
       Future.microtask(() async {
         if (active && credentials.isConfigured) {
+          // Clearing the cookie rebuilds this API and disposes its active flag.
+          // Notify the link first so an expired session cannot stay connected.
+          ref.invalidate(seerrLinkProvider);
           try {
             await ref.read(userProvider.notifier).logoutSeerr();
           } catch (_) {
-            ref.invalidate(seerrApiProvider);
+            if (active) ref.invalidate(seerrApiProvider);
           }
-          if (active) ref.invalidate(seerrLinkProvider);
         }
       });
     });

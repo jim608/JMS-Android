@@ -114,6 +114,7 @@ class _SeerrLinkPanelState extends ConsumerState<SeerrLinkPanel> {
   @override
   Widget build(BuildContext context) {
     final status = ref.watch(seerrLinkProvider);
+    if (status == 'connected') return const SizedBox.shrink();
     final diagnostic = ref.watch(seerrDiagnosticProvider);
     final labels = {
       'connected': seerrText(

@@ -24,6 +24,7 @@ final seerrQuickConnectCapabilityProvider = Provider<bool>((ref) => false);
 final seerrLinkProvider = StateNotifierProvider<SeerrLink, String>((ref) {
   ref.watch(userProvider.select((account) => (
         account?.credentials.serverId,
+        account?.credentials.url,
         account?.id,
         account?.seerrCredentials?.serverUrl,
         account?.seerrCredentials?.linkedServerId
@@ -52,6 +53,7 @@ class SeerrLink extends StateNotifier<String> {
     final user = ref.read(userProvider);
     return user != null &&
         user.sameIdentity(account) &&
+        user.credentials.url == account.credentials.url &&
         user.seerrCredentials?.serverUrl ==
             account.seerrCredentials?.serverUrl &&
         user.seerrCredentials?.linkedServerId == account.credentials.serverId;
@@ -106,7 +108,9 @@ class SeerrLink extends StateNotifier<String> {
       state = 'binding_required';
       return;
     }
-    state = 'connecting';
+    // A same-account refresh keeps the last verified connection unobtrusive.
+    // Any failed identity check below still replaces it with the failure state.
+    if (state != 'connected') state = 'connecting';
     _checked = DateTime.now();
     ref.read(seerrDiagnosticProvider.notifier).state = null;
     bool seerrAuthAttempted = false;
