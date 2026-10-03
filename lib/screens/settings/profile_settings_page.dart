@@ -21,6 +21,7 @@ import 'package:fladder/screens/settings/settings_list_tile.dart';
 import 'package:fladder/screens/settings/settings_scaffold.dart';
 import 'package:fladder/screens/settings/widgets/home_preferences_editors.dart';
 import 'package:fladder/screens/settings/widgets/jms_entry_config_tile.dart';
+import 'package:fladder/screens/settings/widgets/settings_discord_presence.dart';
 import 'package:fladder/screens/settings/widgets/password_reset_dialog.dart';
 import 'package:fladder/screens/settings/widgets/seerr_connection_dialog.dart';
 import 'package:fladder/screens/settings/widgets/settings_label_divider.dart';
@@ -336,6 +337,7 @@ class _UserSettingsPageState extends ConsumerState<ProfileSettingsPage> with Wid
               onTap: () => showSeerrConnectionDialog(context),
             ),
             const JmsEntryConfigTile(),
+            const SettingsDiscordPresence(),
             if (seerrUser?.canManageRequests ?? false)
               SettingsListTileCheckbox(
                 label: Text(context.localized.seerrRequestNotifications),

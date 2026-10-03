@@ -12,6 +12,7 @@ import 'package:fladder/background/update_notifications_worker.dart' as update_w
 import 'package:fladder/models/account_model.dart';
 import 'package:fladder/providers/arguments_provider.dart';
 import 'package:fladder/providers/connectivity_provider.dart';
+import 'package:fladder/providers/discord_presence_provider.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
 import 'package:fladder/providers/shared_provider.dart';
 import 'package:fladder/providers/update_notifications_provider.dart';
@@ -42,11 +43,13 @@ abstract class BaseAppWrapperState<T extends BaseAppWrapper> extends ConsumerSta
   bool _hidden = false;
 
   StreamSubscription<String?>? _notificationSub;
+  late final DiscordPresenceSettings _discordPresence;
   bool get enableNotifications => true;
 
   @override
   void initState() {
     super.initState();
+    _discordPresence = ref.read(discordPresenceSettingsProvider);
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       ref.read(sharedUtilityProvider).loadSettings();
@@ -137,6 +140,7 @@ abstract class BaseAppWrapperState<T extends BaseAppWrapper> extends ConsumerSta
 
   @override
   void dispose() {
+    _discordPresence.suspend();
     _notificationSub?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();

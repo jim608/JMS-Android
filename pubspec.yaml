@@ -118,6 +118,8 @@ dependencies:
   screen_brightness: ^2.1.7
   volume_controller: 3.4.1
   window_manager: ^0.5.1
+  ffi: 2.1.4
+  win32: 5.15.0
   smtc_windows: ^1.1.0
   background_downloader: ^9.2.3
   screen_retriever: ^0.2.0

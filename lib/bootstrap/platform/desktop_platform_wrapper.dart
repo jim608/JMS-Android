@@ -11,6 +11,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:fladder/bootstrap/platform/base_app_wrapper.dart';
 import 'package:fladder/logic/application_menu.dart';
 import 'package:fladder/providers/arguments_provider.dart';
+import 'package:fladder/providers/discord_presence_provider.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
 import 'package:fladder/src/application_menu.g.dart';
@@ -58,6 +59,7 @@ class _DesktopAppWrapperState extends BaseAppWrapperState<DesktopAppWrapper> wit
 
   @override
   void onWindowClose() {
+    ref.read(discordPresenceSettingsProvider).suspend();
     ref.read(videoPlayerProvider).stop();
     ref.read(clientSettingsProvider.notifier).closeDirectory();
     super.onWindowClose();
