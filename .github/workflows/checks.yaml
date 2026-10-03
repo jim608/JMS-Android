@@ -45,6 +45,7 @@ jobs:
       - name: Verify Discord consent and local IPC
         run: >-
           flutter test test/discord_presence_test.dart
+          test/discord_presence_provider_test.dart
           test/discord_presence_settings_widget_test.dart
           test/discord_ipc_client_test.dart test/discord_transport_test.dart
           --no-pub
