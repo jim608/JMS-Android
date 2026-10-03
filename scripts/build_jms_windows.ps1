@@ -93,6 +93,11 @@ foreach ($required in @('jms.exe', 'flutter_windows.dll', 'data\flutter_assets')
     }
 }
 
+& rtk proxy (Join-Path $projectRoot '.jms-tools/python/Scripts/python.exe') 'scripts/jms_windows_bundle.py' --bundle $bundleDir
+if ($LASTEXITCODE -ne 0) {
+    throw 'Windows release AOT validation failed. Preserve and correct generated debug artifacts before packaging.'
+}
+
 $excludedLibraries = Get-ChildItem -LiteralPath $bundleDir -File -Recurse |
     Where-Object { $_.Name -match '^(mdk(?:-.*)?|fvp_plugin|ffmpeg-\d+|libass)\.dll$' }
 if ($excludedLibraries) {
