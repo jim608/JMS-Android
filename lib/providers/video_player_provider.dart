@@ -156,6 +156,12 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
   }
 
   Future<bool> loadPlaybackItem(PlaybackModel model, Duration startPosition) async {
+    await _initialization;
+    if (!mounted) return false;
+    if (!state.hasPlayer) {
+      mediaState.update((value) => value.copyWith(errorPlaying: true, buffering: false, playing: false));
+      return false;
+    }
     ref.read(playBackModel)?.dispose();
     await state.stop(preserveSleepTimer: true);
     ref.read(playbackRateProvider.notifier).state = 1.0;

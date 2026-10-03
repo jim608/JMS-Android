@@ -46,6 +46,8 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
   MediaControlsWrapper({required this.ref});
 
   BasePlayer? _player;
+  int _setupGeneration = 0;
+  String _initializationFailure = '';
   BasePlayer? _previousPlayer;
   final StreamController<PlayerState> _stateController = StreamController.broadcast();
   StreamSubscription<PlayerState>? _playerStateSubscription;
@@ -66,7 +68,11 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
   Widget? videoWidget(Key key, BoxFit fit) => _player?.videoWidget(key, fit);
 
   Future<Map<String, String>> playbackDiagnostics() async =>
-      await _player?.playbackDiagnostics() ?? {'backend': 'unknown (no player)'};
+      await _player?.playbackDiagnostics() ??
+      {
+        'backend': 'unknown (no player)',
+        if (_initializationFailure.isNotEmpty) 'player initialization': _initializationFailure,
+      };
 
   final Ref ref;
 
@@ -120,10 +126,13 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
       PlayerOptions.nativePlayer => NativePlayer(),
     };
 
-    setup(player);
+    await setup(player);
   }
 
   Future<void> dispose() async {
+    _setupGeneration++;
+    final player = _player;
+    _player = null;
     try {
       _subtitleSettingsSubscription?.close();
       _subtitleSettingsSubscription = null;
@@ -134,20 +143,53 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
       }
       subscriptions.clear();
     } finally {
-      await _player?.dispose();
+      await player?.dispose();
     }
   }
 
   Future<void> setup(BasePlayer newPlayer) async {
+    final generation = ++_setupGeneration;
     final oldPlayer = _player;
-    if (oldPlayer != null && oldPlayer != newPlayer && _previousPlayer != oldPlayer) {
-      await oldPlayer.dispose();
+    _player = null;
+    _initializationFailure = '';
+    try {
+      await _playerStateSubscription?.cancel();
+      _playerStateSubscription = null;
+      if (oldPlayer != null && oldPlayer != newPlayer && _previousPlayer != oldPlayer) {
+        await oldPlayer.dispose();
+      }
+      await newPlayer.init(ref.read(videoPlayerSettingsProvider));
+      if (generation != _setupGeneration) {
+        await newPlayer.dispose();
+        return;
+      }
+      _player = newPlayer;
+      _initPlayer();
+      _subscribePlayerState();
+      ref.read(mediaPlaybackProvider.notifier).update((state) => state.copyWith(errorPlaying: false));
+    } catch (error) {
+      if (generation == _setupGeneration) {
+        _player = null;
+        _initializationFailure = error is TimeoutException ? 'renderer initialization timed out' : 'player initialization failed';
+        _markPlayerFailure();
+      }
+      try {
+        await newPlayer.dispose().timeout(const Duration(seconds: 5));
+      } catch (_) {
+        if (generation == _setupGeneration) {
+          _initializationFailure += '; resource cleanup did not finish';
+        }
+      }
+      rethrow;
     }
+  }
 
-    _player = newPlayer;
-    await newPlayer.init(ref.read(videoPlayerSettingsProvider));
-    _initPlayer();
-    _subscribePlayerState();
+  void _markPlayerFailure() {
+    ref.read(mediaPlaybackProvider.notifier).update((state) => state.copyWith(
+          errorPlaying: true,
+          buffering: false,
+          playing: false,
+        ));
   }
 
   void _initPlayer() {
@@ -175,6 +217,11 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
   }
 
   Future<void> loadVideo(PlaybackModel model, Duration startPosition, bool play) async {
+    final player = _player;
+    if (player == null) {
+      _markPlayerFailure();
+      throw StateError('Video player is not ready');
+    }
     ref.read(sleepTimerProvider).bindMedia(model.item.id);
     try {
       if (_player is LibMPV) {
@@ -185,7 +232,7 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
         await (_player as NativePlayer).sendPlaybackDataToNative(context, model, startPosition);
       }
       _isNewPlayback = play;
-      await _player?.loadVideo(model.media?.url ?? "", play && ref.read(sleepTimerProvider).allowsPlayback,
+      await player.loadVideo(model.media?.url ?? "", play && ref.read(sleepTimerProvider).allowsPlayback,
           startPosition: startPosition);
       _player?.applySubtitleSettings(ref.read(subtitleSettingsProvider));
 

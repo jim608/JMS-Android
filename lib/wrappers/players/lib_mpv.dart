@@ -103,6 +103,7 @@ class LibMPV extends BasePlayer {
       );
       if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
         // Apply the fixed decoder policy and create the texture before open().
+        WidgetsBinding.instance.ensureVisualUpdate();
         await _controller!.platform.future.timeout(const Duration(seconds: 10));
       }
       _setupPlayerStreams(_player!);

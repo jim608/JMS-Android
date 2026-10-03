@@ -156,7 +156,8 @@ class _VideoPlayerState extends ConsumerState<VideoPlayer> with WidgetsBindingOb
                       video: player,
                       controls: const DesktopControls(),
                       overlays: [
-                        if (errorPlaying) const _VideoErrorWidget(),
+                        if (errorPlaying || ref.watch(mediaPlaybackProvider.select((state) => state.errorPlaying)))
+                          const _VideoErrorWidget(),
                       ],
                     ),
                 },
