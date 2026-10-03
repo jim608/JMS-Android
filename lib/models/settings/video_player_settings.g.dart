@@ -66,6 +66,9 @@ _VideoPlayerSettingsModel _$VideoPlayerSettingsModelFromJson(
       ambientBlur: json['ambientBlur'] as bool? ?? false,
       ambientIntensity: (json['ambientIntensity'] as num?)?.toDouble() ?? 0.8,
       ambientSpread: (json['ambientSpread'] as num?)?.toDouble() ?? 0.9,
+      ambientIntervalSeconds:
+          (json['ambientIntervalSeconds'] as num?)?.toDouble() ?? 4.0,
+      ambientSyncToPlayback: json['ambientSyncToPlayback'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$VideoPlayerSettingsModelToJson(
@@ -108,6 +111,8 @@ Map<String, dynamic> _$VideoPlayerSettingsModelToJson(
       'ambientBlur': instance.ambientBlur,
       'ambientIntensity': instance.ambientIntensity,
       'ambientSpread': instance.ambientSpread,
+      'ambientIntervalSeconds': instance.ambientIntervalSeconds,
+      'ambientSyncToPlayback': instance.ambientSyncToPlayback,
     };
 
 const _$BoxFitEnumMap = {

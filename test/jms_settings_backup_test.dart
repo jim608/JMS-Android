@@ -17,7 +17,7 @@ void main() {
   List<int> document(Object? settings, {Object? version = 1}) =>
       utf8.encode(jsonEncode({'schemaVersion': version, 'settings': settings}));
 
-  test('export round trip contains exactly 20 permitted preferences, never secrets', () {
+  test('export round trip contains exactly 22 permitted preferences, never secrets', () {
     final backup = SettingsBackup.capture(
         {...client(), 'syncPath': 'private-location', 'token': 'secret', 'serverUrl': 'private-server'},
         {...player(), 'audioDevice': 'private-device', 'playerOptions': 'secret-backend', 'signer': 'private-key'});
@@ -26,7 +26,7 @@ void main() {
       expect(text.contains(secret), false);
     }
     final decoded = SettingsBackup.parse(backup.encode());
-    expect(decoded.settings.values.fold<int>(0, (count, fields) => count + fields.length), 20);
+    expect(decoded.settings.values.fold<int>(0, (count, fields) => count + fields.length), 22);
     expect(decoded.settings, backup.settings);
     expect(decoded.changes(client(), player()), isEmpty);
   });
@@ -51,6 +51,15 @@ void main() {
         'player': {'ambientSpread': -1}
       }),
       document({
+        'player': {'ambientIntervalSeconds': 0.0009}
+      }),
+      document({
+        'player': {'ambientIntervalSeconds': 60.001}
+      }),
+      document({
+        'player': {'ambientSyncToPlayback': 'true'}
+      }),
+      document({
         'player': {'ambientBlur': 'true'}
       }),
       document({
@@ -68,6 +77,13 @@ void main() {
     for (final bytes in invalid) {
       expect(() => SettingsBackup.parse(bytes), throwsA(isA<SettingsBackupFailure>()));
     }
+  });
+  test('ambient timing and synchronization survive backup and restore', () {
+    final changed = VideoPlayerSettingsModel(ambientIntervalSeconds: 0.075, ambientSyncToPlayback: true);
+    final backup = SettingsBackup.parse(SettingsBackup.capture(client(), changed.toJson()).encode());
+    final restored = VideoPlayerSettingsModel.fromJson(backup.merge('player', player()));
+    expect(restored.ambientIntervalSeconds, 0.075);
+    expect(restored.ambientSyncToPlayback, isTrue);
   });
   test('entry and diagnostic caches are excluded from export and rejected on import', () {
     const local = {

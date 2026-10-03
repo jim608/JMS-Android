@@ -11,6 +11,7 @@ class FladderSlider extends StatefulWidget {
   final double min;
   final double max;
   final int? divisions;
+  final int decimalPlaces;
   final double thumbWidth;
   final Color? activeTrackColor;
   final Color? inactiveTrackColor;
@@ -25,6 +26,7 @@ class FladderSlider extends StatefulWidget {
     this.min = 0.0,
     this.max = 1.0,
     this.divisions,
+    this.decimalPlaces = 2,
     this.onChanged,
     this.thumbWidth = 6.5,
     this.activeTrackColor,
@@ -34,7 +36,8 @@ class FladderSlider extends StatefulWidget {
     this.onChangeStart,
     this.onChangeEnd,
     super.key,
-  }) : assert(value >= min || value <= max);
+  })  : assert(value >= min || value <= max),
+        assert(decimalPlaces >= 0 && decimalPlaces <= 6);
 
   @override
   FladderSliderState createState() => FladderSliderState();
@@ -103,7 +106,7 @@ class FladderSliderState extends State<FladderSlider> with SingleTickerProviderS
         _currentValue = newValue.clamp(widget.min, widget.max);
       });
 
-      return _currentValue.roundTo(2);
+      return _currentValue.roundTo(widget.decimalPlaces);
     }
 
     return Container(

@@ -13,6 +13,7 @@ import 'package:fladder/models/settings/key_combinations.dart';
 import 'package:fladder/models/settings/video_player_settings.dart';
 import 'package:fladder/providers/shared_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
+import 'package:fladder/util/ambient_interval.dart';
 
 final videoPlayerSettingsProvider =
     StateNotifierProvider<VideoPlayerSettingsProviderNotifier, VideoPlayerSettingsModel>((ref) {
@@ -27,6 +28,12 @@ final ambientAppearanceProvider = Provider.autoDispose<AmbientAppearance>((ref) 
   final saved = ref.watch(videoPlayerSettingsProvider
       .select((settings) => (intensity: settings.effectiveAmbientIntensity, spread: settings.effectiveAmbientSpread)));
   return ref.watch(ambientPreviewProvider) ?? saved;
+});
+
+final ambientIntervalPreviewProvider = StateProvider.autoDispose<double?>((ref) => null);
+final ambientIntervalProvider = Provider.autoDispose<double>((ref) {
+  final saved = ref.watch(videoPlayerSettingsProvider.select((settings) => settings.effectiveAmbientIntervalSeconds));
+  return boundedAmbientIntervalSeconds(ref.watch(ambientIntervalPreviewProvider) ?? saved);
 });
 
 class VideoPlayerSettingsProviderNotifier extends StateNotifier<VideoPlayerSettingsModel> {
@@ -189,6 +196,11 @@ class VideoPlayerSettingsProviderNotifier extends StateNotifier<VideoPlayerSetti
   }
 
   void setAmbientBlur(bool value) => state = state.copyWith(ambientBlur: value);
+
+  void setAmbientIntervalSeconds(double value) =>
+      state = state.copyWith(ambientIntervalSeconds: boundedAmbientIntervalSeconds(value));
+
+  void setAmbientSyncToPlayback(bool value) => state = state.copyWith(ambientSyncToPlayback: value);
 
   void setAmbientAppearance(AmbientAppearance appearance) => state = state.copyWith(
         ambientIntensity: appearance.intensity.clamp(0.0, 1.0),

@@ -9,6 +9,7 @@ import 'package:fladder/models/items/media_segments_model.dart';
 import 'package:fladder/models/settings/arguments_model.dart';
 import 'package:fladder/models/settings/key_combinations.dart';
 import 'package:fladder/util/bitrate_helper.dart';
+import 'package:fladder/util/ambient_interval.dart';
 import 'package:fladder/util/localization_helper.dart';
 
 part 'video_player_settings.freezed.dart';
@@ -113,6 +114,8 @@ abstract class VideoPlayerSettingsModel with _$VideoPlayerSettingsModel {
     @Default(false) bool ambientBlur,
     @Default(0.8) double ambientIntensity,
     @Default(0.9) double ambientSpread,
+    @Default(4.0) double ambientIntervalSeconds,
+    @Default(false) bool ambientSyncToPlayback,
   }) = _VideoPlayerSettingsModel;
 
   double get volume {
@@ -126,6 +129,7 @@ abstract class VideoPlayerSettingsModel with _$VideoPlayerSettingsModel {
 
   double get effectiveAmbientIntensity => ambientIntensity.isFinite ? ambientIntensity.clamp(0.0, 1.0) : 0.8;
   double get effectiveAmbientSpread => ambientSpread.isFinite ? ambientSpread.clamp(0.0, 1.0) : 0.9;
+  double get effectiveAmbientIntervalSeconds => boundedAmbientIntervalSeconds(ambientIntervalSeconds);
 
   bool get androidMdkUnavailable =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android && playerOptions == PlayerOptions.libMDK;

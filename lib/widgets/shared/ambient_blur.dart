@@ -6,11 +6,14 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:fladder/util/ambient_interval.dart';
 import 'package:fladder/widgets/shared/ambient_geometry.dart';
 
 enum AmbientComposition { direct, previous, legacy }
 
 class AmbientBlurDiagnostics {
+  @visibleForTesting
+  Future<void> Function()? beforeCapture;
   bool _enabled = false;
   bool get enabled => _enabled;
   set enabled(bool value) {
@@ -138,6 +141,8 @@ class AmbientBlur extends StatefulWidget {
   final Color vignetteColor;
   final bool enabled;
   final bool playing;
+  final bool synchronizeToPlayback;
+  final Object? frameSource;
   final AmbientComposition composition;
   final AmbientBlurDiagnostics? diagnostics;
 
@@ -150,7 +155,7 @@ class AmbientBlur extends StatefulWidget {
     required this.child,
     this.sigmaX = 64.0,
     this.sigmaY = 64.0,
-    this.duration = const Duration(seconds: 4),
+    this.duration = ambientDefaultInterval,
     this.downscaleFactor = 4.0,
     this.maxCaptureDimension = 192.0,
     this.opacity = 0.80,
@@ -161,6 +166,8 @@ class AmbientBlur extends StatefulWidget {
     this.vignetteMargin = 0,
     this.enabled = true,
     this.playing = true,
+    this.synchronizeToPlayback = false,
+    this.frameSource,
     this.composition = AmbientComposition.direct,
     this.diagnostics,
   })  : assert(downscaleFactor > 0),
@@ -170,22 +177,52 @@ class AmbientBlur extends StatefulWidget {
 
   @override
   State<AmbientBlur> createState() => _AmbientBlurState();
+
+  Duration get effectiveDuration => ambientIntervalDuration(duration.inMilliseconds / 1000);
 }
 
 class _AmbientBlurState extends State<AmbientBlur>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _blendController;
+  late final Ticker _presentationTicker;
   final GlobalKey _boundaryKey = GlobalKey();
 
   ui.Image? _oldImage;
   ui.Image? _currentImage;
   bool _isCapturing = false;
+  Duration? _lastSynchronizedCapture;
+  bool _captureQueued = false;
 
   bool _active = true;
   int _generation = 0;
   Rect? _videoRect;
   Size? _viewport;
   bool get _running => mounted && _active && widget.enabled && widget.playing;
+
+  void _onPresentationFrame(Duration elapsed) {
+    if (!_running || !widget.synchronizeToPlayback || _isCapturing || _captureQueued) return;
+    if (_lastSynchronizedCapture != null && elapsed - _lastSynchronizedCapture! < widget.effectiveDuration) return;
+    _queueCapture(presentationTime: elapsed);
+  }
+
+  void _queueCapture({Duration? presentationTime}) {
+    if (!_running || _isCapturing || _captureQueued) return;
+    _captureQueued = true;
+    final generation = _generation;
+    final source = widget.frameSource;
+    // Sample after this presentation frame; no persistent callback is retained.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (generation != _generation || !identical(source, widget.frameSource)) return;
+      _captureQueued = false;
+      if (!_running) return;
+      if (widget.synchronizeToPlayback) {
+        if (presentationTime == null) return;
+        _lastSynchronizedCapture = presentationTime;
+      }
+      _captureAndBlur();
+    });
+    WidgetsBinding.instance.scheduleFrame();
+  }
 
   void _disposeImage(ui.Image? image) {
     if (image == null) return;
@@ -208,12 +245,18 @@ class _AmbientBlurState extends State<AmbientBlur>
 
   void _updateActivity({bool release = false}) {
     _generation++;
+    _captureQueued = false;
+    _lastSynchronizedCapture = null;
     widget.diagnostics?.running = _running;
     _blendController.stop();
+    _presentationTicker.stop();
     if (release) _releaseFrames();
     if (_running) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _captureAndBlur());
-      WidgetsBinding.instance.scheduleFrame();
+      if (widget.synchronizeToPlayback) {
+        _presentationTicker.start();
+      } else {
+        _queueCapture();
+      }
     }
   }
 
@@ -225,16 +268,17 @@ class _AmbientBlurState extends State<AmbientBlur>
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
     _blendController = AnimationController(
       vsync: this,
-      duration: widget.duration,
+      duration: widget.effectiveDuration,
     );
+    _presentationTicker = createTicker(_onPresentationFrame);
 
     _blendController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        _captureAndBlur();
+        if (!widget.synchronizeToPlayback) _queueCapture();
       }
     });
 
-    WidgetsBinding.instance.addPostFrameCallback((_) => _captureAndBlur());
+    _updateActivity();
   }
 
   @override
@@ -248,15 +292,18 @@ class _AmbientBlurState extends State<AmbientBlur>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.enabled != widget.enabled ||
         oldWidget.playing != widget.playing ||
-        oldWidget.composition != widget.composition) {
+        oldWidget.composition != widget.composition ||
+        oldWidget.synchronizeToPlayback != widget.synchronizeToPlayback ||
+        !identical(oldWidget.frameSource, widget.frameSource)) {
       _updateActivity(
           release:
-              !widget.enabled || oldWidget.composition != widget.composition);
+              !widget.enabled || oldWidget.composition != widget.composition ||
+              !identical(oldWidget.frameSource, widget.frameSource));
     }
-    if (oldWidget.duration != widget.duration) {
-      _blendController.duration = widget.duration;
+    if (oldWidget.effectiveDuration != widget.effectiveDuration) {
+      _blendController.duration = widget.effectiveDuration;
       if (_blendController.isAnimating) {
-        _blendController.forward(from: _blendController.value);
+        _blendController.forward(from: 0.0);
       }
     }
   }
@@ -265,6 +312,7 @@ class _AmbientBlurState extends State<AmbientBlur>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _generation++;
+    _presentationTicker.dispose();
     _blendController.dispose();
     for (final image in {_oldImage, _currentImage}.nonNulls) {
       _disposeImage(image);
@@ -293,6 +341,9 @@ class _AmbientBlurState extends State<AmbientBlur>
     ui.Picture? picture;
 
     try {
+      final captureGate = diagnostics?.beforeCapture;
+      if (captureGate != null) await captureGate();
+      if (!_running || generation != _generation) return;
       final boundary = _boundaryKey.currentContext?.findRenderObject()
           as RenderRepaintBoundary?;
       if (boundary == null || !boundary.hasSize) return;
@@ -413,7 +464,11 @@ class _AmbientBlurState extends State<AmbientBlur>
       _disposeImage(unblurredImage);
       _isCapturing = false;
       diagnostics?.inFlight = false;
-      if (_running) _blendController.forward(from: 0.0);
+      if (_running && generation == _generation) {
+        _blendController.forward(from: 0.0);
+      } else if (_running && !widget.synchronizeToPlayback) {
+        _queueCapture();
+      }
     }
   }
 

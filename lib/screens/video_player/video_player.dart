@@ -17,6 +17,7 @@ import 'package:fladder/screens/video_player/components/centered_video_viewport.
 import 'package:fladder/screens/video_player/components/video_player_next_wrapper.dart';
 import 'package:fladder/screens/video_player/video_player_controls.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
+import 'package:fladder/util/ambient_interval.dart';
 import 'package:fladder/util/themes_data.dart';
 import 'package:fladder/widgets/shared/ambient_blur.dart';
 import 'package:fladder/widgets/shared/back_intent_dpad.dart';
@@ -114,6 +115,8 @@ class _VideoPlayerState extends ConsumerState<VideoPlayer> with WidgetsBindingOb
         child: child,
         builder: (context, ref, child) {
           final appearance = ref.watch(ambientAppearanceProvider);
+          final interval = ref.watch(ambientIntervalProvider);
+          final sync = ref.watch(videoPlayerSettingsProvider.select((settings) => settings.ambientSyncToPlayback));
           return AmbientBlur(
             enabled: ambientEnabled,
             playing: ambientPlaying,
@@ -121,6 +124,9 @@ class _VideoPlayerState extends ConsumerState<VideoPlayer> with WidgetsBindingOb
             diagnostics: _ambientDiagnostics,
             opacity: appearance.intensity,
             spread: appearance.spread,
+            duration: ambientIntervalDuration(interval),
+            synchronizeToPlayback: sync,
+            frameSource: playerController,
             child: child!,
           );
         },

@@ -66,6 +66,8 @@ class SettingsBackup {
       'ambientBlur': BackupRule.boolean(),
       'ambientIntensity': BackupRule.number(0, 1),
       'ambientSpread': BackupRule.number(0, 1),
+      'ambientIntervalSeconds': BackupRule.number(0.001, 60),
+      'ambientSyncToPlayback': BackupRule.boolean(),
     },
   };
 
