@@ -72849,5 +72849,111 @@
       "version": "2.90.0-1",
       "binarySha256": "6457697b77638c9cc20baa3c19228dcecc15aeea886e72815b2079cdb0b8d941"
     }
+  },
+  {
+    "source": "https://ffmpeg.org/releases/ffmpeg-7.1.5.tar.xz",
+    "archiveSha256": "de668509caf9e35e3cd162473441fdb29538c6d96ed080292b3cf9e6fc5d558f",
+    "member": "ffmpeg-7.1.5/libavcodec/cdgraphics.c",
+    "sha256": "0ecb6715cdca333f864899e64482d15ee138e5ccf2a22ee090d39eed5a22405f",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Official CD Graphics codec source comment cites a public technical reference URL. Its home segment is a web URL, not a JMS filesystem location.",
+    "evidence": {
+      "kind": "upstream-public-reference-comment",
+      "member": "ffmpeg-7.1.5/libavcodec/cdgraphics.c",
+      "sha256": "0ecb6715cdca333f864899e64482d15ee138e5ccf2a22ee090d39eed5a22405f"
+    }
+  },
+  {
+    "source": "https://ffmpeg.org/releases/ffmpeg-7.1.5.tar.xz",
+    "archiveSha256": "de668509caf9e35e3cd162473441fdb29538c6d96ed080292b3cf9e6fc5d558f",
+    "member": "ffmpeg-7.1.5/doc/faq.texi",
+    "sha256": "88bbf6e78d9e9effabdafc095a1194502e09e2cf4a3534fd16f2d6acfa224487",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Official cross-compilation FAQ uses the literal me placeholder for a user-selected toolchain installation directory. The exact file is upstream documentation, not JMS deployment data.",
+    "evidence": {
+      "kind": "upstream-cross-compilation-documentation",
+      "member": "ffmpeg-7.1.5/doc/faq.texi",
+      "sha256": "88bbf6e78d9e9effabdafc095a1194502e09e2cf4a3534fd16f2d6acfa224487"
+    }
+  },
+  {
+    "source": "https://ffmpeg.org/releases/ffmpeg-7.1.5.tar.xz",
+    "archiveSha256": "de668509caf9e35e3cd162473441fdb29538c6d96ed080292b3cf9e6fc5d558f",
+    "member": "ffmpeg-7.1.5/doc/protocols.texi",
+    "sha256": "1b819caa9a2f751f0ec4c8ff367db5522d29e2f12ccf17b953de9b02c6715ca3",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Official SFTP protocol example uses literal user, password and server_address placeholders. The shown resource directory is a documented example, not a JMS filesystem location.",
+    "evidence": {
+      "kind": "upstream-protocol-documentation",
+      "member": "ffmpeg-7.1.5/doc/protocols.texi",
+      "sha256": "1b819caa9a2f751f0ec4c8ff367db5522d29e2f12ccf17b953de9b02c6715ca3"
+    }
+  },
+  {
+    "source": "https://ffmpeg.org/releases/ffmpeg-7.1.5.tar.xz",
+    "archiveSha256": "de668509caf9e35e3cd162473441fdb29538c6d96ed080292b3cf9e6fc5d558f",
+    "member": "ffmpeg-7.1.5/doc/fate.texi",
+    "sha256": "a9841c1c90aa998b1d17a93cc1fcb626d570b86a95c7971763bb879eb544d888",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Official FATE documentation gives the public FFmpeg sample repository path in rsync commands. It is an upstream test-service directory, not a JMS personal path.",
+    "evidence": {
+      "kind": "upstream-public-fate-repository-documentation",
+      "member": "ffmpeg-7.1.5/doc/fate.texi",
+      "sha256": "a9841c1c90aa998b1d17a93cc1fcb626d570b86a95c7971763bb879eb544d888"
+    }
+  },
+  {
+    "source": "https://ffmpeg.org/releases/ffmpeg-7.1.5.tar.xz",
+    "archiveSha256": "de668509caf9e35e3cd162473441fdb29538c6d96ed080292b3cf9e6fc5d558f",
+    "member": "ffmpeg-7.1.5/libavformat/tests/url.c",
+    "sha256": "9ef2d810636f3e8be4e4cf266c87136dd3851730e7a0e0d4f60d1f82f3638220",
+    "rules": [
+      "credential URL/header"
+    ],
+    "explanation": "Official URL decomposition and absolute URL tests use literal user and pass placeholders and synthetic ffmpeg or localhost hosts. The expected-output reference corroborates their test-only purpose; no service authentication was attempted.",
+    "evidence": {
+      "kind": "upstream-url-parser-test",
+      "member": "ffmpeg-7.1.5/libavformat/tests/url.c",
+      "sha256": "9ef2d810636f3e8be4e4cf266c87136dd3851730e7a0e0d4f60d1f82f3638220"
+    },
+    "testReference": "test_decompose/test2 -> tests/ref/fate/url",
+    "additionalEvidence": [
+      {
+        "kind": "upstream-url-parser-expected-output",
+        "member": "ffmpeg-7.1.5/tests/ref/fate/url",
+        "sha256": "a5b2378a47e738a3513eedb60c2b49eeb9f8f483713a377f03615c8c0f80d1ed"
+      }
+    ]
+  },
+  {
+    "source": "https://ffmpeg.org/releases/ffmpeg-7.1.5.tar.xz",
+    "archiveSha256": "de668509caf9e35e3cd162473441fdb29538c6d96ed080292b3cf9e6fc5d558f",
+    "member": "ffmpeg-7.1.5/tests/ref/fate/url",
+    "sha256": "a5b2378a47e738a3513eedb60c2b49eeb9f8f483713a377f03615c8c0f80d1ed",
+    "rules": [
+      "credential URL/header"
+    ],
+    "explanation": "Official FATE expected-output file repeats literal user and pass placeholders from the URL parser tests. These strings are parser fixtures rather than service credentials; no service authentication was attempted.",
+    "evidence": {
+      "kind": "upstream-url-parser-test-reference",
+      "member": "ffmpeg-7.1.5/libavformat/tests/url.c",
+      "sha256": "9ef2d810636f3e8be4e4cf266c87136dd3851730e7a0e0d4f60d1f82f3638220"
+    },
+    "testReference": "test_decompose/test2 -> tests/ref/fate/url",
+    "additionalEvidence": [
+      {
+        "kind": "upstream-url-parser-expected-output",
+        "member": "ffmpeg-7.1.5/tests/ref/fate/url",
+        "sha256": "a5b2378a47e738a3513eedb60c2b49eeb9f8f483713a377f03615c8c0f80d1ed"
+      }
+    ]
   }
 ]
