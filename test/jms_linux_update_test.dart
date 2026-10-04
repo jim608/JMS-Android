@@ -12,6 +12,7 @@ import 'package:fladder/util/update_checker.dart';
 import 'package:fladder/util/update_controller.dart';
 import 'package:fladder/util/update_source.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 const linuxDevice =
     UpdateDevice('com.jim608.jms', 20, 36, ['x86_64'], platform: 'linux-x64');
@@ -36,6 +37,90 @@ Map<String, dynamic> linuxManifest() => {
     };
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('Flatpak detection disables host updates with either sandbox marker',
+      () {
+    for (final environment in [
+      {'FLATPAK_ID': 'com.jim608.jms'},
+      {'FLATPAK_ID': ' com.jim608.jms '},
+    ]) {
+      expect(
+          createLinuxUpdateBridge(
+              environment: environment, flatpakInfoExists: () => false),
+          isA<FlatpakUpdateBridge>());
+    }
+    expect(
+        createLinuxUpdateBridge(
+            environment: const {}, flatpakInfoExists: () => true),
+        isA<FlatpakUpdateBridge>());
+    for (final environment in [
+      const <String, String>{},
+      {'FLATPAK_ID': ' '}
+    ]) {
+      expect(
+          createLinuxUpdateBridge(
+              environment: environment, flatpakInfoExists: () => false),
+          isA<LinuxUpdateBridge>());
+    }
+  });
+
+  test('Flatpak has no standalone transfer or installer operations', () async {
+    final bridge = FlatpakUpdateBridge();
+    final release = ReleaseInfo(
+        UpdateManifest.parse(linuxManifest(), platform: 'linux-x64'),
+        '',
+        DateTime.utc(2026),
+        Uri.parse('https://github.com/jim608/JMS-Linux/releases/download/v19/'
+            'JMS-Linux-0.11.1-jms.19-x86_64.pkg.tar.xz'),
+        'jim608/JMS-Linux');
+    expect(bridge.isDesktop, isTrue);
+    expect(bridge.flatpakManaged, isTrue);
+    expect(await bridge.canInstall(), isFalse);
+    expect(await bridge.restoreTransfer(), isNull);
+    expect(await bridge.currentPackageChannel(), UpdatePackageChannel.unknown);
+    for (final operation in [
+      bridge.device,
+      () => bridge.download(release),
+      bridge.permission,
+      bridge.install,
+    ]) {
+      await expectLater(
+          operation(),
+          throwsA(isA<PlatformException>()
+              .having((error) => error.code, 'code', 'flatpakManaged')));
+    }
+  });
+
+  test('Flatpak controller never initializes or polls the Arch update feed',
+      () async {
+    var requested = 0;
+    var loadedPreferences = 0;
+    final checker = UpdateChecker(
+        source: source,
+        client: MockClient((request) async {
+          requested++;
+          return http.Response('[]', 200);
+        }));
+    final controller = UpdateController(
+        checker: checker,
+        bridge: FlatpakUpdateBridge(),
+        preferences: () {
+          loadedPreferences++;
+          throw StateError('Flatpak must not load standalone updater settings');
+        });
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    await controller.check();
+    await controller.download();
+    await controller.install();
+    expect(controller.supported, isFalse);
+    expect(controller.ready, isFalse);
+    expect(controller.status, UpdateStatus.unsupported);
+    expect(loadedPreferences, 0);
+    expect(requested, 0);
+  });
+
   test('Linux identifies community packages before official packages',
       () async {
     final calls = <List<String>>[];

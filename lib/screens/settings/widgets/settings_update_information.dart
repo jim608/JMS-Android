@@ -14,6 +14,23 @@ class SettingsUpdateInformation extends ConsumerWidget {
     if (kIsWeb) return const SizedBox.shrink();
     final updates = ref.watch(updateProvider);
     final labels = context.localized;
+    if (updates.bridge.flatpakManaged) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.system_update),
+            title: Text(labels.jmsFlatpakUpdateTitle),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: SelectableText(labels.jmsFlatpakUpdateHint,
+                key: const ValueKey('flatpak-update-instructions')),
+          ),
+        ],
+      );
+    }
     final release = updates.latestRelease;
     final configured = updates.checker.source.configured;
     final canAct = updates.ready && !updates.busy && !updates.blocked;

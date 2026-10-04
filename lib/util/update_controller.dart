@@ -11,6 +11,7 @@ enum UpdatePackageChannel { official, community, unknown }
 
 abstract class UpdateBridge {
   bool get isDesktop => false;
+  bool get flatpakManaged => false;
   bool get supportsBackgroundDownload => false;
   void Function(double progress)? onProgress;
   Future<UpdateDevice> device();
@@ -196,8 +197,9 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
       {required this.checker,
       required this.bridge,
       this.preferences = SharedPreferences.getInstance,
-      this.supported = true}) {
-    status = !supported
+      bool supported = true})
+      : supported = supported && !bridge.flatpakManaged {
+    status = !this.supported
         ? UpdateStatus.unsupported
         : checker.source.configured
             ? UpdateStatus.idle

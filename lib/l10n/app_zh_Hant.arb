@@ -45,6 +45,8 @@
   "jmsDesktopUpdateInstallHint": "此測試安裝程式未經程式碼簽章，已核對 GitHub 發布的大小與 SHA-256，但這不等於發行者憑證驗證。Windows 可能顯示 SmartScreen。安裝程式會詢問是否關閉 JMS；免安裝版將改用安裝版，原資料夾不會覆蓋。是否繼續？",
   "jmsDesktopUpdateFailure": "Windows 安裝程式下載、校驗或開啟失敗，未清除任何資料。請重新下載或手動重試。",
   "jmsLinuxUpdateTitle": "JMS EndeavourOS／Arch Linux 線上更新",
+  "jmsFlatpakUpdateTitle": "JMS Flatpak 更新",
+  "jmsFlatpakUpdateHint": "更新前請先關閉 JMS。若從 Flatpak 軟體庫安裝，請使用軟體中心，或執行 flatpak update com.jim608.jms。若從 .flatpak 檔案安裝，請安裝新版 .flatpak 檔案；更新後重新開啟 JMS。",
   "jmsUpdateReleaseNotes": "版本說明",
   "jmsUpdateVerifiedLocalAvailable": "先前下載的安裝包仍已核對，可繼續安裝。網路恢復後可重新檢查版本。",
   "jmsUpdateRetryDownload": "重新下載",

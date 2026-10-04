@@ -9,7 +9,52 @@ import 'package:fladder/util/update_controller.dart';
 import 'package:fladder/util/update_source.dart';
 import 'package:fladder/util/windows_update_bridge_io.dart';
 
-UpdateBridge createLinuxUpdateBridge() => LinuxUpdateBridge();
+UpdateBridge createLinuxUpdateBridge({
+  Map<String, String>? environment,
+  bool Function()? flatpakInfoExists,
+}) =>
+    isFlatpakEnvironment(
+            environment: environment, flatpakInfoExists: flatpakInfoExists)
+        ? FlatpakUpdateBridge()
+        : LinuxUpdateBridge();
+
+bool isFlatpakEnvironment({
+  Map<String, String>? environment,
+  bool Function()? flatpakInfoExists,
+}) {
+  if ((environment ?? Platform.environment)['FLATPAK_ID']?.trim().isNotEmpty ==
+      true) {
+    return true;
+  }
+  return (flatpakInfoExists ?? () => File('/.flatpak-info').existsSync())();
+}
+
+/// Flatpak owns the installed files and update channel. Never invoke a host
+/// package manager or restore a standalone Linux installer from this sandbox.
+class FlatpakUpdateBridge extends UpdateBridge {
+  @override
+  bool get isDesktop => true;
+  @override
+  bool get flatpakManaged => true;
+  @override
+  Future<UpdateDevice> device() async =>
+      throw PlatformException(code: 'flatpakManaged');
+  @override
+  Future<void> setAllowed(bool allowed) async {}
+  @override
+  Future<void> cancel() async {}
+  @override
+  Future<void> download(ReleaseInfo release) async =>
+      throw PlatformException(code: 'flatpakManaged');
+  @override
+  Future<bool> canInstall() async => false;
+  @override
+  Future<void> permission() async =>
+      throw PlatformException(code: 'flatpakManaged');
+  @override
+  Future<String> install() async =>
+      throw PlatformException(code: 'flatpakManaged');
+}
 
 bool validLinuxPackageMetadata(String value, UpdateManifest manifest) {
   final fields = <String, String>{};

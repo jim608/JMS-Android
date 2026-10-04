@@ -46,12 +46,18 @@ Future<DiscordIpcTransport> openDiscordIpcTransport(Duration timeout) async {
 }
 
 List<String> discordUnixPrefixes(Map<String, String> environment) {
+  final runtime = environment['XDG_RUNTIME_DIR'];
   return <String>{
     for (final name in const ['XDG_RUNTIME_DIR', 'TMPDIR', 'TMP', 'TEMP'])
       if (environment[name] case final String path
           when path.startsWith('/') && !path.contains('\u0000'))
         path.replaceFirst(RegExp(r'/+$'), ''),
     '/tmp',
+    // Discord's Flatpak publishes this exact IPC directory for other apps.
+    if (runtime != null &&
+        runtime.startsWith('/') &&
+        !runtime.contains('\u0000'))
+      '${runtime.replaceFirst(RegExp(r'/+$'), '')}/app/com.discordapp.Discord',
   }.toList(growable: false);
 }
 

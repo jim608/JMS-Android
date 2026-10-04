@@ -134,7 +134,19 @@ void main() {
           'TMP': '/synthetic-tmp',
           'TEMP': 'not-an-absolute-path'
         }),
-        ['/synthetic-run', '/synthetic-tmp', '/tmp']);
+        [
+          '/synthetic-run',
+          '/synthetic-tmp',
+          '/tmp',
+          '/synthetic-run/app/com.discordapp.Discord',
+        ]);
+  });
+
+  test('Discord Flatpak runtime candidates reject invalid environment paths',
+      () {
+    for (final runtime in ['relative', '/runtime\u0000bad']) {
+      expect(io.discordUnixPrefixes({'XDG_RUNTIME_DIR': runtime}), ['/tmp']);
+    }
   });
 
   test('Windows transport refuses remote named pipes before opening a handle',

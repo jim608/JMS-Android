@@ -16,6 +16,7 @@ import 'package:fladder/screens/settings/widgets/settings_update_information.dar
 import 'package:fladder/util/update_checker.dart';
 import 'package:fladder/util/update_controller.dart';
 import 'package:fladder/util/update_source.dart';
+import 'package:fladder/util/linux_update_bridge_io.dart';
 
 import 'jms_update_test.dart' show FakeBridge;
 import 'jms_windows_update_test.dart'
@@ -49,6 +50,28 @@ Future<void> mountUpdateUi(WidgetTester tester, UpdateController controller) =>
     ));
 
 void main() {
+  testWidgets('Flatpak shows managed updates without Arch actions or switches',
+      (tester) async {
+    final controller = UpdateController(
+        checker: UpdateChecker(
+            source: const UpdateSource(owner: 'jim608', repo: 'JMS-Linux')),
+        bridge: FlatpakUpdateBridge());
+    await controller.initialize();
+    await mountUpdateUi(tester, controller);
+    await tester.pumpAndSettle();
+    expect(find.text('JMS Flatpak updates'), findsOneWidget);
+    expect(
+        find.textContaining('flatpak update com.jim608.jms'), findsOneWidget);
+    expect(find.textContaining('newer .flatpak file'), findsOneWidget);
+    expect(find.byType(SwitchListTile), findsNothing);
+    expect(find.byType(FilledButton), findsNothing);
+    expect(find.byType(OutlinedButton), findsNothing);
+    expect(find.byKey(const ValueKey('update-primary-check')), findsNothing);
+    expect(find.byKey(const ValueKey('update-primary-download')), findsNothing);
+    expect(find.byKey(const ValueKey('update-primary-install')), findsNothing);
+    expect(controller.supported, isFalse);
+  });
+
   testWidgets(
       'failed Android initialization can retry from the visible check action',
       (tester) async {

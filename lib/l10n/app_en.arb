@@ -51,6 +51,8 @@
   "jmsDesktopUpdateInstallHint": "This test installer is not code-signed. Its size and SHA-256 are checked against the GitHub release, not a publisher certificate. Windows may show SmartScreen. The installer will ask before closing JMS. Portable users will receive an installed copy; the portable folder is not replaced. Continue?",
   "jmsDesktopUpdateFailure": "The Windows installer could not be downloaded, verified or opened. No data was removed. Download again or retry manually.",
   "jmsLinuxUpdateTitle": "JMS EndeavourOS / Arch Linux updates",
+  "jmsFlatpakUpdateTitle": "JMS Flatpak updates",
+  "jmsFlatpakUpdateHint": "Close JMS before updating. For an installation from a Flatpak remote, use your software center or run flatpak update com.jim608.jms. For an installation from a .flatpak file, install the newer .flatpak file. Reopen JMS after updating.",
   "jmsUpdateReleaseNotes": "Release notes",
   "jmsUpdateVerifiedLocalAvailable": "The last downloaded package is still verified and available to install. Check again when the network recovers.",
   "jmsUpdateRetryDownload": "Retry download",
