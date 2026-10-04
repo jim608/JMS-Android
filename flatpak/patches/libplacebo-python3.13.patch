@@ -1,0 +1,13 @@
+From upstream libplacebo commit 12509c0f1ee8.
+Python 3.13.6 and later require passing the root Element to VkXML.
+https://code.videolan.org/videolan/libplacebo/-/commit/12509c0f1ee8
+--- a/src/vulkan/utils_gen.py
++++ b/src/vulkan/utils_gen.py
+@@ -203,5 +203,6 @@
+         xmlfile = find_registry_xml(datadir)
+ 
+-    registry = VkXML(ET.parse(xmlfile))
++    tree = ET.parse(xmlfile)
++    registry = VkXML(tree.getroot())
+     with open(outfile, 'w') as f:
+         f.write(TEMPLATE.render(

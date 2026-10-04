@@ -1,47 +1,135 @@
+# GitHub distribution recipe. The release builder verifies and stages payload/.
 id: com.jim608.jms
 runtime: org.gnome.Platform
-runtime-version: "48"
+runtime-version: "50"
 sdk: org.gnome.Sdk
-
 command: jms
-add-extensions:
-  org.freedesktop.Platform.ffmpeg-full:
-    directory: lib/ffmpeg
-    version: "24.08"
-    add-ld-path: .
-
-cleanup-commands:
-  - mkdir -p /app/lib/ffmpeg
+separate-locales: false
 
 finish-args:
-  # X11/Wayland access
   - --share=ipc
   - --socket=fallback-x11
   - --socket=wayland
-  # Audio playback
   - --socket=pulseaudio
-  # Network access for Jellyfin streaming
   - --share=network
-  # File access for downloads/media
-  - --filesystem=home
-  # File access for downloads temporary directory
-  - --filesystem=/tmp
-  # Allow access to PipeWire socket for mpv
-  - --filesystem=xdg-run/pipewire-0:ro
-  # Hardware acceleration
   - --device=dri
-  # Allow notification access
+  - --filesystem=xdg-download
+  - --talk-name=org.freedesktop.secrets
   - --talk-name=org.freedesktop.Notifications
-  - --talk-name=org.freedesktop.PowerManagement
   - --talk-name=org.freedesktop.ScreenSaver
-  - --talk-name=org.freedesktop.portal.*
+  # Discord IPC exposes only socket leaves and the sandboxed Discord directory.
+  - --filesystem=xdg-run/app/com.discordapp.Discord:ro
+  - --filesystem=xdg-run/discord-ipc-0
+  - --filesystem=xdg-run/discord-ipc-1
+  - --filesystem=xdg-run/discord-ipc-2
+  - --filesystem=xdg-run/discord-ipc-3
+  - --filesystem=xdg-run/discord-ipc-4
+  - --filesystem=xdg-run/discord-ipc-5
+  - --filesystem=xdg-run/discord-ipc-6
+  - --filesystem=xdg-run/discord-ipc-7
+  - --filesystem=xdg-run/discord-ipc-8
+  - --filesystem=xdg-run/discord-ipc-9
+
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /lib/*.la
+  - /lib/*.a
+  - /share/man
 
 modules:
+  - name: ffnvcodec
+    buildsystem: simple
+    build-commands:
+      - make install PREFIX=/app
+      - install -Dm644 README /app/share/licenses/ffnvcodec/README
+      - install -m644 include/ffnvcodec/*.h /app/share/licenses/ffnvcodec/
+    sources:
+      - type: git
+        url: https://github.com/FFmpeg/nv-codec-headers.git
+        tag: n12.1.14.0
+        commit: 1889e62e2d35ff7aa9baca2bceb14f053785e6f1
+
+  - name: ffmpeg
+    buildsystem: autotools
+    no-autogen: true
+    config-opts:
+      - --disable-static
+      - --enable-shared
+      - --disable-doc
+      - --disable-programs
+      - --disable-debug
+      - --enable-gpl
+      - --enable-version3
+      - --enable-gnutls
+      - --enable-ffnvcodec
+    post-install:
+      - install -Dm644 COPYING.GPLv3 /app/share/licenses/ffmpeg/COPYING.GPLv3
+      - install -Dm644 LICENSE.md /app/share/licenses/ffmpeg/LICENSE.md
+      - install -Dm644 ffbuild/config.mak /app/share/jms-native-build/ffmpeg-config.mak
+      - install -Dm644 config.h /app/share/jms-native-build/ffmpeg-config.h
+    sources:
+      - type: archive
+        url: https://ffmpeg.org/releases/ffmpeg-7.1.5.tar.xz
+        sha256: de668509caf9e35e3cd162473441fdb29538c6d96ed080292b3cf9e6fc5d558f
+
+  - name: libass
+    buildsystem: autotools
+    config-opts:
+      - --enable-shared
+      - --disable-static
+    post-install:
+      - install -Dm644 COPYING /app/share/licenses/libass/COPYING
+    sources:
+      - type: git
+        url: https://github.com/libass/libass.git
+        tag: 0.17.5
+        commit: 4a05d8127f525943ebf45fdc6497c9e665947f0d
+
+  - name: uchardet
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DBUILD_BINARY=OFF
+      - -DBUILD_STATIC=OFF
+      - -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+    post-install:
+      - install -Dm644 COPYING /app/share/licenses/uchardet/COPYING
+      - install -Dm644 AUTHORS /app/share/licenses/uchardet/AUTHORS
+    sources:
+      - type: archive
+        url: https://www.freedesktop.org/software/uchardet/releases/uchardet-0.0.8.tar.xz
+        sha256: e97a60cfc00a1c147a674b097bb1422abd9fa78a2d9ce3f3fdcc2e78a34ac5f0
+
+  - name: libplacebo
+    buildsystem: meson
+    config-opts:
+      - --libdir=lib
+      - -Ddefault_library=shared
+      - -Dvulkan=enabled
+      - -Dshaderc=enabled
+      - -Dopengl=enabled
+      - -Ddemos=false
+      - -Dtests=false
+    post-install:
+      - install -Dm644 LICENSE /app/share/licenses/libplacebo/LICENSE
+      - find 3rdparty -type f \( -iname 'LICENSE*' -o -iname 'COPYING*' \) -exec cp --parents '{}' /app/share/licenses/libplacebo/ ';'
+    sources:
+      - type: git
+        url: https://code.videolan.org/videolan/libplacebo.git
+        tag: v7.349.0
+        commit: 1fd3c7bde7b943fe8985c893310b5269a09b46c5
+      - type: patch
+        path: patches/libplacebo-python3.13.patch
+
   - name: mpv
     buildsystem: meson
     config-opts:
+      - --libdir=lib
       - -Dlibmpv=true
       - -Dcplayer=false
+      - -Dgpl=true
       - -Dbuild-date=false
       - -Dmanpage-build=disabled
       - -Dvaapi=enabled
@@ -49,105 +137,40 @@ modules:
       - -Dpulse=enabled
       - -Dalsa=enabled
       - -Duchardet=enabled
-    cleanup:
-      - /lib/pkgconfig
-      - /share
-      - /include
+      - -Dlua=disabled
+      - -Djavascript=disabled
+    post-install:
+      - install -Dm644 Copyright /app/share/licenses/mpv/Copyright
+      - install -Dm644 LICENSE.GPL /app/share/licenses/mpv/LICENSE.GPL
+      - install -Dm644 LICENSE.LGPL /app/share/licenses/mpv/LICENSE.LGPL
     sources:
       - type: git
         url: https://github.com/mpv-player/mpv.git
         tag: v0.39.0
         commit: a0fba7be57f3822d967b04f0f6b6d6341e7516e7
-        x-checker-data:
-          type: git
-          tag-pattern: ^v([\d.]+)$
-    modules:
-      - name: ffnvcodec
-        buildsystem: simple
-        build-commands:
-          - make install PREFIX=/app
-        cleanup:
-          - /lib/pkgconfig
-          - /include
-        sources:
-          - type: git
-            url: https://github.com/FFmpeg/nv-codec-headers.git
-            tag: n13.0.19.0
-            commit: e844e5b26f46bb77479f063029595293aa8f812d
-            x-checker-data:
-              type: git
-              tag-pattern: ^n([\d.]+)$
-      - shared-modules/luajit/luajit.json
-      - name: libass
-        config-opts:
-          - --enable-shared
-          - --disable-static
-        cleanup:
-          - /lib/*.la
-          - /lib/pkgconfig
-          - /include
-        sources:
-          - type: git
-            url: https://github.com/libass/libass.git
-            tag: 0.17.3
-            commit: e46aedea0a0d17da4c4ef49d84b94a7994664ab5
-            x-checker-data:
-              type: git
-              tag-pattern: ^([\d.]+)$
-      - name: uchardet
-        buildsystem: cmake-ninja
-        config-opts:
-          - -DCMAKE_BUILD_TYPE=Release
-          - -DCMAKE_INSTALL_LIBDIR=lib
-          - -DBUILD_BINARY=OFF
-        cleanup:
-          - /lib/*.a
-          - /lib/pkgconfig
-          - /share
-          - /include
-        sources:
-          - type: archive
-            # url: https://www.freedesktop.org/software/uchardet/releases/uchardet-0.0.8.tar.xz
-            url: https://github.com/DonutWare/Fladder/raw/refs/heads/main/flatpak/uchardet-0.0.8.tar.xz
-            sha256: e97a60cfc00a1c147a674b097bb1422abd9fa78a2d9ce3f3fdcc2e78a34ac5f0
-            # x-checker-data:
-            #   type: html
-            #   url: https://www.freedesktop.org/software/uchardet/releases/
-            #   version-pattern: uchardet-(\d+\.\d+\.\d+)\.tar\.xz
-            #   url-template: https://www.freedesktop.org/software/uchardet/releases/uchardet-$version.tar.xz
-      - name: libplacebo
-        buildsystem: meson
-        config-opts:
-          - -Dvulkan=enabled
-          - -Dshaderc=enabled
-          - --libdir=lib
-        sources:
-          - type: git
-            url: https://code.videolan.org/videolan/libplacebo.git
-            tag: v7.349.0
-            commit: 1fd3c7bde7b943fe8985c893310b5269a09b46c5
-            x-checker-data:
-              type: git
-              tag-pattern: ^v([\d.]+)$
-
-  - name: zenity
-    buildsystem: meson
-    sources:
-      - type: git
-        url: https://gitlab.gnome.org/GNOME/zenity.git
-        tag: 4.0.3
-        commit: 7f7ac1840cfd914dfac69d947f0849dc50b0f695
 
   - name: jms
     buildsystem: simple
     build-commands:
-      - mkdir -p /app/bin
-      - cp -r build/linux/x64/release/bundle/* /app/bin/
-      - chmod +x /app/bin/jms
-      - mkdir -p /app/share/applications
-      - mkdir -p /app/share/icons/hicolor/scalable/apps
-      - install -Dm644 flatpak/JMS.desktop /app/share/applications/${FLATPAK_ID}.desktop
-      - install -Dm644 icons/jms/mark.svg /app/share/icons/hicolor/scalable/apps/${FLATPAK_ID}.svg
+      - test -f jms && test -d lib && test -d data && test -f JMS_BUILD_INFO.json
+      - install -d /app/lib/jms
+      - cp -a jms lib data JMS_BUILD_INFO.json /app/lib/jms/
+      - install -Dm644 JMS_BUILD_INFO.json /app/share/jms/JMS_BUILD_INFO.json
+      - install -Dm755 jms-flatpak /app/bin/jms
+      - install -Dm644 JMS.desktop /app/share/applications/${FLATPAK_ID}.desktop
+      - install -Dm644 jms.svg /app/share/icons/hicolor/scalable/apps/${FLATPAK_ID}.svg
+      - install -Dm644 com.jim608.jms.metainfo.xml /app/share/metainfo/${FLATPAK_ID}.metainfo.xml
+      - install -Dm644 LICENSE /app/share/licenses/jms/LICENSE
     sources:
       - type: dir
-        path: ..
+        path: payload
+      - type: file
+        path: jms-flatpak
+      - type: file
+        path: JMS.desktop
+      - type: file
+        path: com.jim608.jms.metainfo.xml
+      - type: file
+        path: jms.svg
+      - type: file
+        path: LICENSE

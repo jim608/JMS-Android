@@ -4,65 +4,45 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-only</project_license>
   <name>JMS</name>
-  <summary>A cross-platform Jellyfin client</summary>
-
-  <branding>
-    <color type="primary" scheme_preference="light">#5B364D</color>
-    <color type="primary" scheme_preference="dark">#3A2101</color>
-  </branding>
-  
+  <summary>A Jellyfin client with Seerr requests and offline downloads</summary>
   <description>
-    <p>
-      JMS is a modern, cross-platform Jellyfin client that provides a seamless
-      media streaming experience. Built with Flutter, it offers a beautiful and
-      intuitive interface for accessing your Jellyfin media library.
-    </p>
-    <p>Features:</p>
+    <p>JMS connects to your Jellyfin server to browse and play your media library.
+      It is based on Fladder and includes Seerr media requests and issue reports.</p>
     <ul>
-      <li>Stream movies, TV shows, and music from your Jellyfin server</li>
-      <li>Beautiful and responsive user interface</li>
-      <li>Hardware-accelerated video playback</li>
-      <li>Support for multiple profiles</li>
-      <li>Offline media downloads</li>
-      <li>Cross-platform compatibility</li>
+      <li>Video playback with subtitles and ambient lighting</li>
+      <li>Offline media downloads and settings backup</li>
+      <li>Multiple server accounts and secure Seerr session storage</li>
+      <li>Optional Discord playback status sharing</li>
     </ul>
+    <p>Enter your own service addresses in the application. Linux Flatpak updates
+      are managed by Flatpak.</p>
   </description>
-  
   <launchable type="desktop-id">com.jim608.jms.desktop</launchable>
-  
-<url type="homepage">https://github.com/DonutWare/JMS</url>
-  
-  <developer id="com.jim608">
+  <url type="homepage">https://github.com/jim608/JMS-Android</url>
+  <url type="bugtracker">https://github.com/jim608/JMS-Linux/issues</url>
+  <developer id="io.github.jim608">
     <name>Jim608</name>
   </developer>
-  
-  <content_rating type="oars-1.1">
-    <content_attribute id="social-info">mild</content_attribute>
-  </content_rating>
-  
+  <content_rating type="oars-1.1"/>
   <releases>
-    <release version="0.10.3" date="2026-04-13">
+    <release version="0.11.1-jms.35" date="2026-10-04">
       <description>
-        <p>See the full changelog at: https://github.com/DonutWare/JMS/releases/tag/v0.10.3</p>
+        <p>Adds a Linux x86_64 Flatpak package with bundled media libraries and
+          secure desktop session storage.</p>
       </description>
     </release>
   </releases>
-  
-  <requires>
+  <recommends>
     <internet>always</internet>
-  </requires>
-  
+  </recommends>
   <categories>
     <category>AudioVideo</category>
     <category>Player</category>
   </categories>
-  
   <keywords>
-    <keyword>jellyfin</keyword>
-    <keyword>media</keyword>
+    <keyword>Jellyfin</keyword>
+    <keyword>Seerr</keyword>
     <keyword>streaming</keyword>
     <keyword>video</keyword>
-    <keyword>audio</keyword>
-    <keyword>music</keyword>
   </keywords>
 </component>

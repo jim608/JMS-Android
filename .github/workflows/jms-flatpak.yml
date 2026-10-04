@@ -1,0 +1,116 @@
+name: JMS GitHub Flatpak
+run-name: JMS Flatpak ${{ inputs.source_commit }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_commit:
+        description: 已推送至 jms 的完整共用來源提交
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jms-flatpak-${{ inputs.source_commit }}
+  cancel-in-progress: false
+
+jobs:
+  flatpak:
+    if: github.repository == 'jim608/JMS-Android' && github.ref == 'refs/heads/jms'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4.1.1
+        with:
+          ref: ${{ inputs.source_commit }}
+          fetch-depth: 0
+          submodules: recursive
+      - name: 核對已提交且已推送的共用來源
+        env:
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_COMMIT" =~ ^[a-f0-9]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          git fetch origin jms
+          git merge-base --is-ancestor "$SOURCE_COMMIT" origin/jms
+          test -z "$(git status --porcelain)"
+          VERSION=$(sed -n 's/^version: \([^+]*\)+.*/\1/p' pubspec.yaml)
+          test -n "$VERSION"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "BUILD_ID=JMS-$VERSION-flatpak-${SOURCE_COMMIT:0:12}" >> "$GITHUB_ENV"
+      - name: 建置鎖定的 Flutter Linux 來源
+        env:
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+        run: |
+          set -euo pipefail
+          docker build --target build -f Dockerfile.linux --build-arg JMS_BUILD_ID="$BUILD_ID" --build-arg JMS_SOURCE_COMMIT="$SOURCE_COMMIT" -t jms-flatpak-app .
+          docker create --name jms-flatpak-export jms-flatpak-app /bin/true
+          mkdir bundle candidate
+          docker cp jms-flatpak-export:/workspace/build/linux/x64/release/bundle/. bundle/
+          python3 scripts/package_jms_flatpak.py --source-commit "$SOURCE_COMMIT" stage --bundle bundle --output flatpak-input
+      - name: 安裝及核對受支援的 Flatpak runtime
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y flatpak flatpak-builder ostree appstream desktop-file-utils libsecret-1-dev libmpv-dev gnome-keyring xvfb xauth x11-utils dbus-x11 pulseaudio ffmpeg python3-yaml
+          sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak remote-info flathub org.gnome.Platform//50 > candidate/runtime-info.txt
+          if grep -qi 'end.of.life' candidate/runtime-info.txt; then echo 'Runtime is end of life' >&2; exit 1; fi
+          sudo flatpak install --noninteractive flathub org.gnome.Platform//50 org.gnome.Sdk//50
+          flatpak --version > candidate/flatpak-tools.txt
+          flatpak-builder --version >> candidate/flatpak-tools.txt
+      - name: 建置原生依賴與 Flatpak
+        run: |
+          set -euo pipefail
+          flatpak-builder --sandbox --disable-rofiles-fuse --keep-build-dirs --repo=flatpak-repo flatpak-build flatpak-input/com.jim608.jms.yaml
+          appstreamcli validate --no-net flatpak-build/files/share/metainfo/com.jim608.jms.metainfo.xml
+          desktop-file-validate flatpak-build/files/share/applications/com.jim608.jms.desktop
+          flatpak build-bundle flatpak-repo "candidate/JMS-Linux-$VERSION-x86_64.flatpak" com.jim608.jms stable --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo
+      - name: 在隔離帳號驗證真正的 Flatpak 沙箱
+        run: |
+          set -euo pipefail
+          sudo useradd --create-home --shell /bin/bash jms-flatpak-validation
+          test_dir=$(mktemp -d /tmp/jms-flatpak-helpers.XXXXXX)
+          chmod 755 "$test_dir"
+          g++ -std=c++14 -Wall -Wextra -Werror -Ilinux linux/seerr_secret_store.cc test/native/linux_seerr_secret_test.cc $(pkg-config --cflags --libs libsecret-1) -o "$test_dir/secret-test"
+          g++ -std=c++14 -Wall -Wextra -Werror -pthread test/native/linux_flatpak_media_test.cc $(pkg-config --cflags --libs mpv) -o "$test_dir/media-test"
+          printf '%s\n' '[Script Info]' 'ScriptType: v4.00+' '[V4+ Styles]' 'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding' 'Style: Default,DejaVu Sans,24,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,1,0,2,10,10,10,1' '[Events]' 'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text' 'Dialogue: 0,0:00:00.00,0:00:02.00,Default,,0,0,0,,JMS synthetic subtitle' > "$test_dir/synthetic.ass"
+          ffmpeg -v error -f lavfi -i testsrc2=size=320x180:rate=10 -f lavfi -i sine=frequency=440:sample_rate=48000 -i "$test_dir/synthetic.ass" -t 2 -c:v mpeg4 -c:a pcm_s16le -c:s ass "$test_dir/synthetic.mkv"
+          mkdir candidate/validation
+          chmod 755 "$GITHUB_WORKSPACE" "$GITHUB_WORKSPACE/candidate"
+          sudo chown jms-flatpak-validation:jms-flatpak-validation candidate/validation
+          sudo -H -u jms-flatpak-validation env JMS_ISOLATED_FLATPAK_TEST=1 JMS_FLATPAK_BUNDLE="$GITHUB_WORKSPACE/candidate/JMS-Linux-$VERSION-x86_64.flatpak" JMS_FLATPAK_TEST_DIR="$test_dir" JMS_FLATPAK_OUTPUT="$GITHUB_WORKSPACE/candidate/validation" bash scripts/test_jms_flatpak.sh
+          deployment=$(cat candidate/validation/deployment-location.txt)
+          commit=$(cat candidate/validation/installed-commit.txt)
+          sudo python3 scripts/package_jms_flatpak.py --source-commit "${{ inputs.source_commit }}" inventory --deployment "$deployment" --bundle "candidate/JMS-Linux-$VERSION-x86_64.flatpak" --output candidate --ostree-commit "$commit"
+          sudo chown -R "$(id -u):$(id -g)" candidate
+      - name: 封存相應來源與建置材料
+        env:
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+        run: |
+          set -euo pipefail
+          python3 scripts/package_jms_sources.py --commit "$SOURCE_COMMIT" --output "candidate/JMS-$VERSION-source.zip"
+          python3 scripts/collect_jms_flatpak_sources.py --source-commit "$SOURCE_COMMIT" --manifest flatpak-input/com.jim608.jms.yaml --output candidate
+          python3 - <<'PY'
+          import json, os, pathlib
+          pathlib.Path('candidate/runner-source.json').write_text(json.dumps({key: os.environ[key] for key in ('SOURCE_COMMIT', 'VERSION', 'BUILD_ID', 'GITHUB_RUN_ID')}, indent=2) + '\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jms-flatpak-${{ inputs.source_commit }}
+          path: candidate/
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: jms-flatpak-failure-${{ inputs.source_commit }}-${{ github.run_attempt }}
+          path: |
+            candidate/
+            flatpak-build/metadata
+            flatpak-input/com.jim608.jms.yaml
+          if-no-files-found: warn
+          retention-days: 7

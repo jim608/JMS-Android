@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=JMS
 StartupWMClass=com.jim608.jms
-Comment=A Simple Jellyfin Frontend built on top of Flutter.
+Comment=Play your Jellyfin library and request media through Seerr.
 Exec=jms
 Icon=com.jim608.jms
 Terminal=false
