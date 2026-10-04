@@ -1,5 +1,13 @@
 # JMS 對應原始碼與授權材料
 
+## Linux Flatpak `.35`
+
+GitHub Flatpak 使用 GNOME 50 runtime，App 另打包固定來源的 MPV、FFmpeg、libass、libplacebo 與 uchardet。完整 JMS source ZIP 保存同版共用來源與建置配方；`flatpak-native-sources.json` 逐項記錄原生來源網址、固定提交或 SHA256，`JMS-Linux-版本-flatpak-native-materials.tar.gz` 保存相應來源及未變動 Flutter／原生 plugin 的既有材料。
+
+FFmpeg 以 GPL／version3 配置建置，保留設定與 GPLv3 授權；MPV 保留 GPL notices，libass、libplacebo、uchardet 與 NVIDIA codec headers 的聲明隨包保存於 `/app/share/licenses/`。libplacebo 的必要子模組来源及 notices 一併保留。GNOME runtime 是獨立 Flatpak 依賴，來源由 [GNOME build metadata](https://gitlab.gnome.org/GNOME/gnome-build-meta) 提供。
+
+發布資料將實際 bundle、安裝後的 OSTree 提交、展開內容及各原生二進位雜湊綁定同一個成功的共用來源 CI。此資料只涵蓋該版 Flatpak，不套用其他平台或歷史附件的驗收結論。
+
 ## M13：依產物分類並解除，而非沿用整體 BLOCKED
 
 目標為 Android ARM64 `.9 (2009)`；使用者已授權只在 Android 排除 MDK，保留 MPV/Native。候選 APK 的實際 ELF/ABI/來源核對由 `scripts/verify_jms_android_native.py` 保存到 `artifacts/checks/m13/candidate-native/native-review.json`：10 個非 App ELF、MDK 三庫與 FvpPlugin 均不存在、19 個 ASS wrapper 必需符號均解析。這是靜態 PASS，不是手機渲染驗收。其他平台保留 fvp/MDK 原能力，**不因此獲得發布合規或平台驗收 PASS**。

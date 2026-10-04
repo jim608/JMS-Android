@@ -15,7 +15,7 @@ JMS 是以 [Fladder](https://github.com/DonutWare/Fladder) 為基礎的 Jellyfin
 
 在 App 的「設定 → 關於 → JMS Android 線上更新」可手動檢查更新；要接收 Prerelease，先開啟「接收測試版」。更新器不會靜默安裝，也不會清除既有 App 資料。各版變更與已知問題見[版本紀錄](CHANGELOG.md)。
 
-桌面版使用獨立發布渠道：[Windows 安裝程式與 Portable ZIP](https://github.com/jim608/JMS-Desktop/releases)、[EndeavourOS／Arch Linux x64 套件與可攜式封裝](https://github.com/jim608/JMS-Linux/releases)。兩者共用本倉庫 `jms` 分支的 Flutter 原始碼，不互相作為更新備援。Linux 不宣稱支援其他發行版；Seerr 工作階段需可解鎖的 Secret Service 金鑰圈。
+桌面版使用獨立發布渠道：[Windows 安裝程式與 Portable ZIP](https://github.com/jim608/JMS-Desktop/releases)、[Linux x86_64 Flatpak 與 EndeavourOS／Arch 套件](https://github.com/jim608/JMS-Linux/releases)。兩者共用本倉庫 `jms` 分支的 Flutter 原始碼，不互相作為更新備援。安裝與更新方式見 [桌面版指南](docs/JMS_DESKTOP.md)；Seerr 工作階段需可解鎖的 Secret Service 金鑰圈。
 
 ## 點片與問題回報
 

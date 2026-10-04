@@ -1,5 +1,6 @@
 # GitHub distribution recipe. The release builder verifies and stages payload/.
 id: com.jim608.jms
+branch: stable
 runtime: org.gnome.Platform
 runtime-version: "50"
 sdk: org.gnome.Sdk
