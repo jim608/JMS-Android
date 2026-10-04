@@ -114,8 +114,9 @@ modules:
       - -Ddemos=false
       - -Dtests=false
     post-install:
-      - install -Dm644 LICENSE /app/share/licenses/libplacebo/LICENSE
-      - find 3rdparty -type f \( -iname 'LICENSE*' -o -iname 'COPYING*' \) -exec cp --parents '{}' /app/share/licenses/libplacebo/ ';'
+      # Meson post-install runs in _flatpak_build; notices are in the source root.
+      - install -Dm644 "${FLATPAK_BUILDER_BUILDDIR}/LICENSE" /app/share/licenses/libplacebo/LICENSE
+      - cd "${FLATPAK_BUILDER_BUILDDIR}" && find 3rdparty -type f \( -iname 'LICENSE*' -o -iname 'COPYING*' \) -exec cp --parents '{}' /app/share/licenses/libplacebo/ ';'
     sources:
       - type: git
         url: https://code.videolan.org/videolan/libplacebo.git
@@ -141,9 +142,9 @@ modules:
       - -Dlua=disabled
       - -Djavascript=disabled
     post-install:
-      - install -Dm644 Copyright /app/share/licenses/mpv/Copyright
-      - install -Dm644 LICENSE.GPL /app/share/licenses/mpv/LICENSE.GPL
-      - install -Dm644 LICENSE.LGPL /app/share/licenses/mpv/LICENSE.LGPL
+      - install -Dm644 "${FLATPAK_BUILDER_BUILDDIR}/Copyright" /app/share/licenses/mpv/Copyright
+      - install -Dm644 "${FLATPAK_BUILDER_BUILDDIR}/LICENSE.GPL" /app/share/licenses/mpv/LICENSE.GPL
+      - install -Dm644 "${FLATPAK_BUILDER_BUILDDIR}/LICENSE.LGPL" /app/share/licenses/mpv/LICENSE.LGPL
     sources:
       - type: git
         url: https://github.com/mpv-player/mpv.git
