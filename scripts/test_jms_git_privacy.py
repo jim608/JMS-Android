@@ -1,4 +1,5 @@
 import contextlib
+import hashlib
 import io
 import os
 from pathlib import Path
@@ -11,10 +12,52 @@ import tarfile
 import shutil
 from unittest.mock import patch
 
-from check_jms_git_privacy import findings, main, outgoing_findings, scan_archive
+from check_jms_git_privacy import findings, main, outgoing_findings, scan_archive, scan_packages_cached
 
 
 class PrivacyTests(unittest.TestCase):
+    def test_flatpak_without_verified_installed_payload_fails_closed(self):
+        with self.assertRaisesRegex(ValueError, 'verified installed CI payload'):
+            scan_archive('application.flatpak', b'compressed static delta fixture', [])
+
+    def test_flatpak_inspects_bound_deployment_and_invalidates_provenance_cache(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bundle = root / 'application.flatpak'
+            bundle.write_bytes(b'compressed static delta fixture')
+            payload = root / 'installed.tar.gz'
+            def deployment(content):
+                with tarfile.open(payload, 'w:gz') as archive:
+                    member = tarfile.TarInfo('files/settings.txt')
+                    member.size = len(content)
+                    archive.addfile(member, io.BytesIO(content))
+                return hashlib.sha256(payload.read_bytes()).hexdigest()
+            digest = deployment(b'public fixture')
+            bindings = {bundle.name: {'payloadPath': str(payload), 'payloadSha256': digest,
+                                     'provenanceSha256': 'a' * 64}}
+            cache = root / 'cache'
+            report = scan_packages_cached([bundle, payload], ['private.example.invalid'], cache,
+                                          flatpak_bindings=bindings)
+            self.assertTrue(report['complete'])
+            self.assertTrue(report['accepted'])
+            self.assertGreaterEqual(report['items'], 4)
+            bindings[bundle.name]['provenanceSha256'] = 'b' * 64
+            renewed = scan_packages_cached([bundle, payload], ['private.example.invalid'], cache,
+                                           flatpak_bindings=bindings)
+            self.assertNotEqual(report['inputs'], renewed['inputs'])
+            self.assertEqual(len(list(cache.glob('release-*.json'))), 2)
+            new_digest = deployment(b'https://private.example.invalid')
+            with self.assertRaisesRegex(ValueError, 'differs from inspected release materials'):
+                scan_packages_cached([bundle, payload], ['private.example.invalid'], cache,
+                                     flatpak_bindings=bindings)
+            bindings[bundle.name]['payloadSha256'] = new_digest
+            rejected = scan_packages_cached([bundle, payload], ['private.example.invalid'], cache,
+                                            flatpak_bindings=bindings)
+            self.assertFalse(rejected['accepted'])
+            self.assertTrue(any(name.endswith('/files/settings.txt') and 'private domain' in reasons
+                                for name, reasons in rejected['rejected']))
+            self.assertEqual(len(list(cache.glob('release-*.json'))), 2)
+
     def test_linux_tar_package_contents_are_scanned(self):
         stream = io.BytesIO()
         with tarfile.open(fileobj=stream, mode='w:gz') as archive:

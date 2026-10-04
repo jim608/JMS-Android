@@ -298,7 +298,8 @@ MAX_ARCHIVE_MEMBER_BYTES = 512 * 1024 * 1024
 
 class ArchiveScan:
     def __init__(self, domains, reviews=None, *, max_bytes=4 * 1024**3,
-                 max_members=200000, max_seconds=1800, max_depth=6, project=None):
+                 max_members=200000, max_seconds=1800, max_depth=6, project=None,
+                 flatpak_bindings=None):
         import time
         self.domains = domains
         self.reviews = load_public_reviews() if reviews is None else reviews
@@ -307,6 +308,7 @@ class ArchiveScan:
         self.max_seconds = max_seconds
         self.max_depth = max_depth
         self.registry_project = project
+        self.flatpak_bindings = flatpak_bindings or {}
         self.started = time.monotonic()
         self.expanded = 0
         self.members = 0
@@ -406,6 +408,25 @@ class ArchiveScan:
                                      'scope': 'raw bytes only; nested content not expanded'})
             return results
         lower = name.lower()
+        if lower.endswith('.flatpak'):
+            # An OSTree static delta is compressed binary content. Raw-byte
+            # inspection cannot establish a complete package privacy result.
+            # Only the publication gate can supply an independently downloaded,
+            # hash-bound successful CI installation export for this bundle.
+            binding = self.flatpak_bindings.get(name) if depth == 0 else None
+            if (not isinstance(binding, dict)
+                    or not re.fullmatch(r'[a-f0-9]{64}', binding.get('payloadSha256', ''))
+                    or not re.fullmatch(r'[a-f0-9]{64}', binding.get('provenanceSha256', ''))):
+                raise ValueError('Flatpak privacy inspection requires verified installed CI payload provenance')
+            payload = Path(binding['payloadPath'])
+            if not payload.name.lower().endswith('.tar.gz') or payload.stat().st_size > MAX_ARCHIVE_MEMBER_BYTES:
+                raise ValueError('Invalid Flatpak installed privacy payload')
+            content = payload.read_bytes()
+            if hashlib.sha256(content).hexdigest() != binding['payloadSha256']:
+                raise ValueError('Flatpak installed privacy payload changed')
+            results.extend(self.scan(name + '/' + payload.name, content, depth + 1,
+                                     ((digest, payload.name),)))
+            return results
         is_zip = lower.endswith(('.zip', '.apk', '.jar', '.aar'))
         is_tar = lower.endswith(('.tar.gz', '.tgz', '.tar.xz', '.tar', '.tar.bz2', '.tar.zst'))
         if not (is_zip or is_tar):
@@ -528,7 +549,7 @@ def scan_package_cached(path, domains, cache_directory=None):
     return report
 
 
-def scan_packages_cached(paths, domains, cache_directory=None):
+def scan_packages_cached(paths, domains, cache_directory=None, *, flatpak_bindings=None):
     """Verify exact origins and test references across the complete release asset set."""
     paths = [Path(path) for path in paths]
     materials = []
@@ -537,9 +558,23 @@ def scan_packages_cached(paths, domains, cache_directory=None):
             raise ValueError('Package exceeds privacy inspection limit')
         with path.open('rb') as stream:
             materials.append({'name': path.name, 'sha256': hashlib.file_digest(stream, 'sha256').hexdigest()})
+    bound_payloads = {}
+    for name, binding in (flatpak_bindings or {}).items():
+        if (not isinstance(binding, dict) or not name.lower().endswith('.flatpak')
+                or name not in {item['name'] for item in materials}
+                or not re.fullmatch(r'[a-f0-9]{64}', binding.get('payloadSha256', ''))
+                or not re.fullmatch(r'[a-f0-9]{64}', binding.get('provenanceSha256', ''))):
+            raise ValueError('Invalid Flatpak privacy provenance binding')
+        payload = Path(binding['payloadPath'])
+        if {'name': payload.name, 'sha256': binding['payloadSha256']} not in materials:
+            raise ValueError('Flatpak installed payload differs from inspected release materials')
+        bound_payloads[name] = {'payloadName': payload.name,
+                               'payloadSha256': binding['payloadSha256'],
+                               'provenanceSha256': binding['provenanceSha256']}
     reviews = load_public_reviews()
     from jms_source_derivations import lineage_cache_inputs
     inputs = {'materials': materials,
+              'flatpakBindings': bound_payloads,
               'sourceLineage': lineage_cache_inputs([item['sha256'] for item in materials]),
               'scanner': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
               'reviews': hashlib.sha256(json.dumps(reviews, sort_keys=True).encode()).hexdigest(),
@@ -560,7 +595,7 @@ def scan_packages_cached(paths, domains, cache_directory=None):
         data = path.read_bytes()
         if hashlib.sha256(data).hexdigest() != material['sha256']:
             raise ValueError('Package changed during privacy inspection')
-        scanner = ArchiveScan(domains, reviews)
+        scanner = ArchiveScan(domains, reviews, flatpak_bindings=flatpak_bindings)
         results = scanner.scan(path.name, data)
         rejected.extend((name, reasons) for name, reasons in results if reasons)
         scanners.append(scanner)

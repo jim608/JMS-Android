@@ -1,18 +1,23 @@
 """Desktop platform gates using the shared draft/upload/verify publisher."""
+import configparser
 import json
 import io
 import hashlib
 import re
 import subprocess
 import tarfile
+import tempfile
 import zipfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from jms_publication import (ROOT, Github, ReleaseError, sha256, save_json,
                              upload_complete_release, anonymous_download)
 from check_jms_git_privacy import load_policy, scan_packages_cached, tree_entries
+from jms_release_notes import release_notes_for, release_body_for_candidate
 
 REPOSITORIES = {'windows': 'jim608/JMS-Desktop', 'linux': 'jim608/JMS-Linux', 'web': 'jim608/JMS-Web'}
+FLATPAK_WORKFLOW = '.github/workflows/jms-flatpak.yml'
+MAX_CI_ARCHIVE_BYTES = 512 * 1024 * 1024
 
 
 def release_tag(record):
@@ -98,6 +103,8 @@ def verify_source_archive(path, commit):
 
 def validate_inventory(directory, platform):
     record = json.loads((directory / 'desktop-publication.json').read_text(encoding='utf-8-sig'))
+    if platform == 'linux' and record.get('packageFormat') == 'flatpak':
+        return validate_flatpak_inventory(directory, record)
     if record['repository'] != REPOSITORIES[platform] or record['platform'] != platform + '-x64':
         raise ReleaseError('Desktop repository/platform mismatch')
     if not re.fullmatch(r'[a-f0-9]{40}', record['sourceCommit']):
@@ -171,6 +178,238 @@ def validate_inventory(directory, platform):
     expected_checksums = {entry['sha256'] + '  ' + name for name, entry in files.items() if name != 'SHA256SUMS.txt'}
     if set(checksums) != expected_checksums or len(checksums) != len(expected_checksums):
         raise ReleaseError('Checksum inventory is incomplete or ambiguous')
+    return record, files
+
+
+def prepared_assets(directory, record):
+    files = {}
+    for entry in record['assets']:
+        name = entry['name']
+        if (not isinstance(name, str) or not name or Path(name).name != name
+                or '/' in name or '\\' in name or name in files):
+            raise ReleaseError('Unsafe or duplicate asset name')
+        path = directory / name
+        if (not path.is_file() or path.stat().st_size != entry['size']
+                or sha256(path) != entry['sha256']):
+            raise ReleaseError('Prepared asset changed: ' + name)
+        files[name] = {'path': str(path), 'size': entry['size'], 'sha256': entry['sha256']}
+    return files
+
+
+def verify_flatpak_ci(record, files):
+    """Read the registered CI artifact independently before trusting deployment exports."""
+    ci = record['flatpak']['ci']
+    run_id = ci.get('runId')
+    if (type(run_id) is not int or run_id <= 0
+            or ci.get('artifactName') != 'jms-flatpak-' + record['sourceCommit']):
+        raise ReleaseError('Invalid Flatpak CI identity')
+    github = Github(repository='jim608/JMS-Android')
+    prefix = 'repos/jim608/JMS-Android/actions/'
+    run = github.api(prefix + 'runs/' + str(run_id))
+    if (run.get('id') != run_id or run.get('status') != 'completed'
+            or run.get('conclusion') != 'success' or run.get('head_branch') != 'jms'
+            or run.get('head_sha') != record['sourceCommit']
+            or run.get('path') != FLATPAK_WORKFLOW
+            or run.get('event') not in ('push', 'workflow_dispatch')
+            or run.get('repository', {}).get('full_name') != 'jim608/JMS-Android'
+            or run.get('head_repository', {}).get('full_name') != 'jim608/JMS-Android'):
+        raise ReleaseError('Flatpak CI run is not a successful pinned JMS build')
+    listing = github.api(prefix + 'runs/' + str(run_id) + '/artifacts?per_page=100')
+    if listing.get('total_count', 101) > 100:
+        raise ReleaseError('Flatpak CI artifact inventory exceeds inspection limit')
+    matches = [entry for entry in listing.get('artifacts', [])
+               if entry.get('name') == ci['artifactName']]
+    if len(matches) != 1:
+        raise ReleaseError('Flatpak CI artifact is missing or ambiguous')
+    artifact = matches[0]
+    digest = artifact.get('digest', '')
+    identity = artifact.get('workflow_run', {})
+    if (artifact.get('expired') is not False or type(artifact.get('id')) is not int
+            or not 0 < artifact.get('size_in_bytes', 0) <= MAX_CI_ARCHIVE_BYTES
+            or not re.fullmatch(r'sha256:[a-f0-9]{64}', digest)
+            or identity.get('id') != run_id or identity.get('head_branch') != 'jms'
+            or identity.get('head_sha') != record['sourceCommit']):
+        raise ReleaseError('Flatpak CI artifact provenance is incomplete')
+    required = {record['flatpak'][field] for field in
+                ('bundle', 'payload', 'receipt', 'buildManifest', 'nativeSources', 'source')}
+    required.update(record['nativeReview']['materials'])
+    with tempfile.TemporaryDirectory(prefix='jms-flatpak-ci-') as temporary:
+        downloaded = Path(temporary) / 'artifact.zip'
+        with downloaded.open('wb') as output:
+            result = subprocess.run(['rtk', 'proxy', str(github.executable), 'api',
+                prefix + 'artifacts/' + str(artifact['id']) + '/zip'], cwd=ROOT,
+                env=github.environment, stdout=output, stderr=subprocess.PIPE, timeout=600)
+        if result.returncode != 0:
+            raise ReleaseError('Flatpak CI artifact download failed')
+        if (downloaded.stat().st_size > MAX_CI_ARCHIVE_BYTES
+                or sha256(downloaded) != digest.removeprefix('sha256:')):
+            raise ReleaseError('Flatpak CI artifact digest differs from GitHub metadata')
+        with zipfile.ZipFile(downloaded) as archive:
+            names = archive.namelist()
+            if len(names) != len(set(names)) or len(names) > 200000:
+                raise ReleaseError('Flatpak CI archive has duplicate or excessive members')
+            if any('\\' in name or PurePosixPath(name).is_absolute()
+                   or '..' in PurePosixPath(name).parts for name in names):
+                raise ReleaseError('Unsafe Flatpak CI archive member')
+            if sum(item.file_size for item in archive.infolist()) > 4 * 1024**3:
+                raise ReleaseError('Flatpak CI archive expansion limit exceeded')
+            for name in required:
+                if name not in files or name not in names:
+                    raise ReleaseError('Flatpak asset missing from pinned CI artifact: ' + name)
+                member = archive.getinfo(name)
+                if member.file_size != files[name]['size'] or member.file_size > MAX_CI_ARCHIVE_BYTES:
+                    raise ReleaseError('Flatpak CI asset size differs: ' + name)
+                with archive.open(member) as stream:
+                    actual = hashlib.file_digest(stream, 'sha256').hexdigest()
+                if actual != files[name]['sha256']:
+                    raise ReleaseError('Flatpak candidate differs from pinned CI artifact: ' + name)
+    return digest.removeprefix('sha256:')
+
+
+def verify_flatpak_payload(directory, record, files):
+    flatpak = record['flatpak']
+    receipt = json.loads((directory / flatpak['receipt']).read_text(encoding='utf-8'))
+    identity = ('platform', 'packageFormat', 'versionName', 'versionCode', 'sourceCommit', 'buildId')
+    if (receipt.get('schemaVersion') != 1 or receipt.get('applicationId') != 'com.jim608.jms'
+            or receipt.get('architecture') != 'x86_64' or receipt.get('branch') != 'stable'
+            or not re.fullmatch(r'[a-f0-9]{64}', receipt.get('ostreeCommit', ''))
+            or any(receipt.get(field) != record[field] for field in identity)
+            or any(receipt.get('validation', {}).get(field) is not True for field in ('install', 'launch'))):
+        raise ReleaseError('Flatpak installed deployment identity or runtime verification is incomplete')
+    for field in ('bundle', 'payload'):
+        binding = receipt.get(field, {})
+        name = flatpak[field]
+        if (binding.get('name') != name
+                or any(binding.get(key) != files[name][key] for key in ('size', 'sha256'))):
+            raise ReleaseError('Flatpak installed deployment is not bound to candidate assets')
+    manifest = json.loads((directory / flatpak['buildManifest']).read_text(encoding='utf-8'))
+    built = manifest.get('build', {})
+    if any(built.get(field) != record[field] for field in identity):
+        raise ReleaseError('Flatpak build manifest differs from candidate identity')
+    if (manifest.get('runtime') != receipt.get('runtime')
+            or manifest.get('ostreeCommit') != receipt['ostreeCommit']
+            or not re.fullmatch(r'org\.gnome\.Platform/x86_64/\d+', receipt.get('runtime', ''))
+            or manifest.get('binaries') != record['nativeReview'].get('binaries')
+            or manifest.get('outputs') != [receipt['bundle'], receipt['payload']]):
+        raise ReleaseError('Flatpak manifest outputs, runtime or native binaries differ from installed receipt')
+    expected = receipt.get('members')
+    if not isinstance(expected, dict) or not expected:
+        raise ReleaseError('Flatpak installed member inventory missing')
+    actual = {}
+    binaries = {}
+    names = set()
+    built = None
+    metadata = None
+    applications = []
+    total = 0
+    with tarfile.open(directory / flatpak['payload'], 'r:gz') as archive:
+        for member in archive:
+            path = PurePosixPath(member.name)
+            if (member.name in names or path.is_absolute() or '..' in path.parts
+                    or path.as_posix() != member.name
+                    or '\\' in member.name or member.islnk() or len(names) >= 200000):
+                raise ReleaseError('Unsafe or duplicate Flatpak deployment member')
+            names.add(member.name)
+            if member.issym():
+                target = PurePosixPath(member.linkname)
+                if (target.is_absolute() or '\\' in member.linkname
+                        or len(path.parent.parts) < sum(part == '..' for part in target.parts)):
+                    raise ReleaseError('Flatpak deployment symlink escapes the application')
+            elif member.isfile():
+                total += member.size
+                if member.size > MAX_CI_ARCHIVE_BYTES or total > 4 * 1024**3:
+                    raise ReleaseError('Flatpak deployment expansion limit exceeded')
+                with archive.extractfile(member) as stream:
+                    data = stream.read()
+                actual[member.name] = hashlib.sha256(data).hexdigest()
+                if re.search(r'\.so(?:\.\d+)*$', member.name):
+                    binaries[member.name] = actual[member.name]
+                if member.name == 'files/share/jms/JMS_BUILD_INFO.json':
+                    built = json.loads(data)
+                if member.name == 'metadata':
+                    metadata = data.decode('utf-8')
+                if path.name == 'libapp.so':
+                    applications.append(record['buildId'].encode() in data)
+            elif not member.isdir():
+                raise ReleaseError('Unsupported Flatpak deployment member type')
+    if actual != expected:
+        raise ReleaseError('Flatpak deployment member hashes differ from verified installation')
+    if not binaries or binaries != record['nativeReview'].get('binaries'):
+        raise ReleaseError('Flatpak native review differs from actual bundled libraries')
+    if not isinstance(built, dict) or any(built.get(field) != record[field] for field in identity):
+        raise ReleaseError('Installed Flatpak build identity differs from release')
+    if applications != [True]:
+        raise ReleaseError('Installed Flatpak AOT binary is not bound to the candidate build ID')
+    parsed = configparser.ConfigParser(interpolation=None)
+    if metadata:
+        parsed.read_string(metadata)
+    if ('Application' not in parsed or parsed['Application'].get('name') != 'com.jim608.jms'
+            or parsed['Application'].get('runtime') != receipt['runtime']):
+        raise ReleaseError('Installed Flatpak metadata has another application identity')
+    return receipt
+
+
+def validate_flatpak_inventory(directory, record):
+    if (record.get('repository') != REPOSITORIES['linux'] or record.get('platform') != 'linux-x64'
+            or record.get('sourceRepository') != 'jim608/JMS-Android'
+            or not re.fullmatch(r'[a-f0-9]{40}', record.get('sourceCommit', ''))):
+        raise ReleaseError('Flatpak shared source/repository identity mismatch')
+    release_tag(record)
+    expected_id = 'JMS-' + record['versionName'] + '-flatpak-' + record['sourceCommit'][:12]
+    review = record.get('nativeReview', {})
+    if (record.get('buildId') != expected_id or review.get('platform') != 'linux-x64'
+            or review.get('missing') != [] or not review.get('materials')
+            or any(record.get('validation', {}).get(field) is not True for field in ('install', 'launch'))):
+        raise ReleaseError('Flatpak build identity, native materials or installed launch proof missing')
+    files = prepared_assets(directory, record)
+    flatpak = record['flatpak']
+    required = {flatpak[field] for field in
+                ('bundle', 'payload', 'receipt', 'buildManifest', 'nativeSources', 'source')}
+    required.update(review['materials'])
+    required.update(('RELEASE_NOTES.md', 'SHA256SUMS.txt'))
+    if not required.issubset(files) or not flatpak['bundle'].endswith('.flatpak'):
+        raise ReleaseError('Flatpak release asset inventory is incomplete')
+    if ('update-linux.json' in files or any(name.endswith(('.pkg.tar.xz', '.pkg.tar.zst')) for name in files)
+            or len([name for name in files if name.endswith('.flatpak')]) != 1):
+        raise ReleaseError('Flatpak-only release must not supply pacman update metadata or packages')
+    provenance = verify_flatpak_ci(record, files)
+    verify_flatpak_payload(directory, record, files)
+    native = json.loads((directory / flatpak['nativeSources']).read_text(encoding='utf-8'))
+    if (not native.get('sources') or any(native.get('build', {}).get(field) != record[field]
+            for field in ('platform', 'packageFormat', 'versionName', 'versionCode', 'sourceCommit', 'buildId'))
+            or review.get('evidence') != flatpak['nativeSources']):
+        raise ReleaseError('Flatpak native source evidence differs from the candidate')
+    if len(review['materials']) != 1:
+        raise ReleaseError('Flatpak exact corresponding source material archive required')
+    with tarfile.open(directory / review['materials'][0], 'r:gz') as archive:
+        if json.load(archive.extractfile('source-materials.json')) != native:
+            raise ReleaseError('Flatpak native source archive differs from evidence manifest')
+    privacy = scan_packages_cached([entry['path'] for entry in files.values()], load_policy(),
+        ROOT / git('rev-parse', '--git-path', 'jms-privacy-cache'),
+        flatpak_bindings={flatpak['bundle']: {
+            'payloadPath': files[flatpak['payload']]['path'],
+            'payloadSha256': files[flatpak['payload']]['sha256'],
+            'provenanceSha256': provenance}})
+    if not privacy.get('complete') or not privacy.get('accepted'):
+        raise ReleaseError('Flatpak release asset privacy review required')
+    with zipfile.ZipFile(directory / flatpak['source']) as archive:
+        version = re.search(rb'^version:\s*(\S+)', archive.read('JMS/pubspec.yaml'), re.M)
+        if not version or version[1].decode() != record['versionName'] + '+' + str(record['versionCode']):
+            raise ReleaseError('Flatpak complete source version differs from release')
+        with tempfile.TemporaryDirectory(prefix='jms-flatpak-notes-') as temporary:
+            changelog = Path(temporary) / 'CHANGELOG.md'
+            changelog.write_bytes(archive.read('JMS/CHANGELOG.md'))
+            canonical = release_notes_for(changelog, record['versionName'])
+    if (record.get('canonicalNotes') != canonical
+            or record.get('canonicalNotesCommit') != record['sourceCommit']
+            or (directory / 'RELEASE_NOTES.md').read_text(encoding='utf-8') != release_body_for_candidate(
+                canonical, record['versionName'], record['sourceCommit'], record['buildId'])):
+        raise ReleaseError('Flatpak release notes differ from canonical candidate source/identity')
+    verify_source_archive(directory / flatpak['source'], record['sourceCommit'])
+    checksums = (directory / 'SHA256SUMS.txt').read_text(encoding='ascii').splitlines()
+    expected = {entry['sha256'] + '  ' + name for name, entry in files.items() if name != 'SHA256SUMS.txt'}
+    if set(checksums) != expected or len(checksums) != len(expected):
+        raise ReleaseError('Flatpak checksum inventory is incomplete or ambiguous')
     return record, files
 
 
