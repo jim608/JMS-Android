@@ -33,7 +33,7 @@ flatpak run com.jim608.jms
 
 首次安裝會取得 GNOME 50 runtime。Flathub remote 用於取得 runtime，JMS 套件由 GitHub 提供。更新前請關閉 JMS，下載並核對新版 `.flatpak`，再執行 `flatpak install --user ./新版套件.flatpak`。本機 bundle 不會隨 `flatpak update` 自動取得下一個 GitHub bundle；App 也不呼叫 pacman／PolicyKit 或下載 Arch 套件。
 
-設定、快取與離線資料依 XDG 規範保存於 `~/.var/app/com.jim608.jms/`，不自動搬移原有 Arch／Portable 資料或登入資訊。卸載時不要加 `--delete-data`，即可保留沙箱資料。Seerr 使用桌面 Secret Service，需可解鎖的金鑰圈，沒有明文憑證備援。
+設定與快取依 XDG 規範保存於 `~/.var/app/com.jim608.jms/`；離線媒體存入使用者選擇並授權的目錄。不自動搬移原有 Arch／Portable 資料或登入資訊。卸載時不要加 `--delete-data`，即可保留沙箱資料；外部目錄的離線媒體需另外管理。Seerr 使用桌面 Secret Service，需可解鎖的金鑰圈，沒有明文憑證備援。
 
 沙箱允許網路、顯示、音訊與 DRI 裝置；下載目錄可寫，其餘檔案透過選擇器 portal 授權。Discord 僅開放固定 IPC socket 與其 Flatpak IPC 目錄，播放狀態仍需在 JMS 內啟用。沒有整個家目錄、host filesystem 或完整 session/system D-Bus 存取。
 

@@ -13,4 +13,4 @@
 ## 更新注意事項
 - 本版僅交付 GitHub Linux Flatpak 測試版，既有 Android、Windows、Arch 套件版本維持原發布。
 - 更新前請關閉 JMS，再安裝新版 `.flatpak`；首次安裝需要下載 GNOME runtime。
-- Flatpak 設定與離線資料保存在沙箱專用目錄，首次安裝不會自動搬移 Arch／Portable 的設定或登入資訊。
+- Flatpak 設定與快取保存在沙箱專用目錄；離線媒體存入使用者選擇並授權的目錄。首次安裝不會自動搬移 Arch／Portable 的設定或登入資訊。
