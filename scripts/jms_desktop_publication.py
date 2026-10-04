@@ -18,6 +18,11 @@ from jms_release_notes import release_notes_for, release_body_for_candidate
 REPOSITORIES = {'windows': 'jim608/JMS-Desktop', 'linux': 'jim608/JMS-Linux', 'web': 'jim608/JMS-Web'}
 FLATPAK_WORKFLOW = '.github/workflows/jms-flatpak.yml'
 MAX_CI_ARCHIVE_BYTES = 512 * 1024 * 1024
+FLATPAK_REQUIRED_LICENSES = (
+    'jms/LICENSE', 'ffmpeg/COPYING.GPLv3', 'ffmpeg/LICENSE.md', 'libass/COPYING',
+    'libplacebo/LICENSE', 'mpv/Copyright', 'mpv/LICENSE.GPL', 'mpv/LICENSE.LGPL',
+    'uchardet/COPYING', 'ffnvcodec/nvEncodeAPI.h',
+)
 
 
 def release_tag(record):
@@ -236,9 +241,12 @@ def verify_flatpak_ci(record, files):
     with tempfile.TemporaryDirectory(prefix='jms-flatpak-ci-') as temporary:
         downloaded = Path(temporary) / 'artifact.zip'
         with downloaded.open('wb') as output:
-            result = subprocess.run(['rtk', 'proxy', str(github.executable), 'api',
-                prefix + 'artifacts/' + str(artifact['id']) + '/zip'], cwd=ROOT,
-                env=github.environment, stdout=output, stderr=subprocess.PIPE, timeout=600)
+            try:
+                result = subprocess.run(['rtk', 'proxy', str(github.executable), 'api',
+                    prefix + 'artifacts/' + str(artifact['id']) + '/zip'], cwd=ROOT,
+                    env=github.environment, stdout=output, stderr=subprocess.PIPE, timeout=600)
+            except subprocess.TimeoutExpired as error:
+                raise ReleaseError('Flatpak CI artifact download timed out') from error
         if result.returncode != 0:
             raise ReleaseError('Flatpak CI artifact download failed')
         if (downloaded.stat().st_size > MAX_CI_ARCHIVE_BYTES
@@ -296,6 +304,7 @@ def verify_flatpak_payload(directory, record, files):
     if not isinstance(expected, dict) or not expected:
         raise ReleaseError('Flatpak installed member inventory missing')
     actual = {}
+    regular_sizes = {}
     binaries = {}
     names = set()
     built = None
@@ -322,6 +331,7 @@ def verify_flatpak_payload(directory, record, files):
                 with archive.extractfile(member) as stream:
                     data = stream.read()
                 actual[member.name] = hashlib.sha256(data).hexdigest()
+                regular_sizes[member.name] = member.size
                 if re.search(r'\.so(?:\.\d+)*$', member.name):
                     binaries[member.name] = actual[member.name]
                 if member.name == 'files/share/jms/JMS_BUILD_INFO.json':
@@ -334,6 +344,14 @@ def verify_flatpak_payload(directory, record, files):
                 raise ReleaseError('Unsupported Flatpak deployment member type')
     if actual != expected:
         raise ReleaseError('Flatpak deployment member hashes differ from verified installation')
+    for notice in FLATPAK_REQUIRED_LICENSES:
+        name = 'files/share/licenses/' + notice
+        if regular_sizes.get(name, 0) < 100:
+            raise ReleaseError('Installed Flatpak corresponding license/notice is missing or incomplete: ' + notice)
+    with zipfile.ZipFile(directory / flatpak['source']) as archive:
+        source_license = hashlib.sha256(archive.read('JMS/LICENSE')).hexdigest()
+    if actual['files/share/licenses/jms/LICENSE'] != source_license:
+        raise ReleaseError('Installed Flatpak JMS license differs from complete committed source')
     if not binaries or binaries != record['nativeReview'].get('binaries'):
         raise ReleaseError('Flatpak native review differs from actual bundled libraries')
     if not isinstance(built, dict) or any(built.get(field) != record[field] for field in identity):

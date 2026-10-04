@@ -156,6 +156,8 @@ class FlatpakPublicationTests(unittest.TestCase):
             'files/lib/libflutter_linux_gtk.so': b'native fixture',
             'files/lib/libapp.so': self.record['buildId'].encode(),
         }
+        for notice in desktop.FLATPAK_REQUIRED_LICENSES:
+            self.payload_members['files/share/licenses/' + notice] = (b'GNU public license notice fixture\n' * 10)
         self.write_payload()
         self.record['nativeReview']['binaries'] = {'files/lib/libflutter_linux_gtk.so':
                                                  self.digest(b'native fixture'),
@@ -171,6 +173,7 @@ class FlatpakPublicationTests(unittest.TestCase):
         with zipfile.ZipFile(self.directory / 'complete-source.zip', 'w') as archive:
             archive.writestr('JMS/pubspec.yaml', 'version: 0.11.1-jms.35+37\n')
             archive.writestr('JMS/CHANGELOG.md', self.record['canonicalNotes'])
+            archive.writestr('JMS/LICENSE', self.payload_members['files/share/licenses/jms/LICENSE'])
         self.receipt = dict(self.identity, schemaVersion=1, applicationId='com.jim608.jms',
                             architecture='x86_64', branch='stable', ostreeCommit='b' * 64,
                             runtime='org.gnome.Platform/x86_64/49',
@@ -278,6 +281,30 @@ class FlatpakPublicationTests(unittest.TestCase):
         self.write_json('flatpak-build-manifest.json', manifest)
         self.refresh_assets()
         with self.assertRaisesRegex(ReleaseError, 'manifest outputs, runtime or native binaries'):
+            self.validate()
+
+    def test_flatpak_requires_regular_installed_license_files_for_bundled_components(self):
+        name = 'files/share/licenses/mpv/LICENSE.GPL'
+        del self.payload_members[name]
+        self.write_payload()
+        self.receipt['payload'] = self.asset(self.record['flatpak']['payload'])
+        del self.receipt['members'][name]
+        self.write_json('flatpak-verification.json', self.receipt)
+        self.write_manifest()
+        self.refresh_assets()
+        with self.assertRaisesRegex(ReleaseError, 'license/notice is missing'):
+            self.validate()
+
+    def test_flatpak_cannot_substitute_jms_license_even_with_consistent_member_hashes(self):
+        name = 'files/share/licenses/jms/LICENSE'
+        self.payload_members[name] = b'another license fixture\n' * 10
+        self.write_payload()
+        self.receipt['payload'] = self.asset(self.record['flatpak']['payload'])
+        self.receipt['members'][name] = self.digest(self.payload_members[name])
+        self.write_json('flatpak-verification.json', self.receipt)
+        self.write_manifest()
+        self.refresh_assets()
+        with self.assertRaisesRegex(ReleaseError, 'JMS license differs'):
             self.validate()
 
     def test_flatpak_build_info_does_not_replace_actual_aot_build_identity(self):

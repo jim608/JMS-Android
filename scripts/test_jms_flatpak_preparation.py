@@ -31,6 +31,7 @@ class FlatpakPreparationTests(unittest.TestCase):
         with zipfile.ZipFile(source, 'w') as archive:
             archive.writestr('JMS/pubspec.yaml', 'version: ' + version + '+37\n')
             archive.writestr('JMS/CHANGELOG.md', fixture.record['canonicalNotes'])
+            archive.writestr('JMS/LICENSE', fixture.payload_members['files/share/licenses/jms/LICENSE'])
             archive.writestr('JMS/source-manifest.json', json.dumps({'sourceCommit': commit, 'dirty': False}))
         component = b'GPL native corresponding source fixture'
         evidence = {'build': self.build, 'sources': [{
