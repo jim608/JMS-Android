@@ -72,8 +72,7 @@ Future<LastSeenNotificationsModel?> performHeadlessUpdateCheck(
     var lastSeenStore = sharedHelper.lastSeenNotifications;
 
     for (final account in accounts) {
-      final baseUrl =
-          account.credentials.url.isNotEmpty ? account.credentials.url : (account.credentials.localUrl ?? '');
+      final baseUrl = account.credentials.url;
       if (baseUrl.isEmpty && !(account.seerrRequestsEnabled && account.seerrCredentials?.isConfigured == true)) {
         continue;
       }
@@ -154,7 +153,7 @@ Future<List<NotificationModel>> _fetchAndNotifyLatestItemsForAccount(
   DateTime lastUpdateCheck,
 ) async {
   try {
-    final baseUrl = account.credentials.url.isNotEmpty ? account.credentials.url : (account.credentials.localUrl ?? '');
+    final baseUrl = account.credentials.url;
     if (baseUrl.isEmpty) return [];
 
     final dtoItems = await NotificationHelpers.fetchLatestItems(

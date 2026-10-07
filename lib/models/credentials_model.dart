@@ -20,6 +20,7 @@ abstract class CredentialsModel with _$CredentialsModel {
   factory CredentialsModel.internal({
     @Default("") String token,
     @Default("") String url,
+    // Retained only to read existing accounts; automatic local URL routing was removed.
     String? localUrl,
     @Default("") String serverName,
     @Default("") String serverId,

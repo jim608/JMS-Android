@@ -213,15 +213,6 @@ class User extends _$User {
   void loginUser(AccountModel? user) => state = user;
   void setAuthMethod(Authentication method) =>
       userState = state?.copyWith(authMethod: method);
-  void setLocalURL(String? value) {
-    final user = state;
-    if (user == null) return;
-    state = user.copyWith(
-      credentials: user.credentials
-          .copyWith(localUrl: value?.isEmpty == true ? null : value),
-    );
-    userState = state;
-  }
 
   Future<void> setSeerrServerUrl(String? value,
       {bool serverProvided = false}) async {

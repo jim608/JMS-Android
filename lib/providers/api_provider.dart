@@ -18,14 +18,11 @@ import 'package:fladder/util/seerr_http_client.dart'
 part 'api_provider.g.dart';
 
 final serverUrlProvider = StateProvider<String?>((ref) {
-  final localUrlAvailable = ref.watch(localConnectionAvailableProvider);
   final userCredentials = ref.watch(userProvider.select((value) => value?.credentials));
   final tempUrl = ref.watch(authProvider.select((value) => value.serverLoginModel?.tempCredentials.url));
   String? newUrl;
 
-  if (localUrlAvailable && userCredentials?.localUrl?.isNotEmpty == true) {
-    newUrl = userCredentials?.localUrl;
-  } else if (userCredentials?.url.isNotEmpty == true) {
+  if (userCredentials?.url.isNotEmpty == true) {
     newUrl = userCredentials?.url;
   } else if (tempUrl?.isNotEmpty == true) {
     newUrl = tempUrl;

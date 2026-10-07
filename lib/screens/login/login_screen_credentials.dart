@@ -503,7 +503,7 @@ Future<void> _handleLogin(
       .updateUser(user.copyWith(lastUsed: DateTime.now()));
 
   await ensureLocalNetworkPermissions(
-    [user.credentials.url, user.credentials.localUrl],
+    [user.credentials.url],
     context,
   );
 

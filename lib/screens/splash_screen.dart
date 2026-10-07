@@ -41,7 +41,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           callBackOrNavigate(false);
         } else {
           !await ensureLocalNetworkPermissions(
-            [lastUsedAccount.credentials.url, lastUsedAccount.credentials.localUrl],
+            [lastUsedAccount.credentials.url],
             context,
           );
 

@@ -3,14 +3,12 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart';
 import 'package:fladder/providers/api_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
-import 'package:fladder/services/local_network_permission.dart';
 
 part 'connectivity_provider.g.dart';
 
@@ -35,8 +33,6 @@ final offlineStateProvider = Provider<bool>((ref) {
   return ref.watch(connectivityStatusProvider.select((value) => value == ConnectionState.offline)) && isLoggedIn;
 });
 
-final localConnectionAvailableProvider = StateProvider<bool>((ref) => false);
-
 @Riverpod(keepAlive: true)
 class ConnectivityStatus extends _$ConnectivityStatus {
   Timer? _debounceTimer;
@@ -46,7 +42,7 @@ class ConnectivityStatus extends _$ConnectivityStatus {
   @override
   ConnectionState build() {
     ref.listen(
-      userProvider.select((value) => value?.credentials.localUrl),
+      userProvider.select((value) => value?.credentials.url),
       (previous, next) {
         if (previous != next) {
           checkConnectivity(immediate: true);
@@ -84,7 +80,7 @@ class ConnectivityStatus extends _$ConnectivityStatus {
       _debounceTimer?.cancel();
       _probeId++;
       _resolveProbe();
-      _updateState(ConnectionState.offline, isLocal: false);
+      _updateState(ConnectionState.offline);
       return;
     }
 
@@ -111,21 +107,6 @@ class ConnectivityStatus extends _$ConnectivityStatus {
       final user = ref.read(userProvider);
       if (user == null) return;
 
-      final localUrl = user.credentials.localUrl;
-      if (localUrl != null && localUrl.isNotEmpty) {
-        final permission = await checkLocalNetworkPermission();
-        if (permission == LocalNetworkPermissionStatus.granted) {
-          final localConnection = await fetchSystemInfoDynamic(normalizeUrl(localUrl));
-
-          if (_probeId != id) return;
-
-          if (localConnection?.id == user.credentials.serverId) {
-            _updateState(candidateState, isLocal: true);
-            return;
-          }
-        }
-      }
-
       if (_probeId != id) return;
 
       final remoteUrl = user.credentials.url;
@@ -135,13 +116,13 @@ class ConnectivityStatus extends _$ConnectivityStatus {
         if (_probeId != id) return;
 
         if (checkServer != null) {
-          _updateState(candidateState, isLocal: false);
+          _updateState(candidateState);
           return;
         }
       }
 
       if (_probeId == id) {
-        _updateState(ConnectionState.offline, isLocal: false);
+        _updateState(ConnectionState.offline);
       }
     } finally {
       if (_probeId == id) {
@@ -150,8 +131,7 @@ class ConnectivityStatus extends _$ConnectivityStatus {
     }
   }
 
-  void _updateState(ConnectionState newState, {required bool isLocal}) {
-    ref.read(localConnectionAvailableProvider.notifier).state = isLocal;
+  void _updateState(ConnectionState newState) {
     state = newState;
   }
 

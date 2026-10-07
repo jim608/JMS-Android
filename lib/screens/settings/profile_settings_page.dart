@@ -9,7 +9,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fladder/jellyfin/jellyfin_open_api.enums.swagger.dart' as enums;
 import 'package:fladder/models/seerr_credentials_model.dart';
-import 'package:fladder/providers/connectivity_provider.dart';
 import 'package:fladder/providers/cultures_provider.dart';
 import 'package:fladder/providers/home_preferences_provider.dart';
 import 'package:fladder/providers/seerr_user_provider.dart';
@@ -28,7 +27,6 @@ import 'package:fladder/screens/settings/widgets/settings_label_divider.dart';
 import 'package:fladder/screens/settings/widgets/settings_list_group.dart';
 import 'package:fladder/screens/settings/widgets/settings_message_box.dart';
 import 'package:fladder/screens/shared/authenticate_button_options.dart';
-import 'package:fladder/screens/shared/input_fields.dart';
 import 'package:fladder/seerr/seerr_models.dart';
 import 'package:fladder/screens/seerr/seerr_support_text.dart';
 import 'package:fladder/services/battery_optimization.dart';
@@ -365,36 +363,6 @@ class _UserSettingsPageState extends ConsumerState<ProfileSettingsPage> with Wid
           context,
           SettingsLabelDivider(label: context.localized.advanced),
           [
-            SettingsListTile(
-              label: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                spacing: 8,
-                children: [
-                  if (user?.credentials.localUrl?.isNotEmpty == true)
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: ref.watch(localConnectionAvailableProvider)
-                            ? Colors.greenAccent
-                            : Theme.of(context).colorScheme.error,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  Text(context.localized.settingsLocalUrlTitle),
-                ],
-              ),
-              subLabel: Text(user?.credentials.localUrl ?? context.localized.none),
-              onTap: () {
-                openSimpleTextInput(
-                  context,
-                  user?.credentials.localUrl,
-                  (value) => ref.read(userProvider.notifier).setLocalURL(value),
-                  context.localized.settingsLocalUrlSetTitle,
-                  context.localized.settingsLocalUrlSetDesc,
-                );
-              },
-            ),
             SettingsListTileCheckbox(
               label: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
