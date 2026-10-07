@@ -2,6 +2,8 @@ import 'package:http/http.dart' as http;
 
 http.Client createSeerrHttpClient() => SeerrHttpClient(http.Client());
 
+http.Client createJellyfinHttpClient() => SeerrHttpClient(http.Client());
+
 class SeerrHttpClient extends http.BaseClient {
   final http.Client inner;
   SeerrHttpClient(this.inner);
