@@ -60,6 +60,20 @@ class WebContainerTests(unittest.TestCase):
             self.assertIn('no-store', response.headers.get('Cache-Control', ''))
             self.assertGreater(len(response.read()), 100)
 
+    def test_root_loads_current_bootstrap_without_cache(self):
+        with self.fetch('') as response:
+            self.assertIn('no-store', response.headers.get('Cache-Control', ''))
+            body = response.read().decode()
+            self.assertNotIn('<script src="flutter_bootstrap.js"', body)
+            self.assertNotIn('{{flutter_bootstrap_js}}', body)
+            self.assertIn('_flutter.loader.load({', body)
+            self.assertIn('serviceWorkerVersion:', body)
+
+    def test_service_worker_not_cached(self):
+        with self.fetch('flutter_service_worker.js') as response:
+            self.assertIn('no-store', response.headers.get('Cache-Control', ''))
+            self.assertIn(b"self.addEventListener", response.read())
+
 
 if __name__ == '__main__':
     unittest.main()

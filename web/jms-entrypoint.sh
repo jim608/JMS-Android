@@ -115,6 +115,14 @@ server {
         alias /usr/share/nginx/html/index.html;
         add_header Cache-Control 'no-store' always;
     }
+    location = $webpath {
+        alias /usr/share/nginx/html/index.html;
+        add_header Cache-Control 'no-store' always;
+    }
+    location = ${webpath}flutter_service_worker.js {
+        alias /usr/share/nginx/html/flutter_service_worker.js;
+        add_header Cache-Control 'no-store' always;
+    }
     location = ${webpath}main.dart.js {
         alias /usr/share/nginx/html/main.dart.js;
         add_header Cache-Control 'no-store' always;
