@@ -116,7 +116,7 @@ server {
         add_header Cache-Control 'no-store' always;
     }
     location = $webpath {
-        alias /usr/share/nginx/html/index.html;
+        try_files /index.html =404;
         add_header Cache-Control 'no-store' always;
     }
     location = ${webpath}flutter_service_worker.js {
