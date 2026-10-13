@@ -5,6 +5,7 @@ import 'package:chopper/chopper.dart';
 import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart';
 import 'package:fladder/l10n/generated/app_localizations.dart';
 import 'package:fladder/models/account_model.dart';
+import 'package:fladder/models/credentials_model.dart';
 import 'package:fladder/models/login_screen_model.dart';
 import 'package:fladder/providers/api_provider.dart';
 import 'package:fladder/providers/auth_provider.dart';
@@ -37,6 +38,17 @@ const _idA = 'fixture-server-a';
 const _idB = 'fixture-server-b';
 
 Response<T> _response<T>(T body) => Response(http.Response('{}', 200), body);
+
+Response<T> _deniedResponse<T>(T body) =>
+    Response(http.Response('{}', 403), body);
+
+AccountModel _publicAccount(String url) => AccountModel(
+      name: 'Fixture public user',
+      id: 'fixture-public-user',
+      avatar: '',
+      lastUsed: DateTime.utc(2026),
+      credentials: CredentialsModel.internal(url: url),
+    );
 
 JmsServiceConfig _config(String media, String seerr) =>
     JmsServiceConfig.fromJson({
@@ -120,11 +132,17 @@ class _Service implements JellyService {
           serverName: 'Synthetic media server',
         )));
       case #usersPublicGet:
-        return Future.value(_response(<AccountModel>[]));
+        fixture.optionalCalls.add('users:$url');
+        return fixture.publicUsers?.call(url) ??
+            Future.value(_response(<AccountModel>[]));
       case #quickConnectEnabled:
-        return Future.value(_response(false));
+        fixture.optionalCalls.add('quickConnect:$url');
+        return fixture.quickConnectStatus?.call(url) ??
+            Future.value(_response(false));
       case #getBranding:
-        return Future.value(_response(const BrandingOptionsDto()));
+        fixture.optionalCalls.add('branding:$url');
+        return fixture.branding?.call(url) ??
+            Future.value(_response(const BrandingOptionsDto()));
       case #usersAuthenticateByNamePost:
       case #quickConnectAuthenticate:
         fixture.authUrls.add(url);
@@ -150,6 +168,17 @@ class _DelayedSettings extends JmsEntrySettings {
     await releaseSave.future;
     return super.configureNewAccount(account,
         manual: manual, manualSource: manualSource);
+  }
+}
+
+class _RejectingEntrySettings extends JmsEntrySettings {
+  _RejectingEntrySettings(super.preferences, {required this.throwOnSave});
+  final bool throwOnSave;
+
+  @override
+  Future<bool> accept(JmsEntryResolution resolution, String serverId) async {
+    if (throwOnSave) throw StateError('fixture storage write failure');
+    return false;
   }
 }
 
@@ -212,10 +241,14 @@ class _Fixture {
   final closedUrls = <String>[];
   final infoUrls = <String>[];
   final authUrls = <String>[];
+  final optionalCalls = <String>[];
   final serverIds = {_mediaA: _idA, _mediaB: _idB, _entryA: _idA};
   Completer<void>? authStarted;
   Future<Response<AuthenticationResult>> Function(String)? authentication;
   Future<Response<PublicSystemInfo>> Function(String)? publicInfo;
+  Future<Response<List<AccountModel>>> Function(String)? publicUsers;
+  Future<Response<bool>> Function(String)? quickConnectStatus;
+  Future<Response<BrandingOptionsDto>> Function(String)? branding;
   AuthNotifier get auth => container.read(authProvider.notifier);
 
   void dispose() {
@@ -298,6 +331,218 @@ void main() {
         fixture.requests.map((uri) => uri.path), ['/entry-a/jms-config.json']);
     expect(tester.takeException(), isNull);
   });
+
+  for (final endpoint in ['users', 'quickConnect', 'branding']) {
+    for (final failure in [
+      'timeout',
+      'network',
+      'invalid body',
+      'invalid shape',
+      'HTTP 403'
+    ]) {
+      test('optional $endpoint $failure keeps the proved manual login',
+          () async {
+        final fixture = await _fixture();
+        final error = switch (failure) {
+          'timeout' => TimeoutException('fixture optional timeout'),
+          'network' => http.ClientException('fixture optional network failure'),
+          'invalid shape' => TypeError(),
+          _ => const FormatException('fixture optional invalid body'),
+        };
+        switch (endpoint) {
+          case 'users':
+            fixture.publicUsers = (_) async => failure == 'HTTP 403'
+                ? _deniedResponse([_publicAccount(_mediaA)])
+                : throw error;
+          case 'quickConnect':
+            fixture.quickConnectStatus = (_) async =>
+                failure == 'HTTP 403' ? _deniedResponse(true) : throw error;
+          case 'branding':
+            fixture.branding = (_) async => failure == 'HTTP 403'
+                ? _deniedResponse(const BrandingOptionsDto(
+                    loginDisclaimer: 'Fixture denied disclaimer'))
+                : throw error;
+        }
+
+        await fixture.auth.setServer(_entryA);
+
+        final model = fixture.container.read(authProvider);
+        expect(model.loading, isFalse);
+        expect(model.errorMessage, isNull);
+        expect(model.screen, LoginScreenType.login);
+        expect(model.serverLoginModel?.tempCredentials.url, _mediaA);
+        expect(model.serverLoginModel?.tempCredentials.serverId, _idA);
+        expect(model.serverLoginModel?.tempCredentials.token, isEmpty);
+        expect(model.serverLoginModel?.accounts, isEmpty);
+        expect(model.serverLoginModel?.hasQuickConnect, isFalse);
+        expect(model.serverLoginModel?.serverMessage, isNull);
+        expect(model.tempSeerrUrl, _seerrA);
+        expect(fixture.auth.entryInput, _entryA);
+        expect(fixture.auth.pendingEntryChange, isNull);
+        expect(
+            fixture.entrySettings.forServer(_mediaA, _idA)?.config.seerrBaseUrl,
+            _seerrA);
+        expect(
+            await JmsEntryCache(fixture.preferences)
+                .read(JmsEntryDiscovery.normalizeEntry(_entryA)),
+            fixture.configA);
+        expect(fixture.closedUrls, [_mediaA]);
+        expect(fixture.container.read(userProvider), isNull);
+        expect(fixture.accounts.accounts, isEmpty);
+      });
+    }
+
+    test('optional $endpoint cannot hide an unexpected scope guard failure',
+        () async {
+      final fixture = await _fixture();
+      final error = StateError('fixture source scope guard');
+      switch (endpoint) {
+        case 'users':
+          fixture.publicUsers = (_) async => throw error;
+        case 'quickConnect':
+          fixture.quickConnectStatus = (_) async => throw error;
+        case 'branding':
+          fixture.branding = (_) async => throw error;
+      }
+      await fixture.auth.setServer(_entryA);
+      final model = fixture.container.read(authProvider);
+      expect(model.serverLoginModel, isNull);
+      expect(model.tempSeerrUrl, isNull);
+      expect(model.loading, isFalse);
+      expect(model.errorMessage, isNotEmpty);
+      expect(fixture.closedUrls, [_mediaA]);
+      expect(fixture.container.read(userProvider), isNull);
+      expect(fixture.accounts.accounts, isEmpty);
+    });
+
+    test('late optional $endpoint response cannot replace a newer entry',
+        () async {
+      final fixture = await _fixture();
+      final started = Completer<void>();
+      final users = Completer<Response<List<AccountModel>>>();
+      final quickConnect = Completer<Response<bool>>();
+      final branding = Completer<Response<BrandingOptionsDto>>();
+      switch (endpoint) {
+        case 'users':
+          fixture.publicUsers = (url) {
+            if (url != _mediaA) {
+              return Future.value(_response(<AccountModel>[]));
+            }
+            started.complete();
+            return users.future;
+          };
+        case 'quickConnect':
+          fixture.quickConnectStatus = (url) {
+            if (url != _mediaA) return Future.value(_response(false));
+            started.complete();
+            return quickConnect.future;
+          };
+        case 'branding':
+          fixture.branding = (url) {
+            if (url != _mediaA) {
+              return Future.value(_response(const BrandingOptionsDto()));
+            }
+            started.complete();
+            return branding.future;
+          };
+      }
+      final first = fixture.auth.setServer(_entryA);
+      await started.future;
+      await fixture.auth.setServer(_entryB);
+      switch (endpoint) {
+        case 'users':
+          users.complete(_response([_publicAccount(_mediaA)]));
+        case 'quickConnect':
+          quickConnect.complete(_response(true));
+        case 'branding':
+          branding.complete(_response(const BrandingOptionsDto(
+              loginDisclaimer: 'Fixture stale server disclaimer')));
+      }
+      await first;
+
+      final model = fixture.container.read(authProvider);
+      expect(model.serverLoginModel?.tempCredentials.url, _mediaB);
+      expect(model.serverLoginModel?.tempCredentials.serverId, _idB);
+      expect(model.serverLoginModel?.accounts, isEmpty);
+      expect(model.serverLoginModel?.hasQuickConnect, isFalse);
+      expect(model.serverLoginModel?.serverMessage, isNull);
+      expect(model.screen, LoginScreenType.login);
+      expect(model.errorMessage, isNull);
+      expect(model.loading, isFalse);
+      expect(model.tempSeerrUrl, _seerrB);
+      expect(fixture.auth.entryInput, _entryB);
+      expect(fixture.closedUrls, containsAll([_mediaA, _mediaB]));
+    });
+  }
+
+  for (final failure in [
+    'HTTP 503',
+    'missing identity',
+    'timeout',
+    'invalid body'
+  ]) {
+    test('required public identity $failure never enters optional bootstrap',
+        () async {
+      final fixture = await _fixture();
+      fixture.publicInfo = (_) async => switch (failure) {
+            'HTTP 503' => Response(
+                http.Response('{}', 503), const PublicSystemInfo(id: _idA)),
+            'missing identity' => _response(const PublicSystemInfo()),
+            'timeout' => throw TimeoutException('fixture required timeout'),
+            _ => throw const FormatException('fixture required invalid body'),
+          };
+      await fixture.auth.setServer(_entryA);
+      final model = fixture.container.read(authProvider);
+      expect(model.serverLoginModel, isNull);
+      expect(model.tempSeerrUrl, isNull);
+      expect(model.loading, isFalse);
+      expect(model.errorMessage, isNotEmpty);
+      expect(fixture.optionalCalls, isEmpty);
+      expect(fixture.entrySettings.forServer(_mediaA, _idA), isNull);
+      expect(fixture.closedUrls, [_mediaA]);
+      expect(fixture.container.read(userProvider), isNull);
+      expect(fixture.accounts.accounts, isEmpty);
+    });
+  }
+
+  test('required public identity must match the resolved server', () async {
+    final fixture = await _fixture();
+    await fixture.auth.connectEntryResolution(JmsEntryResolution(
+      kind: JmsEntryResolutionKind.configured,
+      entry: JmsEntryDiscovery.normalizeEntry(_entryA),
+      config: fixture.configA,
+      serverId: _idB,
+    ));
+    final model = fixture.container.read(authProvider);
+    expect(model.serverLoginModel, isNull);
+    expect(model.tempSeerrUrl, isNull);
+    expect(model.loading, isFalse);
+    expect(model.errorMessage, isNotEmpty);
+    expect(fixture.optionalCalls, isEmpty);
+    expect(fixture.entrySettings.forServer(_mediaA, _idA), isNull);
+    expect(fixture.closedUrls, [_mediaA]);
+    expect(fixture.accounts.accounts, isEmpty);
+  });
+
+  for (final throws in [false, true]) {
+    test('entry persistence ${throws ? 'exception' : 'rejection'} blocks login',
+        () async {
+      final preferences = await SharedPreferences.getInstance();
+      final fixture = await _fixture(
+          settings: _RejectingEntrySettings(preferences, throwOnSave: throws));
+      await fixture.auth.setServer(_entryA);
+      final model = fixture.container.read(authProvider);
+      expect(model.serverLoginModel, isNull);
+      expect(model.tempSeerrUrl, isNull);
+      expect(model.loading, isFalse);
+      expect(model.errorMessage, isNotEmpty);
+      expect(fixture.optionalCalls, isEmpty);
+      expect(fixture.entrySettings.forServer(_mediaA, _idA), isNull);
+      expect(fixture.closedUrls, [_mediaA]);
+      expect(fixture.container.read(userProvider), isNull);
+      expect(fixture.accounts.accounts, isEmpty);
+    });
+  }
 
   testWidgets('invalid config offers retry and explicit direct connection',
       (tester) async {

@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'package:chopper/chopper.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 
 import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart';
 import 'package:fladder/models/account_model.dart';
@@ -143,32 +146,43 @@ class AuthNotifier extends StateNotifier<LoginScreenModel> {
         throw StateError('Entry settings could not be saved');
       }
       if (!current()) return false;
-      final publicUsers = (await service
-                  .usersPublicGet(newCredentials)
-                  .timeout(const Duration(seconds: 8)))
-              .body ??
-          [];
+
+      Future<T?> optional<T>(Future<Response<T>> Function() request) async {
+        try {
+          final response = await request().timeout(const Duration(seconds: 8));
+          return response.isSuccessful ? response.body : null;
+        } on TimeoutException {
+          return null;
+        } on http.ClientException {
+          return null;
+        } on FormatException {
+          return null;
+        } on TypeError {
+          return null;
+        }
+      }
+
+      // These endpoints enrich the login screen after the server is proved.
+      // Their availability must not prevent a password login. Start them
+      // together so unavailable optional services share one timeout window.
+      final (publicUsers, quickConnectStatus, branding) = await (
+        optional(() => service.usersPublicGet(newCredentials)),
+        optional(service.quickConnectEnabled),
+        optional(service.getBranding),
+      ).wait;
       if (!current()) return false;
-      final quickConnectStatus = (await service
-                  .quickConnectEnabled()
-                  .timeout(const Duration(seconds: 8)))
-              .body ??
-          false;
-      if (!current()) return false;
-      final branding =
-          await service.getBranding().timeout(const Duration(seconds: 8));
-      if (!current()) return false;
+      final hasQuickConnect = quickConnectStatus ?? false;
       state = state.copyWith(
           errorMessage: null,
           screen:
-              quickConnectStatus ? LoginScreenType.code : LoginScreenType.login,
+              hasQuickConnect ? LoginScreenType.code : LoginScreenType.login,
           serverLoginModel: newLoginModel.copyWith(
               tempCredentials: newCredentials.copyWith(
                   serverName: serverResponse.body?.serverName ?? '',
                   serverId: serverId),
-              accounts: publicUsers,
-              hasQuickConnect: quickConnectStatus,
-              serverMessage: branding.body?.loginDisclaimer),
+              accounts: publicUsers ?? [],
+              hasQuickConnect: hasQuickConnect,
+              serverMessage: branding?.loginDisclaimer),
           loading: false);
       setTempSeerrUrl(_findSeerrUrlForServer(serverId), serverProvided: true);
       return true;
@@ -178,7 +192,7 @@ class AuthNotifier extends StateNotifier<LoginScreenModel> {
             serverLoginModel: null,
             tempSeerrUrl: null,
             tempSeerrSessionCookie: null,
-            errorMessage: localContext?.localized.invalidUrl ??
+            errorMessage: localContext?.localized.unableToConnectHost ??
                 'Unable to connect to Jellyfin',
             loading: false);
       }
