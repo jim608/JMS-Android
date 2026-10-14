@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
@@ -38,6 +39,8 @@ abstract class BasePlayer {
   Future<void> playerPrevious() async {}
   Stream<int> get playlistIndexStream => const Stream<int>.empty();
   Future<Uint8List?> takeScreenshot();
+  Future<ui.Image?> captureAmbientFrame(double maxDimension) async => null;
+  Object get ambientFrameSource => this;
   Future<int> setSubtitleTrack(SubStreamModel? model, PlaybackModel playbackModel);
   Future<int> setAudioTrack(AudioStreamModel? model, PlaybackModel playbackModel);
   void applySubtitleSettings(SubtitleSettingsModel settings) {}

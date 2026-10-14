@@ -376,7 +376,7 @@ class _PlayerSettingsPageState extends ConsumerState<PlayerSettingsPage> {
                   )
                 ],
               ),
-            if (!kIsWeb && currentPlayer != PlayerOptions.nativePlayer)
+            if (currentPlayer != PlayerOptions.nativePlayer)
               Column(children: [
                 SettingsListTileCheckbox(
                   label: Text(context.localized.playerSettingsAmbientBlurTitle),

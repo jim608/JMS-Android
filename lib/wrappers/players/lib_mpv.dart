@@ -3,6 +3,7 @@ import 'package:fladder/util/brand.dart';
 import 'dart:async';
 import 'dart:developer';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -27,11 +28,15 @@ import 'package:fladder/util/subtitle_position_calculator.dart';
 import 'package:fladder/util/mpv_subtitle_route.dart';
 import 'package:fladder/util/mpv_subtitle_selection.dart';
 import 'package:fladder/util/mpv_video_configuration.dart';
+import 'package:fladder/util/ambient_frame_capture.dart';
 import 'package:fladder/wrappers/players/base_player.dart';
 import 'package:fladder/wrappers/players/player_states.dart';
 
 class LibMPV extends BasePlayer {
   mpv.Player? _player;
+  Object _ambientFrameSource = Object();
+  @override
+  Object get ambientFrameSource => _ambientFrameSource;
   VideoController? _controller;
   String _currentSubtitleCodec = '';
   String _subtitleDelivery = 'unknown';
@@ -83,6 +88,7 @@ class LibMPV extends BasePlayer {
   Future<void> init(VideoPlayerSettingsModel settings) async {
     _settings = settings;
     await dispose();
+    _ambientFrameSource = Object();
 
     mpv.MediaKit.ensureInitialized();
 
@@ -97,6 +103,7 @@ class LibMPV extends BasePlayer {
     );
 
     if (_player != null) {
+      configureAmbientVideoCapture(_player!.platform);
       _controller = VideoController(
         _player!,
         configuration: mpvVideoConfiguration(hardwareAcceleration: settings.hardwareAccel),
@@ -270,6 +277,7 @@ class LibMPV extends BasePlayer {
 
   @override
   Future<void> loadVideo(String url, bool play, {Duration startPosition = Duration.zero}) async {
+    _ambientFrameSource = Object();
     _subtitleGeneration++;
     _subtitleRoute.value = const MpvSubtitleRoute();
     _currentSubtitleCodec = '';
@@ -695,6 +703,10 @@ class LibMPV extends BasePlayer {
   Future<Uint8List?> takeScreenshot() async {
     return _player?.screenshot(format: "image/png", includeLibassSubtitles: true);
   }
+
+  @override
+  Future<ui.Image?> captureAmbientFrame(double maxDimension) =>
+      captureAmbientVideoFrame(_player?.platform, maxDimension);
 
   @override
   Widget? videoWidget(

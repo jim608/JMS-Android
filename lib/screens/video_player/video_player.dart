@@ -106,7 +106,7 @@ class _VideoPlayerState extends ConsumerState<VideoPlayer> with WidgetsBindingOb
         fillScreen ? (MediaQuery.of(context).orientation == Orientation.portrait ? videoFit : BoxFit.cover) : videoFit,
       ),
     );
-    final ambientEnabled = !kIsWeb && ref.watch(videoPlayerSettingsProvider.select((value) => value.ambientBlur));
+    final ambientEnabled = ref.watch(videoPlayerSettingsProvider.select((value) => value.ambientBlur));
     final ambientPlaying = ref.watch(mediaPlaybackProvider.select((value) => value.playing && !value.buffering));
     final player = ValueListenableBuilder<AmbientComposition>(
       valueListenable: _ambientComposition,
@@ -126,7 +126,8 @@ class _VideoPlayerState extends ConsumerState<VideoPlayer> with WidgetsBindingOb
             spread: appearance.spread,
             duration: ambientIntervalDuration(interval),
             synchronizeToPlayback: sync,
-            frameSource: playerController,
+            frameSource: playerController.ambientFrameSource,
+            captureFrame: kIsWeb ? playerController.captureAmbientFrame : null,
             child: child!,
           );
         },

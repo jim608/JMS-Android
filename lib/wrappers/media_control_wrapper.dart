@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -66,6 +67,9 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
   Widget? subtitleWidget(bool showOverlay, {GlobalKey? controlsKey}) =>
       _player?.subtitles(showOverlay, controlsKey: controlsKey);
   Widget? videoWidget(Key key, BoxFit fit) => _player?.videoWidget(key, fit);
+  Object get ambientFrameSource => _player?.ambientFrameSource ?? this;
+  Future<ui.Image?> captureAmbientFrame(double maxDimension) async =>
+      await _player?.captureAmbientFrame(maxDimension);
 
   Future<Map<String, String>> playbackDiagnostics() async =>
       await _player?.playbackDiagnostics() ??

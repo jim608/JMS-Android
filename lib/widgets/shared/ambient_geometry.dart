@@ -3,7 +3,9 @@ import 'package:flutter/rendering.dart';
 Rect? ambientVideoRect(RenderRepaintBoundary boundary) {
   Rect? largest;
   void visit(RenderObject object) {
-    if (object is TextureBox && object.hasSize && object.size.shortestSide > 1) {
+    if (object is RenderBox &&
+        (object is TextureBox || object is PlatformViewRenderBox) &&
+        object.hasSize && object.size.shortestSide > 1) {
       final bounds = MatrixUtils.transformRect(object.getTransformTo(boundary), Offset.zero & object.size)
           .intersect(Offset.zero & boundary.size);
       if (!bounds.isEmpty && (largest == null || bounds.width * bounds.height > largest!.width * largest!.height)) {

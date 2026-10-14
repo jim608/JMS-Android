@@ -143,6 +143,7 @@ class AmbientBlur extends StatefulWidget {
   final bool playing;
   final bool synchronizeToPlayback;
   final Object? frameSource;
+  final Future<ui.Image?> Function(double maxDimension)? captureFrame;
   final AmbientComposition composition;
   final AmbientBlurDiagnostics? diagnostics;
 
@@ -168,6 +169,7 @@ class AmbientBlur extends StatefulWidget {
     this.playing = true,
     this.synchronizeToPlayback = false,
     this.frameSource,
+    this.captureFrame,
     this.composition = AmbientComposition.direct,
     this.diagnostics,
   })  : assert(downscaleFactor > 0),
@@ -290,15 +292,19 @@ class _AmbientBlurState extends State<AmbientBlur>
   @override
   void didUpdateWidget(covariant AmbientBlur oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final captureModeChanged =
+        (oldWidget.captureFrame == null) != (widget.captureFrame == null);
     if (oldWidget.enabled != widget.enabled ||
         oldWidget.playing != widget.playing ||
         oldWidget.composition != widget.composition ||
         oldWidget.synchronizeToPlayback != widget.synchronizeToPlayback ||
-        !identical(oldWidget.frameSource, widget.frameSource)) {
+        !identical(oldWidget.frameSource, widget.frameSource) ||
+        captureModeChanged) {
       _updateActivity(
-          release:
-              !widget.enabled || oldWidget.composition != widget.composition ||
-              !identical(oldWidget.frameSource, widget.frameSource));
+          release: !widget.enabled ||
+              oldWidget.composition != widget.composition ||
+              !identical(oldWidget.frameSource, widget.frameSource) ||
+              captureModeChanged);
     }
     if (oldWidget.effectiveDuration != widget.effectiveDuration) {
       _blendController.duration = widget.effectiveDuration;
@@ -336,6 +342,7 @@ class _AmbientBlurState extends State<AmbientBlur>
         : null;
     final generation = _generation;
 
+    final externalCapture = widget.captureFrame;
     ui.Image? unblurredImage;
     ui.Image? blurredImage;
     ui.Picture? picture;
@@ -351,12 +358,20 @@ class _AmbientBlurState extends State<AmbientBlur>
       final pixelRatio = MediaQuery.of(context).devicePixelRatio;
       if (boundary.size.isEmpty) return;
       final visibleVideo = ambientVideoRect(boundary);
+      if (externalCapture != null && visibleVideo == null) {
+        if (_currentImage != null || _oldImage != null) {
+          setState(_releaseFrames);
+        }
+        return;
+      }
       final videoRect = visibleVideo ?? Offset.zero & boundary.size;
       final viewport = boundary.size;
       if (diagnostics != null) {
-        diagnostics.source = visibleVideo == null
-            ? 'boundary (texture not identified)'
-            : 'visible video texture';
+        diagnostics.source = externalCapture != null
+            ? 'web video frame'
+            : visibleVideo == null
+                ? 'boundary (texture not identified)'
+                : 'visible video texture';
         diagnostics.videoRect = videoRect;
         diagnostics.viewport = viewport;
         diagnostics.backgroundFraction = visibleVideo == null
@@ -366,12 +381,23 @@ class _AmbientBlurState extends State<AmbientBlur>
                     videoRect.height /
                     (viewport.width * viewport.height);
       }
-      final renderScale = math.min(
+      var renderScale = math.min(
         pixelRatio / widget.downscaleFactor,
         widget.maxCaptureDimension / boundary.size.longestSide,
       );
 
-      unblurredImage = await boundary.toImage(pixelRatio: renderScale);
+      unblurredImage = externalCapture == null
+          ? await boundary.toImage(pixelRatio: renderScale)
+          : await externalCapture(widget.maxCaptureDimension);
+      if (unblurredImage == null) {
+        diagnostics?.failures++;
+        if (_running &&
+            generation == _generation &&
+            (_currentImage != null || _oldImage != null)) {
+          setState(_releaseFrames);
+        }
+        return;
+      }
       diagnostics?.allocated++;
       diagnostics?.captureMicros = stopwatch?.elapsedMicroseconds;
       timeline?.instant('capture complete');
@@ -379,12 +405,17 @@ class _AmbientBlurState extends State<AmbientBlur>
       if (!_running || generation != _generation) return;
       final rawBounds = Rect.fromLTWH(0, 0, unblurredImage.width.toDouble(),
           unblurredImage.height.toDouble());
-      final contentCrop = Rect.fromLTRB(
-              videoRect.left * renderScale,
-              videoRect.top * renderScale,
-              videoRect.right * renderScale,
-              videoRect.bottom * renderScale)
-          .intersect(rawBounds);
+      if (externalCapture != null) {
+        renderScale = unblurredImage.width / videoRect.width;
+      }
+      final contentCrop = externalCapture != null
+          ? rawBounds
+          : Rect.fromLTRB(
+                  videoRect.left * renderScale,
+                  videoRect.top * renderScale,
+                  videoRect.right * renderScale,
+                  videoRect.bottom * renderScale)
+              .intersect(rawBounds);
       final crop = widget.composition == AmbientComposition.direct
           ? contentCrop
           : rawBounds;
@@ -456,6 +487,12 @@ class _AmbientBlurState extends State<AmbientBlur>
       }
     } catch (_) {
       diagnostics?.failures++;
+      if (externalCapture != null &&
+          _running &&
+          generation == _generation &&
+          (_currentImage != null || _oldImage != null)) {
+        setState(_releaseFrames);
+      }
     } finally {
       timeline?.finish();
       stopwatch?.stop();
