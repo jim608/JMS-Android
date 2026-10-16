@@ -1,7 +1,9 @@
 import 'dart:convert';
 
+import 'package:fladder/services/discord/discord_artwork.dart';
+
 /// Only explicitly selected display fields enter Discord activity payloads.
-/// Service clients, account data, artwork URLs and credentials stay outside it.
+/// Service clients, account data and credentials stay outside it.
 class DiscordPlaybackSnapshot {
   const DiscordPlaybackSnapshot({
     required this.active,
@@ -50,6 +52,8 @@ Map<String, Object?>? discordActivity(
   DiscordPlaybackSnapshot? playback, {
   required bool shareTitle,
   required DateTime now,
+  bool shareArtwork = false,
+  String? artworkUrl,
 }) {
   if (playback == null || !playback.active) return null;
   final title = shareTitle ? discordDisplayTitle(playback.title) : null;
@@ -60,6 +64,15 @@ Map<String, Object?>? discordActivity(
     'details': title ?? 'JMS 媒體播放',
     'state': state,
   };
+  final artwork = shareArtwork && title != null && !playback.audio
+      ? discordArtworkUrl(artworkUrl)
+      : null;
+  if (artwork != null) {
+    activity['assets'] = <String, String>{
+      'large_image': artwork,
+      'large_text': title!,
+    };
+  }
   // Paused/buffering playback must not keep a misleading running countdown.
   if (playback.playing &&
       !playback.buffering &&

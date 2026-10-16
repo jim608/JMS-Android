@@ -52,6 +52,7 @@ class DiscordPresenceController extends ChangeNotifier {
   bool _withdrawing = false;
   bool _retryPending = false;
   bool _sharingTitle = false;
+  bool _sharingArtwork = false;
   int _generation = 0;
   Future<void>? _closing;
 
@@ -64,16 +65,24 @@ class DiscordPresenceController extends ChangeNotifier {
     required bool shareTitle,
     required bool privateMode,
     required DiscordPlaybackSnapshot? playback,
+    bool shareArtwork = false,
+    String? artworkUrl,
   }) {
     if (_disposed) return;
     final next = supported && scope != null && enabled && !privateMode
-        ? discordActivity(playback, shareTitle: shareTitle, now: _now())
+        ? discordActivity(playback,
+            shareTitle: shareTitle,
+            shareArtwork: shareArtwork,
+            artworkUrl: artworkUrl,
+            now: _now())
         : null;
     final changedScope = _scope != scope;
     final withdrewTitle = _sharingTitle && !shareTitle;
+    final withdrewArtwork = _sharingArtwork && !shareArtwork;
     _sharingTitle = shareTitle;
+    _sharingArtwork = shareArtwork;
     _scope = scope;
-    if (changedScope || withdrewTitle || next == null) {
+    if (changedScope || withdrewTitle || withdrewArtwork || next == null) {
       _generation++;
       _desired = next;
       _timer?.cancel();

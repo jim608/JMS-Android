@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fladder/providers/discord_presence_provider.dart';
 import 'package:fladder/util/localization_helper.dart';
 
+enum _DiscordPresenceSetting { status, title, artwork }
+
 class SettingsDiscordPresence extends ConsumerStatefulWidget {
   const SettingsDiscordPresence({super.key});
 
@@ -33,7 +35,8 @@ class _SettingsDiscordPresenceState
               : labels.jmsDiscordAccountRequired),
           value: settings.enabled,
           onChanged: canChange
-              ? (value) => _changeSetting(settings, value, shareTitle: false)
+              ? (value) => _changeSetting(
+                  settings, value, _DiscordPresenceSetting.status)
               : null,
         ),
         SwitchListTile(
@@ -42,7 +45,20 @@ class _SettingsDiscordPresenceState
           subtitle: Text(labels.jmsDiscordShareTitleHint),
           value: settings.shareTitle,
           onChanged: canChange && (settings.enabled || settings.shareTitle)
-              ? (value) => _changeSetting(settings, value, shareTitle: true)
+              ? (value) =>
+                  _changeSetting(settings, value, _DiscordPresenceSetting.title)
+              : null,
+        ),
+        SwitchListTile(
+          key: const ValueKey('discord-presence-share-artwork'),
+          title: Text(labels.jmsDiscordShareArtwork),
+          subtitle: Text(labels.jmsDiscordShareArtworkHint),
+          value: settings.shareArtwork,
+          onChanged: canChange &&
+                  ((settings.enabled && settings.shareTitle) ||
+                      settings.shareArtwork)
+              ? (value) => _changeSetting(
+                  settings, value, _DiscordPresenceSetting.artwork)
               : null,
         ),
         ListTile(
@@ -65,7 +81,7 @@ class _SettingsDiscordPresenceState
   }
 
   Future<void> _changeSetting(DiscordPresenceSettings settings, bool value,
-      {required bool shareTitle}) async {
+      _DiscordPresenceSetting setting) async {
     if (_confirming || settings.busy || !settings.hasAccount) return;
     final scope = settings.activeScope;
     final labels = context.localized;
@@ -74,12 +90,16 @@ class _SettingsDiscordPresenceState
       final accepted = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text(shareTitle
-              ? labels.jmsDiscordShareTitle
-              : labels.jmsDiscordTitle),
-          content: Text(shareTitle
-              ? labels.jmsDiscordTitleConsent
-              : labels.jmsDiscordConsent),
+          title: Text(switch (setting) {
+            _DiscordPresenceSetting.status => labels.jmsDiscordTitle,
+            _DiscordPresenceSetting.title => labels.jmsDiscordShareTitle,
+            _DiscordPresenceSetting.artwork => labels.jmsDiscordShareArtwork,
+          }),
+          content: Text(switch (setting) {
+            _DiscordPresenceSetting.status => labels.jmsDiscordConsent,
+            _DiscordPresenceSetting.title => labels.jmsDiscordTitleConsent,
+            _DiscordPresenceSetting.artwork => labels.jmsDiscordArtworkConsent,
+          }),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -102,12 +122,19 @@ class _SettingsDiscordPresenceState
         !settings.supported ||
         !settings.hasAccount ||
         settings.busy ||
-        (shareTitle && value && !settings.enabled)) {
+        (setting == _DiscordPresenceSetting.title &&
+            value &&
+            !settings.enabled) ||
+        (setting == _DiscordPresenceSetting.artwork &&
+            value &&
+            (!settings.enabled || !settings.shareTitle))) {
       return;
     }
-    final saved = shareTitle
-        ? await settings.setShareTitle(value)
-        : await settings.setEnabled(value);
+    final saved = await switch (setting) {
+      _DiscordPresenceSetting.status => settings.setEnabled(value),
+      _DiscordPresenceSetting.title => settings.setShareTitle(value),
+      _DiscordPresenceSetting.artwork => settings.setShareArtwork(value),
+    };
     if (!saved && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(labels.jmsDiscordSaveError)),

@@ -4,6 +4,7 @@ import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart';
 import 'package:fladder/models/account_model.dart';
 import 'package:fladder/models/credentials_model.dart';
 import 'package:fladder/models/items/movie_model.dart';
+import 'package:fladder/models/items/episode_model.dart';
 import 'package:fladder/models/media_playback_model.dart';
 import 'package:fladder/models/playback/playback_model.dart';
 import 'package:fladder/providers/discord_presence_provider.dart';
@@ -11,6 +12,7 @@ import 'package:fladder/providers/incognito_mode_provider.dart';
 import 'package:fladder/providers/shared_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
+import 'package:fladder/services/discord/discord_artwork.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -32,9 +34,9 @@ AccountModel _account({
       incognitoMode: incognito,
     );
 
-PlaybackModel _movie(String title) => PlaybackModel(
-      item: MovieModel.fromBaseDto(
-          BaseItemDto(id: 'synthetic-movie', name: title), null),
+PlaybackModel _movie(String title, {String id = 'synthetic-movie'}) =>
+    PlaybackModel(
+      item: MovieModel.fromBaseDto(BaseItemDto(id: id, name: title), null),
       playbackInfo: null,
       media: null,
     );
@@ -80,12 +82,18 @@ Future<_PresenceHarness> _harness(
   required AccountModel? account,
   bool globalIncognito = false,
   List<AccountModel> previouslyConsented = const [],
+  List<AccountModel> previouslyArtworkConsented = const [],
+  DiscordArtworkLoader? artworkLoader,
 }) async {
   final saved = <String, Object>{};
   for (final consented in previouslyConsented) {
     final scope = discordAccountScope(consented)!;
     saved['jms.discord.presence.v1.$scope.enabled'] = true;
     saved['jms.discord.presence.v1.$scope.shareTitle'] = true;
+  }
+  for (final consented in previouslyArtworkConsented) {
+    final scope = discordAccountScope(consented)!;
+    saved['jms.discord.presence.v1.$scope.shareArtwork'] = true;
   }
   SharedPreferences.setMockInitialValues(saved);
   final preferences = await SharedPreferences.getInstance();
@@ -95,6 +103,8 @@ Future<_PresenceHarness> _harness(
   final container = ProviderContainer(overrides: [
     sharedPreferencesProvider.overrideWithValue(preferences),
     discordPresenceClientProvider.overrideWithValue(client),
+    if (artworkLoader != null)
+      discordArtworkLoaderProvider.overrideWithValue(artworkLoader),
     userProvider.overrideWith(() => _TestUser(account)),
   ]);
   container.read(incognitoModeProvider.notifier).state = globalIncognito;
@@ -115,6 +125,197 @@ Future<_PresenceHarness> _harness(
 }
 
 void main() {
+  const poster = 'https://image.tmdb.org/t/p/w500/SyntheticPoster.jpg';
+
+  test('episode artwork uses its series rather than the episode or season', () {
+    final episode = EpisodeModel.fromBaseDto(
+        const BaseItemDto(
+            id: 'synthetic-episode',
+            parentId: 'synthetic-season',
+            seriesId: 'synthetic-series',
+            name: 'Synthetic episode'),
+        null);
+    expect(discordArtworkItemId(episode), 'synthetic-series');
+    expect(discordArtworkItemId(_movie('Synthetic').item), 'synthetic-movie');
+    expect(discordArtworkItemId(null), isNull);
+    expect(
+        discordArtworkItemId(EpisodeModel.fromBaseDto(
+            const BaseItemDto(id: 'synthetic-episode'), null)),
+        isNull);
+  });
+
+  testWidgets('artwork is separately consented, cached and removed with title',
+      (tester) async {
+    final calls = <String>[];
+    final account = _account();
+    final h = await _harness(tester,
+        account: account,
+        previouslyConsented: [account], artworkLoader: (id) async {
+      calls.add(id);
+      return poster;
+    });
+    await _pumpPresence(tester);
+    expect(h.settings.shareArtwork, isFalse);
+    expect(calls, isEmpty);
+    expect(h.disclosed.last, isNot(contains('assets')));
+    expect(await h.settings.setShareArtwork(true), isTrue);
+    await _pumpPresence(tester);
+    expect(calls, ['synthetic-movie']);
+    expect((h.disclosed.last['assets'] as Map)['large_image'], poster);
+    for (var tick = 1; tick <= 10; tick++) {
+      h.container.read(mediaPlaybackProvider.notifier).state = h.container
+          .read(mediaPlaybackProvider)
+          .copyWith(position: Duration(minutes: tick));
+    }
+    await _pumpPresence(tester);
+    expect(calls, hasLength(1));
+    final boundary = h.client.activities.length;
+    expect(await h.settings.setShareTitle(false), isTrue);
+    await _pumpPresence(tester);
+    expect(h.client.activities.skip(boundary), contains(isNull));
+    expect(h.disclosed.last['details'], 'JMS 媒體播放');
+    expect(h.disclosed.last, isNot(contains('assets')));
+  });
+
+  testWidgets('series poster loads once across its episodes', (tester) async {
+    final calls = <String>[];
+    final account = _account();
+    final h = await _harness(tester,
+        account: account,
+        previouslyConsented: [account], artworkLoader: (id) async {
+      calls.add(id);
+      return poster;
+    });
+    for (var episode = 1; episode <= 2; episode++) {
+      h.container.read(playBackModel.notifier).state = PlaybackModel(
+          item: EpisodeModel.fromBaseDto(
+              BaseItemDto(
+                  id: 'synthetic-episode-$episode',
+                  seriesId: 'synthetic-series',
+                  seriesName: 'Synthetic anime',
+                  name: 'Episode $episode'),
+              null),
+          playbackInfo: null,
+          media: null);
+      if (episode == 1) await h.settings.setShareArtwork(true);
+      await _pumpPresence(tester);
+      expect((h.disclosed.last['assets'] as Map)['large_image'], poster);
+      expect(h.disclosed.last['details'], 'Synthetic anime • Episode $episode');
+    }
+    expect(calls, ['synthetic-series']);
+  });
+
+  for (final boundary in [
+    'artwork',
+    'title',
+    'disabled',
+    'private',
+    'account',
+    'stopped',
+    'suspended'
+  ]) {
+    testWidgets('late artwork cannot survive $boundary boundary',
+        (tester) async {
+      final pending = Completer<String?>();
+      final account = _account();
+      final h = await _harness(tester,
+          account: account,
+          previouslyConsented: [account],
+          artworkLoader: (_) => pending.future);
+      await h.settings.setShareArtwork(true);
+      await _pumpPresence(tester);
+      switch (boundary) {
+        case 'artwork':
+          await h.settings.setShareArtwork(false);
+        case 'title':
+          await h.settings.setShareTitle(false);
+        case 'disabled':
+          await h.settings.setEnabled(false);
+        case 'private':
+          h.container.read(incognitoModeProvider.notifier).state = true;
+        case 'account':
+          h.changeAccount(_account(id: 'synthetic-other-account'));
+        case 'stopped':
+          h.container.read(mediaPlaybackProvider.notifier).state =
+              h.container.read(mediaPlaybackProvider).copyWith(completed: true);
+        case 'suspended':
+          h.settings.suspend();
+      }
+      pending.complete(poster);
+      await _pumpPresence(tester);
+      expect(h.disclosed.where((activity) => activity.containsKey('assets')),
+          isEmpty);
+      h.settings.suspend();
+      await tester.pump();
+    });
+  }
+
+  testWidgets('out-of-order artwork never replaces the new work',
+      (tester) async {
+    final pending = <String, Completer<String?>>{};
+    final account = _account();
+    final h = await _harness(tester,
+        account: account,
+        previouslyConsented: [account],
+        artworkLoader: (id) => (pending[id] = Completer<String?>()).future);
+    await h.settings.setShareArtwork(true);
+    await _pumpPresence(tester);
+    h.container.read(playBackModel.notifier).state =
+        _movie('Synthetic next movie', id: 'synthetic-next');
+    await _pumpPresence(tester);
+    const nextPoster = 'https://image.tmdb.org/t/p/w500/SyntheticNext.jpg';
+    pending['synthetic-next']!.complete(nextPoster);
+    await _pumpPresence(tester);
+    pending['synthetic-movie']!.complete(poster);
+    await _pumpPresence(tester);
+    expect((h.disclosed.last['assets'] as Map)['large_image'], nextPoster);
+    expect(h.disclosed.last['details'], 'Synthetic next movie');
+  });
+
+  testWidgets('artwork failure stays text-only without a polling loop',
+      (tester) async {
+    var calls = 0;
+    final account = _account();
+    final h = await _harness(tester,
+        account: account,
+        previouslyConsented: [account], artworkLoader: (_) async {
+      calls++;
+      throw StateError('Synthetic offline server');
+    });
+    await h.settings.setShareArtwork(true);
+    await _pumpPresence(tester);
+    h.container.read(mediaPlaybackProvider.notifier).state =
+        h.container.read(mediaPlaybackProvider).copyWith(playing: false);
+    await _pumpPresence(tester);
+    expect(calls, 1);
+    expect(h.disclosed.last, isNot(contains('assets')));
+    expect(h.disclosed.last['state'], '已暫停');
+  });
+
+  testWidgets('timed out artwork stays text-only even if it arrives later',
+      (tester) async {
+    final pending = Completer<String?>();
+    var calls = 0;
+    final account = _account();
+    final h = await _harness(tester,
+        account: account,
+        previouslyConsented: [account],
+        previouslyArtworkConsented: [account], artworkLoader: (_) {
+      calls++;
+      return pending.future;
+    });
+    await _pumpPresence(tester);
+    await tester.pump(const Duration(seconds: 9));
+    pending.complete(poster);
+    await _pumpPresence(tester);
+    expect(calls, 1);
+    expect(h.disclosed.where((activity) => activity.containsKey('assets')),
+        isEmpty);
+    expect(h.disclosed.last['details'], 'Synthetic old movie');
+    h.settings.suspend();
+    await tester.pump();
+  });
+
   testWidgets(
       'null account override follows normal global mode and title consent',
       (tester) async {

@@ -20,6 +20,8 @@ class _FakeDiscordSettings extends ChangeNotifier
   @override
   bool shareTitle = false;
   @override
+  bool shareArtwork = false;
+  @override
   bool busy = false;
   @override
   DiscordConnectionState status = DiscordConnectionState.disconnected;
@@ -27,11 +29,14 @@ class _FakeDiscordSettings extends ChangeNotifier
   bool savesSucceed = true;
   int enableCalls = 0;
   int titleCalls = 0;
+  int artworkCalls = 0;
 
-  void changeAccount(String? scope, {bool alreadyEnabled = false}) {
+  void changeAccount(String? scope,
+      {bool alreadyEnabled = false, bool alreadySharingTitle = false}) {
     activeScope = scope;
     enabled = alreadyEnabled;
-    shareTitle = false;
+    shareTitle = alreadySharingTitle;
+    shareArtwork = false;
     notifyListeners();
   }
 
@@ -54,6 +59,15 @@ class _FakeDiscordSettings extends ChangeNotifier
   }
 
   @override
+  Future<bool> setShareArtwork(bool value) async {
+    artworkCalls++;
+    if (!savesSucceed) return false;
+    shareArtwork = value;
+    notifyListeners();
+    return true;
+  }
+
+  @override
   String toString() => 'TEST_ONLY_TRANSPORT_ERROR_NOT_FOR_DISPLAY';
 
   @override
@@ -63,6 +77,7 @@ class _FakeDiscordSettings extends ChangeNotifier
 void main() {
   const enabledKey = ValueKey('discord-presence-enabled');
   const titleKey = ValueKey('discord-presence-share-title');
+  const artworkKey = ValueKey('discord-presence-share-artwork');
 
   Future<void> showSettings(WidgetTester tester, _FakeDiscordSettings settings,
       {Locale locale = const Locale('en')}) async {
@@ -93,7 +108,7 @@ void main() {
     expect(settings.enableCalls, 0);
   });
 
-  testWidgets('without an account neither sharing option can be enabled',
+  testWidgets('without an account no sharing option can be enabled',
       (tester) async {
     final settings = _FakeDiscordSettings(activeScope: null);
     await showSettings(tester, settings);
@@ -101,9 +116,12 @@ void main() {
         isNull);
     expect(
         tester.widget<SwitchListTile>(find.byKey(titleKey)).onChanged, isNull);
+    expect(tester.widget<SwitchListTile>(find.byKey(artworkKey)).onChanged,
+        isNull);
     expect(find.textContaining('Sign in to a JMS account'), findsOneWidget);
     expect(settings.enableCalls, 0);
     expect(settings.titleCalls, 0);
+    expect(settings.artworkCalls, 0);
   });
 
   testWidgets('status consent is explicit and can be cancelled or withdrawn',
@@ -177,6 +195,102 @@ void main() {
     expect(settings.enableCalls, 0);
     expect(settings.enabled, false);
   });
+
+  testWidgets('artwork requires status and title sharing plus its own consent',
+      (tester) async {
+    final settings = _FakeDiscordSettings();
+    await showSettings(tester, settings);
+    expect(settings.shareArtwork, false);
+    expect(tester.widget<SwitchListTile>(find.byKey(artworkKey)).onChanged,
+        isNull);
+    settings.enabled = true;
+    settings.notifyListeners();
+    await tester.pumpAndSettle();
+    expect(tester.widget<SwitchListTile>(find.byKey(artworkKey)).onChanged,
+        isNull);
+    settings.shareTitle = true;
+    settings.notifyListeners();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(artworkKey));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('public artwork URL'), findsOneWidget);
+    expect(find.textContaining('Private server URLs and credentials'),
+        findsOneWidget);
+    expect(settings.artworkCalls, 0);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(settings.shareArtwork, false);
+    expect(settings.artworkCalls, 0);
+    await tester.tap(find.byKey(artworkKey));
+    await tester.pumpAndSettle();
+    await accept(tester);
+    expect(settings.shareArtwork, true);
+    expect(settings.artworkCalls, 1);
+    await tester.tap(find.byKey(artworkKey));
+    await tester.pumpAndSettle();
+    expect(settings.shareArtwork, false);
+    expect(settings.artworkCalls, 2);
+    expect(settings.enabled, true);
+    expect(settings.shareTitle, true);
+    expect(find.byType(AlertDialog), findsNothing);
+  });
+
+  for (final statusEnabled in [true, false]) {
+    testWidgets(
+        'artwork consent can be withdrawn with status=$statusEnabled and title sharing off',
+        (tester) async {
+      final settings = _FakeDiscordSettings()
+        ..enabled = statusEnabled
+        ..shareArtwork = true;
+      await showSettings(tester, settings);
+      await tester.tap(find.byKey(artworkKey));
+      await tester.pumpAndSettle();
+      expect(settings.shareArtwork, false);
+      expect(settings.artworkCalls, 1);
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(tester.widget<SwitchListTile>(find.byKey(artworkKey)).onChanged,
+          isNull);
+    });
+  }
+
+  testWidgets('an artwork dialog cannot give consent to a different account',
+      (tester) async {
+    final settings = _FakeDiscordSettings()
+      ..enabled = true
+      ..shareTitle = true;
+    await showSettings(tester, settings);
+    await tester.tap(find.byKey(artworkKey));
+    await tester.pumpAndSettle();
+    settings.changeAccount('account-b',
+        alreadyEnabled: true, alreadySharingTitle: true);
+    await tester.pumpAndSettle();
+    await accept(tester);
+    expect(settings.artworkCalls, 0);
+    expect(settings.shareArtwork, false);
+  });
+
+  for (final revokeStatus in [true, false]) {
+    testWidgets(
+        'an artwork dialog cannot save after ${revokeStatus ? 'status' : 'title'} sharing is withdrawn',
+        (tester) async {
+      final settings = _FakeDiscordSettings()
+        ..enabled = true
+        ..shareTitle = true;
+      await showSettings(tester, settings);
+      await tester.tap(find.byKey(artworkKey));
+      await tester.pumpAndSettle();
+      if (revokeStatus) {
+        settings.enabled = false;
+      } else {
+        settings.shareTitle = false;
+      }
+      settings.notifyListeners();
+      await tester.pumpAndSettle();
+      await accept(tester);
+      expect(settings.artworkCalls, 0);
+      expect(settings.shareArtwork, false);
+    });
+  }
 
   testWidgets('title consent can be withdrawn while all status sharing is off',
       (tester) async {
@@ -257,10 +371,26 @@ void main() {
             const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'));
     expect(find.text('在 Discord 顯示播放狀態'), findsOneWidget);
     expect(find.text('分享影片名稱'), findsOneWidget);
+    expect(find.text('分享作品封面'), findsOneWidget);
     await tester.tap(find.byKey(enabledKey));
     await tester.pumpAndSettle();
     expect(find.textContaining('您的 Discord 個人檔案與朋友可能看見'), findsOneWidget);
     expect(find.text('同意並分享'), findsOneWidget);
     expect(settings.enableCalls, 0);
+  });
+
+  testWidgets('Traditional Chinese explains public artwork disclosure',
+      (tester) async {
+    final settings = _FakeDiscordSettings()
+      ..enabled = true
+      ..shareTitle = true;
+    await showSettings(tester, settings,
+        locale:
+            const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'));
+    await tester.tap(find.byKey(artworkKey));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('公開封面網址會傳送至 Discord'), findsOneWidget);
+    expect(find.textContaining('不會分享私人伺服器網址或憑證'), findsOneWidget);
+    expect(settings.artworkCalls, 0);
   });
 }
