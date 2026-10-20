@@ -9,7 +9,7 @@ import tempfile
 import zipfile
 
 from jms_publication import ReleaseError, sha256
-from jms_release_notes import release_notes_for, release_body_for_candidate
+from jms_release_notes import release_notes_from_archive, release_body_for_candidate
 from jms_desktop_publication import verify_flatpak_payload, verify_source_archive
 
 
@@ -22,14 +22,10 @@ def canonical_source_notes(source, version, commit):
         manifest = json.loads(archive.read('JMS/source-manifest.json'))
         if manifest.get('sourceCommit') != commit or manifest.get('dirty') is not False:
             raise ReleaseError('Flatpak source archive is not bound to the committed candidate')
-        changelog = archive.read('JMS/CHANGELOG.md')
         version_line = re.search(rb'^version:\s*(\S+)\s*$', archive.read('JMS/pubspec.yaml'), re.M)
         if not version_line or version_line[1].decode().split('+')[0] != version:
             raise ReleaseError('Flatpak source archive version differs from candidate')
-    with tempfile.TemporaryDirectory(prefix='jms-flatpak-notes-') as temporary:
-        path = Path(temporary) / 'CHANGELOG.md'
-        path.write_bytes(changelog)
-        return release_notes_for(path, version)
+        return release_notes_from_archive(archive, version)
 
 
 def native_source_materials(directory, build, material):

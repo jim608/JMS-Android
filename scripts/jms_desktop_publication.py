@@ -13,7 +13,7 @@ from pathlib import Path, PurePosixPath
 from jms_publication import (ROOT, Github, ReleaseError, sha256, save_json,
                              upload_complete_release, anonymous_download)
 from check_jms_git_privacy import load_policy, scan_packages_cached, tree_entries
-from jms_release_notes import release_notes_for, release_body_for_candidate
+from jms_release_notes import release_body_for_candidate, release_notes_from_archive
 
 REPOSITORIES = {'windows': 'jim608/JMS-Desktop', 'linux': 'jim608/JMS-Linux', 'web': 'jim608/JMS-Web'}
 FLATPAK_WORKFLOW = '.github/workflows/jms-flatpak.yml'
@@ -414,10 +414,7 @@ def validate_flatpak_inventory(directory, record):
         version = re.search(rb'^version:\s*(\S+)', archive.read('JMS/pubspec.yaml'), re.M)
         if not version or version[1].decode() != record['versionName'] + '+' + str(record['versionCode']):
             raise ReleaseError('Flatpak complete source version differs from release')
-        with tempfile.TemporaryDirectory(prefix='jms-flatpak-notes-') as temporary:
-            changelog = Path(temporary) / 'CHANGELOG.md'
-            changelog.write_bytes(archive.read('JMS/CHANGELOG.md'))
-            canonical = release_notes_for(changelog, record['versionName'])
+        canonical = release_notes_from_archive(archive, record['versionName'])
     if (record.get('canonicalNotes') != canonical
             or record.get('canonicalNotesCommit') != record['sourceCommit']
             or (directory / 'RELEASE_NOTES.md').read_text(encoding='utf-8') != release_body_for_candidate(

@@ -15,7 +15,7 @@ TEST_CERT = "4327eedb953fbf51d82b70e2e56c23122c85304d55a67fbbdb37a8f1ffd5f399"
 ALLOWED_ROOTS = {"lib", "assets", "icons", "android", "ios", "linux", "macos", "windows",
                  "web", "test", "integration_test", "pigeons", "scripts", "docs", "config", "third_party", ".github", ".githooks"}
 ALLOWED_FILES = {"pubspec.yaml", "pubspec.lock", "l10n.yaml", "analysis_options.yaml", "build.yaml",
-                 "LICENSE", "README.md", "CHANGELOG.md", "NOTICE", ".metadata", ".gitignore",
+                 "LICENSE", "README.md", "CHANGELOG.md", "CHANGELOG.en.md", "NOTICE", ".metadata", ".gitignore",
                  "build.jms_ambient.yaml", ".fvmrc", "Dockerfile.web", "Dockerfile", "Dockerfile-rootless",
                  ".dockerignore", "docker-compose.yml", "docker-entrypoint.sh", "DEVELOPEMENT.md", "INSTALL.md",
                  "Dockerfile.diagnostics"}

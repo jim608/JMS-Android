@@ -16,11 +16,13 @@
 
 ### 正式版本說明
 
-`CHANGELOG.md` 是各版本對外變更的單一來源。每次只比較上一個已公開版本與實際新 APK／來源，於 `# JMS <實際版本>` 下使用有內容的「新增、調整、修正、移除、已知問題、更新注意事項」章節；已在前版提供的功能不重複列為新增。歷史錯誤用勘誤或當版已知問題說明，不改寫舊版 APK 的事實。
+`CHANGELOG.md` 保存繁體中文版本紀錄，`CHANGELOG.en.md` 保存同版本英文翻譯。每次只比較上一個已公開版本與實際新 APK／來源，於 `# JMS <實際版本>` 下使用有內容的「新增、調整、修正、移除、已知問題、更新注意事項」章節；英文依序使用 Added、Changed、Fixed、Removed、Known issues、Update notes。兩語的章節與逐章項目數必須對應，沒有內容的章節省略。已在前版提供的功能不重複列為新增。歷史錯誤用勘誤或當版已知問題說明，不改寫舊版 APK 的事實。
 
     rtk proxy python scripts/jms_release_notes.py --version <實際版本> --write
 
-此命令從 `CHANGELOG.md` 產生當版 `docs/JMS_RELEASE_NOTES.zh-Hant.md`。發布入口與打包工具要求兩者完全一致，並檢查標題、空章節、占位字、聊天式工作回報、敏感字串及本機路徑。GitHub Release 標題從 APK 版本生成為 `JMS <實際版本>`；內文與發布包的 `RELEASE_NOTES.zh-Hant.md` 使用同一份當版內容，App 線上更新讀取該 Release 內文。測試與建置證據留在 `JMS_STATUS.md`，不混入對外說明。已發布資產與 tag 不因文案勘誤而替換。
+此命令產生當版 `docs/JMS_RELEASE_NOTES.zh-Hant.md`，保留既有檔名相容性。`config/jms_release_notes.json` 從 `.42` 起要求中英文，缺少同版本英文、章節順序錯誤或項目數不符即停止；更早的中文紀錄仍可驗證。產生內容先列繁體中文，再列 English。發布入口與打包工具要求產生內容完全一致，並檢查標題、空章節、占位字、聊天式工作回報、敏感字串及本機路徑。GitHub Release 標題為 `JMS <實際版本>`；新發布的內文與包內 Notes 使用同一份當版內容，App 線上更新讀取該 Release 內文。測試與建置證據留在 `JMS_STATUS.md`，不混入對外說明。
+
+已公開版本的文案修正使用 `scripts/correct_jms_release_description.py`，只支援 android、windows、linux 三個固定發布庫。先不加 `--apply`，提供 `--platform`、`--version`、`--source-commit`，並可用 `--expected-build-id` 與 `--expected-asset-count` 固定已核對的候選。工具匿名讀取公開 manifest，核對大小、SHA256、平台、原 App source、實際 Build ID、安裝檔與完整來源附件綁定，另存 `artifacts/notes-corrections/` 的 `body-preview.md` 與 `dry-run.json`。確認預覽後，用相同參數加 `--apply --approved-body-sha256 <預覽的 bodySha256>`；唯一寫入是 Release 的 name/body，之後重新經認證與匿名讀取核對說明及完整附件清單。本文連同來源 footer 必須少於更新器的 20000 字元上限。原 publisher state、已發布 Notes 附件、update manifest、安裝包與 tag 均保留；公開文案的雙語補充不代表歷史安裝包重新建置。
 
 ### 執行與接續
 
