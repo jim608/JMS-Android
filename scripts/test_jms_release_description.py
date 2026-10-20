@@ -209,6 +209,30 @@ class ReleaseDescriptionTests(unittest.TestCase):
         with self.assertRaises(ReleaseError):
             FakeReleaseApi().correct(platform='web')
 
+    def test_desktop_footer_without_terminal_newline_accepts_same_candidate_and_preserves_planned_body(self):
+        for platform in ('windows', 'linux'):
+            with self.subTest(platform=platform):
+                api = FakeReleaseApi(platform)
+                api.release['body'] = api.release['body'].rstrip('\r\n')
+                receipt = api.correct()
+                self.assertEqual(receipt['body'], release_body_for_candidate(
+                    NOTES, VERSION, SOURCE, api.manifest['buildId']))
+                api.correct(True, approved_body_sha256=receipt['bodySha256'])
+                self.assertEqual(api.release['body'], receipt['body'])
+
+    def test_footer_normalization_never_accepts_different_source_url_commit_or_build(self):
+        for platform in ('windows', 'linux'):
+            for original, replacement in (('/tree/' + SOURCE, '/tree/' + '4' * 40),
+                                           ('來源提交：`' + SOURCE, '來源提交：`' + '4' * 40),
+                                           (f'JMS-{VERSION}-{platform}-{SOURCE[:12]}',
+                                            f'JMS-{VERSION}-{platform}-' + '4' * 12)):
+                with self.subTest(platform=platform, field=original):
+                    api = FakeReleaseApi(platform)
+                    api.release['body'] = api.release['body'].rstrip('\r\n').replace(original, replacement)
+                    with self.assertRaises(ReleaseError):
+                        api.correct()
+                    self.assertFalse(any(method == 'PATCH' for _, method, _ in api.calls))
+
     def test_asset_or_identity_mutation_in_patch_response_stops_immediately(self):
         for mutation in (lambda release: release['assets'][1].update(size=21),
                          lambda release: release.update(id=8), lambda release: release.update(draft=True),

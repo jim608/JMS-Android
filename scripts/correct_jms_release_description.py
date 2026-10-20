@@ -188,7 +188,7 @@ def correct_description(github, version, notes, apply=False, *, platform, source
     body = release_body_for_candidate(notes, version, source_commit, build_id)
     title = 'JMS ' + version
     footer = body[body.index('\n\n來源：'):]
-    if not (release.get('body') or '').endswith(footer):
+    if not (release.get('body') or '').rstrip('\r\n').endswith(footer.rstrip('\r\n')):
         raise ReleaseError('Existing public source/Build ID footer differs from the candidate')
     body_hash = digest(body.encode('utf-8'))
     if len(body) >= 20000:
