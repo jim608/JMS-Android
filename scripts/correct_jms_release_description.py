@@ -10,7 +10,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-from jms_publication import Github, ReleaseError, save_json
+from jms_publication import Github, ReleaseError
 from jms_release_notes import release_notes_for, release_body_for_candidate, validate_release_notes
 
 
@@ -149,9 +149,18 @@ def _save_receipt(directory, receipt, name):
     preview = directory / 'body-preview.md'
     if preview.exists() and preview.read_bytes() != receipt['body'].encode('utf-8'):
         raise ReleaseError('Correction preview already exists with different content')
-    preview.write_text(receipt['body'], encoding='utf-8', newline='\n')
+    if not preview.exists():
+        with preview.open('xb') as stream:
+            stream.write(receipt['body'].encode('utf-8'))
     receipt['preview'] = {'path': str(preview.resolve()), 'sha256': receipt['bodySha256']}
-    save_json(directory / name, receipt)
+    path = directory / name
+    payload = json.dumps(receipt, indent=2, ensure_ascii=False).encode('utf-8')
+    if path.exists():
+        if path.read_bytes() != payload:
+            raise ReleaseError('Correction receipt already exists; preserve it and use a new run directory')
+    else:
+        with path.open('xb') as stream:
+            stream.write(payload)
 
 
 def correct_description(github, version, notes, apply=False, *, platform, source_commit, notes_revision_commit,
@@ -201,7 +210,7 @@ def correct_description(github, version, notes, apply=False, *, platform, source
                            'bodySha256': digest((release.get('body') or '').encode('utf-8')),
                            'title': release.get('name'), 'sourceFooterVerified': True},
     }
-    _save_receipt(receipt_directory, receipt, 'dry-run.json')
+    _save_receipt(receipt_directory, receipt, 'pre-apply.json' if apply else 'dry-run.json')
     if apply and changed:
         updated = github.api(f'repos/{repository}/releases/{before["id"]}', 'PATCH', {'name': title, 'body': body})
         _readback(updated, before, version, body, title)
@@ -231,7 +240,9 @@ def main():
     from check_jms_git_privacy import findings, load_policy
     if findings('release-description.md', notes.encode('utf-8'), load_policy()):
         raise ReleaseError('Release description does not pass the existing local privacy policy')
-    revision = subprocess.check_output(['rtk', 'git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
+    revision = subprocess.check_output(['rtk', 'proxy', 'git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
+    if not re.fullmatch('[a-f0-9]{40}', revision):
+        raise ReleaseError('Notes revision must be the complete current commit')
     for name in ('CHANGELOG.md', 'CHANGELOG.en.md', 'config/jms_release_notes.json',
                  'scripts/jms_release_notes.py', 'scripts/correct_jms_release_description.py',
                  'docs/JMS_RELEASE_NOTES.zh-Hant.md'):

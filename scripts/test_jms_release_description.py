@@ -130,6 +130,30 @@ class ReleaseDescriptionTests(unittest.TestCase):
                 api.correct(True, approved_body_sha256=value)
         self.assertTrue(all(method == 'GET' for _, method, _ in api.calls))
 
+    def test_apply_preserves_reviewed_dry_run_and_writes_separate_pre_apply_evidence(self):
+        api = FakeReleaseApi()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)
+            plan = api.correct(receipt_directory=path)
+            original = (path / 'dry-run.json').read_bytes()
+            preview = (path / 'body-preview.md').read_bytes()
+            api.correct(True, approved_body_sha256=plan['bodySha256'], receipt_directory=path)
+            self.assertEqual((path / 'dry-run.json').read_bytes(), original)
+            self.assertEqual((path / 'body-preview.md').read_bytes(), preview)
+            self.assertEqual(json.loads((path / 'pre-apply.json').read_bytes())['status'], 'dry-run')
+            self.assertEqual(json.loads((path / 'applied.json').read_bytes())['status'], 'applied')
+
+    def test_existing_different_correction_receipt_is_never_overwritten(self):
+        api = FakeReleaseApi()
+        with tempfile.TemporaryDirectory() as directory:
+            api.correct(receipt_directory=directory)
+            receipt = Path(directory) / 'dry-run.json'
+            receipt.write_bytes(b'preserve existing evidence')
+            with self.assertRaises(ReleaseError):
+                api.correct(receipt_directory=directory)
+            self.assertEqual(receipt.read_bytes(), b'preserve existing evidence')
+            self.assertFalse(any(method == 'PATCH' for _, method, _ in api.calls))
+
     def test_wrong_source_build_platform_and_manifest_identity_are_rejected(self):
         for field, value in [('sourceCommit', '4' * 40), ('versionName', '0.11.1-jms.41'),
                              ('applicationId', 'other.application'), ('schemaVersion', 2),
