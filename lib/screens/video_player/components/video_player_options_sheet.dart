@@ -17,6 +17,7 @@ import 'package:fladder/providers/settings/video_player_settings_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
 import 'package:fladder/screens/video_player/components/sleep_timer_dialog.dart';
+import 'package:fladder/screens/video_player/components/subtitle_offset_dialog.dart';
 import 'package:fladder/screens/video_player/components/playback_diagnostics.dart';
 import 'package:fladder/screens/seerr/seerr_report_dialog.dart';
 import 'package:fladder/screens/seerr/seerr_support_text.dart';
@@ -28,6 +29,7 @@ import 'package:fladder/screens/video_player/components/video_player_quality_con
 import 'package:fladder/screens/video_player/components/video_player_queue.dart';
 import 'package:fladder/screens/video_player/components/video_subtitle_controls.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
+import 'package:fladder/util/dual_subtitle.dart';
 import 'package:fladder/util/device_orientation_extension.dart';
 import 'package:fladder/util/list_padding.dart';
 import 'package:fladder/util/localization_helper.dart';
@@ -40,8 +42,7 @@ import 'package:fladder/widgets/shared/item_actions.dart';
 import 'package:fladder/widgets/shared/modal_bottom_sheet.dart';
 import 'package:fladder/widgets/shared/spaced_list_tile.dart';
 
-Future<void> showVideoPlayerOptions(
-    BuildContext context, Function() minimizePlayer) {
+Future<void> showVideoPlayerOptions(BuildContext context, Function() minimizePlayer) {
   return showBottomSheetPill(
     context: context,
     content: (context, scrollController) {
@@ -56,12 +57,10 @@ Future<void> showVideoPlayerOptions(
 class VideoOptions extends ConsumerStatefulWidget {
   final ScrollController controller;
   final Function() minimizePlayer;
-  const VideoOptions(
-      {required this.controller, required this.minimizePlayer, super.key});
+  const VideoOptions({required this.controller, required this.minimizePlayer, super.key});
 
   @override
-  ConsumerState<ConsumerStatefulWidget> createState() =>
-      _VideoOptionsMobileState();
+  ConsumerState<ConsumerStatefulWidget> createState() => _VideoOptionsMobileState();
 }
 
 class _VideoOptionsMobileState extends ConsumerState<VideoOptions> {
@@ -71,10 +70,8 @@ class _VideoOptionsMobileState extends ConsumerState<VideoOptions> {
   Widget build(BuildContext context) {
     final currentItem = ref.watch(playBackModel.select((value) => value?.item));
     final videoSettings = ref.watch(videoPlayerSettingsProvider);
-    final currentMediaStreams =
-        ref.watch(playBackModel.select((value) => value?.mediaStreams));
-    final bitRateOptions =
-        ref.watch(playBackModel.select((value) => value?.bitRateOptions));
+    final currentMediaStreams = ref.watch(playBackModel.select((value) => value?.mediaStreams));
+    final bitRateOptions = ref.watch(playBackModel.select((value) => value?.bitRateOptions));
 
     Widget mainPage() {
       return ListView(
@@ -99,8 +96,7 @@ class _VideoOptionsMobileState extends ConsumerState<VideoOptions> {
                     ],
                   ),
                   const Spacer(),
-                  const Opacity(
-                      opacity: 0.1, child: Icon(Icons.info_outline_rounded))
+                  const Opacity(opacity: 0.1, child: Icon(Icons.info_outline_rounded))
                 ],
               ),
             ),
@@ -112,8 +108,7 @@ class _VideoOptionsMobileState extends ConsumerState<VideoOptions> {
             leading: const Icon(Icons.monitor_heart_outlined),
             title: Text(context.localized.jmsPlaybackDiagnostics),
             onTap: () {
-              ref.read(playbackDiagnosticsVisibleProvider.notifier).state =
-                  true;
+              ref.read(playbackDiagnosticsVisibleProvider.notifier).state = true;
               Navigator.of(context).pop();
             },
           ),
@@ -122,34 +117,26 @@ class _VideoOptionsMobileState extends ConsumerState<VideoOptions> {
               title: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Flexible(
-                      flex: 1, child: Text(context.localized.screenBrightness)),
+                  Flexible(flex: 1, child: Text(context.localized.screenBrightness)),
                   Flexible(
                     child: Row(
                       children: [
                         Flexible(
                           child: Opacity(
-                            opacity: videoSettings.screenBrightness == null
-                                ? 0.5
-                                : 1,
+                            opacity: videoSettings.screenBrightness == null ? 0.5 : 1,
                             child: Slider(
                               value: videoSettings.screenBrightness ?? 1.0,
                               min: 0,
                               max: 1,
-                              onChanged: (value) => ref
-                                  .read(videoPlayerSettingsProvider.notifier)
-                                  .setScreenBrightness(value),
+                              onChanged: (value) =>
+                                  ref.read(videoPlayerSettingsProvider.notifier).setScreenBrightness(value),
                             ),
                           ),
                         ),
                         IconButton(
-                          onPressed: () => ref
-                              .read(videoPlayerSettingsProvider.notifier)
-                              .setScreenBrightness(null),
+                          onPressed: () => ref.read(videoPlayerSettingsProvider.notifier).setScreenBrightness(null),
                           icon: Opacity(
-                            opacity: videoSettings.screenBrightness != null
-                                ? 0.5
-                                : 1,
+                            opacity: videoSettings.screenBrightness != null ? 0.5 : 1,
                             child: Icon(
                               IconsaxPlusBold.autobrightness,
                               color: Theme.of(context).colorScheme.primary,
@@ -164,13 +151,17 @@ class _VideoOptionsMobileState extends ConsumerState<VideoOptions> {
             ),
           SpacedListTile(
             title: Text(context.localized.subtitles),
-            content: Text(
-                currentMediaStreams?.currentSubStream?.label(context) ??
-                    context.localized.off),
+            content: Text(currentMediaStreams?.currentSubStream?.label(context) ?? context.localized.off),
             onTap: currentMediaStreams?.subStreams.isNotEmpty == true
-                ? () => showSubSelection(context)
+                ? () {
+                    final navigator = Navigator.of(context);
+                    navigator.pop();
+                    showSubSelection(navigator.context);
+                  }
                 : null,
           ),
+          const _SecondarySubtitleTile(),
+          const SubtitleOffsetTile(),
           const SleepTimerTile(),
           if (currentItem != null)
             ListTile(
@@ -184,12 +175,8 @@ class _VideoOptionsMobileState extends ConsumerState<VideoOptions> {
             ),
           SpacedListTile(
             title: Text(context.localized.audio(1)),
-            content: Text(
-                currentMediaStreams?.currentAudioStream?.label(context) ??
-                    context.localized.off),
-            onTap: currentMediaStreams?.audioStreams.isNotEmpty == true
-                ? () => showAudioSelection(context)
-                : null,
+            content: Text(currentMediaStreams?.currentAudioStream?.label(context) ?? context.localized.off),
+            onTap: currentMediaStreams?.audioStreams.isNotEmpty == true ? () => showAudioSelection(context) : null,
           ),
           ListTile(
             title: Row(
@@ -202,9 +189,7 @@ class _VideoOptionsMobileState extends ConsumerState<VideoOptions> {
                     itemBuilder: (context) => BoxFit.values
                         .map((value) => ItemActionButton(
                               label: Text(value.name.toUpperCaseSplit()),
-                              action: () => ref
-                                  .read(videoPlayerSettingsProvider.notifier)
-                                  .setFitType(value),
+                              action: () => ref.read(videoPlayerSettingsProvider.notifier).setFitType(value),
                             ))
                         .toList(),
                   ),
@@ -216,16 +201,12 @@ class _VideoOptionsMobileState extends ConsumerState<VideoOptions> {
             title: Text(context.localized.playerSettingsAmbientBlurTitle),
             value: videoSettings.ambientBlur,
             onChanged: (value) {
-              ref
-                  .read(videoPlayerSettingsProvider.notifier)
-                  .setAmbientBlur(value == true);
+              ref.read(videoPlayerSettingsProvider.notifier).setAmbientBlur(value == true);
             },
           ),
           if (!AdaptiveLayout.of(context).isDesktop)
             ListTile(
-              onTap: () => ref
-                  .read(videoPlayerSettingsProvider.notifier)
-                  .setFillScreen(!videoSettings.fillScreen),
+              onTap: () => ref.read(videoPlayerSettingsProvider.notifier).setFillScreen(!videoSettings.fillScreen),
               title: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -236,9 +217,7 @@ class _VideoOptionsMobileState extends ConsumerState<VideoOptions> {
                   const Spacer(),
                   Switch(
                     value: videoSettings.fillScreen,
-                    onChanged: (value) => ref
-                        .read(videoPlayerSettingsProvider.notifier)
-                        .setFillScreen(value),
+                    onChanged: (value) => ref.read(videoPlayerSettingsProvider.notifier).setFillScreen(value),
                   )
                 ],
               ),
@@ -275,9 +254,7 @@ class _VideoOptionsMobileState extends ConsumerState<VideoOptions> {
                     child: Text(context.localized.qualityOptionsTitle),
                   ),
                   const Spacer(),
-                  Text(bitRateOptions?.enabledFirst.keys.firstOrNull
-                          ?.label(context) ??
-                      "")
+                  Text(bitRateOptions?.enabledFirst.keys.firstOrNull?.label(context) ?? "")
                 ],
               ),
               onTap: () {
@@ -309,16 +286,13 @@ class _VideoOptionsMobileState extends ConsumerState<VideoOptions> {
                   items: playbackState?.queue ?? [],
                   currentItem: playbackState?.item,
                   onSectionReorder: (section, oldIndex, newIndex) {
-                    return ref
-                        .read(videoPlayerProvider.notifier)
-                        .reorderAudioQueueSection(
+                    return ref.read(videoPlayerProvider.notifier).reorderAudioQueueSection(
                           section,
                           oldIndex,
                           newIndex,
                         );
                   },
-                  playSelected:
-                      ref.read(videoPlayerProvider.notifier).playAudioQueueItem,
+                  playSelected: ref.read(videoPlayerProvider.notifier).playAudioQueueItem,
                 );
               },
             )
@@ -349,8 +323,7 @@ class _VideoOptionsMobileState extends ConsumerState<VideoOptions> {
       shrinkWrap: true,
       controller: widget.controller,
       children: [
-        navTitle(
-            currentItem?.title, currentItem?.subTextShort(context.localized)),
+        navTitle(currentItem?.title, currentItem?.subTextShort(context.localized)),
         if (currentItem != null) ...{
           if (currentItem.type == FladderItemType.episode)
             ListTile(
@@ -393,8 +366,7 @@ class _VideoOptionsMobileState extends ConsumerState<VideoOptions> {
             onTap: () async {
               final response = await ref
                   .read(userProvider.notifier)
-                  .setAsFavorite(!(currentItem.userData.isFavourite == true),
-                      currentItem.id);
+                  .setAsFavorite(!(currentItem.userData.isFavourite == true), currentItem.id);
               final newItem = currentItem.copyWith(userData: response?.body);
               final playbackModel = switch (ref.read(playBackModel)) {
                 DirectPlaybackModel value => value.copyWith(item: newItem),
@@ -469,8 +441,7 @@ Future<void> showSubSelection(BuildContext context) {
               children: [
                 Text(context.localized.subtitle),
                 const Spacer(),
-                if (player.backend == PlayerOptions.libMPV ||
-                    player.backend == PlayerOptions.libMDK)
+                if (player.backend == PlayerOptions.libMPV || player.backend == PlayerOptions.libMDK)
                   IconButton.outlined(
                       onPressed: () {
                         Navigator.pop(context);
@@ -482,45 +453,118 @@ Future<void> showSubSelection(BuildContext context) {
                       icon: const Icon(Icons.display_settings_rounded))
               ],
             ),
-            children: playbackModel?.subStreams?.mapIndexed(
-              (index, subModel) {
-                final selected =
-                    playbackModel.mediaStreams?.defaultSubStreamIndex ==
-                        subModel.index;
-                return ListTile(
-                  title: Text(subModel.label(context)),
-                  tileColor: selected
-                      ? Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withValues(alpha: 0.3)
-                      : null,
-                  subtitle: subModel.language.isNotEmpty
-                      ? Opacity(
-                          opacity: 0.6,
-                          child: Text(subModel.language.capitalize()))
-                      : null,
-                  onTap: () async {
-                    final newModel =
-                        await playbackModel.setSubtitle(subModel, player);
-                    ref
-                        .read(playBackModel.notifier)
-                        .update((state) => newModel);
-                    if (newModel != null) {
-                      await ref
-                          .read(playbackModelHelper)
-                          .shouldReload(newModel);
-                    }
-                  },
-                );
-              },
-            ).toList(),
+            children: [
+              const _SecondarySubtitleTile(),
+              const SubtitleOffsetTile(),
+              ...?playbackModel?.subStreams?.mapIndexed(
+                (index, subModel) {
+                  final selected = playbackModel.mediaStreams?.defaultSubStreamIndex == subModel.index;
+                  return ListTile(
+                    title: Text(subModel.label(context)),
+                    tileColor: selected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.3) : null,
+                    subtitle: subModel.language.isNotEmpty
+                        ? Opacity(opacity: 0.6, child: Text(subModel.language.capitalize()))
+                        : null,
+                    onTap: () async {
+                      final previousSecondary = player.secondarySubtitleState.value.selected;
+                      final newModel = await playbackModel.setSubtitle(subModel, player);
+                      if (context.mounted &&
+                          previousSecondary != null &&
+                          player.secondarySubtitleState.value.selected == null) {
+                        showSecondarySubtitleNotice(context, player.secondarySubtitleState.value);
+                      }
+                      ref.read(playBackModel.notifier).update((state) => newModel);
+                      if (newModel != null) {
+                        await ref.read(playbackModelHelper).shouldReload(newModel);
+                      }
+                    },
+                  );
+                },
+              ),
+            ],
           );
         },
       );
     },
   );
 }
+
+String secondarySubtitleIssueText(BuildContext context, SecondarySubtitleIssue issue) => switch (issue) {
+      SecondarySubtitleIssue.unsupportedBackend => context.localized.jmsSecondaryUnsupportedBackend,
+      SecondarySubtitleIssue.primaryOff => context.localized.jmsSecondaryPrimaryOff,
+      SecondarySubtitleIssue.primaryFormat => context.localized.jmsSecondaryPrimaryFormat,
+      SecondarySubtitleIssue.secondaryFormat => context.localized.jmsSecondaryFormat,
+      SecondarySubtitleIssue.sameTrack => context.localized.jmsSecondarySameTrack,
+      SecondarySubtitleIssue.unavailable => context.localized.jmsSecondaryUnavailable,
+      SecondarySubtitleIssue.selectionFailed => context.localized.jmsSecondaryFailed,
+      SecondarySubtitleIssue.mediaChanged => context.localized.jmsSecondaryMediaChanged,
+    };
+
+void showSecondarySubtitleNotice(BuildContext context, SecondarySubtitleState state) {
+  if (state.issue != null) {
+    ScaffoldMessenger.maybeOf(context)
+        ?.showSnackBar(SnackBar(content: Text(secondarySubtitleIssueText(context, state.issue!))));
+  }
+}
+
+class _SecondarySubtitleTile extends ConsumerWidget {
+  const _SecondarySubtitleTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final player = ref.watch(videoPlayerProvider);
+    final model = ref.watch(playBackModel);
+    return ValueListenableBuilder<SecondarySubtitleState>(
+      valueListenable: player.secondarySubtitleState,
+      builder: (context, state, child) => ListTile(
+        title: Text(context.localized.jmsSecondarySubtitle),
+        subtitle: Text([
+          state.selected?.label(context) ?? context.localized.off,
+          if (state.issue != null) secondarySubtitleIssueText(context, state.issue!),
+        ].join('\n')),
+        onTap: model == null ? null : () => showSecondarySubSelection(context),
+      ),
+    );
+  }
+}
+
+Future<void> showSecondarySubSelection(BuildContext context) => showDialog(
+      context: context,
+      builder: (context) => Consumer(builder: (context, ref, child) {
+        final model = ref.watch(playBackModel);
+        final player = ref.watch(videoPlayerProvider);
+        return ValueListenableBuilder<SecondarySubtitleState>(
+          valueListenable: player.secondarySubtitleState,
+          builder: (context, state, child) => SimpleDialog(
+            title: Text(context.localized.jmsSecondarySubtitle),
+            children: [
+              Padding(padding: const EdgeInsets.all(16), child: Text(context.localized.jmsSecondarySubtitleHelp)),
+              if (state.issue != null)
+                Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(secondarySubtitleIssueText(context, state.issue!))),
+              ...?model?.subStreams?.map((candidate) {
+                final issue = secondarySubtitleIssue(
+                  supportedBackend: player.supportsSecondarySubtitles,
+                  primary: model.mediaStreams?.currentSubStream,
+                  candidate: candidate,
+                );
+                final selected =
+                    candidate.index < 0 ? state.selected == null : candidate.index == state.selected?.index;
+                return ListTile(
+                  selected: selected,
+                  enabled: issue == null,
+                  leading: Icon(selected ? Icons.radio_button_checked : Icons.radio_button_unchecked),
+                  title: Text(candidate.label(context)),
+                  subtitle: Text(issue == null ? candidate.language : secondarySubtitleIssueText(context, issue)),
+                  onTap: issue != null ? null : () => player.setSecondarySubtitleTrack(candidate, model),
+                );
+              }),
+            ],
+          ),
+        );
+      }),
+    );
 
 Future<void> showAudioSelection(BuildContext context) {
   return showDialog(
@@ -539,32 +583,18 @@ Future<void> showAudioSelection(BuildContext context) {
             ),
             children: playbackModel?.audioStreams?.mapIndexed(
               (index, audioStream) {
-                final selected =
-                    playbackModel.mediaStreams?.defaultAudioStreamIndex ==
-                        audioStream.index;
+                final selected = playbackModel.mediaStreams?.defaultAudioStreamIndex == audioStream.index;
                 return ListTile(
                     title: Text(audioStream.label(context)),
-                    tileColor: selected
-                        ? Theme.of(context)
-                            .colorScheme
-                            .primary
-                            .withValues(alpha: 0.3)
-                        : null,
+                    tileColor: selected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.3) : null,
                     subtitle: audioStream.language.isNotEmpty
-                        ? Opacity(
-                            opacity: 0.6,
-                            child: Text(audioStream.language.capitalize()))
+                        ? Opacity(opacity: 0.6, child: Text(audioStream.language.capitalize()))
                         : null,
                     onTap: () async {
-                      final newModel =
-                          await playbackModel.setAudio(audioStream, player);
-                      ref
-                          .read(playBackModel.notifier)
-                          .update((state) => newModel);
+                      final newModel = await playbackModel.setAudio(audioStream, player);
+                      ref.read(playBackModel.notifier).update((state) => newModel);
                       if (newModel != null) {
-                        await ref
-                            .read(playbackModelHelper)
-                            .shouldReload(newModel);
+                        await ref.read(playbackModelHelper).shouldReload(newModel);
                       }
                     });
               },
@@ -591,8 +621,7 @@ Future<void> showPlaybackSpeed(BuildContext context) {
               children: [
                 const Divider(),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12)
-                      .copyWith(top: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 12).copyWith(top: 6),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -608,8 +637,7 @@ Future<void> showPlaybackSpeed(BuildContext context) {
                             value: lastSpeed,
                             divisions: 55,
                             onChanged: (value) {
-                              ref.read(playbackRateProvider.notifier).state =
-                                  value;
+                              ref.read(playbackRateProvider.notifier).state = value;
                               player.setSpeed(value);
                             },
                           ),
@@ -630,8 +658,8 @@ Future<void> showPlaybackSpeed(BuildContext context) {
 
 Future<void> showOrientationOptions(BuildContext context, WidgetRef ref) async {
   Set<DeviceOrientation> orientations = ref
-      .read(videoPlayerSettingsProvider.select((value) =>
-          value.allowedOrientations ?? Set.from(DeviceOrientation.values)))
+      .read(videoPlayerSettingsProvider
+          .select((value) => value.allowedOrientations ?? Set.from(DeviceOrientation.values)))
       .toSet();
 
   void toggleOrientation(DeviceOrientation orientation) {
@@ -648,13 +676,10 @@ Future<void> showOrientationOptions(BuildContext context, WidgetRef ref) async {
       return StatefulBuilder(builder: (context, state) {
         return SimpleDialog(
           contentPadding: const EdgeInsets.only(top: 8, bottom: 24),
-          title: Row(children: [
-            Text(context.localized.playerSettingsOrientationTitle)
-          ]),
+          title: Row(children: [Text(context.localized.playerSettingsOrientationTitle)]),
           children: [
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12).copyWith(top: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12).copyWith(top: 6),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -682,9 +707,7 @@ Future<void> showOrientationOptions(BuildContext context, WidgetRef ref) async {
                       FilledButton(
                         onPressed: () {
                           Navigator.of(context).pop();
-                          ref
-                              .read(videoPlayerSettingsProvider.notifier)
-                              .toggleOrientation(orientations);
+                          ref.read(videoPlayerSettingsProvider.notifier).toggleOrientation(orientations);
                         },
                         child: Text(context.localized.save),
                       ),

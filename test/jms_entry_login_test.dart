@@ -16,6 +16,7 @@ import 'package:fladder/providers/service_provider.dart';
 import 'package:fladder/providers/shared_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/screens/login/login_screen_credentials.dart';
+import 'package:fladder/screens/settings/widgets/jms_entry_config_tile.dart';
 import 'package:fladder/services/jms_entry_cache.dart';
 import 'package:fladder/services/jms_entry_discovery.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
@@ -183,7 +184,7 @@ class _RejectingEntrySettings extends JmsEntrySettings {
 }
 
 class _Fixture {
-  _Fixture(this.preferences, {JmsEntrySettings? settings}) {
+  _Fixture(this.preferences, {JmsEntrySettings? settings, bool hostedWeb = false}) {
     discovery = JmsEntryDiscovery(
       client: MockClient((request) async {
         requests.add(request.url);
@@ -218,6 +219,8 @@ class _Fixture {
       imageUtilityProvider.overrideWithValue(_Images()),
       jmsEntryDiscoveryProvider.overrideWithValue(discovery),
       jmsEntrySettingsProvider.overrideWithValue(entrySettings),
+      jmsHostedWebProvider.overrideWithValue(hostedWeb),
+      jmsHostedWebEntryProvider.overrideWithValue(_entryA),
       jmsLoginConnectionProvider.overrideWithValue((credentials) {
         connectionUrls.add(credentials.url);
         return JmsLoginConnection(_Service(this, credentials.url),
@@ -257,9 +260,8 @@ class _Fixture {
   }
 }
 
-Future<_Fixture> _fixture({JmsEntrySettings? settings}) async {
-  final fixture =
-      _Fixture(await SharedPreferences.getInstance(), settings: settings);
+Future<_Fixture> _fixture({JmsEntrySettings? settings, bool hostedWeb = false}) async {
+  final fixture = _Fixture(await SharedPreferences.getInstance(), settings: settings, hostedWeb: hostedWeb);
   addTearDown(fixture.dispose);
   return fixture;
 }
@@ -309,6 +311,67 @@ void main() {
   tearDown(() {
     FladderConfig.baseUrl = originalBaseUrl;
     FladderConfig.seerrBaseUrl = originalSeerr;
+  });
+
+  testWidgets('hosted Web automatically connects without a server entry field', (tester) async {
+    final fixture = await _fixture(hostedWeb: true);
+    fixture.quickConnectStatus = (_) async => _response(true);
+    await fixture.auth.initModel();
+    await _pumpLogin(tester, fixture);
+
+    expect(fixture.infoUrls, [_mediaA]);
+    expect(fixture.requests.single.path, '/entry-a/jms-config.json');
+    expect(fixture.container.read(authProvider).tempSeerrUrl, _seerrA);
+    expect(find.byType(TextField), findsNWidgets(2));
+    expect(find.text('Using quick connect'), findsOneWidget);
+    expect(find.byKey(const Key('jms-entry-direct')), findsNothing);
+    expect(find.text('Connect with auth link'), findsNothing);
+  });
+
+  testWidgets('hosted Web failure has retry without editable source bypass', (tester) async {
+    final fixture = await _fixture(hostedWeb: true);
+    fixture.invalidConfig = true;
+    await fixture.auth.initModel();
+    await _pumpLogin(tester, fixture);
+
+    expect(find.byKey(const Key('jms-entry-error')), findsOneWidget);
+    expect(find.byKey(const Key('jms-entry-retry')), findsOneWidget);
+    expect(find.byKey(const Key('jms-entry-direct')), findsNothing);
+    expect(find.byType(TextField), findsNothing);
+    expect(fixture.infoUrls, isEmpty);
+
+    fixture.invalidConfig = false;
+    await tester.tap(find.byKey(const Key('jms-entry-retry')));
+    await tester.pumpAndSettle();
+    expect(fixture.infoUrls, [_mediaA]);
+    expect(find.byType(TextField), findsNWidgets(2));
+  });
+
+  test('hosted Web ignores alternate input and direct connection requests', () async {
+    final fixture = await _fixture(hostedWeb: true);
+    await fixture.auth.setServer(_entryB, forceDirect: true);
+    expect(fixture.requests.single.path, '/entry-a/jms-config.json');
+    expect(fixture.infoUrls, [_mediaA]);
+    expect(fixture.auth.entryInput, _entryA);
+  });
+
+  testWidgets('hosted Web runtime base URL keeps credential login available', (tester) async {
+    FladderConfig.baseUrl = _mediaA;
+    final fixture = await _fixture(hostedWeb: true);
+    await fixture.auth.initModel();
+    await _pumpLogin(tester, fixture);
+    expect(fixture.requests, isEmpty);
+    expect(fixture.infoUrls, [_mediaA]);
+    expect(find.byType(TextField), findsNWidgets(2));
+  });
+
+  testWidgets('hosted Web hides the website entry settings operation', (tester) async {
+    await tester.pumpWidget(ProviderScope(
+      overrides: [jmsHostedWebProvider.overrideWithValue(true)],
+      child: const MaterialApp(home: JmsEntryConfigTile()),
+    ));
+    expect(find.byType(ListTile), findsNothing);
+    expect(find.byKey(const Key('jms-entry-settings')), findsNothing);
   });
 
   testWidgets(

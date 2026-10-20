@@ -10,6 +10,7 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:fladder/models/account_model.dart';
 import 'package:fladder/providers/api_provider.dart';
 import 'package:fladder/providers/auth_provider.dart';
+import 'package:fladder/providers/jms_entry_provider.dart';
 import 'package:fladder/providers/shared_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/routes/auto_router.gr.dart';
@@ -57,7 +58,7 @@ class _LoginScreenCredentialsState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (widget.authLinkData != null) {
+      if (!ref.read(jmsHostedWebProvider) && widget.authLinkData != null) {
         loginUsingAuthLink(widget.authLinkData!);
       }
     });
@@ -99,6 +100,7 @@ class _LoginScreenCredentialsState
 
   @override
   Widget build(BuildContext context) {
+    final hostedWeb = ref.watch(jmsHostedWebProvider);
     final linkedSource = normalizeConfiguredSeerrSource(
             ref.watch(authProvider.select((value) => value.tempSeerrUrl))) ??
         normalizeConfiguredSeerrSource(FladderConfig.seerrBaseUrl) ??
@@ -140,16 +142,17 @@ class _LoginScreenCredentialsState
             crossAxisAlignment: CrossAxisAlignment.stretch,
             spacing: 8,
             children: [
-              AspectRatio(
-                aspectRatio: 1,
-                child: IconButton.filledTonal(
-                  onPressed: () => provider.goUserSelect(),
-                  icon: const Icon(
-                    IconsaxPlusLinear.arrow_left_2,
+              if (!hostedWeb || existingUsers.isNotEmpty)
+                AspectRatio(
+                  aspectRatio: 1,
+                  child: IconButton.filledTonal(
+                    onPressed: () => provider.goUserSelect(),
+                    icon: const Icon(
+                      IconsaxPlusLinear.arrow_left_2,
+                    ),
                   ),
                 ),
-              ),
-              if (!hasBaseUrl)
+              if (!hostedWeb && !hasBaseUrl)
                 Expanded(
                   child: OutlinedTextField(
                     controller: serverTextController,
@@ -167,8 +170,9 @@ class _LoginScreenCredentialsState
                   message: context.localized.retrievePublicListOfUsers,
                   waitDuration: const Duration(seconds: 1),
                   child: IconButton.filled(
-                    onPressed: () =>
-                        provider.setServer(serverTextController.text),
+                    onPressed: loading
+                        ? null
+                        : () => provider.setServer(serverTextController.text),
                     icon: const Icon(
                       IconsaxPlusLinear.refresh,
                     ),
@@ -182,7 +186,11 @@ class _LoginScreenCredentialsState
           Semantics(
             liveRegion: true,
             child: Text(
-              provider.entryResolution?.isSuccess == false
+              hostedWeb
+                  ? seerrText(context,
+                      "Unable to load this website's services or connect to the server. Retry or contact the administrator.",
+                      '無法讀取此網站的服務設定或連線到伺服器，請重試或聯絡管理員。')
+                  : provider.entryResolution?.isSuccess == false
                   ? jmsEntryErrorText(context, provider.entryResolution?.error)
                   : urlError!,
               key: const Key('jms-entry-error'),
@@ -205,7 +213,7 @@ class _LoginScreenCredentialsState
             child:
                 Text(seerrText(context, 'Review service changes', '查看並確認服務變更')),
           ),
-        if (provider.entryInput != null &&
+        if ((hostedWeb || provider.entryInput != null) &&
             provider.pendingEntryChange == null &&
             (provider.entryResolution?.isSuccess == false || urlError != null))
           Wrap(spacing: 8, children: [
@@ -215,7 +223,8 @@ class _LoginScreenCredentialsState
                     ? null
                     : () => provider.setServer(serverTextController.text),
                 child: Text(seerrText(context, 'Retry', '重試'))),
-            TextButton(
+            if (!hostedWeb)
+              TextButton(
                 key: const Key('jms-entry-direct'),
                 onPressed: loading
                     ? null
@@ -229,7 +238,9 @@ class _LoginScreenCredentialsState
               context,
               'Using the last valid entry configuration. You can retry the entry.',
               '入口暫時無法讀取，已使用上次有效設定；可重新讀取。')),
-        if (serverCredentials == null)
+        if (hostedWeb && loading && serverCredentials == null)
+          const CircularProgressIndicator(),
+        if (serverCredentials == null && !hostedWeb)
           Column(
             mainAxisSize: MainAxisSize.max,
             children: [
@@ -255,7 +266,7 @@ class _LoginScreenCredentialsState
               ),
             ],
           )
-        else ...[
+        else if (serverCredentials != null) ...[
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -354,7 +365,7 @@ class _LoginScreenCredentialsState
                                 ),
                         ),
                       ),
-                      if (FladderConfig.seerrBaseUrl?.isNotEmpty != true)
+                      if (!hostedWeb && FladderConfig.seerrBaseUrl?.isNotEmpty != true)
                         IconButton.filledTonal(
                           onPressed: () async {
                             final tempSeerrUrl = ref.read(authProvider

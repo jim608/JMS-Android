@@ -59,6 +59,19 @@ void main() {
         headers: {'content-type': 'text/html'}),
     http.Response('<!DOCTYPE html><html>fixture</html>', 200),
   ]) {
+    test('hosted configuration never falls back to direct Jellyfin', () async {
+      final paths = <String>[];
+      final discovery = JmsEntryDiscovery(client: MockClient((request) async {
+        paths.add(request.url.path);
+        return configResponse;
+      }));
+      addTearDown(discovery.close);
+      final result = await discovery.discover('https://entry.example.invalid/jf', requireConfiguration: true);
+      expect(result.kind, JmsEntryResolutionKind.error);
+      expect(result.error, JmsEntryError.invalidConfig);
+      expect(paths, ['/jf/jms-config.json']);
+    });
+
     test('HTML or 404 requires a real public Jellyfin response', () async {
       final paths = <String>[];
       final discovery = JmsEntryDiscovery(client: MockClient((request) async {
@@ -76,6 +89,18 @@ void main() {
       expect(paths, ['/jf/jms-config.json', '/jf/System/Info/Public']);
     });
   }
+
+  test('hosted configuration rejects HTTP without a network request', () async {
+    final requests = <http.Request>[];
+    final discovery = JmsEntryDiscovery(client: MockClient((request) async {
+      requests.add(request);
+      return http.Response(infoBody(), 200);
+    }));
+    addTearDown(discovery.close);
+    final result = await discovery.discover('http://entry.example.invalid', requireConfiguration: true);
+    expect(result.error, JmsEntryError.invalidConfig);
+    expect(requests, isEmpty);
+  });
 
   test('arbitrary HTML or JSON never becomes a direct Jellyfin server',
       () async {

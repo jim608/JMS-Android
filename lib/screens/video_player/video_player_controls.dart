@@ -28,6 +28,7 @@ import 'package:fladder/screens/video_player/components/video_playback_informati
 import 'package:fladder/screens/video_player/components/video_player_brightness_indicator.dart';
 import 'package:fladder/screens/video_player/components/video_player_controls_extras.dart';
 import 'package:fladder/screens/video_player/components/video_player_options_sheet.dart';
+import 'package:fladder/screens/video_player/components/subtitle_offset_dialog.dart';
 import 'package:fladder/screens/video_player/components/video_player_quality_controls.dart';
 import 'package:fladder/screens/video_player/components/video_player_screenshot_indicator.dart';
 import 'package:fladder/screens/video_player/components/video_player_seek_indicator.dart';
@@ -114,9 +115,10 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
     final subtitleWidget = player.subtitleWidget(showOverlay, controlsKey: _bottomControlsKey);
     final isDesktop = AdaptiveLayout.of(context).isDesktop || kIsWeb;
     final speedBoostEnabled = ref.watch(videoPlayerSettingsProvider.select((value) => value.enableSpeedBoost));
+    final subtitleOffsetVisible = ref.watch(subtitleOffsetVisibleProvider);
 
     return Listener(
-      onPointerSignal: setVolume,
+      onPointerSignal: subtitleOffsetVisible ? null : setVolume,
       child: InputHandler(
         autoFocus: true,
         keyMap: ref.watch(videoPlayerSettingsProvider.select((value) => value.currentShortcuts)),
@@ -133,11 +135,15 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
           canPop: false,
           onPopInvokedWithResult: (didPop, result) {
             if (!didPop) {
-              closePlayer();
+              if (ref.read(subtitleOffsetVisibleProvider)) {
+                ref.read(subtitleOffsetVisibleProvider.notifier).state = false;
+              } else {
+                closePlayer();
+              }
             }
           },
           child: MouseRegion(
-            cursor: showOverlay ? SystemMouseCursors.basic : SystemMouseCursors.none,
+            cursor: showOverlay || subtitleOffsetVisible ? SystemMouseCursors.basic : SystemMouseCursors.none,
             onExit: (event) => toggleOverlay(value: false),
             onEnter: (event) => toggleOverlay(value: true),
             onHover: AdaptiveLayout.of(context).isDesktop || kIsWeb ? (event) => toggleOverlay(value: true) : null,
@@ -225,6 +231,7 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
                     );
                   },
                 ),
+                const Positioned.fill(child: SubtitleOffsetOverlay()),
               ],
             ),
           ),
@@ -370,6 +377,8 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
                         IconButton(
                             onPressed: () => showVideoPlayerOptions(context, () => minimizePlayer(context)),
                             icon: const Icon(IconsaxPlusLinear.more)),
+                        if (AdaptiveLayout.viewSizeOf(context) >= ViewSize.desktop)
+                          const SubtitleOffsetButton(),
                         if (pipPlatformSupported && MediaQuery.orientationOf(context) == Orientation.landscape)
                           IconButton(
                             tooltip: context.localized.pictureInPictureTitle,
@@ -993,7 +1002,11 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
 
   void _setSubtitleTrack(SubStreamModel subModel, PlaybackModel? playbackModel, dynamic player) async {
     if (playbackModel == null) return;
+    final previousSecondary = player.secondarySubtitleState.value.selected;
     final newModel = await playbackModel.setSubtitle(subModel, player);
+    if (mounted && previousSecondary != null && player.secondarySubtitleState.value.selected == null) {
+      showSecondarySubtitleNotice(context, player.secondarySubtitleState.value);
+    }
     ref.read(playBackModel.notifier).update((state) => newModel);
     if (newModel != null) {
       await ref.read(playbackModelHelper).shouldReload(newModel);
@@ -1041,6 +1054,10 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
         }
         return true;
       case VideoHotKeys.exit:
+        if (ref.read(subtitleOffsetVisibleProvider)) {
+          ref.read(subtitleOffsetVisibleProvider.notifier).state = false;
+          return true;
+        }
         if (ModalRoute.of(context)?.isCurrent == true) {
           closePlayer();
           return true;

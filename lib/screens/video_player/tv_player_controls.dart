@@ -24,6 +24,7 @@ import 'package:fladder/screens/shared/default_title_bar.dart';
 import 'package:fladder/screens/shared/media/components/item_logo.dart';
 import 'package:fladder/screens/video_player/components/video_playback_information.dart';
 import 'package:fladder/screens/video_player/components/video_player_options_sheet.dart';
+import 'package:fladder/screens/video_player/components/subtitle_offset_dialog.dart';
 import 'package:fladder/screens/video_player/components/video_player_quality_controls.dart';
 import 'package:fladder/screens/video_player/components/video_player_screenshot_indicator.dart';
 import 'package:fladder/screens/video_player/components/video_player_seek_indicator.dart';
@@ -76,8 +77,9 @@ class _TvPlayerControlsState extends ConsumerState<TvPlayerControls> {
   @override
   Widget build(BuildContext context) {
     final player = ref.watch(videoPlayerProvider);
+    final subtitleOffsetVisible = ref.watch(subtitleOffsetVisibleProvider);
     return Listener(
-      onPointerSignal: setVolume,
+      onPointerSignal: subtitleOffsetVisible ? null : setVolume,
       child: InputHandler(
         autoFocus: true,
         keyMap: ref.watch(videoPlayerSettingsProvider.select((value) => value.currentShortcuts)),
@@ -86,11 +88,15 @@ class _TvPlayerControlsState extends ConsumerState<TvPlayerControls> {
           canPop: false,
           onPopInvokedWithResult: (didPop, result) {
             if (!didPop) {
-              closePlayer();
+              if (ref.read(subtitleOffsetVisibleProvider)) {
+                ref.read(subtitleOffsetVisibleProvider.notifier).state = false;
+              } else {
+                closePlayer();
+              }
             }
           },
           child: MouseRegion(
-            cursor: showOverlay ? SystemMouseCursors.basic : SystemMouseCursors.none,
+            cursor: showOverlay || subtitleOffsetVisible ? SystemMouseCursors.basic : SystemMouseCursors.none,
             onExit: (event) => toggleOverlay(value: false),
             onEnter: (event) => toggleOverlay(value: true),
             onHover: AdaptiveLayout.of(context).isDesktop || kIsWeb ? (event) => toggleOverlay(value: true) : null,
@@ -126,6 +132,7 @@ class _TvPlayerControlsState extends ConsumerState<TvPlayerControls> {
                 const VideoPlayerSeekIndicator(),
                 const VideoPlayerVolumeIndicator(),
                 const VideoPlayerScreenshotIndicator(),
+                const Positioned.fill(child: SubtitleOffsetOverlay()),
               ],
             ),
           ),
@@ -710,6 +717,10 @@ class _TvPlayerControlsState extends ConsumerState<TvPlayerControls> {
         }
         return true;
       case VideoHotKeys.exit:
+        if (ref.read(subtitleOffsetVisibleProvider)) {
+          ref.read(subtitleOffsetVisibleProvider.notifier).state = false;
+          return true;
+        }
         if (ModalRoute.of(context)?.isCurrent == true) {
           closePlayer();
           return true;

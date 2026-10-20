@@ -1,3 +1,5 @@
+import 'package:fladder/util/dual_subtitle.dart';
+
 typedef ReadMpvProperty = Future<String> Function(String name);
 typedef WriteMpvProperty = Future<void> Function(String name, String value);
 
@@ -25,6 +27,7 @@ class MpvSubtitleRoute {
   final String override;
   final String visibility;
   final bool plainOverlay;
+  final bool dualText;
 
   const MpvSubtitleRoute({
     this.codec = '',
@@ -34,6 +37,7 @@ class MpvSubtitleRoute {
     this.override = '',
     this.visibility = '',
     this.plainOverlay = false,
+    this.dualText = false,
   });
 
   String get renderer {
@@ -66,10 +70,13 @@ class MpvSubtitleRoute {
     required WriteMpvProperty write,
     required String expectedCodec,
     required bool plainTextPreference,
+    bool dualText = false,
   }) async {
     final codec = await selectedCodec(read);
-    final native = isStyledSubtitle(expectedCodec) ||
-        useNativeSubtitle(codec.isEmpty ? expectedCodec.trim().toLowerCase() : codec, plainTextPreference);
+    final dual = dualText && isPlainTextSubtitle(expectedCodec) && isPlainTextSubtitle(codec);
+    final native = !dual &&
+        (isStyledSubtitle(expectedCodec) ||
+            useNativeSubtitle(codec.isEmpty ? expectedCodec.trim().toLowerCase() : codec, plainTextPreference));
     await write('sub-ass', 'yes');
     await write('sub-ass-override', 'no');
     await write('embeddedfonts', 'yes');
@@ -83,6 +90,7 @@ class MpvSubtitleRoute {
       override: await read('sub-ass-override'),
       visibility: visibility,
       plainOverlay: !native && visibility == 'no',
+      dualText: dual && visibility == 'no',
     );
   }
 }

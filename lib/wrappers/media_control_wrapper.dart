@@ -33,6 +33,8 @@ import 'package:fladder/providers/video_player_provider.dart';
 import 'package:fladder/providers/window_title_provider.dart';
 import 'package:fladder/src/video_player_helper.g.dart' hide PlaybackState;
 import 'package:fladder/util/localization_helper.dart';
+import 'package:fladder/util/dual_subtitle.dart';
+import 'package:fladder/util/subtitle_offset.dart';
 import 'package:fladder/wrappers/players/base_player.dart';
 import 'package:fladder/wrappers/players/lib_mdk.dart'
     if (dart.library.html) 'package:fladder/stubs/web/lib_mdk_web.dart';
@@ -54,6 +56,15 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
   StreamSubscription<PlayerState>? _playerStateSubscription;
 
   bool get hasPlayer => _player != null;
+  SubtitleOffsetController? get subtitleOffsets => _player?.subtitleOffsets;
+  final _secondaryUnavailable = ValueNotifier(
+    const SecondarySubtitleState(issue: SecondarySubtitleIssue.unsupportedBackend),
+  );
+  bool get supportsSecondarySubtitles => _player?.supportsSecondarySubtitles ?? false;
+  ValueListenable<SecondarySubtitleState> get secondarySubtitleState =>
+      _player?.secondarySubtitles ?? _secondaryUnavailable;
+  Future<void> setSecondarySubtitleTrack(SubStreamModel? model, PlaybackModel playbackModel) async =>
+      _player?.setSecondarySubtitleTrack(model, playbackModel);
 
   PlayerOptions? get backend => switch (_player) {
         LibMPV _ => PlayerOptions.libMPV,
@@ -68,8 +79,7 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
       _player?.subtitles(showOverlay, controlsKey: controlsKey);
   Widget? videoWidget(Key key, BoxFit fit) => _player?.videoWidget(key, fit);
   Object get ambientFrameSource => _player?.ambientFrameSource ?? this;
-  Future<ui.Image?> captureAmbientFrame(double maxDimension) async =>
-      await _player?.captureAmbientFrame(maxDimension);
+  Future<ui.Image?> captureAmbientFrame(double maxDimension) async => await _player?.captureAmbientFrame(maxDimension);
 
   Future<Map<String, String>> playbackDiagnostics() async =>
       await _player?.playbackDiagnostics() ??
@@ -174,7 +184,8 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
     } catch (error) {
       if (generation == _setupGeneration) {
         _player = null;
-        _initializationFailure = error is TimeoutException ? 'renderer initialization timed out' : 'player initialization failed';
+        _initializationFailure =
+            error is TimeoutException ? 'renderer initialization timed out' : 'player initialization failed';
         _markPlayerFailure();
       }
       try {

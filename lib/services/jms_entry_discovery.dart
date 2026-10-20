@@ -81,7 +81,7 @@ final class JmsEntryDiscovery {
   }
 
   Future<JmsEntryResolution> discover(String value,
-      {bool forceDirect = false}) async {
+      {bool forceDirect = false, bool requireConfiguration = false}) async {
     if (_closed) return _error(null, JmsEntryError.closed);
     final Uri entry;
     try {
@@ -92,10 +92,16 @@ final class JmsEntryDiscovery {
     final clock = Stopwatch()..start();
     final directOnly = forceDirect || entry.scheme == 'http';
     try {
+      if (requireConfiguration && directOnly) {
+        throw const _Failure(JmsEntryError.invalidConfig);
+      }
       if (directOnly) return await _probe(entry, clock);
       final response = await _get(entry.resolve('jms-config.json'), clock);
       if (response.status == 404 ||
           (response.status == 200 && response.isHtml)) {
+        if (requireConfiguration) {
+          throw const _Failure(JmsEntryError.invalidConfig);
+        }
         return await _probe(entry, clock);
       }
       if (response.status != 200) {

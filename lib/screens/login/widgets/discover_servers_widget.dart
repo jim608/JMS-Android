@@ -6,6 +6,7 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 
 import 'package:fladder/models/credentials_model.dart';
 import 'package:fladder/providers/discovery_provider.dart';
+import 'package:fladder/providers/jms_entry_provider.dart';
 import 'package:fladder/services/local_network_permission.dart';
 import 'package:fladder/util/fladder_config.dart';
 import 'package:fladder/util/list_padding.dart';
@@ -23,7 +24,9 @@ class DiscoverServersWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (FladderConfig.baseUrl?.isNotEmpty == true) return const SizedBox.shrink();
+    if (ref.watch(jmsHostedWebProvider) || FladderConfig.baseUrl?.isNotEmpty == true) {
+      return const SizedBox.shrink();
+    }
     final existingServers = serverCredentials
         .map(
           (credentials) => DiscoveryInfo(

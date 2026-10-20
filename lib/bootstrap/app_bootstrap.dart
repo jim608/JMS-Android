@@ -55,8 +55,14 @@ Future<AppBootstrapResult> bootstrapApplication(List<String> args) async {
   final crashProvider = CrashLogNotifier();
 
   if (kIsWeb) {
-    final configString = await rootBundle.loadString('config/config.json');
-    FladderConfig.fromJson(jsonDecode(configString) as Map<String, dynamic>);
+    try {
+      final configString = await rootBundle.loadString('config/config.json');
+      FladderConfig.fromJson(jsonDecode(configString) as Map<String, dynamic>);
+    } catch (_) {
+      // The hosted login can still read the same-site deployment entry, and
+      // presents a retryable error if neither configuration is available.
+      FladderConfig.fromJson({});
+    }
   }
 
   await SvgUtils.preCacheSVGs();

@@ -160,6 +160,7 @@ class _JmsEntryConfigTileState extends ConsumerState<JmsEntryConfigTile> {
 
   @override
   Widget build(BuildContext context) {
+    if (ref.watch(jmsHostedWebProvider)) return const SizedBox.shrink();
     final account = ref.watch(userProvider);
     final binding = account == null ? null : ref.read(jmsEntrySettingsProvider).forAccount(account);
     if (binding == null) return const SizedBox.shrink();

@@ -16,6 +16,11 @@ import 'package:fladder/services/jms_entry_cache.dart';
 import 'package:fladder/services/jms_entry_discovery.dart';
 import 'package:fladder/util/jms_service_config.dart';
 
+/// Hosted Web always obtains service addresses from its deployment.
+final jmsHostedWebProvider = Provider<bool>((ref) => kIsWeb);
+
+final jmsHostedWebEntryProvider = Provider<String>((ref) => Uri.base.resolve('./').toString());
+
 String _serverUrl(String value) => value.replaceAll(RegExp(r'/+$'), '');
 String _serverId(String value) => value.replaceAll('-', '').toLowerCase();
 

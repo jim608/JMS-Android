@@ -98,6 +98,8 @@ class AuthNotifier extends StateNotifier<LoginScreenModel> {
     } else if (FladderConfig.baseUrl != null) {
       state = state.copyWith(hasBaseUrl: true);
       await setServer(FladderConfig.baseUrl!);
+    } else if (ref.read(jmsHostedWebProvider)) {
+      await setServer('');
     }
   }
 
@@ -413,12 +415,13 @@ class AuthNotifier extends StateNotifier<LoginScreenModel> {
     pendingEntryChange = null;
     entryResolution = null;
     _manualSeerr = false;
-    if (state.hasBaseUrl) {
+    final hostedWeb = ref.read(jmsHostedWebProvider);
+    if (state.hasBaseUrl || (hostedWeb && FladderConfig.baseUrl != null)) {
       if (!await _hasLocalNetworkPermission(FladderConfig.baseUrl!)) return;
       await _fetchServerInfo(FladderConfig.baseUrl!, attempt: attempt);
       return;
     }
-    final trimmed = server.trim();
+    final trimmed = hostedWeb ? ref.read(jmsHostedWebEntryProvider) : server.trim();
     if (trimmed.isEmpty) return;
     entryInput = trimmed;
     if (ref.read(userProvider) != null) {
@@ -437,7 +440,7 @@ class AuthNotifier extends StateNotifier<LoginScreenModel> {
     }
     final result = await ref
         .read(jmsEntryDiscoveryProvider)
-        .discover(trimmed, forceDirect: forceDirect);
+        .discover(trimmed, forceDirect: !hostedWeb && forceDirect, requireConfiguration: hostedWeb);
     if (attempt != _serverAttempt) return;
     entryResolution = result;
     if (!result.isSuccess) {

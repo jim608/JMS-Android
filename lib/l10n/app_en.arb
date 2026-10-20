@@ -2975,5 +2975,31 @@
   },
   "leanBackModeTitle": "Lean-back Mode",
   "leanBackModeDesc": "Enable lean-back mode on Android devices, even if the device reports back as false.",
-  "leanBackModeInfo": "Lean-back mode is re-enabled by default on AndroidTV devices. Toggling this option on non-AndroidTV devices may cause unexpected behavior."
+  "leanBackModeInfo": "Lean-back mode is re-enabled by default on AndroidTV devices. Toggling this option on non-AndroidTV devices may cause unexpected behavior.",
+  "jmsSubtitleOffsetTitle": "Subtitle timing",
+  "jmsSubtitleOffsetHelp": "Positive values show subtitles later; negative values show them earlier. Adjust by 100 ms, from −60 to +60 seconds. Applies to this video only.",
+  "jmsSubtitleOffsetPrimary": "Primary subtitles",
+  "jmsSubtitleOffsetEarlier": "Earlier −100 ms",
+  "jmsSubtitleOffsetLater": "Later +100 ms",
+  "jmsSubtitleOffsetReset": "Reset to 0 ms",
+  "jmsSubtitleOffsetFailed": "Subtitle timing could not be updated. Try again.",
+  "jmsSubtitleOffsetInactive": "Select an available subtitle track first. Burned-in subtitles cannot be adjusted.",
+  "jmsSubtitleOffsetValue": "{milliseconds} ms",
+  "@jmsSubtitleOffsetValue": {
+    "placeholders": {
+      "milliseconds": {
+        "type": "String"
+      }
+    }
+  },
+  "jmsSecondarySubtitle": "Secondary subtitles",
+  "jmsSecondarySubtitleHelp": "Choose an existing SRT, VTT or text track. Secondary subtitles appear smaller below the primary subtitles. ASS/SSA and image subtitles retain their original rendering in single-subtitle mode.",
+  "jmsSecondaryUnsupportedBackend": "This player does not support secondary subtitles. Use the desktop MPV player.",
+  "jmsSecondaryPrimaryOff": "Select a primary text subtitle first. Secondary subtitles are off.",
+  "jmsSecondaryPrimaryFormat": "Secondary subtitles are off because the primary track is ASS/SSA, image-based or unsupported. Its original rendering is preserved.",
+  "jmsSecondaryFormat": "This track cannot be used as a secondary subtitle. ASS/SSA styling and image subtitles require single-subtitle mode.",
+  "jmsSecondarySameTrack": "This is already the primary subtitle track.",
+  "jmsSecondaryUnavailable": "This subtitle track is not available in the current video stream.",
+  "jmsSecondaryFailed": "The secondary track could not be enabled. Secondary subtitles are off; select an available text track.",
+  "jmsSecondaryMediaChanged": "Secondary subtitles were turned off for the new video. Select a track for this episode."
 }
