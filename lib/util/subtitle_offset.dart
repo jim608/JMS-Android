@@ -12,7 +12,7 @@ class SubtitleOffsetController extends ChangeNotifier {
         _refresh = refresh,
         _supportsSecondary = supportsSecondary;
 
-  static const step = Duration(milliseconds: 100);
+  static const step = Duration(milliseconds: 10);
   static const limit = Duration(seconds: 60);
 
   bool _supportsSecondary;
@@ -23,6 +23,7 @@ class SubtitleOffsetController extends ChangeNotifier {
   void setSecondarySupported(bool supported) {
     if (_closed || _supportsSecondary == supported) return;
     _supportsSecondary = supported;
+    _secondaryEditRevision++;
     if (!supported) {
       _secondaryAvailable = false;
       _secondary = Duration.zero;
@@ -42,6 +43,8 @@ class SubtitleOffsetController extends ChangeNotifier {
   bool _primaryAvailable = false;
   bool _secondaryAvailable = false;
   bool _closed = false;
+  int _primaryEditRevision = 0;
+  int _secondaryEditRevision = 0;
 
   Duration get primary => _primary;
   Duration get secondary => _secondary;
@@ -51,12 +54,19 @@ class SubtitleOffsetController extends ChangeNotifier {
   bool get secondaryAvailable => _secondaryAvailable;
   Future<void> get idle => _tail;
 
+  /// Invalidates input drafts after media or channel availability changes, even
+  /// when several notifications are coalesced into a single widget rebuild.
+  int editRevision({bool secondary = false}) =>
+      secondary ? _secondaryEditRevision : _primaryEditRevision;
+
   void setAvailable({required bool primary, required bool secondary}) {
     if (_closed) return;
     secondary = secondary && supportsSecondary;
     if (_primaryAvailable == primary && _secondaryAvailable == secondary) {
       return;
     }
+    if (_primaryAvailable != primary) _primaryEditRevision++;
+    if (_secondaryAvailable != secondary) _secondaryEditRevision++;
     _primaryAvailable = primary;
     _secondaryAvailable = secondary;
     notifyListeners();
@@ -94,6 +104,8 @@ class SubtitleOffsetController extends ChangeNotifier {
   void clear() {
     if (_closed) return;
     _generation++;
+    _primaryEditRevision++;
+    _secondaryEditRevision++;
     _primary = Duration.zero;
     _secondary = Duration.zero;
     _failed = false;
@@ -107,7 +119,9 @@ class SubtitleOffsetController extends ChangeNotifier {
     final read = _read;
     if (read == null) return;
     final actual = double.tryParse(await read(property));
-    if (actual == null || (actual - double.parse(value)).abs() > 0.0005) {
+    if (actual == null ||
+        !actual.isFinite ||
+        (actual - double.parse(value)).abs() > 0.0005) {
       throw StateError('Subtitle timing readback did not match');
     }
   }
@@ -143,4 +157,48 @@ class SubtitleOffsetController extends ChangeNotifier {
     _generation++;
     super.dispose();
   }
+}
+
+final _subtitleOffsetSecondsPattern =
+    RegExp(r'^([+-]?)(?:(\d+)(?:[.,](\d{1,2}))?|[.,](\d{1,2}))$');
+
+/// Parses seconds without rounding or accepting incomplete input. Commas are
+/// accepted as decimal separators for keyboards that use the local separator.
+Duration? parseSubtitleOffsetSeconds(String input) {
+  final match = _subtitleOffsetSecondsPattern.firstMatch(input.trim());
+  if (match == null) return null;
+  final whole = int.tryParse(match.group(2) ?? '0');
+  if (whole == null || whole > SubtitleOffsetController.limit.inSeconds) {
+    return null;
+  }
+  final fraction = match.group(3) ?? match.group(4) ?? '';
+  final hundredths = whole * 100 + int.parse(fraction.padRight(2, '0'));
+  if (hundredths > SubtitleOffsetController.limit.inMilliseconds ~/ 10) {
+    return null;
+  }
+  return Duration(
+      milliseconds: hundredths * 10 * (match.group(1) == '-' ? -1 : 1));
+}
+
+/// Formats a seconds value for the numeric field or signed playback readout.
+String formatSubtitleOffsetSeconds(Duration value,
+    {bool showPositiveSign = true}) {
+  final hundredths = (value.inMicroseconds / 10000).round();
+  final absolute = hundredths.abs();
+  final sign = hundredths < 0
+      ? '-'
+      : hundredths > 0 && showPositiveSign
+          ? '+'
+          : '';
+  return '$sign${absolute ~/ 100}.${(absolute % 100).toString().padLeft(2, '0')}';
+}
+
+/// Keeps slider values on the same exact 0.01 second grid as numeric input.
+Duration subtitleOffsetFromSliderSeconds(double seconds) {
+  if (!seconds.isFinite) {
+    throw ArgumentError.value(seconds, 'seconds', 'Must be finite');
+  }
+  final limit = SubtitleOffsetController.limit.inSeconds;
+  final hundredths = (seconds.clamp(-limit, limit) * 100).round();
+  return Duration(milliseconds: hundredths * 10);
 }

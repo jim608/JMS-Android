@@ -2976,6 +2976,22 @@
   "leanBackModeTitle": "Lean-back Mode",
   "leanBackModeDesc": "Enable lean-back mode on Android devices, even if the device reports back as false.",
   "leanBackModeInfo": "Lean-back mode is re-enabled by default on AndroidTV devices. Toggling this option on non-AndroidTV devices may cause unexpected behavior.",
+  "jmsSubtitleOffsetSecondsHelp": "Enter seconds or drag the slider. Positive values delay subtitles; negative values show them earlier. Use up to two decimal places (0.01 s), from −60 to +60 seconds. Applies to this video only.",
+  "jmsSubtitleOffsetSecondsValue": "{seconds} s",
+  "@jmsSubtitleOffsetSecondsValue": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "jmsSubtitleOffsetSecondsInput": "Offset",
+  "jmsSubtitleOffsetSecondsUnit": "s",
+  "jmsSubtitleOffsetSecondsApply": "Apply subtitle offset",
+  "jmsSubtitleOffsetSecondsInvalid": "Enter seconds from −60 to +60, with up to two decimal places.",
+  "jmsSubtitleOffsetSecondsEarlier": "Earlier −0.01 s",
+  "jmsSubtitleOffsetSecondsLater": "Later +0.01 s",
+  "jmsSubtitleOffsetSecondsReset": "Reset to 0.00 s",
   "jmsSubtitleOffsetTitle": "Subtitle timing",
   "jmsSubtitleOffsetHelp": "Positive values show subtitles later; negative values show them earlier. Adjust by 100 ms, from −60 to +60 seconds. Applies to this video only.",
   "jmsSubtitleOffsetPrimary": "Primary subtitles",

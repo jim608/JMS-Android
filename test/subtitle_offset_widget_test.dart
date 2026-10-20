@@ -58,6 +58,26 @@ Future<void> _pumpControls(
 Finder _button(String slot, String action) =>
     find.byKey(Key('subtitle-offset-$slot-$action'));
 
+Finder _input(String slot) => _button(slot, 'input');
+
+String _inputText(WidgetTester tester, String slot) => tester
+    .widget<EditableText>(
+        find.descendant(of: _input(slot), matching: find.byType(EditableText)))
+    .controller
+    .text;
+
+Future<void> _enterOffset(
+    WidgetTester tester, String slot, String value) async {
+  await tester.ensureVisible(_input(slot));
+  await tester.enterText(_input(slot), value);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _submitOffset(WidgetTester tester) async {
+  await tester.testTextInput.receiveAction(TextInputAction.done);
+  await tester.pumpAndSettle();
+}
+
 Future<void> _tap(WidgetTester tester, String slot, String action) async {
   await tester.ensureVisible(_button(slot, action));
   await tester.tap(_button(slot, action));
@@ -271,26 +291,257 @@ void main() {
     await _pumpControls(tester, controller);
 
     await _tap(tester, 'primary', 'later');
-    expect(controller.primary, const Duration(milliseconds: 100));
+    expect(controller.primary, const Duration(milliseconds: 10));
     expect(controller.secondary, Duration.zero);
-    expect(find.text('+100 ms'), findsOneWidget);
+    expect(find.text('+0.01 s'), findsOneWidget);
 
     await _tap(tester, 'secondary', 'earlier');
-    expect(controller.primary, const Duration(milliseconds: 100));
-    expect(controller.secondary, const Duration(milliseconds: -100));
-    expect(find.text('-100 ms'), findsOneWidget);
+    expect(controller.primary, const Duration(milliseconds: 10));
+    expect(controller.secondary, const Duration(milliseconds: -10));
+    expect(find.text('-0.01 s'), findsOneWidget);
 
     await _tap(tester, 'primary', 'reset');
     expect(controller.primary, Duration.zero);
-    expect(controller.secondary, const Duration(milliseconds: -100));
+    expect(controller.secondary, const Duration(milliseconds: -10));
     await _tap(tester, 'secondary', 'reset');
     expect(controller.secondary, Duration.zero);
     expect(writes, [
-      ('sub-delay', '0.100'),
-      ('secondary-sub-delay', '-0.100'),
+      ('sub-delay', '0.010'),
+      ('secondary-sub-delay', '-0.010'),
       ('sub-delay', '0.000'),
       ('secondary-sub-delay', '0.000'),
     ]);
+  });
+
+  testWidgets('signed hundredths apply only on submit or the apply button',
+      (tester) async {
+    final writes = <(String, String)>[];
+    final controller = SubtitleOffsetController(
+        write: (property, value) async => writes.add((property, value)));
+    addTearDown(controller.dispose);
+    await _pumpControls(tester, controller);
+
+    await _enterOffset(tester, 'primary', '-');
+    expect(writes, isEmpty);
+    await _enterOffset(tester, 'primary', '-0.05');
+    expect(writes, isEmpty);
+    expect(controller.primary, Duration.zero);
+    await _submitOffset(tester);
+    expect(controller.primary, const Duration(milliseconds: -50));
+    expect(_inputText(tester, 'primary'), '-0.05');
+
+    await _enterOffset(tester, 'secondary', '0.01');
+    expect(writes, [('sub-delay', '-0.050')]);
+    await _tap(tester, 'secondary', 'apply');
+    expect(controller.primary, const Duration(milliseconds: -50));
+    expect(controller.secondary, const Duration(milliseconds: 10));
+    expect(writes, [
+      ('sub-delay', '-0.050'),
+      ('secondary-sub-delay', '0.010'),
+    ]);
+  });
+
+  testWidgets('invalid or out of range seconds never reach the engine',
+      (tester) async {
+    final writes = <(String, String)>[];
+    final controller = SubtitleOffsetController(
+        write: (property, value) async => writes.add((property, value)));
+    addTearDown(controller.dispose);
+    await _pumpControls(tester, controller, secondaryEnabled: false);
+
+    for (final input in [
+      '',
+      '-',
+      'abc',
+      'NaN',
+      'Infinity',
+      '60.01',
+      '-60.01',
+      '0.001',
+    ]) {
+      await _enterOffset(tester, 'primary', input);
+      await _submitOffset(tester);
+      expect(writes, isEmpty, reason: 'Invalid input: $input');
+      expect(controller.primary, Duration.zero);
+    }
+
+    await _enterOffset(tester, 'primary', '60.00');
+    await _submitOffset(tester);
+    await _enterOffset(tester, 'primary', '-60');
+    await _submitOffset(tester);
+    expect(writes, [('sub-delay', '60.000'), ('sub-delay', '-60.000')]);
+    expect(controller.primary, -SubtitleOffsetController.limit);
+  });
+
+  testWidgets('slider previews its value and writes once when dragging ends',
+      (tester) async {
+    final writes = <(String, String)>[];
+    final controller = SubtitleOffsetController(
+        write: (property, value) async => writes.add((property, value)));
+    addTearDown(controller.dispose);
+    await _pumpControls(tester, controller, secondaryEnabled: false);
+    final slider = _button('primary', 'slider');
+    await tester.ensureVisible(slider);
+    final gesture = await tester.startGesture(tester.getCenter(slider));
+    await gesture.moveBy(const Offset(30, 0));
+    await tester.pump();
+    final preview = double.parse(_inputText(tester, 'primary'));
+    expect(preview, isNot(0));
+    expect(writes, isEmpty);
+    expect(controller.primary, Duration.zero);
+    await gesture.moveBy(const Offset(20, 0));
+    await tester.pump();
+    expect(writes, isEmpty);
+
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(writes, hasLength(1));
+    expect(controller.primary, isNot(Duration.zero));
+    expect(controller.primary.inMilliseconds % 10, 0);
+    expect(controller.primary.abs(),
+        lessThanOrEqualTo(SubtitleOffsetController.limit));
+    expect(double.parse(_inputText(tester, 'primary')),
+        controller.primary.inMilliseconds / 1000);
+  });
+
+  testWidgets('fields follow confirmed changes, reset and media replacement',
+      (tester) async {
+    final controller = SubtitleOffsetController(write: (_, __) async {});
+    addTearDown(controller.dispose);
+    await _pumpControls(tester, controller);
+
+    await _enterOffset(tester, 'primary', '0.05');
+    await _submitOffset(tester);
+    await _enterOffset(tester, 'secondary', '-0.02');
+    await _submitOffset(tester);
+    await _tap(tester, 'primary', 'reset');
+    expect(double.parse(_inputText(tester, 'primary')), 0);
+    expect(double.parse(_inputText(tester, 'secondary')), -0.02);
+
+    await controller.setOffset(const Duration(milliseconds: 30));
+    await tester.pumpAndSettle();
+    expect(double.parse(_inputText(tester, 'primary')), 0.03);
+    controller.clear();
+    await tester.pumpAndSettle();
+    expect(double.parse(_inputText(tester, 'primary')), 0);
+    expect(double.parse(_inputText(tester, 'secondary')), 0);
+  });
+
+  testWidgets('failed numeric update restores confirmed fields and slider',
+      (tester) async {
+    var fail = false;
+    final controller = SubtitleOffsetController(write: (_, __) async {
+      if (fail) throw StateError('private native engine detail');
+    });
+    addTearDown(controller.dispose);
+    await controller.setOffset(const Duration(milliseconds: 50));
+    await _pumpControls(tester, controller, secondaryEnabled: false);
+
+    fail = true;
+    await _enterOffset(tester, 'primary', '-0.05');
+    await _submitOffset(tester);
+    expect(controller.primary, const Duration(milliseconds: 50));
+    expect(double.parse(_inputText(tester, 'primary')), 0.05);
+    expect(tester.widget<Slider>(_button('primary', 'slider')).value, 0.05);
+    expect(find.textContaining('private native'), findsNothing);
+    expect(find.text('Subtitle timing could not be updated. Try again.'),
+        findsOneWidget);
+  });
+
+  testWidgets('rejected engine readback keeps the last confirmed seconds',
+      (tester) async {
+    final controller = SubtitleOffsetController(
+      write: (_, __) async {},
+      read: (_) async => '0.050',
+    );
+    addTearDown(controller.dispose);
+    await controller.setOffset(const Duration(milliseconds: 50));
+    await _pumpControls(tester, controller, secondaryEnabled: false);
+
+    await _enterOffset(tester, 'primary', '-0.05');
+    await _submitOffset(tester);
+    expect(controller.failed, isTrue);
+    expect(controller.primary, const Duration(milliseconds: 50));
+    expect(double.parse(_inputText(tester, 'primary')), 0.05);
+    expect(tester.widget<Slider>(_button('primary', 'slider')).value, 0.05);
+  });
+
+  testWidgets('track availability changes discard unsubmitted numeric drafts',
+      (tester) async {
+    final writes = <(String, String)>[];
+    final controller = SubtitleOffsetController(
+        write: (property, value) async => writes.add((property, value)))
+      ..setAvailable(primary: true, secondary: true);
+    await controller.setOffset(const Duration(milliseconds: 50));
+    await controller.setOffset(const Duration(milliseconds: -20),
+        secondary: true);
+    writes.clear();
+    final fixture = _EmbeddedFixture(controller: controller);
+    await fixture.mount(tester);
+    await tester.tap(find.byKey(const Key('subtitle-offset-open')));
+    await tester.pumpAndSettle();
+    await _enterOffset(tester, 'primary', '0.25');
+    await _enterOffset(tester, 'secondary', '-0.25');
+    expect(writes, isEmpty);
+
+    controller.setAvailable(primary: false, secondary: false);
+    await tester.pumpAndSettle();
+    expect(double.parse(_inputText(tester, 'primary')), 0.05);
+    expect(_input('secondary'), findsNothing);
+    controller.setAvailable(primary: true, secondary: true);
+    await tester.pumpAndSettle();
+    expect(double.parse(_inputText(tester, 'primary')), 0.05);
+    expect(double.parse(_inputText(tester, 'secondary')), -0.02);
+    expect(writes, isEmpty);
+    fixture.expectStillPlaying();
+  });
+
+  testWidgets('coalesced media reset discards a draft even at zero offset',
+      (tester) async {
+    final writes = <(String, String)>[];
+    final controller = SubtitleOffsetController(
+        write: (property, value) async => writes.add((property, value)))
+      ..setAvailable(primary: true, secondary: false);
+    final fixture = _EmbeddedFixture(controller: controller);
+    await fixture.mount(tester);
+    await tester.tap(find.byKey(const Key('subtitle-offset-open')));
+    await tester.pumpAndSettle();
+    await _enterOffset(tester, 'primary', '0.05');
+    expect(_inputText(tester, 'primary'), '0.05');
+    expect(controller.primary, Duration.zero);
+
+    controller.clear();
+    controller.setAvailable(primary: true, secondary: false);
+    await tester.pumpAndSettle();
+    expect(double.parse(_inputText(tester, 'primary')), 0);
+    expect(tester.widget<Text>(_button('primary', 'value')).data, '0.00 s');
+    expect(writes, isEmpty);
+    fixture.expectStillPlaying();
+  });
+
+  testWidgets('coalesced secondary replacement resets only its own draft',
+      (tester) async {
+    final writes = <(String, String)>[];
+    final controller = SubtitleOffsetController(
+        write: (property, value) async => writes.add((property, value)))
+      ..setAvailable(primary: true, secondary: true);
+    final fixture = _EmbeddedFixture(controller: controller);
+    await fixture.mount(tester);
+    await tester.tap(find.byKey(const Key('subtitle-offset-open')));
+    await tester.pumpAndSettle();
+    await _enterOffset(tester, 'primary', '0.04');
+    await _enterOffset(tester, 'secondary', '0.05');
+    expect(controller.primary, Duration.zero);
+    expect(controller.secondary, Duration.zero);
+
+    controller.setAvailable(primary: true, secondary: false);
+    controller.setAvailable(primary: true, secondary: true);
+    await tester.pumpAndSettle();
+    expect(_inputText(tester, 'primary'), '0.04');
+    expect(double.parse(_inputText(tester, 'secondary')), 0);
+    expect(tester.widget<Text>(_button('secondary', 'value')).data, '0.00 s');
+    expect(writes, isEmpty);
+    fixture.expectStillPlaying();
   });
 
   testWidgets(
@@ -308,6 +559,16 @@ void main() {
               .onPressed,
           isNull);
     }
+    expect(
+        tester
+            .widget<EditableText>(find.descendant(
+                of: _input('primary'), matching: find.byType(EditableText)))
+            .readOnly,
+        isTrue);
+    expect(
+        tester.widget<Slider>(_button('primary', 'slider')).onChanged, isNull);
+    expect(tester.widget<IconButton>(_button('primary', 'apply')).onPressed,
+        isNull);
     expect(_button('secondary', 'earlier'), findsNothing);
     expect(find.textContaining('Burned-in subtitles'), findsOneWidget);
   });
@@ -329,6 +590,15 @@ void main() {
             tester.widget<ButtonStyleButton>(_button(slot, action)).onPressed,
             isNull);
       }
+      expect(
+          tester
+              .widget<EditableText>(find.descendant(
+                  of: _input(slot), matching: find.byType(EditableText)))
+              .readOnly,
+          isTrue);
+      expect(tester.widget<Slider>(_button(slot, 'slider')).onChanged, isNull);
+      expect(
+          tester.widget<IconButton>(_button(slot, 'apply')).onPressed, isNull);
     }
 
     pending.complete();
@@ -337,7 +607,7 @@ void main() {
     expect(
         tester.widget<ButtonStyleButton>(_button('primary', 'later')).onPressed,
         isNotNull);
-    expect(controller.primary, const Duration(milliseconds: 100));
+    expect(controller.primary, const Duration(milliseconds: 10));
   });
 
   testWidgets(
@@ -348,15 +618,15 @@ void main() {
       if (fail) throw StateError('private native engine detail');
     });
     addTearDown(controller.dispose);
-    await controller.setOffset(const Duration(milliseconds: 100));
+    await controller.setOffset(const Duration(milliseconds: 10));
     await _pumpControls(tester, controller,
         locale:
             const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'));
 
     fail = true;
     await _tap(tester, 'primary', 'later');
-    expect(controller.primary, const Duration(milliseconds: 100));
-    expect(find.text('+100 毫秒'), findsOneWidget);
+    expect(controller.primary, const Duration(milliseconds: 10));
+    expect(find.text('+0.01 秒'), findsOneWidget);
     expect(find.text('無法更新字幕時間，請重試。'), findsOneWidget);
     expect(find.textContaining('private native'), findsNothing);
 
@@ -385,8 +655,8 @@ void main() {
         isNull);
     await _tap(tester, 'primary', 'earlier');
     await _tap(tester, 'secondary', 'later');
-    expect(controller.primary, const Duration(milliseconds: 59900));
-    expect(controller.secondary, const Duration(milliseconds: -59900));
+    expect(controller.primary, const Duration(milliseconds: 59990));
+    expect(controller.secondary, const Duration(milliseconds: -59990));
   });
 
   testWidgets('narrow dialog wraps and scrolls controls with large text',
@@ -404,8 +674,8 @@ void main() {
 
     await _tap(tester, 'primary', 'later');
     await _tap(tester, 'secondary', 'earlier');
-    expect(controller.primary, const Duration(milliseconds: 100));
-    expect(controller.secondary, const Duration(milliseconds: -100));
+    expect(controller.primary, const Duration(milliseconds: 10));
+    expect(controller.secondary, const Duration(milliseconds: -10));
     expect(tester.takeException(), isNull);
     for (final slot in ['primary', 'secondary']) {
       for (final action in ['earlier', 'later', 'reset']) {
@@ -439,10 +709,11 @@ void main() {
     expect(find.byKey(const Key('subtitle-offset-panel')), findsOneWidget);
     await _tap(tester, 'primary', 'later');
     await _tap(tester, 'secondary', 'earlier');
-    expect(controller.primary, const Duration(milliseconds: 100));
-    expect(controller.secondary, const Duration(milliseconds: -100));
+    expect(controller.primary, const Duration(milliseconds: 10));
+    expect(controller.secondary, const Duration(milliseconds: -10));
     fixture.expectStillPlaying();
 
+    await tester.ensureVisible(find.byKey(const Key('subtitle-offset-close')));
     await tester.tap(find.byKey(const Key('subtitle-offset-close')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('subtitle-offset-panel')), findsNothing);
@@ -478,7 +749,7 @@ void main() {
   });
 
   testWidgets(
-      'Escape from a focused offset button closes only the embedded panel',
+      'Escape from the focused numeric field closes only the embedded panel',
       (tester) async {
     final controller = SubtitleOffsetController(write: (_, __) async {})
       ..setAvailable(primary: true, secondary: false);
@@ -487,8 +758,8 @@ void main() {
     await tester.tap(find.byKey(const Key('subtitle-offset-open')));
     await tester.pumpAndSettle();
 
-    Focus.of(tester.element(_button('primary', 'later'))).requestFocus();
-    await tester.pump();
+    await _enterOffset(tester, 'primary', '-0.05');
+    expect(tester.testTextInput.hasAnyClients, isTrue);
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('subtitle-offset-panel')), findsNothing);
@@ -513,7 +784,7 @@ void main() {
     expect(find.byKey(const Key('subtitle-offset-panel')), findsOneWidget);
     expect(fixture.routes.pushes, 2);
     await _tap(tester, 'primary', 'earlier');
-    expect(controller.primary, const Duration(milliseconds: -100));
+    expect(controller.primary, const Duration(milliseconds: -10));
     fixture.expectStillPlaying();
   });
 
@@ -529,8 +800,8 @@ void main() {
 
     await _tap(tester, 'primary', 'later');
     await _tap(tester, 'secondary', 'earlier');
-    expect(controller.primary, const Duration(milliseconds: 100));
-    expect(controller.secondary, const Duration(milliseconds: -100));
+    expect(controller.primary, const Duration(milliseconds: 10));
+    expect(controller.secondary, const Duration(milliseconds: -10));
     expect(tester.takeException(), isNull);
     final panel =
         tester.getRect(find.byKey(const Key('subtitle-offset-panel')));
@@ -563,6 +834,45 @@ void main() {
             .widget<IconButton>(find.byKey(const Key('subtitle-offset-open')))
             .onPressed,
         isNotNull);
+    fixture.expectStillPlaying();
+  });
+
+  testWidgets(
+      'numeric input and slider remain usable at 320 pixels with keyboard and large text',
+      (tester) async {
+    final controller = SubtitleOffsetController(write: (_, __) async {})
+      ..setAvailable(primary: true, secondary: true);
+    final fixture = _EmbeddedFixture(controller: controller);
+    await fixture.mount(tester, viewport: const Size(320, 568), textScale: 2);
+    await tester.tap(find.byKey(const Key('subtitle-offset-open')));
+    await tester.pumpAndSettle();
+
+    await _enterOffset(tester, 'primary', '-0.05');
+    tester.view.viewInsets = const FakeViewPadding(bottom: 260);
+    addTearDown(tester.view.resetViewInsets);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(_input('primary'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await _tap(tester, 'primary', 'apply');
+    expect(controller.primary, const Duration(milliseconds: -50));
+
+    await _enterOffset(tester, 'secondary', '0.01');
+    await _submitOffset(tester);
+    expect(controller.secondary, const Duration(milliseconds: 10));
+    expect(tester.takeException(), isNull);
+    final panel =
+        tester.getRect(find.byKey(const Key('subtitle-offset-panel')));
+    expect(panel.left, greaterThanOrEqualTo(0));
+    expect(panel.right, lessThanOrEqualTo(320));
+    expect(panel.bottom, lessThanOrEqualTo(308));
+    for (final slot in ['primary', 'secondary']) {
+      for (final action in ['input', 'slider']) {
+        final rect = tester.getRect(_button(slot, action));
+        expect(rect.left, greaterThanOrEqualTo(0));
+        expect(rect.right, lessThanOrEqualTo(320));
+      }
+    }
     fixture.expectStillPlaying();
   });
 }

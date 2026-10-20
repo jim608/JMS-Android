@@ -4,6 +4,227 @@ import 'package:fladder/util/subtitle_offset.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('media reset invalidates both input revisions even for unchanged zero',
+      () async {
+    final controller = SubtitleOffsetController(write: (_, __) async {});
+    addTearDown(controller.dispose);
+    controller.setAvailable(primary: true, secondary: true);
+    final primary = controller.editRevision();
+    final secondary = controller.editRevision(secondary: true);
+    expect(controller.primary, Duration.zero);
+
+    controller.clear();
+    controller.setAvailable(primary: true, secondary: true);
+    expect(controller.primary, Duration.zero);
+    expect(controller.primaryAvailable, isTrue);
+    expect(controller.secondaryAvailable, isTrue);
+    expect(controller.editRevision(), greaterThan(primary));
+    expect(controller.editRevision(secondary: true), greaterThan(secondary));
+
+    final afterClear = controller.editRevision();
+    final afterSecondaryClear = controller.editRevision(secondary: true);
+    expect(await controller.resetForMedia(), isTrue);
+    expect(controller.editRevision(), greaterThan(afterClear));
+    expect(controller.editRevision(secondary: true),
+        greaterThan(afterSecondaryClear));
+  });
+
+  test('coalesced availability changes invalidate only their channel drafts',
+      () {
+    final controller = SubtitleOffsetController(write: (_, __) async {});
+    addTearDown(controller.dispose);
+    controller.setAvailable(primary: true, secondary: true);
+    final primary = controller.editRevision();
+    final secondary = controller.editRevision(secondary: true);
+
+    controller.setAvailable(primary: false, secondary: true);
+    controller.setAvailable(primary: true, secondary: true);
+    expect(controller.primaryAvailable, isTrue);
+    expect(controller.editRevision(), primary + 2);
+    expect(controller.editRevision(secondary: true), secondary);
+
+    controller.setAvailable(primary: true, secondary: false);
+    controller.setAvailable(primary: true, secondary: true);
+    expect(controller.secondaryAvailable, isTrue);
+    expect(controller.editRevision(), primary + 2);
+    expect(controller.editRevision(secondary: true), secondary + 2);
+
+    controller.setAvailable(primary: true, secondary: true);
+    expect(controller.editRevision(), primary + 2);
+    expect(controller.editRevision(secondary: true), secondary + 2);
+  });
+
+  test('secondary capabilities invalidate only the secondary input revision',
+      () {
+    final controller = SubtitleOffsetController(write: (_, __) async {});
+    addTearDown(controller.dispose);
+    controller.setAvailable(primary: true, secondary: true);
+    final primary = controller.editRevision();
+    final secondary = controller.editRevision(secondary: true);
+
+    controller.setSecondarySupported(false);
+    expect(controller.editRevision(), primary);
+    expect(controller.editRevision(secondary: true), secondary + 1);
+    expect(controller.secondaryAvailable, isFalse);
+    controller.setSecondarySupported(false);
+    expect(controller.editRevision(secondary: true), secondary + 1);
+    controller.setSecondarySupported(true);
+    expect(controller.editRevision(), primary);
+    expect(controller.editRevision(secondary: true), secondary + 2);
+  });
+
+  test('offset writes and busy changes preserve both input revisions',
+      () async {
+    final pending = Completer<void>();
+    final controller =
+        SubtitleOffsetController(write: (_, __) => pending.future);
+    addTearDown(controller.dispose);
+    controller.setAvailable(primary: true, secondary: true);
+    final primary = controller.editRevision();
+    final secondary = controller.editRevision(secondary: true);
+
+    final applied = controller.setOffset(const Duration(milliseconds: 10));
+    expect(controller.busy, isTrue);
+    expect(controller.editRevision(), primary);
+    expect(controller.editRevision(secondary: true), secondary);
+    pending.complete();
+    expect(await applied, isTrue);
+    expect(controller.primary, const Duration(milliseconds: 10));
+    expect(controller.busy, isFalse);
+    expect(controller.editRevision(), primary);
+    expect(controller.editRevision(secondary: true), secondary);
+  });
+
+  test('seconds input keeps signed hundredths exact and accepts decimal commas',
+      () {
+    final samples = <String, int>{
+      '0': 0,
+      '-0.00': 0,
+      '+0.01': 10,
+      '-0.05': -50,
+      '.07': 70,
+      '-,09': -90,
+      '1.2': 1200,
+      '  +1,23  ': 1230,
+      '60.00': 60000,
+      '-60': -60000,
+    };
+    for (final entry in samples.entries) {
+      expect(parseSubtitleOffsetSeconds(entry.key),
+          Duration(milliseconds: entry.value),
+          reason: entry.key);
+    }
+  });
+
+  test('seconds input rejects incomplete, imprecise and out-of-range values',
+      () {
+    for (final input in [
+      '',
+      ' ',
+      '-',
+      '+',
+      '.',
+      '1.',
+      '1,',
+      '0.001',
+      '-0,001',
+      '60.01',
+      '-60.01',
+      '61',
+      '999999999999999999999999999999999999',
+      'NaN',
+      'Infinity',
+      '-Infinity',
+      '1e-2',
+      '1.2.3',
+      '1,2.3',
+      '1 2',
+      '1 s',
+      '--1',
+    ]) {
+      expect(parseSubtitleOffsetSeconds(input), isNull, reason: input);
+    }
+  });
+
+  test('seconds display round-trips every hundredth within the allowed range',
+      () {
+    for (var hundredths = -6000; hundredths <= 6000; hundredths++) {
+      final value = Duration(milliseconds: hundredths * 10);
+      expect(parseSubtitleOffsetSeconds(formatSubtitleOffsetSeconds(value)),
+          value);
+    }
+    expect(formatSubtitleOffsetSeconds(Duration.zero), '0.00');
+    expect(
+        formatSubtitleOffsetSeconds(const Duration(milliseconds: 10)), '+0.01');
+    expect(formatSubtitleOffsetSeconds(const Duration(milliseconds: -50)),
+        '-0.05');
+    expect(
+        formatSubtitleOffsetSeconds(const Duration(milliseconds: 10),
+            showPositiveSign: false),
+        '0.01');
+    expect(
+        formatSubtitleOffsetSeconds(const Duration(milliseconds: -1)), '0.00');
+  });
+
+  test('slider conversion snaps to hundredths and clamps to both limits', () {
+    expect(subtitleOffsetFromSliderSeconds(0.009999999),
+        const Duration(milliseconds: 10));
+    expect(subtitleOffsetFromSliderSeconds(-0.050000001),
+        const Duration(milliseconds: -50));
+    expect(subtitleOffsetFromSliderSeconds(1.234),
+        const Duration(milliseconds: 1230));
+    expect(subtitleOffsetFromSliderSeconds(61), SubtitleOffsetController.limit);
+    expect(
+        subtitleOffsetFromSliderSeconds(-61), -SubtitleOffsetController.limit);
+    for (final value in [
+      double.nan,
+      double.infinity,
+      double.negativeInfinity
+    ]) {
+      expect(() => subtitleOffsetFromSliderSeconds(value), throwsArgumentError);
+    }
+  });
+
+  test('hundredths reach each engine channel and survive exact readback',
+      () async {
+    final properties = <String, String>{};
+    final controller = SubtitleOffsetController(
+      write: (name, value) async => properties[name] = value,
+      read: (name) async => properties[name]!,
+    );
+    addTearDown(controller.dispose);
+    expect(SubtitleOffsetController.step, const Duration(milliseconds: 10));
+    expect(await controller.setOffset(parseSubtitleOffsetSeconds('0.01')!),
+        isTrue);
+    expect(
+        await controller.setOffset(parseSubtitleOffsetSeconds('-0.05')!,
+            secondary: true),
+        isTrue);
+    expect(properties, {'sub-delay': '0.010', 'secondary-sub-delay': '-0.050'});
+    expect(controller.primary, const Duration(milliseconds: 10));
+    expect(controller.secondary, const Duration(milliseconds: -50));
+  });
+
+  test('non-finite engine readback never confirms a subtitle adjustment',
+      () async {
+    var readback = '0.010';
+    final controller = SubtitleOffsetController(
+      write: (_, __) async {},
+      read: (_) async => readback,
+    );
+    addTearDown(controller.dispose);
+    expect(
+        await controller.setOffset(const Duration(milliseconds: 10)), isTrue);
+    for (final invalid in ['NaN', 'Infinity', '-Infinity', '1e309']) {
+      readback = invalid;
+      expect(await controller.setOffset(const Duration(milliseconds: -50)),
+          isFalse,
+          reason: invalid);
+      expect(controller.primary, const Duration(milliseconds: 10));
+      expect(controller.failed, isTrue);
+    }
+  });
+
   test('a primary-only backend resets only its supported timing property',
       () async {
     final writes = <String>[];

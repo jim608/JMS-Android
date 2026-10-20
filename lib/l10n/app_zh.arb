@@ -2246,6 +2246,22 @@
     "requestPermission": "请求权限",
     "localNetworkPermissionDenied": "需要本地网络访问权限。请在系统设置中启用附近设备权限。",
     "openSettings": "打开设置",
+  "jmsSubtitleOffsetSecondsHelp": "可输入秒数或拖动滑轨。正数让字幕延后，负数让字幕提前；支持小数点后两位（0.01 秒），范围为 −60 至 +60 秒，仅适用于当前影片。",
+  "jmsSubtitleOffsetSecondsValue": "{seconds} 秒",
+  "@jmsSubtitleOffsetSecondsValue": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "jmsSubtitleOffsetSecondsInput": "偏移",
+  "jmsSubtitleOffsetSecondsUnit": "秒",
+  "jmsSubtitleOffsetSecondsApply": "应用字幕偏移",
+  "jmsSubtitleOffsetSecondsInvalid": "请输入 −60 至 +60 的秒数，最多两位小数。",
+  "jmsSubtitleOffsetSecondsEarlier": "提前 −0.01 秒",
+  "jmsSubtitleOffsetSecondsLater": "延后 +0.01 秒",
+  "jmsSubtitleOffsetSecondsReset": "归零至 0.00 秒",
   "jmsSubtitleOffsetTitle": "字幕时间调整",
   "jmsSubtitleOffsetHelp": "正数让字幕延后显示，负数让字幕提前显示。每次调整 100 毫秒，范围为 −60 至 +60 秒。仅适用于当前影片。",
   "jmsSubtitleOffsetPrimary": "主要字幕",

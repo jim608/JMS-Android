@@ -1947,6 +1947,22 @@
     "hidePlayedInLatestDescription": "隱藏「最近新增的影片」中已觀看的內容",
     "groupedFoldersTitle": "分組媒體庫",
     "groupedFoldersDescription": "自動將以下媒體庫的內容分組為「電影」、「音樂」和「電視節目」等檢視項目。",
+  "jmsSubtitleOffsetSecondsHelp": "可輸入秒數或拖動滑軌。正數讓字幕延後，負數讓字幕提前；支援小數點後兩位（0.01 秒），範圍為 −60 至 +60 秒，僅適用於目前影片。",
+  "jmsSubtitleOffsetSecondsValue": "{seconds} 秒",
+  "@jmsSubtitleOffsetSecondsValue": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "jmsSubtitleOffsetSecondsInput": "偏移",
+  "jmsSubtitleOffsetSecondsUnit": "秒",
+  "jmsSubtitleOffsetSecondsApply": "套用字幕偏移",
+  "jmsSubtitleOffsetSecondsInvalid": "請輸入 −60 至 +60 的秒數，最多兩位小數。",
+  "jmsSubtitleOffsetSecondsEarlier": "提前 −0.01 秒",
+  "jmsSubtitleOffsetSecondsLater": "延後 +0.01 秒",
+  "jmsSubtitleOffsetSecondsReset": "歸零至 0.00 秒",
   "jmsSubtitleOffsetTitle": "字幕時間調整",
   "jmsSubtitleOffsetHelp": "正數讓字幕延後顯示，負數讓字幕提前顯示。每次調整 100 毫秒，範圍為 −60 至 +60 秒。僅適用於目前影片。",
   "jmsSubtitleOffsetPrimary": "主要字幕",

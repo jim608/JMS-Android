@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fladder/providers/video_player_provider.dart';
+import 'package:fladder/util/input_handler.dart';
 import 'package:fladder/util/localization_helper.dart';
 import 'package:fladder/util/subtitle_offset.dart';
 
@@ -44,8 +45,8 @@ class SubtitleOffsetTile extends ConsumerWidget {
         leading: const Icon(Icons.sync_alt_rounded),
         title: Text(context.localized.jmsSubtitleOffsetTitle),
         subtitle: Text(controller.primaryAvailable
-            ? context.localized
-                .jmsSubtitleOffsetValue(_signedMilliseconds(controller.primary))
+            ? context.localized.jmsSubtitleOffsetSecondsValue(
+                formatSubtitleOffsetSeconds(controller.primary))
             : context.localized.jmsSubtitleOffsetInactive),
         onTap: controller.primaryAvailable
             ? () {
@@ -72,7 +73,9 @@ class SubtitleOffsetOverlay extends ConsumerWidget {
     if (controller == null) return const SizedBox.shrink();
     void close() =>
         ref.read(subtitleOffsetVisibleProvider.notifier).state = false;
-    return Focus(
+    return PlayerShortcutBoundary(
+        child: FocusScope(
+      autofocus: true,
       onKeyEvent: (node, event) {
         if (event is KeyDownEvent &&
             event.logicalKey == LogicalKeyboardKey.escape) {
@@ -91,18 +94,21 @@ class SubtitleOffsetOverlay extends ConsumerWidget {
             child: const SizedBox.expand(),
           ),
           SafeArea(
-            child: Align(
-              alignment: Alignment.topRight,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child:
-                    SubtitleOffsetPanel(controller: controller, onClose: close),
-              ),
-            ),
+            child: Padding(
+                padding: EdgeInsets.only(
+                    bottom: MediaQuery.viewInsetsOf(context).bottom),
+                child: Align(
+                  alignment: Alignment.topRight,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: SubtitleOffsetPanel(
+                        controller: controller, onClose: close),
+                  ),
+                )),
           ),
         ],
       ),
-    );
+    ));
   }
 }
 
@@ -127,38 +133,36 @@ class SubtitleOffsetPanel extends StatelessWidget {
         elevation: 6,
         borderRadius: BorderRadius.circular(16),
         clipBehavior: Clip.antiAlias,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                      child: Text(context.localized.jmsSubtitleOffsetTitle,
-                          style: Theme.of(context).textTheme.titleMedium)),
-                  IconButton(
-                    key: const Key('subtitle-offset-close'),
-                    tooltip: context.localized.close,
-                    onPressed: onClose,
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Flexible(
-                child: SingleChildScrollView(
-                  child: ListenableBuilder(
-                    listenable: controller,
-                    builder: (context, child) => SubtitleOffsetControls(
-                      controller: controller,
-                      primaryEnabled: controller.primaryAvailable,
-                      secondaryEnabled: controller.secondaryAvailable,
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                        child: Text(context.localized.jmsSubtitleOffsetTitle,
+                            style: Theme.of(context).textTheme.titleMedium)),
+                    IconButton(
+                      key: const Key('subtitle-offset-close'),
+                      tooltip: context.localized.close,
+                      onPressed: onClose,
+                      icon: const Icon(Icons.close),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ListenableBuilder(
+                  listenable: controller,
+                  builder: (context, child) => SubtitleOffsetControls(
+                    controller: controller,
+                    primaryEnabled: controller.primaryAvailable,
+                    secondaryEnabled: controller.secondaryAvailable,
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -188,12 +192,26 @@ class SubtitleOffsetControls extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(context.localized.jmsSubtitleOffsetHelp),
+          Text(context.localized.jmsSubtitleOffsetSecondsHelp),
           const SizedBox(height: 16),
-          _offsetRow(context, secondary: false),
+          _SubtitleOffsetRow(
+            key: ValueKey(('primary-offset-row', controller.editRevision())),
+            controller: controller,
+            value: controller.primary,
+            available: primaryEnabled,
+          ),
           if (secondaryEnabled) ...[
             const SizedBox(height: 20),
-            _offsetRow(context, secondary: true),
+            _SubtitleOffsetRow(
+              key: ValueKey((
+                'secondary-offset-row',
+                controller.editRevision(secondary: true)
+              )),
+              controller: controller,
+              value: controller.secondary,
+              available: secondaryEnabled,
+              secondary: true,
+            ),
           ],
           if (!primaryEnabled) ...[
             const SizedBox(height: 12),
@@ -217,18 +235,139 @@ class SubtitleOffsetControls extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _offsetRow(BuildContext context, {required bool secondary}) {
-    final value = secondary ? controller.secondary : controller.primary;
-    final enabled =
-        (secondary ? secondaryEnabled : primaryEnabled) && !controller.busy;
-    final prefix = secondary ? 'secondary' : 'primary';
+class _SubtitleOffsetRow extends StatefulWidget {
+  const _SubtitleOffsetRow({
+    required this.controller,
+    required this.value,
+    required this.available,
+    this.secondary = false,
+    super.key,
+  });
+
+  final SubtitleOffsetController controller;
+  final Duration value;
+  final bool available;
+  final bool secondary;
+
+  @override
+  State<_SubtitleOffsetRow> createState() => _SubtitleOffsetRowState();
+}
+
+class _SubtitleOffsetRowState extends State<_SubtitleOffsetRow> {
+  late final TextEditingController _text;
+  final FocusNode _focus = FocusNode();
+  Duration? _preview;
+  bool _invalid = false;
+  bool _dirty = false;
+  int _epoch = 0;
+  int? _dragEpoch;
+
+  Duration get _actual => widget.secondary
+      ? widget.controller.secondary
+      : widget.controller.primary;
+  bool get _enabled => widget.available && !widget.controller.busy;
+  String get _prefix => widget.secondary ? 'secondary' : 'primary';
+
+  @override
+  void initState() {
+    super.initState();
+    _text = TextEditingController(
+      text: formatSubtitleOffsetSeconds(widget.value, showPositiveSign: false),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _SubtitleOffsetRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller ||
+        oldWidget.value != widget.value ||
+        (oldWidget.available && !widget.available) ||
+        (widget.controller.busy && _preview != null)) {
+      _epoch++;
+      _restore();
+    }
+  }
+
+  void _setText(Duration value) {
+    final text = formatSubtitleOffsetSeconds(value, showPositiveSign: false);
+    _text.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+
+  void _restore() {
+    _preview = null;
+    _dragEpoch = null;
+    _invalid = false;
+    _dirty = false;
+    _setText(_actual);
+  }
+
+  Future<void> _apply(Duration value) async {
+    if (!_enabled) return;
+    final epoch = _epoch;
+    setState(() {
+      _preview = null;
+      _dragEpoch = null;
+      _invalid = false;
+    });
+    await widget.controller.setOffset(value, secondary: widget.secondary);
+    if (!mounted || epoch != _epoch) return;
+    setState(_restore);
+  }
+
+  void _submit() {
+    if (!_enabled) return;
+    final value = parseSubtitleOffsetSeconds(_text.text);
+    if (value == null) {
+      setState(() => _invalid = true);
+      return;
+    }
+    _apply(value);
+  }
+
+  void _startDrag(double value) {
+    _focus.unfocus();
+    _dragEpoch = _epoch;
+  }
+
+  void _previewDrag(double value) {
+    if (_dragEpoch != _epoch) return;
+    final offset = subtitleOffsetFromSliderSeconds(value);
+    setState(() {
+      _preview = offset;
+      _invalid = false;
+      _dirty = true;
+      _setText(offset);
+    });
+  }
+
+  void _endDrag(double value) {
+    if (_dragEpoch != _epoch) return;
+    _apply(subtitleOffsetFromSliderSeconds(value));
+  }
+
+  @override
+  void dispose() {
+    _text.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final displayed = _preview ?? widget.value;
+    final label = context.localized
+        .jmsSubtitleOffsetSecondsValue(formatSubtitleOffsetSeconds(displayed));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          secondary
+          widget.secondary
               ? context.localized.jmsSecondarySubtitle
               : context.localized.jmsSubtitleOffsetPrimary,
           style: Theme.of(context).textTheme.titleMedium,
@@ -236,42 +375,100 @@ class SubtitleOffsetControls extends StatelessWidget {
         Semantics(
           liveRegion: true,
           child: Text(
-            context.localized
-                .jmsSubtitleOffsetValue(_signedMilliseconds(value)),
-            key: Key('subtitle-offset-$prefix-value'),
+            label,
+            key: Key('subtitle-offset-$_prefix-value'),
             style: Theme.of(context).textTheme.titleLarge,
           ),
         ),
         const SizedBox(height: 8),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: TextField(
+                key: Key('subtitle-offset-$_prefix-input'),
+                controller: _text,
+                focusNode: _focus,
+                enabled: widget.available,
+                readOnly: widget.controller.busy,
+                keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true, signed: true),
+                textInputAction: TextInputAction.done,
+                autocorrect: false,
+                enableSuggestions: false,
+                decoration: InputDecoration(
+                  labelText: context.localized.jmsSubtitleOffsetSecondsInput,
+                  suffixText: context.localized.jmsSubtitleOffsetSecondsUnit,
+                  border: const OutlineInputBorder(),
+                ),
+                onChanged: (_) => setState(() {
+                  _invalid = false;
+                  _dirty = true;
+                }),
+                onEditingComplete: () {},
+                onSubmitted: (_) => _submit(),
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              key: Key('subtitle-offset-$_prefix-apply'),
+              tooltip: context.localized.jmsSubtitleOffsetSecondsApply,
+              onPressed: _enabled && _dirty ? _submit : null,
+              icon: const Icon(Icons.check),
+            ),
+          ],
+        ),
+        if (_invalid) ...[
+          const SizedBox(height: 8),
+          Semantics(
+            liveRegion: true,
+            child: Text(
+              context.localized.jmsSubtitleOffsetSecondsInvalid,
+              key: Key('subtitle-offset-$_prefix-invalid'),
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+        ],
+        Slider(
+          key: Key('subtitle-offset-$_prefix-slider'),
+          value: displayed.inMilliseconds / 1000,
+          min: -60,
+          max: 60,
+          divisions: 12000,
+          label: label,
+          semanticFormatterCallback: (value) => context.localized
+              .jmsSubtitleOffsetSecondsValue(formatSubtitleOffsetSeconds(
+                  subtitleOffsetFromSliderSeconds(value))),
+          onChangeStart: _enabled ? _startDrag : null,
+          onChanged: _enabled ? _previewDrag : null,
+          onChangeEnd: _enabled ? _endDrag : null,
+        ),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: [
             OutlinedButton(
-              key: Key('subtitle-offset-$prefix-earlier'),
-              onPressed: enabled && value > -SubtitleOffsetController.limit
-                  ? () => controller.setOffset(
-                      value - SubtitleOffsetController.step,
-                      secondary: secondary)
+              key: Key('subtitle-offset-$_prefix-earlier'),
+              onPressed: _enabled &&
+                      widget.value > -SubtitleOffsetController.limit
+                  ? () => _apply(widget.value - SubtitleOffsetController.step)
                   : null,
-              child: Text(context.localized.jmsSubtitleOffsetEarlier),
+              child: Text(context.localized.jmsSubtitleOffsetSecondsEarlier),
             ),
             OutlinedButton(
-              key: Key('subtitle-offset-$prefix-later'),
-              onPressed: enabled && value < SubtitleOffsetController.limit
-                  ? () => controller.setOffset(
-                      value + SubtitleOffsetController.step,
-                      secondary: secondary)
+              key: Key('subtitle-offset-$_prefix-later'),
+              onPressed: _enabled &&
+                      widget.value < SubtitleOffsetController.limit
+                  ? () => _apply(widget.value + SubtitleOffsetController.step)
                   : null,
-              child: Text(context.localized.jmsSubtitleOffsetLater),
+              child: Text(context.localized.jmsSubtitleOffsetSecondsLater),
             ),
             TextButton(
-              key: Key('subtitle-offset-$prefix-reset'),
-              onPressed: enabled && value != Duration.zero
-                  ? () =>
-                      controller.setOffset(Duration.zero, secondary: secondary)
+              key: Key('subtitle-offset-$_prefix-reset'),
+              onPressed: _enabled && (widget.value != Duration.zero || _dirty)
+                  ? () => _apply(Duration.zero)
                   : null,
-              child: Text(context.localized.jmsSubtitleOffsetReset),
+              child: Text(context.localized.jmsSubtitleOffsetSecondsReset),
             ),
           ],
         ),
@@ -279,6 +476,3 @@ class SubtitleOffsetControls extends StatelessWidget {
     );
   }
 }
-
-String _signedMilliseconds(Duration value) =>
-    '${value.isNegative || value == Duration.zero ? '' : '+'}${value.inMilliseconds}';

@@ -7,6 +7,22 @@ import 'package:fladder/models/settings/key_combinations.dart';
 import 'package:fladder/screens/settings/widgets/key_listener.dart';
 import 'package:fladder/util/focus_helper.dart';
 
+/// Keeps local control keys from reaching global player shortcuts.
+///
+/// Descendant controls still receive their own focus events and actions.
+class PlayerShortcutBoundary extends InheritedWidget {
+  const PlayerShortcutBoundary({required super.child, super.key});
+
+  static bool _containsPrimaryFocus() {
+    return FocusManager.instance.primaryFocus?.context
+            ?.getInheritedWidgetOfExactType<PlayerShortcutBoundary>() !=
+        null;
+  }
+
+  @override
+  bool updateShouldNotify(PlayerShortcutBoundary oldWidget) => false;
+}
+
 class InputHandler<T> extends ConsumerStatefulWidget {
   final bool autoFocus;
   final bool listenRawKeyboard;
@@ -35,9 +51,16 @@ class _InputHandlerState<T> extends ConsumerState<InputHandler<T>> {
   static bool _hardwareListening = false;
 
   static bool _handleHardwareKey(KeyEvent event) {
+    if (PlayerShortcutBoundary._containsPrimaryFocus()) {
+      for (final handler in _hardwareHandlers) {
+        handler.pressedModifier = null;
+      }
+      return false;
+    }
     for (final handler in _hardwareHandlers.toList().reversed) {
       if (!handler.mounted) continue;
       if (handler.widget.ignoreWhenTextFieldFocused && isEditableTextFocused()) {
+        handler.pressedModifier = null;
         continue;
       }
       final result = handler._onHardwareKey(event);
@@ -100,6 +123,11 @@ class _InputHandlerState<T> extends ConsumerState<InputHandler<T>> {
           }
         },
         onKeyEvent: (node, event) {
+          if (PlayerShortcutBoundary._containsPrimaryFocus() ||
+              (widget.ignoreWhenTextFieldFocused && isEditableTextFocused())) {
+            pressedModifier = null;
+            return KeyEventResult.ignored;
+          }
           if (widget.onKeyEvent != null) {
             final result = widget.onKeyEvent!(node, event);
             if (result != KeyEventResult.ignored) {
