@@ -11,6 +11,7 @@ import 'package:fladder/providers/api_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
 import 'package:fladder/services/syncplay/syncplay_controller.dart';
+import 'package:fladder/services/syncplay/syncplay_buffering.dart';
 import 'package:fladder/services/syncplay/syncplay_models.dart';
 import 'package:fladder/services/syncplay/syncplay_player.dart';
 import 'package:fladder/services/syncplay/syncplay_player_commands.dart';
@@ -58,7 +59,7 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
   int _uiOperation = 0;
   MediaControlsWrapper? _wrapper;
   bool _disposed = false;
-  bool? _lastBuffering;
+  SyncPlayBufferingReporter? _bufferingReporter;
 
   static bool _sameLogin(AccountModel? a, AccountModel? b) =>
       a?.id == b?.id && a?.credentials == b?.credentials;
@@ -142,26 +143,41 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
         api: transport,
         player: player,
         events: transport.events,
+        isPlayerBuffering: () => player.isBuffering,
+        cancelPendingPlayerActions: player.cancelPendingActions,
       );
       _controller = controller;
       controller.setConnected(false);
       final wrapper = ref.read(videoPlayerProvider);
       _wrapper = wrapper;
       wrapper.syncPlayCommands = this;
+      final bufferingReporter = SyncPlayBufferingReporter(
+        isCurrent: current,
+        isBuffering: () => player.isBuffering,
+        queueKey: () {
+          final room = controller.state;
+          final entry = room.queue?.current;
+          return room.isJoined && room.connected && entry != null
+              ? (room.group!.groupId, entry.playlistItemId)
+              : null;
+        },
+        report: (buffering) => unawaited(controller.reportBuffering(buffering)),
+      );
+      _bufferingReporter = bufferingReporter;
       _stateSubscription = controller.states.listen((room) {
-        if (current()) state = SyncPlayViewState(room: room, busy: state.busy);
+        if (current()) {
+          bufferingReporter.refreshQueue();
+          state = SyncPlayViewState(room: room, busy: state.busy);
+        }
       });
       _connectionSubscription = transport.connections.listen((connected) {
         if (current()) controller.setConnected(connected);
       });
       _playerSubscription = wrapper.stateStream.listen((snapshot) {
-        if (!current() ||
-            !controller.state.isJoined ||
-            snapshot.buffering == _lastBuffering) {
+        if (!current() || !controller.state.isJoined) {
           return;
         }
-        _lastBuffering = snapshot.buffering;
-        unawaited(controller.reportBuffering(snapshot.buffering));
+        bufferingReporter.update(snapshot.buffering);
       });
       await transport.connect();
       if (!current()) return false;
@@ -298,7 +314,8 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
     final transport = _transport;
     _controller = null;
     _transport = null;
-    _lastBuffering = null;
+    _bufferingReporter?.dispose();
+    _bufferingReporter = null;
     unawaited(_stateSubscription?.cancel());
     unawaited(_connectionSubscription?.cancel());
     unawaited(_playerSubscription?.cancel());

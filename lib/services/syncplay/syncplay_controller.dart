@@ -15,6 +15,8 @@ class SyncPlayController {
     required Stream<Map<String, dynamic>> events,
     SyncPlayClock? clock,
     SyncPlayScheduler? scheduler,
+    bool Function()? isPlayerBuffering,
+    void Function()? cancelPendingPlayerActions,
     this.operationTimeout = const Duration(seconds: 10),
     this.clockPollInterval = const Duration(seconds: 60),
     this.driftCheckInterval = const Duration(seconds: 3),
@@ -23,6 +25,8 @@ class SyncPlayController {
   })  : _identity = identity,
         _api = api,
         _player = player,
+        _isPlayerBuffering = isPlayerBuffering,
+        _cancelPendingPlayerActions = cancelPendingPlayerActions,
         clock = clock ?? SyncPlayClock(),
         _scheduler = scheduler ?? const SyncPlayTimerScheduler() {
     _listen(events);
@@ -38,6 +42,8 @@ class SyncPlayController {
   SyncPlayIdentity _identity;
   SyncPlayApiPort _api;
   SyncPlayPlayerPort _player;
+  final bool Function()? _isPlayerBuffering;
+  final void Function()? _cancelPendingPlayerActions;
   final _states =
       StreamController<SyncPlayControllerState>.broadcast(sync: true);
   StreamSubscription<Map<String, dynamic>>? _subscription;
@@ -50,6 +56,12 @@ class SyncPlayController {
   bool _loading = false;
   bool _needsReady = false;
   bool _buffering = false;
+  bool? _lastReportedBuffering;
+  bool? _reportingBuffering;
+  int? _reportingPlaybackEpoch;
+  int? _reportingCommandSerial;
+  Future<void>? _bufferReportPump;
+  bool _bufferReportWakeup = false;
   int _sourceEpoch = 0;
   int _operation = 0;
   int _playbackEpoch = 0;
@@ -61,7 +73,8 @@ class SyncPlayController {
   bool _awaitingConfirmation = false;
   DateTime? _joinedAt;
   DateTime? _lastEmittedAt;
-  final Set<String> _commandIds = {};
+  final Map<String, DateTime> _commandIds = {};
+  String? _lastCommandFingerprint;
   Completer<SyncPlayGroup>? _confirmation;
   SyncPlayCommand? _deferredCommand;
   SyncPlayCancellation? _scheduledCommand;
@@ -566,20 +579,16 @@ class SyncPlayController {
 
   Future<void> reportBuffering(bool buffering) async {
     try {
-      if (_disposed || !state.canControl || !_playerMatchesQueue()) return;
+      if (_disposed || !state.isJoined) return;
+      // A true edge has already passed the player's sustained-wait debounce.
+      // The raw probe is authoritative when available; it never creates a
+      // Buffer request on its own, and short seek pulses need no group pause.
       _buffering = buffering;
-      await _request(
-          SyncPlayRequest(
-              buffering
-                  ? SyncPlayRequestType.buffering
-                  : SyncPlayRequestType.ready,
-              {
-                'When': clock.serverNow.toIso8601String(),
-                'PositionTicks': syncPlayTicks(_player.position),
-                'IsPlaying': _player.isPlaying,
-                'PlaylistItemId': _queue!.current!.playlistItemId,
-              }),
-          report: true);
+      if (!buffering &&
+          (_lastReportedBuffering != false || _reportingBuffering == true)) {
+        _needsReady = true;
+      }
+      await _flushBufferReports();
     } catch (_) {
       if (!_disposed) {
         _failure = const SyncPlayFailure(SyncPlayFailureCode.player);
@@ -589,9 +598,116 @@ class SyncPlayController {
   }
 
   Future<void> reportReady() async {
-    if (_disposed || !state.canControl || !_playerMatchesQueue()) return;
-    _needsReady = false;
-    await reportBuffering(false);
+    if (_disposed || !state.isJoined) return;
+    // Pure protocol clients without a raw backend probe explicitly declare
+    // readiness here. Production clients retain the actual probe's result.
+    if (_isPlayerBuffering == null) _buffering = false;
+    if (_reportingBuffering != false ||
+        _reportingPlaybackEpoch != _playbackEpoch ||
+        _reportingCommandSerial != _commandSerial) {
+      _needsReady = true;
+    }
+    await _flushBufferReports();
+  }
+
+  bool get _rawBuffering => _isPlayerBuffering?.call() ?? _buffering;
+
+  Future<void> _flushBufferReports() async {
+    final active = _bufferReportPump;
+    if (active != null) {
+      _bufferReportWakeup = true;
+      return active;
+    }
+    if (_disposed || _loading || !state.canControl || !_playerMatchesQueue()) {
+      return;
+    }
+    final completed = Completer<void>();
+    _bufferReportPump = completed.future;
+    try {
+      do {
+        _bufferReportWakeup = false;
+        if (!_disposed &&
+            !_loading &&
+            state.canControl &&
+            _playerMatchesQueue()) {
+          final succeeded = await _sendBufferReports(
+              _sourceEpoch, _playbackEpoch, _queue!.current!.playlistItemId);
+          if (!succeeded) break;
+        }
+      } while (_bufferReportWakeup && !_disposed);
+    } finally {
+      // Release waiters only after retiring the pump. A new item's loader may
+      // be waiting here, and its remote-completion callback must start a fresh
+      // readiness drain rather than attach to an already completed old send.
+      _bufferReportPump = null;
+      completed.complete();
+    }
+  }
+
+  Future<bool> _sendBufferReports(int source, int epoch, String queueId) async {
+    final api = _api;
+    try {
+      while (_current(source) &&
+          epoch == _playbackEpoch &&
+          !_loading &&
+          state.canControl &&
+          _playerMatchesQueue() &&
+          _queue!.current!.playlistItemId == queueId) {
+        final raw = _rawBuffering;
+        if (!raw && _buffering) {
+          _buffering = false;
+          if (_lastReportedBuffering == true) _needsReady = true;
+        }
+        final buffering = _buffering && raw;
+        if (buffering) {
+          if (_lastReportedBuffering == true) return true;
+        } else {
+          if (raw || isApplyingRemote || !_needsReady) return true;
+          _needsReady = false;
+        }
+        _reportingBuffering = buffering;
+        _reportingPlaybackEpoch = epoch;
+        _reportingCommandSerial = _commandSerial;
+        await _bounded(api.sendRequest(SyncPlayRequest(
+            buffering
+                ? SyncPlayRequestType.buffering
+                : SyncPlayRequestType.ready,
+            {
+              'When': clock.serverNow.toIso8601String(),
+              'PositionTicks': syncPlayTicks(_player.position),
+              'IsPlaying': _player.isPlaying,
+              'PlaylistItemId': queueId,
+            })));
+        if (!_current(source) || epoch != _playbackEpoch) return true;
+        _lastReportedBuffering = buffering;
+      }
+      return true;
+    } catch (error) {
+      if (_current(source) && epoch == _playbackEpoch) {
+        _failure = _safeFailure(error);
+        _emit();
+      }
+      // A failed or ambiguous POST is not automatically retried.
+      return false;
+    } finally {
+      _reportingBuffering = null;
+      _reportingPlaybackEpoch = null;
+      _reportingCommandSerial = null;
+    }
+  }
+
+  void _finishRemote(int source) {
+    if (source != _sourceEpoch) return;
+    _remoteDepth--;
+    if (!isApplyingRemote) unawaited(_flushBufferReports());
+  }
+
+  void _cancelPlayerActions() {
+    try {
+      _cancelPendingPlayerActions?.call();
+    } catch (_) {
+      // Cleanup cannot replace the safe player failure with callback details.
+    }
   }
 
   bool _playerMatchesQueue() =>
@@ -758,12 +874,14 @@ class SyncPlayController {
         _drainCommand();
       } catch (_) {
         if (_current(source) && epoch == _playbackEpoch) {
+          _cancelPlayerActions();
           _loading = false;
+          _needsReady = false;
           _failure = const SyncPlayFailure(SyncPlayFailureCode.player);
           _emit();
         }
       } finally {
-        if (source == _sourceEpoch) _remoteDepth--;
+        _finishRemote(source);
       }
     }());
   }
@@ -781,8 +899,41 @@ class SyncPlayController {
         command.playlistItemId != _queue?.current?.playlistItemId) {
       return;
     }
-    if (!_commandIds.add(command.fingerprint)) return;
-    if (_commandIds.length > 64) _commandIds.remove(_commandIds.first);
+    final previous = _commandIds[command.fingerprint];
+    if (previous != null) {
+      if (!command.emittedAt.isAfter(previous) ||
+          _lastCommandFingerprint != command.fingerprint) {
+        return;
+      }
+      _commandIds[command.fingerprint] = command.emittedAt;
+      _lastEmittedAt = command.emittedAt;
+      // The server resends the same target when Ready reports an incorrect
+      // position. Fresh corrections are not replays of the original packet.
+      if (command.when.isAfter(clock.serverNow)) return;
+      final aligned =
+          (_player.position - command.position).abs() <= driftThreshold;
+      if (command.type == SyncPlayCommandType.unpause && _player.isPlaying) {
+        return;
+      }
+      if ((command.type == SyncPlayCommandType.pause ||
+              command.type == SyncPlayCommandType.seek) &&
+          !_player.isPlaying &&
+          aligned) {
+        if (command.type == SyncPlayCommandType.seek) {
+          // A corrective WS packet can precede the previous Ready HTTP ack.
+          // Its acknowledgement is a new generation, not a duplicate edge.
+          _commandSerial++;
+          unawaited(reportReady());
+        }
+        return;
+      }
+    } else {
+      _commandIds[command.fingerprint] = command.emittedAt;
+      if (_commandIds.length > 64) {
+        _commandIds.remove(_commandIds.keys.first);
+      }
+    }
+    _lastCommandFingerprint = command.fingerprint;
     _lastEmittedAt = command.emittedAt;
     _commandSerial++;
     _driftTimer?.cancel();
@@ -867,7 +1018,8 @@ class SyncPlayController {
       if (_current(source) &&
           epoch == _playbackEpoch &&
           serial == _commandSerial &&
-          command.type == SyncPlayCommandType.seek) {
+          (command.type == SyncPlayCommandType.seek ||
+              command.type == SyncPlayCommandType.unpause)) {
         await reportReady();
       }
       if (_current(source) &&
@@ -878,19 +1030,28 @@ class SyncPlayController {
         _scheduleDrift();
       }
     } catch (_) {
-      if (_current(source) && epoch == _playbackEpoch) {
+      if (_current(source) &&
+          epoch == _playbackEpoch &&
+          serial == _commandSerial) {
+        _cancelPlayerActions();
+        _needsReady = false;
         _failure = const SyncPlayFailure(SyncPlayFailureCode.player);
         _emit();
       }
     } finally {
-      if (source == _sourceEpoch) _remoteDepth--;
+      _finishRemote(source);
     }
   }
 
   void _scheduleDrift() {
     _driftTimer?.cancel();
     _driftTimer = null;
-    if (_disposed || !_connected || !state.isJoined || _anchor == null) return;
+    if (_disposed ||
+        !_connected ||
+        !state.isJoined ||
+        _anchor?.type != SyncPlayCommandType.unpause) {
+      return;
+    }
     final source = _sourceEpoch,
         epoch = _playbackEpoch,
         serial = _commandSerial;
@@ -907,8 +1068,10 @@ class SyncPlayController {
   Future<void> _correctDrift(int source, int epoch, int serial) async {
     final anchor = _anchor;
     if (anchor == null ||
+        anchor.type != SyncPlayCommandType.unpause ||
         _loading ||
         _buffering ||
+        _rawBuffering ||
         !state.canControl ||
         !_playerMatchesQueue()) {
       _scheduleDrift();
@@ -949,12 +1112,15 @@ class SyncPlayController {
           await reportReady();
         }
       } finally {
-        if (source == _sourceEpoch) _remoteDepth--;
+        _finishRemote(source);
       }
     } catch (_) {
       if (_current(source) &&
           epoch == _playbackEpoch &&
           serial == _commandSerial) {
+        _cancelPlayerActions();
+        _needsReady = false;
+        _anchor = null;
         _failure = const SyncPlayFailure(SyncPlayFailureCode.player);
         _emit();
       }
@@ -980,8 +1146,10 @@ class SyncPlayController {
     _loading = false;
     _needsReady = false;
     _buffering = false;
+    _lastReportedBuffering = null;
     _lastEmittedAt = null;
     _commandIds.clear();
+    _lastCommandFingerprint = null;
   }
 
   Future<void> dispose() async {

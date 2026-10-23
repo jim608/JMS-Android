@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -57,8 +59,37 @@ class SyncPlayPlayerAdapter implements SyncPlayPlayerPort {
   String? _mediaId;
   String? _playlistItemId;
   int _loadEpoch = 0;
+  Completer<void> _actionCancelled = Completer<void>();
+  // Jellyfin's Ready position tolerance is 500ms. Avoid manufacturing a seek
+  // (and HTML waiting/canplay pulse) for an already aligned Pause/Unpause.
+  static const _alignmentTolerance = Duration(milliseconds: 500);
+  int _beginAction() {
+    _actionCancelled.complete();
+    _actionCancelled = Completer<void>();
+    return ++_loadEpoch;
+  }
+
   void cancelPendingActions() {
-    _loadEpoch++;
+    _beginAction();
+  }
+
+  Future<void> _waitForReady(Duration target, bool Function() current) async {
+    bool ready() {
+      final state = _player.lastState;
+      return state != null && !state.buffering && (state.position - target).abs() <= _alignmentTolerance;
+    }
+
+    if (!current() || ready()) return;
+    final settled = Completer<void>();
+    final cancelled = _actionCancelled.future;
+    final subscription = _player.stateStream.listen((_) {
+      if ((!current() || ready()) && !settled.isCompleted) settled.complete();
+    });
+    try {
+      if (current() && !ready()) await Future.any([settled.future, cancelled]);
+    } finally {
+      await subscription.cancel();
+    }
   }
 
   MediaControlsWrapper get _player => ref.read(videoPlayerProvider);
@@ -80,7 +111,7 @@ class SyncPlayPlayerAdapter implements SyncPlayPlayerPort {
       if (entry == null) {
         throw const SyncPlayFailure(SyncPlayFailureCode.player);
       }
-      final epoch = ++_loadEpoch;
+      final epoch = _beginAction();
       bool current() => isCurrent() && epoch == _loadEpoch;
       final notifier = ref.read(videoPlayerProvider.notifier);
       final ready = await notifier.waitUntilReady();
@@ -117,25 +148,35 @@ class SyncPlayPlayerAdapter implements SyncPlayPlayerPort {
         if (!current()) return;
         throw const SyncPlayFailure(SyncPlayFailureCode.player);
       }
+      await _waitForReady(action.position, current);
+      if (!current()) {
+        model.dispose();
+        return;
+      }
       _mediaId = entry.mediaId;
       _playlistItemId = entry.playlistItemId;
       return;
     }
     if (action.type == SyncPlayPlayerActionType.stop) {
-      final epoch = ++_loadEpoch;
+      final epoch = _beginAction();
       await _player.stopFromSyncPlay();
       if (!isCurrent() || epoch != _loadEpoch) return;
       _mediaId = null;
       _playlistItemId = null;
       return;
     }
-    final epoch = ++_loadEpoch;
+    final epoch = _beginAction();
     bool current() => isCurrent() && epoch == _loadEpoch;
     if (action.type != SyncPlayPlayerActionType.unpause) {
       await _player.pauseFromSyncPlay();
       if (!current()) return;
     }
-    await _player.seekFromSyncPlay(action.position);
+    final offset = (_player.lastState?.position ?? Duration.zero) - action.position;
+    if (action.type == SyncPlayPlayerActionType.seek || offset.abs() > _alignmentTolerance) {
+      await _player.seekFromSyncPlay(action.position);
+      if (!current()) return;
+    }
+    await _waitForReady(action.position, current);
     if (!current()) return;
     if (action.type == SyncPlayPlayerActionType.unpause) {
       await _player.playFromSyncPlay();

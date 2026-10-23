@@ -366,11 +366,386 @@ void main() {
         isEmpty);
     loaded.complete();
     await settle();
+    player.buffering = true;
     await controller.reportBuffering(true);
     expect(server.requests.last.type, SyncPlayRequestType.buffering);
     expect(server.requests.last.body['PlaylistItemId'], player.playlistItemId);
     expect(server.requests.last.body['When'], world.now.toIso8601String());
     expect(server.requests.last.body['IsPlaying'], false);
+  });
+
+  test(
+      'completed load with raw buffering withholds Ready until actual recovery',
+      () async {
+    player.buffering = true;
+    await readyRoom();
+    await controller.reportReady();
+    expect(server.requests.where((r) => r.type == SyncPlayRequestType.ready),
+        isEmpty);
+    expect(
+        server.requests.where((r) => r.type == SyncPlayRequestType.buffering),
+        isEmpty); // The raw probe does not invent a sustained Buffer edge.
+    player.buffering = false;
+    await controller.reportBuffering(false);
+    expect(server.requests.where((r) => r.type == SyncPlayRequestType.ready),
+        hasLength(1));
+    await controller.reportBuffering(false);
+    expect(server.requests.where((r) => r.type == SyncPlayRequestType.ready),
+        hasLength(1));
+  });
+
+  test('new queue Ready follows the already in-flight old queue Buffer',
+      () async {
+    await readyRoom();
+    final previousId = player.playlistItemId;
+    final before = server.requests.length;
+    final buffered = Completer<void>();
+    alice.onSend = (request) async {
+      if (request.type == SyncPlayRequestType.buffering) {
+        await buffered.future;
+      }
+    };
+    player.buffering = true;
+    final oldBuffer = controller.reportBuffering(true);
+    await settle();
+    await world.advance(const Duration(milliseconds: 1));
+    await controller.setQueue([id(72)]);
+    await settle();
+    player.buffering = false;
+    final recovered = controller.reportBuffering(false);
+    expect(
+        server.requests
+            .skip(before)
+            .where((r) => r.type == SyncPlayRequestType.ready),
+        isEmpty);
+    buffered.complete();
+    await Future.wait([oldBuffer, recovered]);
+    await settle();
+    final reports = server.requests
+        .skip(before)
+        .where((r) =>
+            r.type == SyncPlayRequestType.buffering ||
+            r.type == SyncPlayRequestType.ready)
+        .toList();
+    expect(reports.map((r) => r.type),
+        [SyncPlayRequestType.buffering, SyncPlayRequestType.ready]);
+    expect(reports.first.body['PlaylistItemId'], previousId);
+    expect(reports.last.body['PlaylistItemId'], player.playlistItemId);
+    expect(player.playlistItemId, isNot(previousId));
+  });
+
+  test('Buffer and newer Ready are serialized and duplicate edges coalesce',
+      () async {
+    await readyRoom();
+    final before = server.requests.length;
+    final buffered = Completer<void>();
+    final completed = <SyncPlayRequestType>[];
+    var active = 0, maximumActive = 0;
+    alice.onSend = (request) async {
+      active++;
+      if (active > maximumActive) maximumActive = active;
+      if (request.type == SyncPlayRequestType.buffering) {
+        await buffered.future;
+      }
+      completed.add(request.type);
+      active--;
+    };
+    player.buffering = true;
+    final first = controller.reportBuffering(true);
+    final duplicate = controller.reportBuffering(true);
+    await settle();
+    player.buffering = false;
+    final ready = controller.reportBuffering(false);
+    await settle();
+    expect(server.requests.skip(before).map((r) => r.type),
+        [SyncPlayRequestType.buffering]);
+    buffered.complete();
+    await Future.wait([first, duplicate, ready]);
+    expect(server.requests.skip(before).map((r) => r.type),
+        [SyncPlayRequestType.buffering, SyncPlayRequestType.ready]);
+    expect(
+        completed, [SyncPlayRequestType.buffering, SyncPlayRequestType.ready]);
+    expect(maximumActive, 1);
+  });
+
+  test('remote transient waiting does not echo Buffer or unnecessary Ready',
+      () async {
+    await readyRoom();
+    final before = server.requests.length;
+    player.onApply = (action) async {
+      if (action.type != SyncPlayPlayerActionType.pause) return;
+      player.buffering = true;
+      // The player reporter filters this short true edge; its real false edge
+      // still reaches the controller while the remote operation is pending.
+      player.buffering = false;
+      await controller.reportBuffering(false);
+    };
+    server.command(server.groupFor(alice)!, 'Pause');
+    await world.advance(const Duration(milliseconds: 500));
+    await world.advance(const Duration(seconds: 4));
+    expect(server.requests.skip(before), isEmpty);
+    expect(player.isPlaying, isFalse);
+  });
+
+  test('duplicate wakeups never retry a failed or ambiguous Buffer POST',
+      () async {
+    await readyRoom();
+    final before = server.requests.length;
+    final response = Completer<void>();
+    alice.onSend = (request) async {
+      if (request.type == SyncPlayRequestType.buffering) {
+        await response.future;
+      }
+    };
+    player.buffering = true;
+    final first = controller.reportBuffering(true);
+    await settle();
+    final duplicate = controller.reportBuffering(true);
+    await settle();
+    response.completeError(const SyncPlayFailure(SyncPlayFailureCode.denied));
+    await Future.wait([first, duplicate]);
+    await settle();
+    expect(server.requests.skip(before).map((r) => r.type),
+        [SyncPlayRequestType.buffering]);
+    expect(controller.state.failure?.code, SyncPlayFailureCode.denied);
+  });
+
+  test(
+      'sustained remote stall sends Buffer but Ready waits for remote completion',
+      () async {
+    await readyRoom();
+    final before = server.requests.length;
+    final remote = Completer<void>();
+    addTearDown(() {
+      if (!remote.isCompleted) remote.complete();
+    });
+    player.onApply = (action) async {
+      if (action.type == SyncPlayPlayerActionType.unpause) {
+        player.buffering = true;
+        await remote.future;
+      }
+    };
+    server.command(server.groupFor(alice)!, 'Unpause');
+    await world.advance(const Duration(milliseconds: 500));
+    await controller.reportReady();
+    expect(server.requests.skip(before), isEmpty);
+    await world.advance(const Duration(seconds: 3));
+    await controller.reportBuffering(true); // Matured reporter edge.
+    expect(controller.isApplyingRemote, isTrue);
+    expect(server.requests.skip(before).map((r) => r.type),
+        [SyncPlayRequestType.buffering]);
+    player.buffering = false;
+    await controller.reportBuffering(false);
+    expect(server.requests.skip(before).map((r) => r.type),
+        [SyncPlayRequestType.buffering]);
+    remote.complete();
+    await settle();
+    expect(server.requests.skip(before).map((r) => r.type),
+        [SyncPlayRequestType.buffering, SyncPlayRequestType.ready]);
+  });
+
+  test(
+      'fresh duplicate Seek corrects stale position; exact packet never replays',
+      () async {
+    await readyRoom();
+    server.roomFor(alice)!.position = const Duration(seconds: 33);
+    player.onApply = (action) async {
+      if (action.type == SyncPlayPlayerActionType.seek) {
+        player.position = const Duration(seconds: 10);
+      }
+    };
+    final packet =
+        server.command(server.groupFor(alice)!, 'Seek', delay: Duration.zero);
+    await world.advance(Duration.zero);
+    final before = player.actions.length;
+    expect(player.position, const Duration(seconds: 10));
+    alice.events.add(packet);
+    await world.advance(Duration.zero);
+    expect(player.actions.length, before);
+    player.onApply = null;
+    await world.advance(const Duration(milliseconds: 1));
+    final correction = {
+      'MessageType': 'SyncPlayCommand',
+      'Data': {
+        ...Map<String, dynamic>.from(packet['Data'] as Map),
+        'EmittedAt': world.now.toIso8601String(),
+      }
+    };
+    alice.events.add(correction);
+    await world.advance(Duration.zero);
+    expect(player.actions.length, before + 1);
+    expect(player.position, const Duration(seconds: 33));
+    final readyBefore = server.requests
+        .where((r) => r.type == SyncPlayRequestType.ready)
+        .length;
+    await world.advance(const Duration(milliseconds: 1));
+    final alignedCorrection = {
+      ...correction,
+      'Data': {
+        ...Map<String, dynamic>.from(correction['Data'] as Map),
+        'EmittedAt': world.now.toIso8601String(),
+      }
+    };
+    alice.events.add(alignedCorrection);
+    await world.advance(Duration.zero);
+    expect(player.actions.length, before + 1);
+    expect(
+        server.requests
+            .where((r) => r.type == SyncPlayRequestType.ready)
+            .length,
+        readyBefore + 1);
+    alice.events.add(alignedCorrection);
+    await world.advance(Duration.zero);
+    expect(
+        server.requests
+            .where((r) => r.type == SyncPlayRequestType.ready)
+            .length,
+        readyBefore + 1);
+  });
+
+  test('fresh duplicate Unpause recovers paused player without a playing loop',
+      () async {
+    await readyRoom();
+    final packet = server.command(server.groupFor(alice)!, 'Unpause',
+        delay: Duration.zero);
+    await world.advance(Duration.zero);
+    final before = player.actions.length;
+    player.isPlaying = false;
+    alice.events.add(packet);
+    await world.advance(Duration.zero);
+    expect(player.actions.length, before);
+    await world.advance(const Duration(milliseconds: 1));
+    Map<String, dynamic> freshPacket() => {
+          'MessageType': 'SyncPlayCommand',
+          'Data': {
+            ...Map<String, dynamic>.from(packet['Data'] as Map),
+            'EmittedAt': world.now.toIso8601String(),
+          }
+        };
+    alice.events.add(freshPacket());
+    await world.advance(Duration.zero);
+    expect(player.actions.length, before + 1);
+    expect(player.isPlaying, isTrue);
+    final reports = server.requests.length;
+    await world.advance(const Duration(milliseconds: 1));
+    alice.events.add(freshPacket());
+    await world.advance(Duration.zero);
+    expect(player.actions.length, before + 1);
+    expect(server.requests.length, reports);
+  });
+
+  test(
+      'fresh aligned Seek before Ready ack queues exactly one new acknowledgement',
+      () async {
+    await readyRoom();
+    final before = server.requests.length;
+    final firstReady = Completer<void>();
+    var readyCalls = 0;
+    alice.onSend = (request) async {
+      if (request.type == SyncPlayRequestType.ready && ++readyCalls == 1) {
+        await firstReady.future;
+      }
+    };
+    final packet =
+        server.command(server.groupFor(alice)!, 'Seek', delay: Duration.zero);
+    await world.advance(Duration.zero);
+    expect(readyCalls, 1);
+    final actions = player.actions.length;
+    await world.advance(const Duration(milliseconds: 1));
+    final correction = {
+      'MessageType': 'SyncPlayCommand',
+      'Data': {
+        ...Map<String, dynamic>.from(packet['Data'] as Map),
+        'EmittedAt': world.now.toIso8601String(),
+      }
+    };
+    alice.events.add(correction);
+    alice.events.add(correction); // Exact duplicate does not queue a third ack.
+    await settle();
+    expect(readyCalls, 1);
+    firstReady.complete();
+    await settle();
+    expect(readyCalls, 2);
+    expect(player.actions.length, actions);
+    expect(server.requests.skip(before).map((r) => r.type),
+        [SyncPlayRequestType.ready, SyncPlayRequestType.ready]);
+  });
+
+  test('pending Ready and buffered HTTP cannot cross a new queue or identity',
+      () async {
+    player.buffering = true;
+    await readyRoom();
+    final previousId = player.playlistItemId;
+    await world.advance(const Duration(milliseconds: 1));
+    await controller.setQueue([id(72)]);
+    await settle();
+    player.buffering = false;
+    await controller.reportBuffering(false);
+    final ready = server.requests
+        .where((r) => r.type == SyncPlayRequestType.ready)
+        .toList();
+    expect(ready, hasLength(1));
+    expect(ready.single.body['PlaylistItemId'], player.playlistItemId);
+    expect(player.playlistItemId, isNot(previousId));
+    final buffered = Completer<void>();
+    alice.onSend = (request) async {
+      if (request.type == SyncPlayRequestType.buffering) {
+        await buffered.future;
+      }
+    };
+    player.buffering = true;
+    final sending = controller.reportBuffering(true);
+    await settle();
+    player.buffering = false;
+    final recovering = controller.reportBuffering(false);
+    final replacement = server.client('replacement');
+    await controller.switchIdentity(
+        identity: const SyncPlayIdentity(
+            sourceId: 'new-source', userId: 'replacement', sessionId: 'new'),
+        api: replacement,
+        events: replacement.events.stream);
+    buffered.complete();
+    await Future.wait([sending, recovering]);
+    expect(replacement.sent, isEmpty);
+    expect(server.requests.where((r) => r.type == SyncPlayRequestType.ready),
+        hasLength(1));
+  });
+
+  test('raw waiting blocks pre-debounce drift and paused anchors never drift',
+      () async {
+    await readyRoom();
+    server.command(server.groupFor(alice)!, 'Unpause');
+    await world.advance(const Duration(milliseconds: 500));
+    final before = player.actions.length;
+    player.position -= const Duration(seconds: 5);
+    player.buffering = true;
+    await world.advance(const Duration(seconds: 3));
+    expect(player.actions.length, before);
+    player.buffering = false;
+    await world.advance(const Duration(seconds: 3));
+    expect(player.actions.length, before + 1);
+    expect(player.isPlaying, isTrue);
+    server.command(server.groupFor(alice)!, 'Pause');
+    await world.advance(const Duration(milliseconds: 500));
+    final paused = player.actions.length;
+    player.position += const Duration(seconds: 5);
+    await world.advance(const Duration(seconds: 9));
+    expect(player.actions.length, paused);
+    expect(player.isPlaying, isFalse);
+  });
+
+  test('bounded player failure cancels pending backend actions once', () async {
+    await readyRoom();
+    final never = Completer<void>();
+    addTearDown(() {
+      if (!never.isCompleted) never.complete();
+    });
+    player.onApply = (_) => never.future;
+    server.command(server.groupFor(alice)!, 'Seek');
+    await world.advance(const Duration(milliseconds: 500));
+    await world.advance(const Duration(seconds: 11));
+    expect(player.cancellations, 1);
+    expect(controller.state.failure?.code, SyncPlayFailureCode.player);
   });
 
   test(
@@ -583,6 +958,8 @@ SyncPlayController makeController(World world, Api api, Player player,
         api: api,
         player: player,
         events: api.events.stream,
+        isPlayerBuffering: () => player.buffering,
+        cancelPendingPlayerActions: () => player.cancellations++,
         clock: SyncPlayClock(now: () => world.now.add(skew)),
         scheduler: world);
 
@@ -725,6 +1102,7 @@ class Api implements SyncPlayApiPort {
   Completer<void>? joinResult;
   Completer<List<SyncPlayGroup>>? listResult;
   Object? sendError;
+  Future<void> Function(SyncPlayRequest)? onSend;
   @override
   Future<List<SyncPlayGroup>> listGroups() async {
     if (listResult != null) return listResult!.future;
@@ -769,6 +1147,7 @@ class Api implements SyncPlayApiPort {
     if (sendError != null) throw sendError!;
     sent.add(request);
     server.requests.add(request);
+    await onSend?.call(request);
     final group = server.roomFor(this)!;
     switch (request.type) {
       case SyncPlayRequestType.setNewQueue:
@@ -821,6 +1200,8 @@ class Player implements SyncPlayPlayerPort {
 
   @override
   bool isPlaying = false;
+  bool buffering = false;
+  int cancellations = 0;
   final actions = <SyncPlayPlayerAction>[];
   Future<void> Function(SyncPlayPlayerAction)? onApply;
   Completer<void>? loadResult;

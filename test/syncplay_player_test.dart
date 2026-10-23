@@ -174,14 +174,18 @@ class _Commands implements SyncPlayPlayerCommands {
 
 class _Wrapper extends MediaControlsWrapper {
   _Wrapper(Ref ref) : super(ref: ref);
-  final raw = PlayerState(playing: true);
+  final raw = PlayerState(playing: true, buffering: false);
+  final snapshots = StreamController<PlayerState>.broadcast(sync: true);
   final events = <String>[];
   Completer<void>? seekReady, loadReady;
+  bool holdBufferingOnSeek = false;
   bool? loadedPlaying;
   @override
   bool get hasPlayer => true;
   @override
   PlayerState get lastState => raw;
+  @override
+  Stream<PlayerState> get stateStream => snapshots.stream;
   @override
   Future<void> pauseFromSyncPlay() async {
     events.add('remote-pause');
@@ -199,6 +203,7 @@ class _Wrapper extends MediaControlsWrapper {
     events.add('remote-seek');
     await seekReady?.future;
     raw.position = position;
+    if (holdBufferingOnSeek) raw.buffering = true;
   }
 
   @override
@@ -211,6 +216,8 @@ class _Wrapper extends MediaControlsWrapper {
     loadedPlaying = play;
     events.add('load');
     await loadReady?.future;
+    raw.position = startPosition;
+    raw.buffering = false;
   }
 
   @override
@@ -297,6 +304,7 @@ void main() {
     var current = true;
     final ref = _Ref();
     final wrapper = _Wrapper(ref);
+    wrapper.raw.position = const Duration(seconds: 10);
     ref.values[videoPlayerProvider] = wrapper;
     wrapper.seekReady = Completer<void>();
     final adapter = SyncPlayPlayerAdapter(ref: ref, account: account, api: _Api(), isCurrent: () => current);
@@ -310,6 +318,7 @@ void main() {
   test('cancel pending actions rejects old seek completion but permits a future command', () async {
     final ref = _Ref();
     final wrapper = _Wrapper(ref);
+    wrapper.raw.position = const Duration(seconds: 10);
     ref.values[videoPlayerProvider] = wrapper;
     wrapper.seekReady = Completer<void>();
     final adapter = SyncPlayPlayerAdapter(ref: ref, account: account, api: _Api(), isCurrent: () => true);
@@ -319,7 +328,56 @@ void main() {
     await old;
     expect(wrapper.events, ['remote-seek']);
     await adapter.applyRemote(const SyncPlayPlayerAction(type: SyncPlayPlayerActionType.unpause));
-    expect(wrapper.events, ['remote-seek', 'remote-seek', 'remote-play']);
+    expect(wrapper.events, ['remote-seek', 'remote-play']);
+  });
+
+  test('aligned pause and unpause do not manufacture seek buffering pulses', () async {
+    final ref = _Ref();
+    final wrapper = _Wrapper(ref);
+    wrapper.raw.position = const Duration(milliseconds: 8100);
+    ref.values[videoPlayerProvider] = wrapper;
+    final adapter = SyncPlayPlayerAdapter(ref: ref, account: account, api: _Api(), isCurrent: () => true);
+    await adapter
+        .applyRemote(const SyncPlayPlayerAction(type: SyncPlayPlayerActionType.pause, position: Duration(seconds: 8)));
+    await adapter.applyRemote(
+        const SyncPlayPlayerAction(type: SyncPlayPlayerActionType.unpause, position: Duration(seconds: 8)));
+    expect(wrapper.events, ['remote-pause', 'remote-play']);
+    await wrapper.snapshots.close();
+  });
+
+  test('accepted seek is not media ready until actual buffering clears', () async {
+    final ref = _Ref();
+    final wrapper = _Wrapper(ref)..holdBufferingOnSeek = true;
+    ref.values[videoPlayerProvider] = wrapper;
+    final adapter = SyncPlayPlayerAdapter(ref: ref, account: account, api: _Api(), isCurrent: () => true);
+    var completed = false;
+    final action = adapter
+        .applyRemote(const SyncPlayPlayerAction(type: SyncPlayPlayerActionType.unpause, position: Duration(seconds: 8)))
+      ..then((_) => completed = true);
+    await Future<void>.delayed(Duration.zero);
+    expect(wrapper.events, ['remote-seek']);
+    expect(completed, isFalse);
+    wrapper.raw.buffering = false;
+    wrapper.snapshots.add(wrapper.raw);
+    await action;
+    expect(wrapper.events, ['remote-seek', 'remote-play']);
+    await wrapper.snapshots.close();
+  });
+
+  test('leaving cancels an actual media-ready wait without a late play', () async {
+    final ref = _Ref();
+    final wrapper = _Wrapper(ref)..holdBufferingOnSeek = true;
+    ref.values[videoPlayerProvider] = wrapper;
+    final adapter = SyncPlayPlayerAdapter(ref: ref, account: account, api: _Api(), isCurrent: () => true);
+    final action = adapter.applyRemote(
+        const SyncPlayPlayerAction(type: SyncPlayPlayerActionType.unpause, position: Duration(seconds: 8)));
+    await Future<void>.delayed(Duration.zero);
+    adapter.cancelPendingActions();
+    await action;
+    wrapper.raw.buffering = false;
+    wrapper.snapshots.add(wrapper.raw);
+    expect(wrapper.events, ['remote-seek']);
+    await wrapper.snapshots.close();
   });
 
   test('a newer remote pause supersedes an unpause still awaiting its seek', () async {

@@ -229,7 +229,7 @@ class _SleepTimer extends Fake implements SleepTimerController {
 class _Wrapper extends MediaControlsWrapper {
   _Wrapper(Ref ref) : super(ref: ref);
   final snapshots = StreamController<PlayerState>.broadcast();
-  final raw = PlayerState(playing: false);
+  final raw = PlayerState(playing: false, buffering: false);
   int pauses = 0, plays = 0;
   Completer<void>? playGate;
   Completer<void>? playStarted;
@@ -273,6 +273,9 @@ class _Video extends VideoPlayerNotifier {
       {bool playWhenReady = true, bool Function()? isCurrent}) async {
     if (isCurrent != null && !isCurrent()) return false;
     loaded.add(model);
+    final wrapper = state as _Wrapper;
+    wrapper.raw.position = startPosition;
+    wrapper.raw.buffering = false;
     ref.read(playBackModel.notifier).state = model;
     return true;
   }
