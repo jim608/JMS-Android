@@ -290,6 +290,45 @@ abstract interface class SyncPlayPlayerPort {
   Future<void> applyRemote(SyncPlayPlayerAction action);
 }
 
+/// Local estimates only. Positive drift means this player is behind its target,
+/// not a measured difference from a friend's device. Never persisted or uploaded.
+class SyncPlayDiagnostics {
+  const SyncPlayDiagnostics({
+    this.networkRoundTrip,
+    this.clockOffset,
+    this.clockSampleAge,
+    this.playbackDrift,
+    this.driftSampleAge,
+    this.lastCorrection,
+    this.correctionCount = 0,
+  });
+
+  final Duration? networkRoundTrip;
+  final Duration? clockOffset;
+  final Duration? clockSampleAge;
+  final Duration? playbackDrift;
+  final Duration? driftSampleAge;
+  final Duration? lastCorrection;
+  final int correctionCount;
+
+  /// Explicit numeric allowlist; no arbitrary event, room, media or login data.
+  Map<String, Object?> toJson() => {
+        'networkRoundTripMs': networkRoundTrip == null
+            ? null
+            : networkRoundTrip!.inMicroseconds / 1000,
+        'clockOffsetMs':
+            clockOffset == null ? null : clockOffset!.inMicroseconds / 1000,
+        'clockSampleAgeMs': clockSampleAge?.inMilliseconds,
+        'playbackDriftMs':
+            playbackDrift == null ? null : playbackDrift!.inMicroseconds / 1000,
+        'driftSampleAgeMs': driftSampleAge?.inMilliseconds,
+        'lastCorrectionMs': lastCorrection == null
+            ? null
+            : lastCorrection!.inMicroseconds / 1000,
+        'correctionCount': correctionCount,
+      };
+}
+
 class SyncPlayControllerState {
   const SyncPlayControllerState({
     this.status = SyncPlayStatus.idle,
@@ -298,6 +337,7 @@ class SyncPlayControllerState {
     this.connected = true,
     this.clockSynchronized = false,
     this.failure,
+    this.diagnostics = const SyncPlayDiagnostics(),
   });
 
   final SyncPlayStatus status;
@@ -306,6 +346,7 @@ class SyncPlayControllerState {
   final bool connected;
   final bool clockSynchronized;
   final SyncPlayFailure? failure;
+  final SyncPlayDiagnostics diagnostics;
   bool get isJoined => status == SyncPlayStatus.joined && group != null;
   bool get canControl => isJoined && connected && clockSynchronized;
 }

@@ -169,6 +169,7 @@ class _SyncPlayRoomPanelState extends State<SyncPlayRoomPanel> {
                   Text(s.members(room.group!.participants.length)),
                   const SizedBox(height: 12),
                   Text(room.canControl ? s.connected : s.synchronizing),
+                  SyncPlayDiagnosticsPanel(diagnostics: room.diagnostics),
                   const SizedBox(height: 12),
                 ],
                 if (failure != null) ...[
@@ -181,7 +182,7 @@ class _SyncPlayRoomPanelState extends State<SyncPlayRoomPanel> {
                   Text(s.uncertain),
                   const SizedBox(height: 8),
                   OutlinedButton(
-                    onPressed: available ? widget.reconnect : null,
+                      onPressed: available ? widget.reconnect : null,
                       child: Text(s.reconnect)),
                 ],
                 if (room.group == null && !uncertain) ...[
@@ -241,6 +242,48 @@ class _SyncPlayRoomPanelState extends State<SyncPlayRoomPanel> {
   }
 }
 
+class SyncPlayDiagnosticsPanel extends StatelessWidget {
+  const SyncPlayDiagnosticsPanel({super.key, required this.diagnostics});
+
+  final SyncPlayDiagnostics diagnostics;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = SyncPlayStrings.of(context);
+    String ms(Duration? value, {bool signed = false}) => value == null
+        ? s.noSample
+        : '${signed && !value.isNegative ? '+' : ''}${(value.inMicroseconds / 1000).toStringAsFixed(1)} ms';
+    return ExpansionTile(
+      tilePadding: EdgeInsets.zero,
+      title: Text(s.diagnostics),
+      children: [
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                  '${s.networkRoundTrip}: ${ms(diagnostics.networkRoundTrip)}'),
+              Text(
+                  '${s.clockOffset}: ${ms(diagnostics.clockOffset, signed: true)}'),
+              Text('${s.clockAge}: ${ms(diagnostics.clockSampleAge)}'),
+              Text(
+                  '${s.playbackDrift}: ${ms(diagnostics.playbackDrift, signed: true)}'),
+              Text('${s.driftAge}: ${ms(diagnostics.driftSampleAge)}'),
+              Text('${s.corrections}: ${diagnostics.correctionCount}'),
+              Text(
+                  '${s.lastCorrection}: ${ms(diagnostics.lastCorrection, signed: true)}'),
+              const SizedBox(height: 8),
+              Text(s.diagnosticsNotice,
+                  style: Theme.of(context).textTheme.bodySmall),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class SyncPlayStrings {
   const SyncPlayStrings(this.zh);
   final bool zh;
@@ -279,6 +322,18 @@ class SyncPlayStrings {
       : 'This account may join rooms but cannot create them.';
   String get leave => zh ? '離開房間' : 'Leave room';
   String get close => zh ? '關閉' : 'Close';
+  String get diagnostics => zh ? '同步診斷' : 'Sync diagnostics';
+  String get noSample => zh ? '尚無可用樣本' : 'No current sample';
+  String get networkRoundTrip => zh ? '網路往返估計' : 'Estimated network round trip';
+  String get clockOffset => zh ? '伺服器時間差' : 'Server clock offset';
+  String get clockAge => zh ? '時間樣本年齡（檢查時）' : 'Clock sample age (at check)';
+  String get playbackDrift => zh ? '本機播放誤差' : 'Local playback drift';
+  String get driftAge => zh ? '誤差樣本年齡（檢查時）' : 'Drift sample age (at check)';
+  String get corrections => zh ? '播放校正次數' : 'Playback corrections';
+  String get lastCorrection => zh ? '最近校正目標量' : 'Last requested correction';
+  String get diagnosticsNotice => zh
+      ? '播放誤差正值表示本機落後伺服器播放目標，負值表示超前；這不是朋友裝置之間的實測誤差。資料於播放與時間同步檢查時更新；檢查發現緩衝、暫停或斷線時，不顯示舊誤差。資料只在本機記憶體中，不會上傳。'
+      : 'Positive drift means this player is behind the server target; negative means ahead. This is not a measured difference between friends’ devices. Snapshots update on playback and clock checks; old drift is hidden when checks find buffering, paused or disconnected playback. Data stays in local memory and is not uploaded.';
   String get codeNotice => zh
       ? '房間碼用來尋找房間，不是密碼。同一伺服器有權限的使用者仍可能從其他客戶端看到房間；每人只能播放自己帳號有權限的影片。'
       : 'The code locates a room; it is not a password. Other authorized users on the server may see the room in other clients. Each participant needs their own permission to play the video.';

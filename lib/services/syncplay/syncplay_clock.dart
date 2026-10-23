@@ -25,6 +25,19 @@ class _TimerCancellation implements SyncPlayCancellation {
   void cancel() => timer.cancel();
 }
 
+/// One atomic, current estimate. No server or participant identifiers.
+class SyncPlayClockEstimate {
+  const SyncPlayClockEstimate({
+    required this.offset,
+    required this.networkRoundTrip,
+    required this.age,
+  });
+
+  final Duration offset;
+  final Duration networkRoundTrip;
+  final Duration age;
+}
+
 /// NTP-style estimate used by Jellyfin Web TimeSync.js at commit
 /// 5ab0379f5106439aa6266ca3b8824a642059f1a2. Ping is half network RTT.
 class SyncPlayClock {
@@ -40,13 +53,25 @@ class SyncPlayClock {
   final List<_Measurement> _measurements = [];
 
   DateTime get now => _now().toUtc();
-  _Measurement? get _best {
-    final current = now;
+  _Measurement? _bestAt(DateTime current) {
     _measurements.removeWhere((sample) =>
         current.isBefore(sample.receivedAt) ||
         current.difference(sample.receivedAt) > maximumSampleAge);
     if (_measurements.isEmpty) return null;
     return _measurements.reduce((a, b) => a.delay <= b.delay ? a : b);
+  }
+
+  _Measurement? get _best => _bestAt(now);
+
+  SyncPlayClockEstimate? get estimate {
+    final current = now;
+    final best = _bestAt(current);
+    return best == null
+        ? null
+        : SyncPlayClockEstimate(
+            offset: best.offset,
+            networkRoundTrip: best.delay,
+            age: current.difference(best.receivedAt));
   }
 
   bool get isSynchronized => _best != null;

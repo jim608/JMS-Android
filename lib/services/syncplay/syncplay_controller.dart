@@ -85,6 +85,10 @@ class SyncPlayController {
   int _clockSerial = 0;
   final Set<void Function()> _pendingCalls = {};
   Future<SyncPlayFailure?>? _membershipRest;
+  Duration? _lastDrift;
+  DateTime? _driftObservedAt;
+  Duration? _lastCorrection;
+  int _correctionCount = 0;
 
   SyncPlayIdentity get identity => _identity;
   bool get isApplyingRemote => _remoteDepth > 0;
@@ -96,7 +100,37 @@ class SyncPlayController {
         connected: _connected,
         clockSynchronized: clock.isSynchronized,
         failure: _failure,
+        diagnostics: _diagnostics,
       );
+
+  SyncPlayDiagnostics get _diagnostics {
+    final joined = !_disposed &&
+        _connected &&
+        _status == SyncPlayStatus.joined &&
+        _group != null;
+    final estimate = joined ? clock.estimate : null;
+    final observed = _driftObservedAt;
+    final age = observed == null ? null : clock.now.difference(observed);
+    final driftCurrent = estimate != null &&
+        _anchor?.type == SyncPlayCommandType.unpause &&
+        !_loading &&
+        !_buffering &&
+        !_rawBuffering &&
+        _playerMatchesQueue() &&
+        _player.isPlaying &&
+        age != null &&
+        !age.isNegative &&
+        age <= driftCheckInterval * 2;
+    return SyncPlayDiagnostics(
+      networkRoundTrip: estimate?.networkRoundTrip,
+      clockOffset: estimate?.offset,
+      clockSampleAge: estimate?.age,
+      playbackDrift: driftCurrent ? _lastDrift : null,
+      driftSampleAge: driftCurrent ? age : null,
+      lastCorrection: joined ? _lastCorrection : null,
+      correctionCount: joined ? _correctionCount : 0,
+    );
+  }
 
   void _emit() {
     if (!_states.isClosed) _states.add(state);
@@ -410,8 +444,20 @@ class SyncPlayController {
     final name = _group?.groupName ?? _expectedGroupName;
     if (name == null) return;
     final source = _sourceEpoch;
+    final pending = _membershipRest;
     final op = _begin(SyncPlayStatus.joining, name, groupId: id);
     try {
+      var previousRequestAmbiguous = false;
+      if (pending != null) {
+        // A list can be empty while the previous New/Join is still being
+        // processed. Settle that exact request before treating absence as
+        // conclusive, otherwise another New could create a duplicate room.
+        final outcome = await _bounded(pending);
+        if (!_current(source, op)) return;
+        previousRequestAmbiguous = outcome != null &&
+            outcome.code != SyncPlayFailureCode.denied &&
+            outcome.code != SyncPlayFailureCode.noGroup;
+      }
       if (_expectedGroupId == null) {
         final matches = (await _bounded(_api.listGroups()))
             .where((group) => group.groupName == name)
@@ -419,7 +465,9 @@ class SyncPlayController {
         if (!_current(source, op)) return;
         if (matches.length != 1) {
           throw SyncPlayFailure(matches.isEmpty
-              ? SyncPlayFailureCode.noGroup
+              ? previousRequestAmbiguous
+                  ? SyncPlayFailureCode.timeoutUnknown
+                  : SyncPlayFailureCode.noGroup
               : SyncPlayFailureCode.ambiguousCode);
         }
         _expectedGroupId = syncPlayId(matches.single.groupId);
@@ -499,7 +547,6 @@ class SyncPlayController {
     } finally {
       if (_clockRequestEpoch == flight) _clockRequestEpoch = null;
       if (_current(source, op)) {
-        _drainCommand();
         _clockPoll?.cancel();
         if (state.isJoined && _connected) {
           _clockPoll = _scheduler.schedule(clockPollInterval, () {
@@ -507,6 +554,7 @@ class SyncPlayController {
             unawaited(synchronizeClock());
           });
         }
+        _drainCommand();
       }
     }
   }
@@ -939,17 +987,23 @@ class SyncPlayController {
     _driftTimer?.cancel();
     _driftTimer = null;
     _anchor = null;
+    _lastDrift = null;
+    _driftObservedAt = null;
     _scheduledCommand?.cancel();
     _scheduledCommand = null;
     _deferredCommand = command;
     _drainCommand();
+    _emit();
   }
 
   void _drainCommand() {
     final command = _deferredCommand;
     if (command == null || _loading || !state.isJoined || !_connected) return;
     if (!clock.isSynchronized) {
-      unawaited(synchronizeClock());
+      // A failed time read retains this command until the scheduled poll.
+      // Draining or receiving another correction must not bypass that wait
+      // and recursively retry the unavailable endpoint without a delay.
+      if (_clockPoll == null) unawaited(synchronizeClock());
       return;
     }
     if (command.type != SyncPlayCommandType.stop && !_playerMatchesQueue()) {
@@ -980,7 +1034,7 @@ class SyncPlayController {
           state.isJoined &&
           !clock.isSynchronized) {
         _deferredCommand = command;
-        unawaited(synchronizeClock());
+        _drainCommand();
       }
     });
   }
@@ -1074,6 +1128,11 @@ class SyncPlayController {
         _rawBuffering ||
         !state.canControl ||
         !_playerMatchesQueue()) {
+      if (_lastDrift != null) {
+        _lastDrift = null;
+        _driftObservedAt = null;
+        _emit();
+      }
       _scheduleDrift();
       return;
     }
@@ -1085,11 +1144,17 @@ class SyncPlayController {
         final elapsed = clock.serverNow.difference(anchor.when);
         if (!elapsed.isNegative) target += elapsed;
       }
-      final difference = target - _player.position;
-      if (difference.abs() <= driftThreshold) return;
+      final position = _player.position;
+      final difference = target - position;
+      _lastDrift = difference;
+      _driftObservedAt = clock.now;
+      if (difference.abs() <= driftThreshold) {
+        _emit();
+        return;
+      }
       // Bound each correction, so a bad sample cannot make one enormous jump.
       if (difference.abs() > maximumDriftCorrection) {
-        target = _player.position +
+        target = position +
             (difference.isNegative
                 ? -maximumDriftCorrection
                 : maximumDriftCorrection);
@@ -1105,6 +1170,13 @@ class SyncPlayController {
           queueItem: _queue?.current,
           queue: _queue,
         )));
+        if (_current(source) &&
+            epoch == _playbackEpoch &&
+            serial == _commandSerial) {
+          _lastCorrection = target - position;
+          _correctionCount++;
+          _emit();
+        }
         if (_current(source) &&
             epoch == _playbackEpoch &&
             serial == _commandSerial &&
@@ -1136,6 +1208,14 @@ class SyncPlayController {
   void _invalidatePlayback() {
     _playbackEpoch++;
     _commandSerial++;
+    // Controller epochs also revoke work already awaiting the real backend.
+    // A disconnect, removed room or replaced queue must not resume an old
+    // Unpause when buffering happens to finish after invalidation.
+    _cancelPlayerActions();
+    _lastDrift = null;
+    _driftObservedAt = null;
+    _lastCorrection = null;
+    _correctionCount = 0;
     _participantRefresh++;
     _scheduledCommand?.cancel();
     _scheduledCommand = null;

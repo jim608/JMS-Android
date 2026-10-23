@@ -736,6 +736,7 @@ void main() {
 
   test('bounded player failure cancels pending backend actions once', () async {
     await readyRoom();
+    final cancellationsBeforeFailure = player.cancellations;
     final never = Completer<void>();
     addTearDown(() {
       if (!never.isCompleted) never.complete();
@@ -744,7 +745,7 @@ void main() {
     server.command(server.groupFor(alice)!, 'Seek');
     await world.advance(const Duration(milliseconds: 500));
     await world.advance(const Duration(seconds: 11));
-    expect(player.cancellations, 1);
+    expect(player.cancellations, cancellationsBeforeFailure + 1);
     expect(controller.state.failure?.code, SyncPlayFailureCode.player);
   });
 
@@ -768,6 +769,110 @@ void main() {
     expect(controller.state.canControl, isTrue);
     expect(server.newCalls, 1);
     expect(server.joinCalls, 1);
+  });
+
+  for (final invalidSample in [false, true]) {
+    test(
+        'deferred command waits for clock poll after ${invalidSample ? 'invalid sample' : 'time request failure'} without a retry loop',
+        () async {
+      await readyRoom();
+      final initialCalls = alice.timeCalls;
+      final heldRetry = Completer<SyncPlayServerTime>();
+      var recover = false;
+      addTearDown(() {
+        if (!heldRetry.isCompleted) {
+          heldRetry.complete(SyncPlayServerTime(
+              requestReceptionTime: world.now,
+              responseTransmissionTime: world.now));
+        }
+      });
+      alice.onGetServerTime = () async {
+        if (recover) {
+          return SyncPlayServerTime(
+              requestReceptionTime: world.now,
+              responseTransmissionTime: world.now);
+        }
+        // Hold an erroneous second request so the pre-fix regression fails
+        // deterministically rather than starving the test's microtask queue.
+        if (alice.timeCalls > initialCalls + 1) return heldRetry.future;
+        if (!invalidSample) {
+          throw const SyncPlayFailure(SyncPlayFailureCode.server);
+        }
+        return SyncPlayServerTime(
+            requestReceptionTime: world.now,
+            responseTransmissionTime:
+                world.now.add(const Duration(seconds: 1)));
+      };
+      controller.clock.reset();
+      final actionsBefore = player.actions.length;
+      final timeRead = controller.synchronizeClock();
+      server.command(server.groupFor(alice)!, 'Unpause');
+      await timeRead;
+      await settle();
+      expect(alice.timeCalls, initialCalls + 1,
+          reason: 'a failed time read must not immediately drain into itself');
+      expect(controller.state.clockSynchronized, false);
+      expect(player.actions.length, actionsBefore);
+      // A newer WS correction must not bypass the already scheduled poll.
+      await world.advance(const Duration(milliseconds: 1));
+      server.command(server.groupFor(alice)!, 'Unpause');
+      await settle();
+      expect(alice.timeCalls, initialCalls + 1);
+      await world.advance(const Duration(milliseconds: 59998));
+      expect(alice.timeCalls, initialCalls + 1);
+      expect(player.isPlaying, false);
+      recover = true;
+      await world.advance(const Duration(milliseconds: 1));
+      expect(alice.timeCalls, initialCalls + 2);
+      expect(controller.state.canControl, true);
+      expect(player.isPlaying, true);
+      expect(server.newCalls, 1);
+      expect(server.joinCalls, 0);
+      await world.advance(const Duration(seconds: 1));
+      expect(alice.timeCalls, initialCalls + 2);
+    });
+  }
+
+  test('explicit reconnect cancels the failed-clock wait and synchronizes once',
+      () async {
+    await readyRoom();
+    final initialCalls = alice.timeCalls;
+    final heldRetry = Completer<SyncPlayServerTime>();
+    var recover = false;
+    addTearDown(() {
+      if (!heldRetry.isCompleted) {
+        heldRetry.complete(SyncPlayServerTime(
+            requestReceptionTime: world.now,
+            responseTransmissionTime: world.now));
+      }
+    });
+    alice.onGetServerTime = () async {
+      if (recover) {
+        return SyncPlayServerTime(
+            requestReceptionTime: world.now,
+            responseTransmissionTime: world.now);
+      }
+      if (alice.timeCalls > initialCalls + 1) return heldRetry.future;
+      throw const SyncPlayFailure(SyncPlayFailureCode.server);
+    };
+    controller.clock.reset();
+    final timeRead = controller.synchronizeClock();
+    server.command(server.groupFor(alice)!, 'Unpause');
+    await timeRead;
+    await settle();
+    expect(alice.timeCalls, initialCalls + 1);
+    controller.setConnected(false);
+    controller.setConnected(true);
+    recover = true;
+    await controller.reconnect();
+    await settle();
+    expect(controller.state.canControl, true);
+    expect(alice.timeCalls, initialCalls + 2);
+    expect(server.newCalls, 1);
+    expect(server.joinCalls, 1);
+    await world.advance(const Duration(seconds: 59));
+    expect(alice.timeCalls, initialCalls + 2,
+        reason: 'the previous connection clock timer must remain cancelled');
   });
 
   test(
@@ -875,6 +980,73 @@ void main() {
     expect(server.leaveCalls, 0);
     await controller.createRoom('200004');
     expect(server.newCalls, 1);
+  });
+
+  test('reconnect cannot use an empty list to dismiss an unresolved New',
+      () async {
+    final pendingNew = Completer<SyncPlayGroup>();
+    alice.newResult = pendingNew;
+    alice.confirmJoins = false;
+    final creating = controller.createRoom('200005');
+    await settle();
+    final created = server.groupFor(alice)!;
+    addTearDown(() {
+      if (!pendingNew.isCompleted) pendingNew.complete(created);
+    });
+    await world.advance(const Duration(seconds: 11));
+    await creating;
+    expect(controller.state.status, SyncPlayStatus.unknown);
+    // A list read does not establish that a still in-flight mutation failed.
+    alice.listResult = Completer<List<SyncPlayGroup>>()..complete([]);
+    final reconnecting = controller.reconnect();
+    await settle();
+    await world.advance(const Duration(seconds: 11));
+    await reconnecting;
+    expect(controller.state.status, SyncPlayStatus.unknown);
+    await controller.createRoom('200006');
+    expect(server.newCalls, 1);
+    expect(server.joinCalls, 0);
+
+    // Once that exact request actually settles, an explicit reconcile can
+    // safely list and join the original group without creating another one.
+    alice.listResult = null;
+    alice.confirmJoins = true;
+    pendingNew.complete(created);
+    await settle();
+    await controller.reconnect();
+    await settle();
+    expect(controller.state.canControl, true);
+    expect(controller.state.group?.groupId, created.groupId);
+    expect(server.newCalls, 1);
+    expect(server.joinCalls, 1);
+  });
+
+  test(
+      'ambiguous New reconciles only positive membership and never empty absence',
+      () async {
+    final pendingNew = Completer<SyncPlayGroup>();
+    alice.newResult = pendingNew;
+    alice.confirmJoins = false;
+    final creating = controller.createRoom('200007');
+    await settle();
+    final created = server.groupFor(alice)!;
+    pendingNew.completeError(
+        const SyncPlayFailure(SyncPlayFailureCode.timeoutUnknown));
+    await creating;
+    expect(controller.state.status, SyncPlayStatus.unknown);
+    alice.listResult = Completer<List<SyncPlayGroup>>()..complete([]);
+    await controller.reconnect();
+    expect(controller.state.status, SyncPlayStatus.unknown);
+    await controller.createRoom('200008');
+    expect(server.newCalls, 1);
+    alice.listResult = null;
+    alice.confirmJoins = true;
+    await controller.reconnect();
+    await settle();
+    expect(controller.state.canControl, true);
+    expect(controller.state.group?.groupId, created.groupId);
+    expect(server.newCalls, 1);
+    expect(server.joinCalls, 1);
   });
 
   test(
@@ -1103,6 +1275,8 @@ class Api implements SyncPlayApiPort {
   Completer<List<SyncPlayGroup>>? listResult;
   Object? sendError;
   Future<void> Function(SyncPlayRequest)? onSend;
+  int timeCalls = 0;
+  Future<SyncPlayServerTime> Function()? onGetServerTime;
   @override
   Future<List<SyncPlayGroup>> listGroups() async {
     if (listResult != null) return listResult!.future;
@@ -1139,9 +1313,14 @@ class Api implements SyncPlayApiPort {
   }
 
   @override
-  Future<SyncPlayServerTime> getServerTime() async => SyncPlayServerTime(
-      requestReceptionTime: server.world.now,
-      responseTransmissionTime: server.world.now);
+  Future<SyncPlayServerTime> getServerTime() async {
+    timeCalls++;
+    if (onGetServerTime != null) return onGetServerTime!();
+    return SyncPlayServerTime(
+        requestReceptionTime: server.world.now,
+        responseTransmissionTime: server.world.now);
+  }
+
   @override
   Future<void> sendRequest(SyncPlayRequest request) async {
     if (sendError != null) throw sendError!;

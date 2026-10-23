@@ -61,6 +61,79 @@ void main() {
     expect(find.textContaining('not a password'), findsOneWidget);
   });
 
+  testWidgets(
+      'diagnostics are collapsed, signed and describe local estimates only',
+      (tester) async {
+    const d = SyncPlayDiagnostics(
+      networkRoundTrip: Duration(microseconds: 81250),
+      clockOffset: Duration(milliseconds: -20),
+      playbackDrift: Duration(milliseconds: 750),
+      correctionCount: 1,
+    );
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(body: SyncPlayDiagnosticsPanel(diagnostics: d)),
+    ));
+    expect(
+        tester
+            .widget<ExpansionTile>(find.byType(ExpansionTile))
+            .initiallyExpanded,
+        isFalse);
+    expect(find.text('Local playback drift: +750.0 ms'), findsNothing);
+    await tester.tap(find.text('Sync diagnostics'));
+    await tester.pumpAndSettle();
+    expect(find.text('Estimated network round trip: 81.3 ms'), findsOneWidget);
+    expect(find.text('Server clock offset: -20.0 ms'), findsOneWidget);
+    expect(find.text('Local playback drift: +750.0 ms'), findsOneWidget);
+    expect(find.textContaining('not a measured difference between friends'),
+        findsOneWidget);
+    expect(find.textContaining('not uploaded'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'diagnostics have no zero-error claim when samples are unavailable',
+      (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(
+          body: SyncPlayDiagnosticsPanel(diagnostics: SyncPlayDiagnostics())),
+    ));
+    await tester.tap(find.text('Sync diagnostics'));
+    await tester.pumpAndSettle();
+    expect(
+        find.text('Local playback drift: No current sample'), findsOneWidget);
+    expect(find.text('Estimated network round trip: No current sample'),
+        findsOneWidget);
+    expect(find.textContaining('0.0 ms'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('expanded diagnostics wrap on a narrow screen with large text',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await showPanel(
+      tester,
+      scaler: const TextScaler.linear(2),
+      state: SyncPlayViewState(
+          room: SyncPlayControllerState(
+        status: SyncPlayStatus.joined,
+        group: SyncPlayGroup(
+          groupId: '00000000000000000000000000000001',
+          groupName: 'JMS-123456',
+          lastUpdatedAt: DateTime.utc(2026, 10, 24),
+          participants: const ['synthetic'],
+        ),
+      )),
+    );
+    await tester.ensureVisible(find.text('Sync diagnostics'));
+    await tester.tap(find.text('Sync diagnostics'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('not uploaded'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('permission gating disables both creation and joining',
       (tester) async {
     var calls = 0;

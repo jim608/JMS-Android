@@ -6,7 +6,8 @@ import 'package:http/http.dart' as http;
 import 'package:smtc_windows/src/rust/api/api.dart';
 import 'package:smtc_windows/src/rust/frb_generated.dart';
 
-import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart' hide SyncPlayQueueItem;
+import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart'
+    hide SyncPlayQueueItem;
 import 'package:fladder/models/account_model.dart';
 import 'package:fladder/models/credentials_model.dart';
 import 'package:fladder/models/items/movie_model.dart';
@@ -18,12 +19,16 @@ import 'package:fladder/models/settings/subtitle_settings_model.dart';
 import 'package:fladder/profiles/default_profile.dart';
 import 'package:fladder/providers/settings/video_player_settings_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
+import 'package:fladder/services/syncplay/syncplay_clock.dart';
+import 'package:fladder/services/syncplay/syncplay_controller.dart';
 import 'package:fladder/services/syncplay/syncplay_models.dart';
 import 'package:fladder/services/syncplay/syncplay_player.dart';
 import 'package:fladder/services/syncplay/syncplay_player_commands.dart';
 import 'package:fladder/wrappers/media_control_wrapper.dart';
 import 'package:fladder/wrappers/players/player_states.dart';
 import 'package:fladder/wrappers/players/base_player.dart';
+
+import 'syncplay_controller_test.dart' as protocol;
 
 class _Smtc extends Fake implements SmtcInternal {}
 
@@ -60,7 +65,8 @@ class _ReadyPlayer extends Fake implements BasePlayer {
   @override
   Stream<PlayerState> get stateStream => const Stream.empty();
   @override
-  Future<void> loadVideo(String url, bool play, {Duration startPosition = Duration.zero}) async {
+  Future<void> loadVideo(String url, bool play,
+      {Duration startPosition = Duration.zero}) async {
     rateAndLoadEvents.add('load');
     if (resetRateOnLoad) rate = 1;
   }
@@ -77,15 +83,22 @@ class _ReadyPlayer extends Fake implements BasePlayer {
 }
 
 const mediaId = '11111111111111111111111111111111';
-const entry = SyncPlayQueueItem(mediaId: mediaId, playlistItemId: '22222222222222222222222222222222');
-const dto = BaseItemDto(id: mediaId, name: '本機測試', type: BaseItemKind.movie, mediaType: MediaType.video);
+const entry = SyncPlayQueueItem(
+    mediaId: mediaId, playlistItemId: '22222222222222222222222222222222');
+const dto = BaseItemDto(
+    id: mediaId,
+    name: '本機測試',
+    type: BaseItemKind.movie,
+    mediaType: MediaType.video);
 final account = AccountModel(
     name: '測試',
     id: '33333333333333333333333333333333',
     avatar: '',
     lastUsed: DateTime.utc(2026),
-    credentials:
-        CredentialsModel.internal(url: 'https://media.example.invalid/jf', token: 'synthetic-only', serverId: mediaId));
+    credentials: CredentialsModel.internal(
+        url: 'https://media.example.invalid/jf',
+        token: 'synthetic-only',
+        serverId: mediaId));
 Response<T> response<T>(T data) => Response(http.Response('', 200), data);
 
 class _Ref extends Fake implements Ref {
@@ -97,7 +110,8 @@ class _Ref extends Fake implements Ref {
 class _Http extends http.BaseClient {
   int closes = 0;
   @override
-  Future<http.StreamedResponse> send(http.BaseRequest request) => throw StateError('No real HTTP');
+  Future<http.StreamedResponse> send(http.BaseRequest request) =>
+      throw StateError('No real HTTP');
   @override
   void close() {
     closes++;
@@ -134,13 +148,15 @@ class _Api extends Fake implements JellyfinOpenApi {
         return itemReady.future;
       case #itemsItemIdPlaybackInfoPost:
         infoCalls++;
-        expect((invocation.namedArguments[#body] as PlaybackInfoDto).userId, account.id);
+        expect((invocation.namedArguments[#body] as PlaybackInfoDto).userId,
+            account.id);
         return infoReady.future;
       case #sessionsPlayingPost:
       case #sessionsPlayingProgressPost:
       case #sessionsPlayingStoppedPost:
         reports.add(invocation.namedArguments[#body]!);
-        return Future<Response<dynamic>>.value(Response(http.Response('', 204), null));
+        return Future<Response<dynamic>>.value(
+            Response(http.Response('', 204), null));
       default:
         return super.noSuchMethod(invocation);
     }
@@ -212,7 +228,8 @@ class _Wrapper extends MediaControlsWrapper {
   }
 
   @override
-  Future<void> loadVideo(PlaybackModel model, Duration startPosition, bool play, {bool Function()? isCurrent}) async {
+  Future<void> loadVideo(PlaybackModel model, Duration startPosition, bool play,
+      {bool Function()? isCurrent}) async {
     loadedPlaying = play;
     events.add('load');
     await loadReady?.future;
@@ -226,13 +243,15 @@ class _Wrapper extends MediaControlsWrapper {
   }
 
   @override
-  Future<int> setAudioTrack(AudioStreamModel? model, PlaybackModel playbackModel) async {
+  Future<int> setAudioTrack(
+      AudioStreamModel? model, PlaybackModel playbackModel) async {
     events.add('audio');
     return -1;
   }
 
   @override
-  Future<int> setSubtitleTrack(SubStreamModel? model, PlaybackModel playbackModel) async {
+  Future<int> setSubtitleTrack(
+      SubStreamModel? model, PlaybackModel playbackModel) async {
     events.add('subtitle');
     return -1;
   }
@@ -244,12 +263,40 @@ class _Notifier extends VideoPlayerNotifier {
   }
 }
 
+/// Keep this regression at the command boundary. Queue loading is synthetic;
+/// every playback control and the backend-ready wait use the real adapter.
+class _AdapterCommands implements SyncPlayPlayerPort {
+  _AdapterCommands(this.adapter);
+  final SyncPlayPlayerAdapter adapter;
+  @override
+  String? mediaId;
+  @override
+  String? playlistItemId;
+  @override
+  Duration get position => adapter.position;
+  @override
+  bool get isPlaying => adapter.isPlaying;
+  @override
+  Future<void> applyRemote(SyncPlayPlayerAction action) async {
+    if (action.type == SyncPlayPlayerActionType.load) {
+      mediaId = action.queueItem!.mediaId;
+      playlistItemId = action.queueItem!.playlistItemId;
+      return;
+    }
+    await adapter.applyRemote(action);
+  }
+}
+
 SyncPlayPlaybackModel _model(_Api api,
-        {bool Function()? current, SyncPlayPlaybackApiOwner? owner, SyncPlayQueue? Function()? queue}) =>
+        {bool Function()? current,
+        SyncPlayPlaybackApiOwner? owner,
+        SyncPlayQueue? Function()? queue}) =>
     SyncPlayPlaybackModel(
         item: MovieModel.fromBaseDto(dto, null),
-        media: const Media(url: 'https://media.example.invalid/jf/Videos/test/stream'),
-        playbackInfo: const PlaybackInfoResponse(playSessionId: 'synthetic-session'),
+        media: const Media(
+            url: 'https://media.example.invalid/jf/Videos/test/stream'),
+        playbackInfo:
+            const PlaybackInfoResponse(playSessionId: 'synthetic-session'),
         mediaStreams: MediaStreamsModel(versionStreams: []),
         api: api,
         isCurrent: current ?? () => true,
@@ -263,7 +310,9 @@ void main() {
   setUpAll(() => RustLib.initMock(api: _SmtcApi()));
   tearDownAll(RustLib.dispose);
 
-  test('local group pause play seek and toggle delegate once; local queue cannot advance', () async {
+  test(
+      'local group pause play seek and toggle delegate once; local queue cannot advance',
+      () async {
     final wrapper = _Wrapper(_Ref());
     final commands = _Commands();
     wrapper.syncPlayCommands = commands;
@@ -282,16 +331,19 @@ void main() {
     expect(commands.events.length, 4);
   });
 
-  test('remote unpause waits for seek and never echoes local commands', () async {
+  test('remote unpause waits for seek and never echoes local commands',
+      () async {
     final ref = _Ref();
     final wrapper = _Wrapper(ref);
     final commands = _Commands();
     wrapper.syncPlayCommands = commands;
     ref.values[videoPlayerProvider] = wrapper;
     wrapper.seekReady = Completer<void>();
-    final adapter = SyncPlayPlayerAdapter(ref: ref, account: account, api: _Api(), isCurrent: () => true);
-    final action = adapter.applyRemote(
-        const SyncPlayPlayerAction(type: SyncPlayPlayerActionType.unpause, position: Duration(seconds: 8)));
+    final adapter = SyncPlayPlayerAdapter(
+        ref: ref, account: account, api: _Api(), isCurrent: () => true);
+    final action = adapter.applyRemote(const SyncPlayPlayerAction(
+        type: SyncPlayPlayerActionType.unpause,
+        position: Duration(seconds: 8)));
     await Future<void>.delayed(Duration.zero);
     expect(wrapper.events, ['remote-seek']);
     wrapper.seekReady!.complete();
@@ -307,52 +359,64 @@ void main() {
     wrapper.raw.position = const Duration(seconds: 10);
     ref.values[videoPlayerProvider] = wrapper;
     wrapper.seekReady = Completer<void>();
-    final adapter = SyncPlayPlayerAdapter(ref: ref, account: account, api: _Api(), isCurrent: () => current);
-    final action = adapter.applyRemote(const SyncPlayPlayerAction(type: SyncPlayPlayerActionType.unpause));
+    final adapter = SyncPlayPlayerAdapter(
+        ref: ref, account: account, api: _Api(), isCurrent: () => current);
+    final action = adapter.applyRemote(
+        const SyncPlayPlayerAction(type: SyncPlayPlayerActionType.unpause));
     current = false;
     wrapper.seekReady!.complete();
     await action;
     expect(wrapper.events, ['remote-seek']);
   });
 
-  test('cancel pending actions rejects old seek completion but permits a future command', () async {
+  test(
+      'cancel pending actions rejects old seek completion but permits a future command',
+      () async {
     final ref = _Ref();
     final wrapper = _Wrapper(ref);
     wrapper.raw.position = const Duration(seconds: 10);
     ref.values[videoPlayerProvider] = wrapper;
     wrapper.seekReady = Completer<void>();
-    final adapter = SyncPlayPlayerAdapter(ref: ref, account: account, api: _Api(), isCurrent: () => true);
-    final old = adapter.applyRemote(const SyncPlayPlayerAction(type: SyncPlayPlayerActionType.unpause));
+    final adapter = SyncPlayPlayerAdapter(
+        ref: ref, account: account, api: _Api(), isCurrent: () => true);
+    final old = adapter.applyRemote(
+        const SyncPlayPlayerAction(type: SyncPlayPlayerActionType.unpause));
     adapter.cancelPendingActions();
     wrapper.seekReady!.complete();
     await old;
     expect(wrapper.events, ['remote-seek']);
-    await adapter.applyRemote(const SyncPlayPlayerAction(type: SyncPlayPlayerActionType.unpause));
+    await adapter.applyRemote(
+        const SyncPlayPlayerAction(type: SyncPlayPlayerActionType.unpause));
     expect(wrapper.events, ['remote-seek', 'remote-play']);
   });
 
-  test('aligned pause and unpause do not manufacture seek buffering pulses', () async {
+  test('aligned pause and unpause do not manufacture seek buffering pulses',
+      () async {
     final ref = _Ref();
     final wrapper = _Wrapper(ref);
     wrapper.raw.position = const Duration(milliseconds: 8100);
     ref.values[videoPlayerProvider] = wrapper;
-    final adapter = SyncPlayPlayerAdapter(ref: ref, account: account, api: _Api(), isCurrent: () => true);
-    await adapter
-        .applyRemote(const SyncPlayPlayerAction(type: SyncPlayPlayerActionType.pause, position: Duration(seconds: 8)));
-    await adapter.applyRemote(
-        const SyncPlayPlayerAction(type: SyncPlayPlayerActionType.unpause, position: Duration(seconds: 8)));
+    final adapter = SyncPlayPlayerAdapter(
+        ref: ref, account: account, api: _Api(), isCurrent: () => true);
+    await adapter.applyRemote(const SyncPlayPlayerAction(
+        type: SyncPlayPlayerActionType.pause, position: Duration(seconds: 8)));
+    await adapter.applyRemote(const SyncPlayPlayerAction(
+        type: SyncPlayPlayerActionType.unpause,
+        position: Duration(seconds: 8)));
     expect(wrapper.events, ['remote-pause', 'remote-play']);
     await wrapper.snapshots.close();
   });
 
-  test('accepted seek is not media ready until actual buffering clears', () async {
+  test('accepted seek is not media ready until actual buffering clears',
+      () async {
     final ref = _Ref();
     final wrapper = _Wrapper(ref)..holdBufferingOnSeek = true;
     ref.values[videoPlayerProvider] = wrapper;
-    final adapter = SyncPlayPlayerAdapter(ref: ref, account: account, api: _Api(), isCurrent: () => true);
+    final adapter = SyncPlayPlayerAdapter(
+        ref: ref, account: account, api: _Api(), isCurrent: () => true);
     var completed = false;
-    final action = adapter
-        .applyRemote(const SyncPlayPlayerAction(type: SyncPlayPlayerActionType.unpause, position: Duration(seconds: 8)))
+    final action = adapter.applyRemote(const SyncPlayPlayerAction(
+        type: SyncPlayPlayerActionType.unpause, position: Duration(seconds: 8)))
       ..then((_) => completed = true);
     await Future<void>.delayed(Duration.zero);
     expect(wrapper.events, ['remote-seek']);
@@ -364,13 +428,16 @@ void main() {
     await wrapper.snapshots.close();
   });
 
-  test('leaving cancels an actual media-ready wait without a late play', () async {
+  test('leaving cancels an actual media-ready wait without a late play',
+      () async {
     final ref = _Ref();
     final wrapper = _Wrapper(ref)..holdBufferingOnSeek = true;
     ref.values[videoPlayerProvider] = wrapper;
-    final adapter = SyncPlayPlayerAdapter(ref: ref, account: account, api: _Api(), isCurrent: () => true);
-    final action = adapter.applyRemote(
-        const SyncPlayPlayerAction(type: SyncPlayPlayerActionType.unpause, position: Duration(seconds: 8)));
+    final adapter = SyncPlayPlayerAdapter(
+        ref: ref, account: account, api: _Api(), isCurrent: () => true);
+    final action = adapter.applyRemote(const SyncPlayPlayerAction(
+        type: SyncPlayPlayerActionType.unpause,
+        position: Duration(seconds: 8)));
     await Future<void>.delayed(Duration.zero);
     adapter.cancelPendingActions();
     await action;
@@ -380,7 +447,89 @@ void main() {
     await wrapper.snapshots.close();
   });
 
-  test('a newer remote pause supersedes an unpause still awaiting its seek', () async {
+  for (final invalidation in [
+    'disconnect',
+    'GroupLeft',
+    'LibraryAccessDenied',
+    'empty queue'
+  ]) {
+    test(
+        '$invalidation cancels an in-flight controller unpause awaiting actual backend readiness',
+        () async {
+      final world = protocol.World();
+      final server = protocol.Server(world);
+      final api = server.client('synthetic-participant');
+      final ref = _Ref();
+      final wrapper = _Wrapper(ref)..holdBufferingOnSeek = true;
+      wrapper.raw.playing = false;
+      ref.values[videoPlayerProvider] = wrapper;
+      // Login identity deliberately remains current across a network disconnect.
+      final adapter = SyncPlayPlayerAdapter(
+          ref: ref, account: account, api: _Api(), isCurrent: () => true);
+      final controller = SyncPlayController(
+        identity: protocol.identity,
+        api: api,
+        player: _AdapterCommands(adapter),
+        events: api.events.stream,
+        clock: SyncPlayClock(now: () => world.now),
+        scheduler: world,
+        isPlayerBuffering: () => adapter.isBuffering,
+        cancelPendingPlayerActions: adapter.cancelPendingActions,
+      );
+      addTearDown(() async {
+        await controller.dispose();
+        adapter.cancelPendingActions();
+        await api.events.close();
+        await wrapper.snapshots.close();
+      });
+      await controller.createRoom('123456');
+      await protocol.settle();
+      await controller
+          .setQueue([mediaId], position: const Duration(seconds: 8));
+      await protocol.settle();
+      expect(controller.state.canControl, isTrue);
+      await controller.requestUnpause(userInitiated: true);
+      await world.advance(const Duration(milliseconds: 500));
+      expect(wrapper.events, ['remote-seek']);
+      expect(wrapper.raw.buffering, isTrue);
+      expect(controller.isApplyingRemote, isTrue);
+
+      final room = server.roomFor(api)!;
+      switch (invalidation) {
+        case 'disconnect':
+          controller.setConnected(false);
+        case 'GroupLeft':
+          server.update(api, room, 'GroupLeft', room.groupId);
+        case 'LibraryAccessDenied':
+          server.update(api, room, 'LibraryAccessDenied', null);
+        case 'empty queue':
+          room.playlist = [];
+          room.index = -1;
+          room.updated = world.now;
+          server.queue(api, room);
+      }
+      final requestsAtInvalidation = server.requests.length;
+      wrapper.raw.buffering = false;
+      wrapper.snapshots.add(wrapper.raw);
+      await protocol.settle();
+
+      expect(
+          controller.state.status,
+          switch (invalidation) {
+            'disconnect' => SyncPlayStatus.disconnected,
+            'GroupLeft' => SyncPlayStatus.idle,
+            'LibraryAccessDenied' => SyncPlayStatus.unknown,
+            _ => SyncPlayStatus.joined,
+          });
+      expect(wrapper.events, ['remote-seek']);
+      expect(wrapper.raw.playing, isFalse);
+      expect(controller.isApplyingRemote, isFalse);
+      expect(server.requests.length, requestsAtInvalidation);
+    });
+  }
+
+  test('a newer remote pause supersedes an unpause still awaiting its seek',
+      () async {
     final ref = _Ref();
     final wrapper = _Wrapper(ref);
     final commands = _Commands();
@@ -388,14 +537,16 @@ void main() {
     ref.values[videoPlayerProvider] = wrapper;
     final oldSeek = Completer<void>();
     wrapper.seekReady = oldSeek;
-    final adapter = SyncPlayPlayerAdapter(ref: ref, account: account, api: _Api(), isCurrent: () => true);
-    final unpause = adapter.applyRemote(
-        const SyncPlayPlayerAction(type: SyncPlayPlayerActionType.unpause, position: Duration(seconds: 8)));
+    final adapter = SyncPlayPlayerAdapter(
+        ref: ref, account: account, api: _Api(), isCurrent: () => true);
+    final unpause = adapter.applyRemote(const SyncPlayPlayerAction(
+        type: SyncPlayPlayerActionType.unpause,
+        position: Duration(seconds: 8)));
     await Future<void>.delayed(Duration.zero);
     expect(wrapper.events, ['remote-seek']);
     wrapper.seekReady = null;
-    await adapter
-        .applyRemote(const SyncPlayPlayerAction(type: SyncPlayPlayerActionType.pause, position: Duration(seconds: 8)));
+    await adapter.applyRemote(const SyncPlayPlayerAction(
+        type: SyncPlayPlayerActionType.pause, position: Duration(seconds: 8)));
     expect(wrapper.raw.playing, isFalse);
     oldSeek.complete();
     await unpause;
@@ -404,7 +555,8 @@ void main() {
     expect(commands.events, isEmpty);
   });
 
-  test('stale item fetch never starts another request and closes owned client', () async {
+  test('stale item fetch never starts another request and closes owned client',
+      () async {
     var current = true;
     final api = _Api();
     final ref = _Ref();
@@ -432,19 +584,26 @@ void main() {
     MediaSourceInfo(
         id: mediaId,
         supportsTranscoding: true,
-        transcodingUrl: 'Videos/test/master.m3u8?api_key=stale-fixture&segment=1'),
+        transcodingUrl:
+            'Videos/test/master.m3u8?api_key=stale-fixture&segment=1'),
     MediaSourceInfo(
         id: mediaId,
         supportsTranscoding: true,
-        transcodingUrl: 'https://media.example.invalid/jf/Videos/test/master.m3u8?api_key=stale-fixture&segment=1'),
+        transcodingUrl:
+            'https://media.example.invalid/jf/Videos/test/master.m3u8?api_key=stale-fixture&segment=1'),
   ]) {
-    test('captured playback uses canonical authentication (${source.transcodingUrl ?? 'direct'})', () async {
-      final container = ProviderContainer(overrides: [videoProfileProvider.overrideWith((_) => const DeviceProfile())]);
+    test(
+        'captured playback uses canonical authentication (${source.transcodingUrl ?? 'direct'})',
+        () async {
+      final container = ProviderContainer(overrides: [
+        videoProfileProvider.overrideWith((_) => const DeviceProfile())
+      ]);
       addTearDown(container.dispose);
       final refProvider = Provider<Ref>((ref) => ref);
       final api = _Api();
       api.itemReady.complete(response(dto));
-      api.infoReady.complete(response(PlaybackInfoResponse(mediaSources: [source])));
+      api.infoReady
+          .complete(response(PlaybackInfoResponse(mediaSources: [source])));
       final model = await createSyncPlayPlaybackModel(
           ref: container.read(refProvider),
           api: api,
@@ -458,7 +617,9 @@ void main() {
       expect(uri.path, startsWith('/jf/Videos/'));
       expect(uri.queryParameters['ApiKey'], account.credentials.token);
       expect(uri.queryParameters.containsKey('api_key'), isFalse);
-      if (source.supportsTranscoding == true) expect(uri.queryParameters['segment'], '1');
+      if (source.supportsTranscoding == true) {
+        expect(uri.queryParameters['segment'], '1');
+      }
       model.dispose();
       expect(api.ownedClient.transport.closes, 1);
     });
@@ -470,33 +631,50 @@ void main() {
     ref.values[videoProfileProvider] = const DeviceProfile();
     api.itemReady.complete(response(dto));
     api.infoReady.complete(response(const PlaybackInfoResponse(mediaSources: [
-      MediaSourceInfo(id: mediaId, supportsTranscoding: true, transcodingUrl: 'https://foreign.example.invalid/stream')
+      MediaSourceInfo(
+          id: mediaId,
+          supportsTranscoding: true,
+          transcodingUrl: 'https://foreign.example.invalid/stream')
     ])));
     await expectLater(
         createSyncPlayPlaybackModel(
-            ref: ref, api: api, account: account, queueItem: entry, position: Duration.zero, isCurrent: () => true),
+            ref: ref,
+            api: api,
+            account: account,
+            queueItem: entry,
+            position: Duration.zero,
+            isCurrent: () => true),
         throwsA(isA<SyncPlayFailure>()));
   });
 
-  test('post-leave reporting survives room teardown; account invalidation blocks it; ownership shared', () async {
+  test(
+      'post-leave reporting survives room teardown; account invalidation blocks it; ownership shared',
+      () async {
     final api = _Api();
     var accountCurrent = true;
     final owner = SyncPlayPlaybackApiOwner(api, ownsApi: true);
     SyncPlayQueue? roomQueue = SyncPlayQueue(
         lastUpdate: DateTime.utc(2026),
-        items: [entry, const SyncPlayQueueItem(mediaId: mediaId, playlistItemId: '44444444444444444444444444444444')],
+        items: [
+          entry,
+          const SyncPlayQueueItem(
+              mediaId: mediaId,
+              playlistItemId: '44444444444444444444444444444444')
+        ],
         playingIndex: 0,
         position: Duration.zero,
         isPlaying: false,
         reason: 'NewPlaylist');
-    final playback = _model(api, current: () => accountCurrent, owner: owner, queue: () => roomQueue);
+    final playback = _model(api,
+        current: () => accountCurrent, owner: owner, queue: () => roomQueue);
     final copy = playback.copyWith() as SyncPlayPlaybackModel;
     await copy.playbackStarted(Duration.zero, _Ref());
     expect((api.reports.single as PlaybackStartInfo).isPaused, isTrue);
     await copy.updatePlaybackPosition(const Duration(seconds: 5), true, _Ref());
     final report = api.reports.last as PlaybackProgressInfo;
     expect(report.playlistItemId, entry.playlistItemId);
-    expect(report.nowPlayingQueue!.map((q) => q.playlistItemId).toSet().length, 2);
+    expect(
+        report.nowPlayingQueue!.map((q) => q.playlistItemId).toSet().length, 2);
     expect(api.ownedClient.transport.closes, 0);
     roomQueue = null;
     expect(copy.serverManagedQueue, isFalse);
@@ -514,7 +692,9 @@ void main() {
     expect(copy.previousVideo, isNull);
   });
 
-  test('direct wrapper disposal closes captured playback client once without reading disposed Ref', () async {
+  test(
+      'direct wrapper disposal closes captured playback client once without reading disposed Ref',
+      () async {
     final container = ProviderContainer();
     final refProvider = Provider<Ref>((ref) => ref);
     final ref = container.read(refProvider);
@@ -530,7 +710,9 @@ void main() {
     expect(api.ownedClient.disposes, 1);
   });
 
-  test('group speed is fixed at 1x while ordinary playback still changes backend rate', () async {
+  test(
+      'group speed is fixed at 1x while ordinary playback still changes backend rate',
+      () async {
     final container = ProviderContainer();
     final refProvider = Provider<Ref>((ref) => ref);
     final wrapper = MediaControlsWrapper(ref: container.read(refProvider));
@@ -573,7 +755,9 @@ void main() {
           isPlaying: false,
           reason: 'NewPlaylist');
       var completed = false;
-      final loading = wrapper.loadVideo(_model(_Api(), queue: () => queue), Duration.zero, false).then((_) {
+      final loading = wrapper
+          .loadVideo(_model(_Api(), queue: () => queue), Duration.zero, false)
+          .then((_) {
         completed = true;
       });
       await Future<void>.delayed(Duration.zero);
@@ -589,7 +773,9 @@ void main() {
     });
   }
 
-  test('notifier group load stays paused and stale load cannot resume or set tracks', () async {
+  test(
+      'notifier group load stays paused and stale load cannot resume or set tracks',
+      () async {
     final ref = _Ref();
     final wrapper = _Wrapper(ref);
     final media = StateController(MediaPlaybackModel());
@@ -606,8 +792,8 @@ void main() {
     final api = _Api();
     var current = true;
     wrapper.loadReady = Completer<void>();
-    final loading =
-        notifier.loadPlaybackItem(_model(api), Duration.zero, playWhenReady: false, isCurrent: () => current);
+    final loading = notifier.loadPlaybackItem(_model(api), Duration.zero,
+        playWhenReady: false, isCurrent: () => current);
     await Future<void>.delayed(Duration.zero);
     expect(wrapper.loadedPlaying, isFalse);
     current = false;
