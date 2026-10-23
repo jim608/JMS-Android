@@ -1,0 +1,59 @@
+{
+  "repository": "https://github.com/google/fonts",
+  "commit": "3be1884c48c3e45b52ecc725676a08f87776373e",
+  "source": {
+    "url": "https://raw.githubusercontent.com/google/fonts/3be1884c48c3e45b52ecc725676a08f87776373e/ofl/notosanstc/NotoSansTC%5Bwght%5D.ttf",
+    "sha256": "864727d210d54f2537bbe23b3a839436c3992af72de9322af5270897246bd44f"
+  },
+  "license": {
+    "url": "https://raw.githubusercontent.com/google/fonts/3be1884c48c3e45b52ecc725676a08f87776373e/ofl/notosanstc/OFL.txt",
+    "sha256": "1c05c68c34f9708415aada51f17e1b0092d2cea709bf4a94cd38114f9e73d7d9"
+  },
+  "derivation": {
+    "tool": "fontTools.varLib.instancer",
+    "version": "4.59.1",
+    "axis": "wght",
+    "updateFontNames": true,
+    "recalcTimestamp": false,
+    "unicodeCoveragePreserved": true,
+    "generator": "scripts/generate_jms_ui_fonts.py"
+  },
+  "derived": {
+    "NotoSansTC-Regular.ttf": {
+      "weight": 400,
+      "bytes": 7149180,
+      "sha256": "82559d4a2ab69224de5cb6191ddf40b0027c4b519ff891e9342d354045285014",
+      "family": "Noto Sans TC",
+      "style": "Regular",
+      "static": true,
+      "unicodeCodepoints": 20745
+    },
+    "NotoSansTC-Medium.ttf": {
+      "weight": 500,
+      "bytes": 7145304,
+      "sha256": "f08fd949a98bd2899a0893cfe11cf927656e999f0350d108977294247be0871d",
+      "family": "Noto Sans TC",
+      "style": "Medium",
+      "static": true,
+      "unicodeCodepoints": 20745
+    },
+    "NotoSansTC-SemiBold.ttf": {
+      "weight": 600,
+      "bytes": 7142660,
+      "sha256": "dbb444c967184766b88fa4ca458bb0f99951cae0c47fff0624859a20e738505a",
+      "family": "Noto Sans TC",
+      "style": "SemiBold",
+      "static": true,
+      "unicodeCodepoints": 20745
+    },
+    "NotoSansTC-Bold.ttf": {
+      "weight": 700,
+      "bytes": 7143708,
+      "sha256": "f298e7332e462777aecc30adddc7330c5a884b9c246567fc9f4afa44c7753775",
+      "family": "Noto Sans TC",
+      "style": "Bold",
+      "static": true,
+      "unicodeCodepoints": 20745
+    }
+  }
+}

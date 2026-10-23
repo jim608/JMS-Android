@@ -66,7 +66,7 @@ class _ThemeOverwriteState extends ConsumerState<ThemeOverwrite> {
         : null;
 
     final themeData = newColorScheme != null
-        ? FladderTheme.theme(newColorScheme, schemeVariant).copyWith(
+        ? FladderTheme.theme(newColorScheme, schemeVariant, locale: Localizations.localeOf(context)).copyWith(
             scaffoldBackgroundColor: amoledOverwrite,
             cardColor: amoledOverwrite,
             canvasColor: amoledOverwrite,

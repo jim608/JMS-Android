@@ -78,8 +78,15 @@ class AdaptiveColorState extends ConsumerState<AdaptiveColor> with WidgetsBindin
   }
 
   @override
+  void didChangeLocales(List<Locale>? locales) {
+    if (mounted) setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isLinux = defaultTargetPlatform == TargetPlatform.linux;
+    final locale = ref.watch(clientSettingsProvider.select((value) => value.selectedLocale)) ??
+        WidgetsBinding.instance.platformDispatcher.locale;
     final themeColor = ref.watch(clientSettingsProvider.select((value) => value.themeColor));
     final schemeVariant = ref.watch(clientSettingsProvider.select((value) => value.schemeVariant));
 
@@ -87,12 +94,12 @@ class AdaptiveColorState extends ConsumerState<AdaptiveColor> with WidgetsBindin
     final fallbackDark = FladderTheme.defaultScheme(Brightness.dark);
 
     final baseLightTheme = themeColor == null
-        ? FladderTheme.theme(_light ?? fallbackLight, schemeVariant)
-        : FladderTheme.theme(themeColor.schemeLight, schemeVariant);
+        ? FladderTheme.theme(_light ?? fallbackLight, schemeVariant, locale: locale)
+        : FladderTheme.theme(themeColor.schemeLight, schemeVariant, locale: locale);
 
     final baseDarkTheme = themeColor == null
-        ? FladderTheme.theme(_dark ?? fallbackDark, schemeVariant)
-        : FladderTheme.theme(themeColor.schemeDark, schemeVariant);
+        ? FladderTheme.theme(_dark ?? fallbackDark, schemeVariant, locale: locale)
+        : FladderTheme.theme(themeColor.schemeDark, schemeVariant, locale: locale);
 
     // Apply fonts
     final lightTheme = isLinux

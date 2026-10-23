@@ -1,115 +1,43 @@
 import 'package:flutter/material.dart';
 
 class FladderFonts {
-  static TextTheme rubikTextTheme([TextTheme? textTheme]) {
-    textTheme ??= ThemeData.light().textTheme;
+  /// A restrained UI scale with real weights so widget-level emphasis still works.
+  static TextTheme interfaceTextTheme(TextTheme base, {Locale? locale}) {
+    final traditionalChinese = locale?.languageCode == 'zh' &&
+        (locale?.scriptCode == 'Hant' ||
+            (locale?.scriptCode == null &&
+                const {'TW', 'HK', 'MO'}.contains(locale?.countryCode)));
+    final family = traditionalChinese ? 'NotoSansTC' : 'OpenSans';
+    final text = base.apply(
+      fontFamily: family,
+      fontFamilyFallback: traditionalChinese
+          ? const ['OpenSans', 'sans-serif']
+          : const ['sans-serif'],
+    );
 
-    return TextTheme(
-      displayLarge: TextStyle(
-        fontFamily: 'Rubik',
-        fontSize: textTheme.displayLarge?.fontSize,
-        fontVariations: [
-          const FontVariation('wght', 300),
-        ],
-      ),
-      displayMedium: TextStyle(
-        fontFamily: 'Rubik',
-        fontSize: textTheme.displayMedium?.fontSize,
-        fontVariations: [
-          const FontVariation('wght', 400),
-        ],
-      ),
-      displaySmall: TextStyle(
-        fontFamily: 'Rubik',
-        fontSize: textTheme.displaySmall?.fontSize,
-        fontVariations: [
-          const FontVariation('wght', 500),
-        ],
-      ),
-      headlineLarge: TextStyle(
-        fontFamily: 'Rubik',
-        fontSize: textTheme.headlineLarge?.fontSize,
-        fontVariations: [
-          const FontVariation('wght', 600),
-        ],
-      ),
-      headlineMedium: TextStyle(
-        fontFamily: 'Rubik',
-        fontSize: textTheme.headlineMedium?.fontSize,
-        fontVariations: [
-          const FontVariation('wght', 700),
-        ],
-      ),
-      headlineSmall: TextStyle(
-        fontFamily: 'Rubik',
-        fontSize: textTheme.headlineSmall?.fontSize,
-        fontVariations: [
-          const FontVariation('wght', 800),
-        ],
-      ),
-      titleLarge: TextStyle(
-        fontFamily: 'Rubik',
-        fontSize: textTheme.titleLarge?.fontSize,
-        fontVariations: [
-          const FontVariation('wght', 400),
-        ],
-      ),
-      titleMedium: TextStyle(
-        fontFamily: 'Rubik',
-        fontSize: textTheme.titleMedium?.fontSize,
-        fontVariations: [
-          const FontVariation('wght', 500),
-        ],
-      ),
-      titleSmall: TextStyle(
-        fontFamily: 'Rubik',
-        fontSize: textTheme.titleSmall?.fontSize,
-        fontVariations: [
-          const FontVariation('wght', 600),
-        ],
-      ),
-      bodyLarge: TextStyle(
-        fontFamily: 'Rubik',
-        fontSize: textTheme.bodyLarge?.fontSize,
-        fontVariations: [
-          const FontVariation('wght', 400),
-        ],
-      ),
-      bodyMedium: TextStyle(
-        fontFamily: 'Rubik',
-        fontSize: textTheme.bodyMedium?.fontSize,
-        fontVariations: [
-          const FontVariation('wght', 500),
-        ],
-      ),
-      bodySmall: TextStyle(
-        fontFamily: 'Rubik',
-        fontSize: textTheme.bodySmall?.fontSize,
-        fontVariations: [
-          const FontVariation('wght', 400),
-        ],
-      ),
-      labelLarge: TextStyle(
-        fontFamily: 'Rubik',
-        fontSize: textTheme.labelLarge?.fontSize,
-        fontVariations: [
-          const FontVariation('wght', 600),
-        ],
-      ),
-      labelMedium: TextStyle(
-        fontFamily: 'Rubik',
-        fontSize: textTheme.labelMedium?.fontSize,
-        fontVariations: [
-          const FontVariation('wght', 500),
-        ],
-      ),
-      labelSmall: TextStyle(
-        fontFamily: 'Rubik',
-        fontSize: textTheme.labelSmall?.fontSize,
-        fontVariations: [
-          const FontVariation('wght', 400),
-        ],
-      ),
+    TextStyle? style(TextStyle? source, FontWeight weight, double height) =>
+        source?.copyWith(
+          fontWeight: weight,
+          height: height,
+          letterSpacing: 0,
+        );
+
+    return text.copyWith(
+      displayLarge: style(text.displayLarge, FontWeight.w600, 1.2),
+      displayMedium: style(text.displayMedium, FontWeight.w600, 1.2),
+      displaySmall: style(text.displaySmall, FontWeight.w600, 1.25),
+      headlineLarge: style(text.headlineLarge, FontWeight.w600, 1.3),
+      headlineMedium: style(text.headlineMedium, FontWeight.w600, 1.3),
+      headlineSmall: style(text.headlineSmall, FontWeight.w600, 1.3),
+      titleLarge: style(text.titleLarge, FontWeight.w600, 1.35),
+      titleMedium: style(text.titleMedium, FontWeight.w600, 1.4),
+      titleSmall: style(text.titleSmall, FontWeight.w500, 1.4),
+      bodyLarge: style(text.bodyLarge, FontWeight.w400, 1.5),
+      bodyMedium: style(text.bodyMedium, FontWeight.w400, 1.5),
+      bodySmall: style(text.bodySmall, FontWeight.w400, 1.5),
+      labelLarge: style(text.labelLarge, FontWeight.w500, 1.35),
+      labelMedium: style(text.labelMedium, FontWeight.w500, 1.35),
+      labelSmall: style(text.labelSmall, FontWeight.w500, 1.35),
     );
   }
 }

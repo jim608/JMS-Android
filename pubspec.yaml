@@ -234,12 +234,24 @@ flutter:
     - icons/popcorn_bucket.svg
     - LICENSE
     - assets/fonts/
+    - assets/fonts/notosanstc/OFL.txt
     - config/config.json
     - assets/licenses/
     - assets/subtitle_fonts/
     - assets/gradient.png
 
   fonts:
+    - family: NotoSansTC
+      fonts:
+        - asset: assets/fonts/notosanstc/NotoSansTC-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/notosanstc/NotoSansTC-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/notosanstc/NotoSansTC-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/notosanstc/NotoSansTC-Bold.ttf
+          weight: 700
+
     - family: Rubik
       fonts:
         - asset: assets/fonts/rubik/Rubik-VariableFont_wght.ttf

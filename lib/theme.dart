@@ -41,7 +41,7 @@ class FladderTheme {
         border: Border.all(width: 1, color: Colors.white.withAlpha(45)),
       );
 
-  static ThemeData theme(ColorScheme? colorScheme, DynamicSchemeVariant dynamicSchemeVariant) {
+  static ThemeData theme(ColorScheme? colorScheme, DynamicSchemeVariant dynamicSchemeVariant, {Locale? locale}) {
     final ColorScheme? scheme = generateDynamicColourSchemes(colorScheme, dynamicSchemeVariant);
 
     final buttonSides = WidgetStateProperty.resolveWith(
@@ -54,12 +54,16 @@ class FladderTheme {
       },
     );
 
-    final textTheme = FladderFonts.rubikTextTheme(
-      const TextTheme(),
+    final typography = ThemeData(useMaterial3: true, colorScheme: scheme);
+    final textTheme = FladderFonts.interfaceTextTheme(
+      typography.textTheme,
+      locale: locale,
     );
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
+      fontFamily: textTheme.bodyMedium?.fontFamily,
+      primaryTextTheme: FladderFonts.interfaceTextTheme(typography.primaryTextTheme, locale: locale),
       sliderTheme: SliderThemeData(
         trackHeight: 8,
         thumbColor: colorScheme?.onSurface,
@@ -191,11 +195,7 @@ class FladderTheme {
           side: buttonSides,
         ),
       ),
-      textTheme: textTheme.copyWith(
-        titleMedium: textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.w600,
-        ),
-      ),
+      textTheme: textTheme,
     );
   }
 

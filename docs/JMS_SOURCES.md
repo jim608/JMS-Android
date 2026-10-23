@@ -46,6 +46,8 @@ FFmpeg 以 GPL／version3 配置建置，保留設定與 GPLv3 授權；MPV 保�
 - Media3 / ass-media 版本維持上游設定。ass-media 0.3.0 來源 `https://github.com/peerless2012/libass-android`，其 Maven sources.jar 已供本輪程式核對。尚未宣稱 TV 或 libass 原生套件的完整相應原始碼核對完成。
 - Noto Sans CJK TC Regular：`https://github.com/notofonts/noto-cjk/blob/Sans2.004/Sans/OTF/TraditionalChinese/NotoSansCJKtc-Regular.otf`，16435884 bytes，SHA-256 `dce08bd4fd91aa8aa76ed8fea4b694c2dfb8550f67871e326843212ddbeb88b4`。
 - 字型 OFL：`assets/subtitle_fonts/OFL.txt`，來源 `https://github.com/notofonts/noto-cjk/blob/a99a4354c68964f6bfac488d01010b1fb6d9178a/Sans/LICENSE`；APK 中附帶，App 授權頁註冊 GPL 與 OFL。
+- 介面字型 Noto Sans TC：Google Fonts 固定 commit `3be1884c48c3e45b52ecc725676a08f87776373e`，來源 `https://github.com/google/fonts/blob/3be1884c48c3e45b52ecc725676a08f87776373e/ofl/notosanstc/NotoSansTC%5Bwght%5D.ttf`；原始 variable 檔 11941968 bytes，SHA-256 `864727d210d54f2537bbe23b3a839436c3992af72de9322af5270897246bd44f`。使用 `scripts/generate_jms_ui_fonts.py` 與 fontTools 4.59.1 固定 wght 軸，產生 400／500／600／700 四份靜態字重供 Flutter 選用，保留全部 20745 個 Unicode 碼位；產物大小、SHA 與重現參數見 `assets/fonts/notosanstc/SOURCE.json`。繁體中文介面使用，英文介面沿用已附帶的 OpenSans；播放器字幕字型維持原檔。
+- 介面字型的 SIL OFL 1.1 原文內建於 `assets/fonts/notosanstc/OFL.txt`，SHA-256 `1c05c68c34f9708415aada51f17e1b0092d2cea709bf4a94cd38114f9e73d7d9`，App 授權頁可讀。字型在本機載入，不發出執行期網路字型請求。
 - JMS 字標為本次自製 SVG；衍生 PNG、ICO、平台圖示由 scripts/generate_jms_artwork.py 與鎖定 icons_launcher 生成。
 - ASS/SSA/SRT fixture 為本次自製，未使用使用者影片或字幕。測試片源由 FFmpeg testsrc2 / sine 生成。
 - Python 本機驗證工具：fonttools 4.59.1、Pillow 11.3.0，位於專案 `.jms-tools/python`，不是 App 執行依賴。

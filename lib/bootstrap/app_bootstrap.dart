@@ -50,6 +50,8 @@ Future<AppBootstrapResult> bootstrapApplication(List<String> args) async {
     yield LicenseEntryWithLineBreaks(
         ['Noto Sans CJK TC'], await rootBundle.loadString('assets/subtitle_fonts/OFL.txt'));
     yield LicenseEntryWithLineBreaks(
+        ['Noto Sans TC (interface)'], await rootBundle.loadString('assets/fonts/notosanstc/OFL.txt'));
+    yield LicenseEntryWithLineBreaks(
         ['JMS Android native components'], await rootBundle.loadString('assets/licenses/JMS_NATIVE_NOTICES.txt'));
   });
   final crashProvider = CrashLogNotifier();
