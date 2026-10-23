@@ -1,33 +1,39 @@
-# JMS 0.11.1-jms.44
+# JMS 0.11.1-jms.45
 
 ## 繁體中文 / Traditional Chinese
 
-### 調整
-- 繁體中文介面改用內建思源黑體，統一標題、內文與按鈕的字重，改善不同平台的顯示一致性。
-- 調整文字行距與字距，讓中英文資訊層級更清楚，並保留系統文字縮放支援。
+### 新增
+- 新增「一起看」：朋友各自登入同一台 Jellyfin，在播放器建立房間或輸入 6 位房間碼加入，同步播放、暫停及跳轉。
+- 房間顯示參與者與連線狀態，支援緩衝協調、重新連線確認及離開房間。
 
-### 修正
-- 依影片或音樂封面取色時，詳情與播放介面會保留目前語系的字型。
+### 調整
+- 一起看期間使用正常倍速，由 Jellyfin 的房間佇列管理影片；音軌、字幕與音量仍可各自選擇。
+- 切換帳號或伺服器時結束原同步連線，避免過期指令影響新帳號的播放。
 
 ### 已知問題
-- Windows App 與安裝程式尚未提供正式發行者簽章。
+- 一起看需要同一台 Jellyfin 的個別帳號、影片觀看權限及 SyncPlay 權限；不支援跨伺服器、匿名觀眾、離線影片、音樂、直播、Android TV 或手動 Native 播放器。
+- 同步精度受網路延遲、轉碼與裝置效能影響；Windows App 與安裝程式尚未提供正式發行者簽章。
 
 ### 更新注意事項
-- 字型隨應用程式提供，無須另外安裝或連線下載；這次調整適用於介面，字幕仍依原本字幕設定顯示。
-- Android、Windows x64 與 EndeavourOS／Arch x86_64 提供測試版更新，請保留既有帳號與設定並使用覆蓋更新。Web 由伺服器更新後，使用一般重新整理載入新版。
+- 6 位房間碼用來尋找 Jellyfin 房間，不是密碼或私人房間保護；同伺服器有權限的其他客戶端仍可能列出房間。每人各自向 Jellyfin 取得影片，不需分享登入憑證。
+- 先開啟線上影片，再按播放器的「一起看」。關閉房間視窗會保留連線，選擇「離開房間」或結束播放器才離開。
+- Android、Windows x64 與 EndeavourOS／Arch x86_64 提供測試版更新，請保留既有帳號與設定並使用覆蓋更新。私人 Web 更新後，使用一般重新整理載入新版。
 
 ## English
 
-### Changed
-- The Traditional Chinese interface now uses bundled Noto Sans TC with consistent heading, body and button weights across platforms.
-- Refined line height and letter spacing make Chinese and English content easier to scan while preserving system text scaling.
+### Added
+- Watch together with separate accounts on the same Jellyfin server. Create a room in the video player or enter its six-digit code to synchronize playback, pause and seeking.
+- View participants and connection status, coordinate buffering, reconnect to confirm room state, and leave a room.
 
-### Fixed
-- Details and playback screens retain the current language's typeface when colors are derived from movie or music artwork.
+### Changed
+- Watch Together uses normal playback speed and the Jellyfin room queue. Each participant can choose their own audio track, subtitles and volume.
+- Switching accounts or servers ends the previous synchronization connection so stale commands cannot affect playback under the new account.
 
 ### Known issues
-- The Windows app and installer do not yet have a publisher code signature.
+- Watch Together requires separate accounts on the same Jellyfin server, access to the video and SyncPlay permission. Cross-server rooms, anonymous viewers, offline videos, music, live TV, Android TV and the manually selected Native player are not supported.
+- Synchronization depends on network latency, transcoding and device performance. The Windows app and installer do not yet have a publisher code signature.
 
 ### Update notes
-- Fonts are included with the app and require no separate installation or online download. These changes apply to the interface; subtitles continue to use their existing settings.
-- Prerelease updates are available for Android, Windows x64 and EndeavourOS/Arch x86_64. Upgrade over the existing installation to retain accounts and settings. After the server updates the Web app, use a normal refresh to load the new version.
+- The six-digit code locates a Jellyfin room; it is not a password or private-room protection. Other authorized clients on the server may still list the room. Each participant streams directly from Jellyfin without sharing login credentials.
+- Open an online video before selecting Watch Together in the player. Closing the room dialog keeps the connection; select Leave room or close the player to leave.
+- Prerelease updates are available for Android, Windows x64 and EndeavourOS/Arch x86_64. Upgrade over the existing installation to retain accounts and settings. After the private Web app updates, use a normal refresh to load the new version.

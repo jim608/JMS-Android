@@ -1,3 +1,22 @@
+# JMS 0.11.1-jms.45
+
+## Added
+- Watch together with separate accounts on the same Jellyfin server. Create a room in the video player or enter its six-digit code to synchronize playback, pause and seeking.
+- View participants and connection status, coordinate buffering, reconnect to confirm room state, and leave a room.
+
+## Changed
+- Watch Together uses normal playback speed and the Jellyfin room queue. Each participant can choose their own audio track, subtitles and volume.
+- Switching accounts or servers ends the previous synchronization connection so stale commands cannot affect playback under the new account.
+
+## Known issues
+- Watch Together requires separate accounts on the same Jellyfin server, access to the video and SyncPlay permission. Cross-server rooms, anonymous viewers, offline videos, music, live TV, Android TV and the manually selected Native player are not supported.
+- Synchronization depends on network latency, transcoding and device performance. The Windows app and installer do not yet have a publisher code signature.
+
+## Update notes
+- The six-digit code locates a Jellyfin room; it is not a password or private-room protection. Other authorized clients on the server may still list the room. Each participant streams directly from Jellyfin without sharing login credentials.
+- Open an online video before selecting Watch Together in the player. Closing the room dialog keeps the connection; select Leave room or close the player to leave.
+- Prerelease updates are available for Android, Windows x64 and EndeavourOS/Arch x86_64. Upgrade over the existing installation to retain accounts and settings. After the private Web app updates, use a normal refresh to load the new version.
+
 # JMS 0.11.1-jms.44
 
 ## Changed
