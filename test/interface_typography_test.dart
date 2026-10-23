@@ -1,18 +1,31 @@
+import 'dart:convert';
+import 'dart:ui' as ui;
+
 import 'package:fladder/l10n/generated/app_localizations.dart';
 import 'package:fladder/models/settings/client_settings_model.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
 import 'package:fladder/theme.dart';
 import 'package:fladder/theme/fonts.dart';
 import 'package:fladder/widgets/shared/theme_overwrite.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'helpers/interface_typography_environment_stub.dart'
+    if (dart.library.js_interop) 'helpers/interface_typography_environment_web.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  final restoreEnvironment = useBundledTypographyFonts();
+  tearDownAll(restoreEnvironment);
 
   setUpAll(() async {
+    // Browser tests load pubspec fonts through FontManifest before the suite;
+    // flutterTester's ignored platform channels cannot answer rootBundle.load.
+    // Native widget tests use Ahem unless fonts are loaded explicitly.
+    if (kIsWeb) return;
     for (final entry in {
       'MaterialIcons': ['fonts/MaterialIcons-Regular.otf'],
       'OpenSans': ['assets/fonts/opensans/OpenSans.ttf'],
@@ -27,6 +40,52 @@ void main() {
       }
       await loader.load();
     }
+  });
+
+  test('Bundled Traditional Chinese weights render distinct real outlines',
+      () async {
+    final metrics = <String, Object>{};
+    var previousAlpha = 0;
+    const expectedWidths = [290.016, 293.292, 295.524, 297.684];
+    for (var index = 0; index < 4; index++) {
+      final weight = ui.FontWeight.values[index + 3];
+      final paragraph = (ui.ParagraphBuilder(ui.ParagraphStyle(
+        fontFamily: 'NotoSansTC',
+        fontSize: 36,
+        fontWeight: weight,
+        locale: const ui.Locale('zh', 'TW'),
+      ))
+            ..pushStyle(ui.TextStyle(
+              color: const ui.Color(0xffffffff),
+              fontFamily: 'NotoSansTC',
+              fontSize: 36,
+              fontWeight: weight,
+            ))
+            ..addText('繁體中文 JMS 123'))
+          .build()
+        ..layout(const ui.ParagraphConstraints(width: 640));
+      final recorder = ui.PictureRecorder();
+      ui.Canvas(recorder).drawParagraph(paragraph, const ui.Offset(4, 4));
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(640, 90);
+      final bytes = (await image.toByteData())!.buffer.asUint8List();
+      var alphaSum = 0;
+      for (var offset = 3; offset < bytes.length; offset += 4) {
+        alphaSum += bytes[offset];
+      }
+      expect(paragraph.maxIntrinsicWidth, closeTo(expectedWidths[index], 0.1));
+      expect(alphaSum, greaterThan(previousAlpha));
+      metrics['${(index + 4) * 100}'] = {
+        'width': paragraph.maxIntrinsicWidth,
+        'alphaSum': alphaSum,
+      };
+      previousAlpha = alphaSum;
+      image.dispose();
+      picture.dispose();
+      paragraph.dispose();
+    }
+    // Captured by both native and browser runners as evidence of selected faces.
+    print('JMS bundled font metrics: ${jsonEncode(metrics)}');
   });
 
   test('Traditional Chinese selects the bundled family with script precedence',
