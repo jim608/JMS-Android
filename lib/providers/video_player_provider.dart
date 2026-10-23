@@ -37,6 +37,11 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
 
   MediaPlaybackModel get playbackState => ref.read(mediaPlaybackProvider);
 
+  Future<bool> waitUntilReady() async {
+    await _initialization;
+    return mounted && state.hasPlayer;
+  }
+
   ProviderSubscription<VideoPlayerSettingsModel>? settingsChanged;
   @override
   void dispose() {
@@ -155,15 +160,19 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
     }
   }
 
-  Future<bool> loadPlaybackItem(PlaybackModel model, Duration startPosition) async {
+  Future<bool> loadPlaybackItem(PlaybackModel model, Duration startPosition,
+      {bool playWhenReady = true, bool Function()? isCurrent}) async {
+    bool current() => mounted && (isCurrent?.call() ?? true);
     await _initialization;
-    if (!mounted) return false;
+    if (!current()) return false;
     if (!state.hasPlayer) {
       mediaState.update((value) => value.copyWith(errorPlaying: true, buffering: false, playing: false));
       return false;
     }
-    ref.read(playBackModel)?.dispose();
+    final previousModel = ref.read(playBackModel);
     await state.stop(preserveSleepTimer: true);
+    previousModel?.dispose();
+    if (!current()) return false;
     ref.read(playbackRateProvider.notifier).state = 1.0;
 
     final useMinimizedPlayer =
@@ -180,14 +189,19 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
     final media = model.media;
     PlaybackModel? newPlaybackModel = model;
     final effectiveStartPosition = await model.resolvedStartPosition(startPosition);
+    if (!current()) return false;
 
     if (media != null) {
       ref.read(playBackModel.notifier).update((state) => newPlaybackModel);
-      await state.loadVideo(model, effectiveStartPosition, true);
+      await state.loadVideo(model, effectiveStartPosition, playWhenReady, isCurrent: current);
+      if (!current()) return false;
       await state.setVolume(ref.read(videoPlayerSettingsProvider).volume);
+      if (!current()) return false;
 
       await state.setAudioTrack(null, model);
+      if (!current()) return false;
       await state.setSubtitleTrack(null, model);
+      if (!current()) return false;
 
       ref.read(mediaPlaybackProvider.notifier).update((state) => state.copyWith(
             state: useMinimizedPlayer ? VideoPlayerState.minimized : VideoPlayerState.fullScreen,
@@ -196,8 +210,8 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
             skippedSegments: {},
           ));
 
-      await state.play(userInitiated: false);
-      return true;
+      if (playWhenReady) await state.play(userInitiated: false);
+      return current();
     }
 
     mediaState.update((state) => state.copyWith(errorPlaying: true));

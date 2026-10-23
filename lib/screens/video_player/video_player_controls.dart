@@ -29,6 +29,7 @@ import 'package:fladder/screens/video_player/components/video_player_brightness_
 import 'package:fladder/screens/video_player/components/video_player_controls_extras.dart';
 import 'package:fladder/screens/video_player/components/video_player_options_sheet.dart';
 import 'package:fladder/screens/video_player/components/subtitle_offset_dialog.dart';
+import 'package:fladder/screens/video_player/components/syncplay_dialog.dart';
 import 'package:fladder/screens/video_player/components/video_player_quality_controls.dart';
 import 'package:fladder/screens/video_player/components/video_player_screenshot_indicator.dart';
 import 'package:fladder/screens/video_player/components/video_player_seek_indicator.dart';
@@ -318,6 +319,7 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
                           ],
                         ),
                       ),
+                    const SyncPlayButton(),
                     if (initInputDevice == InputDevice.touch)
                       Align(
                         alignment: Alignment.centerRight,
@@ -823,7 +825,7 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
   }
 
   void _activateSpeedBoost() {
-    if (_speedBoostActive) return;
+    if (_speedBoostActive || ref.read(videoPlayerProvider).syncPlayActive) return;
 
     final settings = ref.read(videoPlayerSettingsProvider);
     if (!settings.enableSpeedBoost) return;

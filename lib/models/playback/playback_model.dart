@@ -78,6 +78,9 @@ extension PlaybackModelExtension on PlaybackModel? {
 }
 
 class PlaybackModel {
+  /// Group playback keeps queue progression on the server.
+  bool get serverManagedQueue => false;
+  bool get ownsPlaybackResources => false;
   final ItemBaseModel item;
   final Media? media;
   final PlaybackQueueState playbackQueue;
@@ -162,6 +165,9 @@ class PlaybackModelHelper {
   JellyService get api => ref.read(jellyApiProvider);
 
   Future<PlaybackModel?> loadNewVideo(ItemBaseModel newItem) async {
+    if (ref.read(playBackModel)?.serverManagedQueue == true || ref.read(videoPlayerProvider).syncPlayActive) {
+      return null;
+    }
     ref.read(videoPlayerProvider).pause();
     ref.read(mediaPlaybackProvider.notifier).update((state) => state.copyWith(buffering: true));
     final currentModel = ref.read(playBackModel);
