@@ -1,3 +1,19 @@
+# JMS 0.11.1-jms.44
+
+## Changed
+- The Traditional Chinese interface now uses bundled Noto Sans TC with consistent heading, body and button weights across platforms.
+- Refined line height and letter spacing make Chinese and English content easier to scan while preserving system text scaling.
+
+## Fixed
+- Details and playback screens retain the current language's typeface when colors are derived from movie or music artwork.
+
+## Known issues
+- The Windows app and installer do not yet have a publisher code signature.
+
+## Update notes
+- Fonts are included with the app and require no separate installation or online download. These changes apply to the interface; subtitles continue to use their existing settings.
+- Prerelease updates are available for Android, Windows x64 and EndeavourOS/Arch x86_64. Upgrade over the existing installation to retain accounts and settings. After the server updates the Web app, use a normal refresh to load the new version.
+
 # JMS 0.11.1-jms.43
 
 ## Added
