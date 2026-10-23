@@ -55,6 +55,15 @@ class User extends _$User {
   Future<Response<bool>> quickConnect(String pin) async =>
       api.quickConnect(pin);
 
+  /// Server policy is runtime-only and must never revive another login.
+  bool updateRuntimePolicyForAccount(AccountModel account, UserPolicy policy) {
+    if (state?.id != account.id || state?.credentials != account.credentials) {
+      return false;
+    }
+    state = state?.copyWith(policy: policy);
+    return true;
+  }
+
   Future<Response<AccountModel>?> updateInformation() async {
     if (state == null) return null;
     try {

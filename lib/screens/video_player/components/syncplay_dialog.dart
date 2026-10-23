@@ -25,11 +25,28 @@ class SyncPlayButton extends ConsumerWidget {
   }
 }
 
-class SyncPlayDialog extends ConsumerWidget {
+class SyncPlayDialog extends ConsumerStatefulWidget {
   const SyncPlayDialog({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SyncPlayDialog> createState() => _SyncPlayDialogState();
+}
+
+class _SyncPlayDialogState extends ConsumerState<SyncPlayDialog> {
+  bool _opening = true;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() async {
+      if (!mounted) return;
+      await ref.read(syncPlayProvider.notifier).refreshPermission();
+      if (mounted) setState(() => _opening = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(syncPlayProvider);
     ref.watch(
         userProvider.select((account) => account?.policy?.syncPlayAccess));
@@ -39,8 +56,10 @@ class SyncPlayDialog extends ConsumerWidget {
     return SyncPlayRoomPanel(
       state: state,
       supported: notifier.supported,
-      canJoin: notifier.canJoin,
-      canCreate: notifier.canCreate,
+      canJoin: !_opening && notifier.canJoin,
+      canCreate: !_opening && notifier.canCreate,
+      checkingPermission: _opening || notifier.permissionChecking,
+      permissionKnown: !_opening && notifier.permissionKnown,
       createRoom: notifier.createRoom,
       joinRoom: notifier.joinRoom,
       leaveRoom: notifier.leaveRoom,
@@ -62,6 +81,8 @@ class SyncPlayRoomPanel extends StatefulWidget {
     required this.joinRoom,
     required this.leaveRoom,
     required this.reconnect,
+    this.checkingPermission = false,
+    this.permissionKnown = true,
   });
   final SyncPlayViewState state;
   final bool supported;
@@ -71,6 +92,8 @@ class SyncPlayRoomPanel extends StatefulWidget {
   final Future<void> Function(String) joinRoom;
   final Future<void> Function() leaveRoom;
   final Future<void> Function() reconnect;
+  final bool checkingPermission;
+  final bool permissionKnown;
 
   @override
   State<SyncPlayRoomPanel> createState() => _SyncPlayRoomPanelState();
@@ -88,7 +111,8 @@ class _SyncPlayRoomPanelState extends State<SyncPlayRoomPanel> {
   Widget build(BuildContext context) {
     final s = SyncPlayStrings.of(context);
     final room = widget.state.room;
-    final pending = widget.state.busy ||
+    final pending = widget.checkingPermission ||
+        widget.state.busy ||
         const {
           SyncPlayStatus.creating,
           SyncPlayStatus.joining,
@@ -98,7 +122,10 @@ class _SyncPlayRoomPanelState extends State<SyncPlayRoomPanel> {
       SyncPlayStatus.unknown,
       SyncPlayStatus.disconnected
     }.contains(room.status);
-    final available = widget.supported && widget.canJoin && !pending;
+    final available = widget.supported &&
+        widget.permissionKnown &&
+        widget.canJoin &&
+        !pending;
     final failure = widget.state.failure ?? room.failure;
     return AlertDialog(
       title: Text(s.title),
@@ -112,7 +139,12 @@ class _SyncPlayRoomPanelState extends State<SyncPlayRoomPanel> {
                 Text(s.explanation),
                 const SizedBox(height: 16),
                 if (!widget.supported) Text(s.unsupported),
-                if (!widget.canJoin) Text(s.noPermission),
+                if (!widget.checkingPermission &&
+                    widget.permissionKnown &&
+                    !widget.canJoin)
+                  Text(s.noPermission),
+                if (!widget.checkingPermission && !widget.permissionKnown)
+                  Text(s.permissionUnknown),
                 if (pending) ...[
                   const LinearProgressIndicator(),
                   const SizedBox(height: 12),
@@ -224,6 +256,9 @@ class SyncPlayStrings {
   String get noPermission => zh
       ? '此帳號尚未開啟 SyncPlay 權限，請聯絡 Jellyfin 管理者。'
       : 'This account needs SyncPlay permission from the Jellyfin administrator.';
+  String get permissionUnknown => zh
+      ? '目前無法確認此帳號的 SyncPlay 權限，請檢查連線後重新開啟此視窗。'
+      : 'Unable to confirm SyncPlay permission. Check the connection and reopen this dialog.';
   String get waiting => zh ? '正在等待伺服器確認…' : 'Waiting for server confirmation…';
   String get roomCode => zh ? '6 位房間碼' : 'Six-digit room code';
   String get copyCode => zh ? '複製房間碼' : 'Copy room code';

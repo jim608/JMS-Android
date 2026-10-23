@@ -40,6 +40,11 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
     implements SyncPlayPlayerCommands {
   SyncPlayNotifier(this.ref) : super(const SyncPlayViewState()) {
     _accountSubscription = ref.listen(userProvider, (previous, next) {
+      if (!_sameLogin(previous, next)) {
+        _permissionOperation++;
+        _permissionChecking = false;
+        _permissionFailed = false;
+      }
       if (!_sameLogin(previous, next) ||
           previous?.policy?.syncPlayAccess != next?.policy?.syncPlayAccess) {
         _detach();
@@ -60,19 +65,86 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
   MediaControlsWrapper? _wrapper;
   bool _disposed = false;
   SyncPlayBufferingReporter? _bufferingReporter;
+  int _permissionOperation = 0;
+  bool _permissionChecking = false;
+  bool _permissionFailed = false;
 
   static bool _sameLogin(AccountModel? a, AccountModel? b) =>
       a?.id == b?.id && a?.credentials == b?.credentials;
 
-  bool get canJoin => switch (ref.read(userProvider)?.policy?.syncPlayAccess) {
+  bool get permissionChecking => _permissionChecking;
+  bool get permissionKnown =>
+      !_permissionChecking &&
+      !_permissionFailed &&
+      ref.read(userProvider)?.policy?.syncPlayAccess != null;
+
+  bool get canJoin =>
+      permissionKnown &&
+      switch (ref.read(userProvider)?.policy?.syncPlayAccess) {
         SyncPlayUserAccessType.createandjoingroups ||
         SyncPlayUserAccessType.joingroups =>
           true,
         _ => false,
       };
   bool get canCreate =>
+      permissionKnown &&
       ref.read(userProvider)?.policy?.syncPlayAccess ==
-      SyncPlayUserAccessType.createandjoingroups;
+          SyncPlayUserAccessType.createandjoingroups;
+
+  /// Explicit dialog-open refresh; opening the panel never creates a socket.
+  Future<void> refreshPermission() async {
+    if (_disposed || _permissionChecking) return;
+    final account = ref.read(userProvider);
+    if (account == null) return;
+    final operation = ++_permissionOperation;
+    bool current() =>
+        !_disposed &&
+        operation == _permissionOperation &&
+        _sameLogin(account, ref.read(userProvider));
+    _permissionChecking = true;
+    _permissionFailed = false;
+    void notify() {
+      state = SyncPlayViewState(
+          room: state.room, busy: state.busy, failure: state.failure);
+    }
+
+    notify();
+    void Function()? closeApi;
+    try {
+      final api = createJellyfinApiForAccount(ref, account.credentials.url,
+          Map<String, String>.unmodifiable(account.credentials.header(ref)),
+          privateLink: true);
+      closeApi = () {
+        try {
+          api.client.httpClient.close();
+        } catch (_) {}
+        try {
+          api.client.dispose();
+        } catch (_) {}
+      };
+      final response =
+          await api.usersMeGet().timeout(const Duration(seconds: 10));
+      if (!current()) return;
+      final user = response.body;
+      if (!response.isSuccessful ||
+          user?.id != account.id ||
+          user?.policy == null) {
+        _permissionFailed = true;
+        return;
+      }
+      ref
+          .read(userProvider.notifier)
+          .updateRuntimePolicyForAccount(account, user!.policy!);
+    } catch (_) {
+      if (current()) _permissionFailed = true;
+    } finally {
+      closeApi?.call();
+      if (current()) {
+        _permissionChecking = false;
+        notify();
+      }
+    }
+  }
 
   bool get supported {
     final model = ref.read(playBackModel);

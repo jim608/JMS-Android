@@ -51,6 +51,10 @@ class _Server {
   Map<String, dynamic>? queue;
   bool leaveFails = false;
   int closedSockets = 0;
+  String policyAccess = 'CreateAndJoinGroups';
+  int policyStatus = 200;
+  Completer<void>? policyGate;
+  final policyStarted = Completer<void>();
   final createdAt = DateTime.now().toUtc();
 
   Uri get uri => Uri.parse('http://127.0.0.1:${_server.port}/demo');
@@ -122,6 +126,21 @@ class _Server {
       final body =
           text.isEmpty ? <String, dynamic>{} : syncPlayMap(jsonDecode(text));
       switch (endpoint) {
+        case 'Me':
+          if (!policyStarted.isCompleted) policyStarted.complete();
+          await policyGate?.future;
+          await _reply(
+              request,
+              {
+                'Id': '44444444444444444444444444444444',
+                'Name': 'Fixture',
+                'Policy': {
+                  'AuthenticationProviderId': 'fixture',
+                  'PasswordResetProviderId': 'fixture',
+                  'SyncPlayAccess': policyAccess,
+                },
+              },
+              policyStatus);
         case 'List':
           await _reply(request, name == null ? [] : [group]);
         case 'New':
@@ -348,6 +367,105 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     preferences = await SharedPreferences.getInstance();
+  });
+
+  test(
+      'restored account refreshes runtime policy without persisting it or opening a room',
+      () async {
+    final server = _Server();
+    await server.start();
+    final scope = _Scope(server, preferences);
+    addTearDown(() async {
+      scope.dispose();
+      await server.close();
+    });
+    final stored =
+        jsonDecode(jsonEncode(scope.account)) as Map<String, dynamic>;
+    expect(stored.containsKey('policy'), false);
+    final restored = AccountModel.fromJson(stored);
+    expect(restored.policy, isNull);
+    (scope.container.read(userProvider.notifier) as _User).replace(restored);
+    expect(scope.notifier.permissionKnown, false);
+    expect(scope.notifier.canCreate, false);
+    await scope.notifier.refreshPermission();
+    expect(scope.notifier.permissionKnown, true);
+    expect(scope.notifier.canCreate, true);
+    expect(scope.notifier.canJoin, true);
+    expect(scope.container.read(userProvider)!.toJson().containsKey('policy'),
+        false);
+    expect(server.requests, ['Me']);
+    expect(server.sockets, isEmpty);
+  });
+
+  test(
+      'server None is a known denial and cannot reuse the earlier allowed policy',
+      () async {
+    final server = _Server()..policyAccess = 'None';
+    await server.start();
+    final scope = _Scope(server, preferences);
+    addTearDown(() async {
+      scope.dispose();
+      await server.close();
+    });
+    expect(scope.notifier.canCreate, true);
+    await scope.notifier.refreshPermission();
+    expect(scope.notifier.permissionKnown, true);
+    expect(scope.notifier.canCreate, false);
+    expect(scope.notifier.canJoin, false);
+    await scope.notifier.createRoom();
+    expect(server.requests, ['Me']);
+    expect(server.sockets, isEmpty);
+  });
+
+  test(
+      '401 refresh leaves permission unknown and blocks stale cached access without retry',
+      () async {
+    final server = _Server()..policyStatus = 401;
+    await server.start();
+    final scope = _Scope(server, preferences);
+    addTearDown(() async {
+      scope.dispose();
+      await server.close();
+    });
+    await scope.notifier.refreshPermission();
+    expect(scope.notifier.permissionChecking, false);
+    expect(scope.notifier.permissionKnown, false);
+    expect(scope.notifier.canJoin, false);
+    expect(scope.notifier.canCreate, false);
+    await scope.notifier.createRoom();
+    expect(server.requests, ['Me']);
+    expect(server.sockets, isEmpty);
+  });
+
+  test(
+      'late policy response cannot cross an account/source change even after returning to the original account',
+      () async {
+    final server = _Server()..policyGate = Completer<void>();
+    await server.start();
+    final scope = _Scope(server, preferences);
+    addTearDown(() async {
+      scope.dispose();
+      await server.close();
+    });
+    final restored =
+        AccountModel.fromJson(jsonDecode(jsonEncode(scope.account)));
+    final user = scope.container.read(userProvider.notifier) as _User;
+    user.replace(restored);
+    final refreshing = scope.notifier.refreshPermission();
+    await server.policyStarted.future;
+    expect(scope.notifier.permissionChecking, true);
+    user.replace(restored.copyWith(
+        id: 'another-synthetic-user',
+        credentials: restored.credentials
+            .copyWith(url: server.uri.resolve('/another-source').toString())));
+    user.replace(restored);
+    server.policyGate!.complete();
+    await refreshing;
+    expect(scope.container.read(userProvider)!.policy, isNull);
+    expect(scope.notifier.permissionKnown, false);
+    expect(scope.notifier.canJoin, false);
+    expect(server.requests, ['Me']);
+    expect(server.sockets, isEmpty);
   });
 
   test(

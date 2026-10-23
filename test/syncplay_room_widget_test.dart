@@ -12,6 +12,8 @@ void main() {
     bool canJoin = true,
     bool canCreate = true,
     bool supported = true,
+    bool checkingPermission = false,
+    bool permissionKnown = true,
     Future<void> Function(String)? join,
     Future<void> Function()? create,
     Future<void> Function()? reconnect,
@@ -24,6 +26,8 @@ void main() {
             body: SyncPlayRoomPanel(
           state: state,
           supported: supported,
+          checkingPermission: checkingPermission,
+          permissionKnown: permissionKnown,
           canJoin: canJoin,
           canCreate: canCreate,
           createRoom: create ?? () async {},
@@ -71,6 +75,31 @@ void main() {
         isNull);
     expect(tester.widget<TextField>(find.byType(TextField)).enabled, isFalse);
     expect(calls, 0);
+  });
+
+  testWidgets(
+      'checking and unknown permissions are not displayed as a server denial',
+      (tester) async {
+    await showPanel(tester, checkingPermission: true, permissionKnown: false);
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    expect(find.textContaining('administrator'), findsNothing);
+    expect(
+        tester
+            .widget<FilledButton>(
+                find.byWidgetPredicate((widget) => widget is FilledButton))
+            .onPressed,
+        isNull);
+    await showPanel(tester, permissionKnown: false);
+    expect(find.byType(LinearProgressIndicator), findsNothing);
+    expect(find.textContaining('Unable to confirm SyncPlay permission'),
+        findsOneWidget);
+    expect(find.textContaining('administrator'), findsNothing);
+    expect(
+        tester
+            .widget<FilledButton>(
+                find.byWidgetPredicate((widget) => widget is FilledButton))
+            .onPressed,
+        isNull);
   });
 
   testWidgets('join-only account cannot create a room', (tester) async {
