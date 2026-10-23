@@ -4,20 +4,28 @@ Inspect output stays in the private evidence directory; console output contains 
 This helper never stops a running container and never deletes images, mounts or volumes.
 """
 import argparse
+import base64
 from datetime import datetime, timezone
 import gzip
 import hashlib
+import http.client
 import json
+import os
 from pathlib import Path
 import re
+import socket
 import subprocess
 import sys
 import tarfile
 import uuid
+import urllib.parse
 
 OWNER = 'com.jim608.jms.test-owner'
 PURPOSE = 'com.jim608.jms.test-purpose'
 IDENTITY = re.compile(r'[a-f0-9]{64}')
+GO_MODE_SOCKET = 1 << 24
+GO_MODE_TYPE = sum(1 << bit for bit in (31, 27, 26, 25, 24, 21, 19))
+GO_MODE_KNOWN = sum(1 << bit for bit in range(19, 32)) | 0o777
 
 
 def docker(*args, **kwargs):
@@ -61,6 +69,90 @@ def stopped(row):
     return (state.get('Status') in ('created', 'exited', 'dead')
             and state.get('Running') is False and not state.get('Paused')
             and not state.get('Restarting'))
+
+
+def lifecycle(row):
+    return {key: row.get('State', {}).get(key) for key in ('StartedAt', 'FinishedAt', 'ExitCode')}
+
+
+def engine_request(method, path):
+    """Read the same local Unix-socket daemon as the Docker CLI; never use TCP/TLS overrides."""
+    context_host = lambda: json.loads(capture('context', 'inspect', '--format', '{{json .Endpoints.docker.Host}}'))
+    host = context_host() if os.environ.get('DOCKER_CONTEXT') else os.environ.get('DOCKER_HOST') or context_host()
+    endpoint = urllib.parse.urlparse(host)
+    if (endpoint.scheme != 'unix' or endpoint.netloc or not endpoint.path.startswith('/')
+            or endpoint.query or endpoint.fragment):
+        raise ValueError('Socket metadata requires the same local Unix Docker endpoint; retained')
+
+    class UnixConnection(http.client.HTTPConnection):
+        def connect(self):
+            self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            self.sock.settimeout(self.timeout)
+            self.sock.connect(endpoint.path)
+
+    connection = UnixConnection('localhost', timeout=30)
+    try:
+        connection.request(method, path)
+        response = connection.getresponse()
+        data = response.read(1024 * 1024 + 1)
+        if response.status != 200 or len(data) > 1024 * 1024:
+            raise ValueError('Docker socket metadata request failed; retained')
+        return {key.lower(): value for key, value in response.getheaders()}, data
+    finally:
+        connection.close()
+
+
+def archive_socket_metadata(container, paths, directory):
+    """Preserve metadata for verified Unix sockets that tar cannot represent.
+
+    HEAD /containers/{id}/archive supplies Docker's Go FileMode, not POSIX st_mode.
+    Missing regular files, links, FIFOs, unknown modes or failed HEAD requests still fail.
+    """
+    expected = json.loads((directory / 'inspect.json').read_text(encoding='utf-8'))
+    labels = expected.get('Config', {}).get('Labels') or {}
+    entry = {'id': container, 'imageId': expected['Image'], 'purpose': labels[PURPOSE]}
+    owner = labels[OWNER]
+    baseline_lifecycle = lifecycle(expected)
+
+    def identity(suffix):
+        _, data = engine_request('GET', '/containers/' + container + '/json')
+        row = json.loads(data)
+        verify_identity(row, entry, owner)
+        if not stopped(row) or lifecycle(row) != baseline_lifecycle:
+            raise ValueError('Container lifecycle changed during socket metadata capture; retained')
+        write_json(directory / ('socket-daemon-inspect-' + suffix + '.json'), row)
+
+    def stat(path):
+        if not path.startswith('/') or '\x00' in path:
+            raise ValueError('Invalid diff member path; retained')
+        headers, _ = engine_request('HEAD', '/containers/' + container + '/archive?' +
+                                    urllib.parse.urlencode({'path': path}))
+        value = json.loads(base64.b64decode(headers['x-docker-container-path-stat'], validate=True))
+        mode = value.get('mode')
+        if (type(mode) is not int or not 0 <= mode <= 0xffffffff
+                or mode & ~GO_MODE_KNOWN or mode & GO_MODE_TYPE != GO_MODE_SOCKET
+                or value.get('name') != path.rsplit('/', 1)[-1]
+                or type(value.get('size')) is not int or value['size'] != 0
+                or value.get('linkTarget') not in ('', None)
+                or not isinstance(value.get('mtime'), str) or not value['mtime']):
+            raise ValueError('Missing export member is not a verified zero-payload Unix socket; retained')
+        return value
+
+    identity('before')
+    records = [{'path': path, 'stat': stat(path), 'payloadBytes': 0,
+                'kind': 'unix-socket', 'archiveRepresentation': 'Docker Engine HEAD metadata'}
+               for path in sorted(paths)]
+    identity('after')
+    for record in records:
+        if stat(record['path']) != record['stat']:
+            raise ValueError('Socket stat changed during capture; retained')
+    write_json(directory / 'non-exportable-sockets.json', {
+        'containerId': container, 'imageId': entry['imageId'], 'purpose': entry['purpose'],
+        'lifecycle': baseline_lifecycle, 'allTypesVerified': True, 'records': records,
+        'source': 'Docker Engine HEAD container archive X-Docker-Container-Path-Stat',
+        'modeEncoding': 'Go io/fs FileMode; ModeType must equal ModeSocket (1<<24)',
+        'containsFilePayload': False})
+    return {record['path'] for record in records}
 
 
 def create(path, image, purpose, arguments):
@@ -123,13 +215,22 @@ def changed_layer(container, diff, destination):
             if process.stdout:
                 process.stdout.close()
             process.wait()
-    write_json(destination.with_name('changed-layer-manifest.json'), {
+    manifest = {
         'containerId': container, 'diffPaths': sorted(changed), 'archivedPaths': sorted(archived),
         'deletedPaths': deleted,
         'notExportedPaths': sorted(changed - set(archived)),
-        'deletionsPreservedIn': 'diff.txt', 'mountedDataIncluded': False})
-    if changed - set(archived):
-        raise ValueError('Changed-layer export missed diff members; container retained')
+        'metadataOnlyPaths': [], 'unpreservedPaths': sorted(changed - set(archived)),
+        'deletionsPreservedIn': 'diff.txt', 'mountedDataIncluded': False}
+    manifest_path = destination.with_name('changed-layer-manifest.json')
+    write_json(manifest_path, manifest)
+    if manifest['notExportedPaths']:
+        preserved = archive_socket_metadata(container, manifest['notExportedPaths'], destination.parent)
+        manifest['metadataOnlyPaths'] = sorted(preserved)
+        manifest['unpreservedPaths'] = sorted(changed - set(archived) - preserved)
+        manifest['specialFileMetadata'] = 'non-exportable-sockets.json'
+        write_json(manifest_path, manifest)
+    if manifest['unpreservedPaths']:
+        raise ValueError('Changed-layer export missed unpreserved diff members; container retained')
     return True
 
 
@@ -199,6 +300,8 @@ def retire(path):
             verify_identity(row, entry, ledger['owner'])
             if not stopped(row):
                 raise ValueError('Container restarted; no stop requested')
+            if lifecycle(row) != lifecycle(json.loads((directory / 'inspect.json').read_text(encoding='utf-8'))):
+                raise ValueError('Container lifecycle changed after archive; retained')
             entry['removalRequestedAtUtc'] = datetime.now(timezone.utc).isoformat()
             write_json(path, ledger)
             capture('rm', container)

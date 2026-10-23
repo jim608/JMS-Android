@@ -24,6 +24,10 @@ RECORDED_CANDIDATE_REVIEW_PATHS = frozenset({
     'scripts/check_jms_git_privacy.py',
     'scripts/jms_source_derivations.py',
     'scripts/test_jms_source_derivations.py',
+    # Linux CI container cleanup is not used by Windows build or packaging.
+    '.github/workflows/jms-linux.yml',
+    'scripts/jms_docker_cleanup.py',
+    'scripts/test_jms_docker_cleanup.py',
 })
 
 

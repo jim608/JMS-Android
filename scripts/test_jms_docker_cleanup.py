@@ -1,5 +1,6 @@
 """Failure boundaries for retiring only owned, stopped containers after evidence."""
 import contextlib
+import base64
 import io
 import json
 from pathlib import Path
@@ -7,6 +8,7 @@ import subprocess
 import tarfile
 import tempfile
 import unittest
+import urllib.parse
 from unittest.mock import patch
 
 import jms_docker_cleanup as cleanup
@@ -174,8 +176,104 @@ class ChangedLayerTest(unittest.TestCase):
                 return 0
         with tempfile.TemporaryDirectory() as temporary, patch.object(cleanup.subprocess, 'Popen', return_value=Export()):
             output = Path(temporary) / 'changed-layer.tar.gz'
-            with self.assertRaisesRegex(ValueError, 'missed diff members'):
+            with patch.object(cleanup, 'archive_socket_metadata', side_effect=ValueError('regular file missing')), \
+                    self.assertRaisesRegex(ValueError, 'regular file missing'):
                 cleanup.changed_layer(CID, b'A /missing-test-result\n', output)
+
+
+class SocketMetadataTest(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.directory = Path(self.temporary.name)
+        self.path = '/run/dbus/system_bus_socket'
+        self.row = {'Id': CID, 'Image': IMAGE, 'Config': {'Labels': {
+            cleanup.OWNER: 'test-owner', cleanup.PURPOSE: 'arch-install'}},
+            'State': {'Status': 'exited', 'Running': False, 'ExitCode': 0,
+                      'StartedAt': '2026-10-23T01:00:00Z', 'FinishedAt': '2026-10-23T01:01:00Z'}}
+        cleanup.write_json(self.directory / 'inspect.json', self.row)
+        self.stat = {'name': 'system_bus_socket', 'size': 0,
+                     'mode': cleanup.GO_MODE_SOCKET | 0o777, 'mtime': '2026-10-23T01:00:01Z', 'linkTarget': ''}
+        self.calls = []
+
+    def engine(self, method, path):
+        self.calls.append((method, path))
+        if method == 'GET':
+            self.assertEqual(path, '/containers/' + CID + '/json')
+            return {}, json.dumps(self.row).encode()
+        self.assertEqual(method, 'HEAD')
+        self.assertEqual(urllib.parse.parse_qs(urllib.parse.urlparse(path).query), {'path': [self.path]})
+        value = base64.b64encode(json.dumps(self.stat).encode()).decode()
+        return {'x-docker-container-path-stat': value}, b''
+
+    def archive(self):
+        with patch.object(cleanup, 'engine_request', side_effect=self.engine):
+            return cleanup.archive_socket_metadata(CID, [self.path], self.directory)
+
+    def test_verified_socket_stat_is_retained_with_exact_identity_and_double_checked_type(self):
+        self.assertEqual(self.archive(), {self.path})
+        proof = json.loads((self.directory / 'non-exportable-sockets.json').read_text())
+        self.assertEqual(proof['containerId'], CID)
+        self.assertEqual(proof['imageId'], IMAGE)
+        self.assertFalse(proof['containsFilePayload'])
+        self.assertEqual(proof['records'][0]['stat'], self.stat)
+        self.assertEqual([call[0] for call in self.calls], ['GET', 'HEAD', 'GET', 'HEAD'])
+
+    def test_regular_unknown_fifo_directory_and_posix_socket_modes_are_refused(self):
+        for mode in (0o644, 1 << 25, 1 << 31, 1 << 19, 0o140777,
+                     cleanup.GO_MODE_SOCKET | (1 << 18), -1, cleanup.GO_MODE_SOCKET | (1 << 32)):
+            with self.subTest(mode=mode):
+                self.stat['mode'] = mode
+                with self.assertRaisesRegex(ValueError, 'not a verified'):
+                    self.archive()
+                self.assertFalse((self.directory / 'non-exportable-sockets.json').exists())
+
+    def test_mismatched_name_or_nonzero_payload_is_refused(self):
+        for key, value in (('name', 'different'), ('size', 1), ('size', False), ('linkTarget', '/different')):
+            with self.subTest(key=key):
+                original = self.stat[key]
+                self.stat[key] = value
+                with self.assertRaisesRegex(ValueError, 'not a verified'):
+                    self.archive()
+                self.stat[key] = original
+
+    def test_changed_owner_image_or_running_container_is_refused(self):
+        self.row['Image'] = 'sha256:' + 'c' * 64
+        with self.assertRaisesRegex(ValueError, 'image or purpose changed'):
+            self.archive()
+        self.row['Image'] = IMAGE
+        self.row['Config']['Labels'][cleanup.OWNER] = 'other-owner'
+        with self.assertRaisesRegex(ValueError, 'image or purpose changed'):
+            self.archive()
+        self.row['Config']['Labels'][cleanup.OWNER] = 'test-owner'
+        self.row['State']['Running'] = True
+        with self.assertRaisesRegex(ValueError, 'lifecycle changed'):
+            self.archive()
+        self.row['State']['Running'] = False
+        self.row['State']['FinishedAt'] = '2026-10-23T01:02:00Z'
+        with self.assertRaisesRegex(ValueError, 'lifecycle changed'):
+            self.archive()
+
+    def test_head_failure_and_changed_stat_are_refused(self):
+        def fail(method, path):
+            if method == 'HEAD':
+                raise ValueError('HEAD failed')
+            return self.engine(method, path)
+        with patch.object(cleanup, 'engine_request', side_effect=fail), self.assertRaisesRegex(ValueError, 'HEAD failed'):
+            cleanup.archive_socket_metadata(CID, [self.path], self.directory)
+        def changing(method, path):
+            if len(self.calls) == 3:
+                self.stat['mtime'] = '2026-10-23T01:00:02Z'
+            return self.engine(method, path)
+        self.calls.clear()
+        with patch.object(cleanup, 'engine_request', side_effect=changing), self.assertRaisesRegex(ValueError, 'Socket stat changed'):
+            cleanup.archive_socket_metadata(CID, [self.path], self.directory)
+
+    def test_different_daemon_transport_fails_closed(self):
+        with patch.dict(cleanup.os.environ, {'DOCKER_CONTEXT': 'test-context'}), \
+                patch.object(cleanup, 'capture', return_value=b'"tcp://fixture.invalid:2375"'), \
+                self.assertRaisesRegex(ValueError, 'same local Unix Docker endpoint'):
+            cleanup.engine_request('HEAD', '/containers/' + CID + '/archive?path=fixture')
 
 
 if __name__ == '__main__':
