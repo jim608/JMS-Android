@@ -1,5 +1,3 @@
-![JMS 功能示意：連接自己的 Jellyfin，在 Android、Windows 與 Linux 瀏覽、播放、調整字幕及使用點片服務](docs/images/jms-overview.svg)
-
 # JMS — Jim608 Media Server
 
 **把自己的 Jellyfin 媒體庫，帶到手機與電腦。**
@@ -37,19 +35,30 @@ Windows／Linux 的 MPV 支援兩條文字字幕獨立微調；Android／Web 支
 
 桌面版另提供可選的 Discord 播放資訊分享，預設關閉；作品封面整合仍在驗證。分享內容需分別同意，Discord 不是使用 JMS 的必要條件。
 
-## 看看新的繁體中文排版
+## JMS 實際畫面
 
-以下是用 **JMS 真實主題與內建字型產生的合成介面預覽**，用來展示字重、排版與深淺色；不是完整 App 首頁或本人媒體庫截圖。片名及觀看進度均為示例。
+以下直接擷取自 **JMS `.44` Web 完整 App**，展示桌面及手機寬度的首頁與影片詳細頁。為保護私人媒體庫，使用本機示範帳號、片名及原創展示封面；介面沒有重繪。手機寬度截圖不是手機實機驗收。
 
 <table>
-  <tr><th>桌面・深色字型預覽</th><th>手機・淺色字型預覽</th></tr>
+  <tr><th>桌面首頁</th><th>手機寬度首頁</th></tr>
   <tr>
-    <td width="70%"><img src="docs/images/desktop-dark.png" alt="JMS 桌面深色合成字型預覽，展示標題、內文、按鈕與導覽列" width="100%"></td>
-    <td width="30%"><img src="docs/images/mobile-light.png" alt="JMS 手機淺色合成字型預覽，展示繁體中文排版及系統風格控制項" width="100%"></td>
+    <td width="72%"><img src="docs/images/jms-desktop-home.png" alt="JMS .44 Web 實際桌面首頁，使用本機示範媒體庫" width="100%"></td>
+    <td width="28%"><img src="docs/images/jms-mobile-home.png" alt="JMS .44 Web 實際手機寬度首頁，使用本機示範媒體庫" width="100%"></td>
+  </tr>
+  <tr><th>桌面影片詳細頁</th><th>手機寬度影片詳細頁</th></tr>
+  <tr>
+    <td><img src="docs/images/jms-desktop-details.png" alt="JMS .44 Web 實際影片詳細頁，包含播放、音軌及字幕選擇" width="100%"></td>
+    <td><img src="docs/images/jms-mobile-details.png" alt="JMS .44 Web 實際手機寬度影片詳細頁" width="100%"></td>
   </tr>
 </table>
 
 繁體中文採用內建 **Noto Sans TC 400／500／600／700** 真實靜態字重；一般畫面與媒體取色主題共用文字層級，英文介面保留 Open Sans。字型隨 App 提供，不需另外下載。[圖片來源與標示](docs/images/README.md)
+
+### Discord 播放狀態
+
+以下為使用者提供並同意公開的 **Discord 實際截圖**，可看到 JMS、作品名稱、封面及播放進度。這張畫面只代表當次顯示結果，封面整合仍在驗證，不能據此保證所有作品與平台皆支援。
+
+![Discord 實際顯示 JMS 播放狀態、作品封面與觀看進度](docs/images/discord-presence.png)
 
 ## JMS、Jellyfin 與 Seerr 如何搭配？
 
