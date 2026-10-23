@@ -105,7 +105,7 @@ class _LoopbackJellyfin {
   Future<void> _handle(HttpRequest request) async {
     final reception = DateTime.now().toUtc();
     if (request.uri.path == '/demo/socket') {
-      final token = request.uri.queryParameters['api_key'];
+      final token = request.uri.queryParameters['ApiKey'];
       final device = request.uri.queryParameters['deviceId'];
       if (!const {'friend-a', 'friend-b', 'denied'}.contains(token) ||
           device != 'device-$token' ||
@@ -230,6 +230,7 @@ class _Player implements SyncPlayPlayerPort {
   @override
   bool isPlaying = false;
   final actions = <SyncPlayPlayerAction>[];
+  Completer<void>? actionCompletion;
 
   @override
   Future<void> applyRemote(SyncPlayPlayerAction action) async {
@@ -240,6 +241,7 @@ class _Player implements SyncPlayPlayerPort {
       playlistItemId = action.queueItem!.playlistItemId;
     }
     isPlaying = action.type == SyncPlayPlayerActionType.unpause;
+    if (actionCompletion != null) await actionCompletion!.future;
   }
 
   int count(SyncPlayPlayerActionType type) =>
@@ -324,7 +326,12 @@ void main() {
         () =>
             a.player.playlistItemId != null && b.player.playlistItemId != null,
         'both queue loads');
-    await _until(() => server.count('Ready') >= 2 && server.count('Ping') >= 2,
+    await _until(
+        () =>
+            server.count('Ready') >= 2 &&
+            server.count('Ping') >= 2 &&
+            !a.controller.isApplyingRemote &&
+            !b.controller.isApplyingRemote,
         'own-account Ready and half-RTT Ping');
     expect(server.playlist.map((item) => item['PlaylistItemId']).toSet(),
         hasLength(2));
@@ -334,26 +341,36 @@ void main() {
     expect(b.player.playlistItemId, a.player.playlistItemId);
     expect(a.player.playlistItemId, isNot(_mediaId));
 
-    await a.controller.requestUnpause();
+    await a.controller.requestUnpause(userInitiated: true);
     expect(a.player.count(SyncPlayPlayerActionType.unpause), 0);
-    await _until(() => a.player.isPlaying && b.player.isPlaying,
+    await _until(
+        () =>
+            a.player.isPlaying &&
+            b.player.isPlaying &&
+            !a.controller.isApplyingRemote &&
+            !b.controller.isApplyingRemote,
         'scheduled server Unpause on both clients');
     expect(server.count('Unpause'), 1,
         reason: 'remote applications must not echo requests');
-    await b.controller.requestPause();
+    await b.controller.requestPause(userInitiated: true);
     await _until(
         () =>
             a.player.count(SyncPlayPlayerActionType.pause) == 1 &&
-            b.player.count(SyncPlayPlayerActionType.pause) == 1,
+            b.player.count(SyncPlayPlayerActionType.pause) == 1 &&
+            !a.controller.isApplyingRemote &&
+            !b.controller.isApplyingRemote,
         'scheduled Pause on both clients');
     expect(server.count('Pause'), 1);
 
     final readyBeforeSeek = server.count('Ready');
-    await a.controller.requestSeek(const Duration(seconds: 12));
+    await a.controller
+        .requestSeek(const Duration(seconds: 12), userInitiated: true);
     await _until(
         () =>
             a.player.position == const Duration(seconds: 12) &&
-            b.player.position == const Duration(seconds: 12),
+            b.player.position == const Duration(seconds: 12) &&
+            !a.controller.isApplyingRemote &&
+            !b.controller.isApplyingRemote,
         'scheduled Seek on both clients');
     await _until(() => server.count('Ready') >= readyBeforeSeek + 2,
         'Ready after each completed seek');
@@ -389,6 +406,61 @@ void main() {
     await _until(() => server.socketDisconnections == 3,
         'all owned loopback sockets close');
   }, timeout: const Timeout(Duration(seconds: 20)));
+
+  test(
+      'manual Pause during a pending remote Future crosses HTTP exactly once without echo',
+      () async {
+    final server = _LoopbackJellyfin();
+    await server.start();
+    final a = _Client(server, 'friend-a');
+    final b = _Client(server, 'friend-b');
+    addTearDown(() async {
+      await a.close();
+      await b.close();
+      await server.close();
+    });
+    await Future.wait([a.transport.connect(), b.transport.connect()]);
+    await a.controller.createRoom('012345');
+    await b.controller.joinRoom('012345');
+    await _until(
+        () => a.controller.state.canControl && b.controller.state.canControl,
+        'both clocks ready');
+    await a.controller.setQueue([_mediaId]);
+    await _until(
+        () =>
+            server.count('Ready') >= 2 &&
+            !a.controller.isApplyingRemote &&
+            !b.controller.isApplyingRemote,
+        'initial load settled');
+    final firstGate = a.player.actionCompletion = Completer<void>();
+    final secondGate = b.player.actionCompletion = Completer<void>();
+    addTearDown(() {
+      if (!firstGate.isCompleted) firstGate.complete();
+      if (!secondGate.isCompleted) secondGate.complete();
+    });
+    await a.controller.requestUnpause(userInitiated: true);
+    await _until(() => a.player.isPlaying && b.player.isPlaying,
+        'player events before remote Futures finish');
+    expect(a.controller.isApplyingRemote, true);
+    expect(b.controller.isApplyingRemote, true);
+    await b.controller
+        .requestPause(); // Reflected player callback stays suppressed.
+    expect(server.count('Pause'), 0);
+    await b.controller.requestPause(userInitiated: true);
+    expect(server.count('Pause'), 1,
+        reason:
+            'a real manual intent must not be swallowed by echo protection');
+    firstGate.complete();
+    secondGate.complete();
+    await _until(
+        () =>
+            a.player.count(SyncPlayPlayerActionType.pause) == 1 &&
+            b.player.count(SyncPlayPlayerActionType.pause) == 1 &&
+            !a.controller.isApplyingRemote &&
+            !b.controller.isApplyingRemote,
+        'both clients apply the manual Pause');
+    expect(server.count('Pause'), 1);
+  }, timeout: const Timeout(Duration(seconds: 15)));
 
   test('server permissions are preserved through the production transport',
       () async {

@@ -10,6 +10,9 @@
 - 一起看期間使用正常倍速，由 Jellyfin 的房間佇列管理影片；音軌、字幕與音量仍可各自選擇。
 - 切換帳號或伺服器時結束原同步連線，避免過期指令影響新帳號的播放。
 
+### 修正
+- 改善新版 Jellyfin 未開啟舊式認證時的一起看連線相容性。
+
 ### 已知問題
 - 一起看需要同一台 Jellyfin 的個別帳號、影片觀看權限及 SyncPlay 權限；不支援跨伺服器、匿名觀眾、離線影片、音樂、直播、Android TV 或手動 Native 播放器。
 - 同步精度受網路延遲、轉碼與裝置效能影響；Windows App 與安裝程式尚未提供正式發行者簽章。
@@ -28,6 +31,9 @@
 ### Changed
 - Watch Together uses normal playback speed and the Jellyfin room queue. Each participant can choose their own audio track, subtitles and volume.
 - Switching accounts or servers ends the previous synchronization connection so stale commands cannot affect playback under the new account.
+
+### Fixed
+- Improved Watch Together connection compatibility with Jellyfin servers that do not enable legacy authentication.
 
 ### Known issues
 - Watch Together requires separate accounts on the same Jellyfin server, access to the video and SyncPlay permission. Cross-server rooms, anonymous viewers, offline videos, music, live TV, Android TV and the manually selected Native player are not supported.

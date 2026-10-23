@@ -116,6 +116,75 @@ void main() {
         isTrue); // A real late confirmation is usable.
   });
 
+  for (final manualType in [
+    SyncPlayRequestType.pause,
+    SyncPlayRequestType.unpause,
+    SyncPlayRequestType.seek
+  ]) {
+    test(
+        'explicit ${manualType.name} survives pending remote work while implicit echoes stay suppressed',
+        () async {
+      await readyRoom();
+      final remoteStarted = Completer<void>();
+      final remoteFinished = Completer<void>();
+      addTearDown(() {
+        if (!remoteFinished.isCompleted) remoteFinished.complete();
+      });
+      player.onApply = (action) async {
+        if (action.type == SyncPlayPlayerActionType.unpause &&
+            !remoteStarted.isCompleted) {
+          remoteStarted.complete();
+          await remoteFinished.future;
+          await controller
+              .requestPause(); // An actual late backend echo remains blocked.
+        }
+      };
+      server.command(server.groupFor(alice)!, 'Unpause');
+      await world.advance(const Duration(milliseconds: 500));
+      await remoteStarted.future;
+      expect(controller.isApplyingRemote, isTrue);
+      final before = server.requests.length;
+      await controller.requestPause();
+      await controller.requestUnpause();
+      await controller.requestSeek(const Duration(seconds: 99));
+      expect(server.requests.length, before);
+      switch (manualType) {
+        case SyncPlayRequestType.pause:
+          await controller.requestPause(userInitiated: true);
+        case SyncPlayRequestType.unpause:
+          await controller.requestUnpause(userInitiated: true);
+        case SyncPlayRequestType.seek:
+          await controller.requestSeek(const Duration(milliseconds: 37250),
+              userInitiated: true);
+        default:
+          fail('unsupported manual fixture request');
+      }
+      expect(server.requests.skip(before).where((r) => r.type == manualType),
+          hasLength(1));
+      await world.advance(const Duration(milliseconds: 500));
+      final expectedPlaying = manualType == SyncPlayRequestType.unpause;
+      expect(player.isPlaying, expectedPlaying);
+      if (manualType == SyncPlayRequestType.seek) {
+        expect(player.position, const Duration(milliseconds: 37250));
+      }
+      final actionsAfterLatest = player.actions.length;
+      remoteFinished.complete();
+      await settle();
+      expect(controller.isApplyingRemote, isFalse);
+      expect(server.requests.skip(before).where((r) => r.type == manualType),
+          hasLength(1));
+      expect(
+          server.requests
+              .skip(before)
+              .where((r) => r.type == SyncPlayRequestType.pause),
+          hasLength(manualType == SyncPlayRequestType.pause ? 1 : 0));
+      // Completing an older Unpause must not replace the newer Pause/Seek drift anchor.
+      await world.advance(const Duration(seconds: 3));
+      expect(player.isPlaying, expectedPlaying);
+      expect(player.actions.length, actionsAfterLatest);
+    });
+  }
+
   test(
       'zero or multiple exact code matches refuse joining and lookalikes do not match',
       () async {

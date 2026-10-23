@@ -498,14 +498,19 @@ class SyncPlayController {
     }
   }
 
-  Future<void> requestPause() =>
-      _request(SyncPlayRequest(SyncPlayRequestType.pause));
-  Future<void> requestUnpause() =>
-      _request(SyncPlayRequest(SyncPlayRequestType.unpause));
-  Future<void> requestSeek(Duration position) async {
+  Future<void> requestPause({bool userInitiated = false}) =>
+      _request(SyncPlayRequest(SyncPlayRequestType.pause),
+          userInitiated: userInitiated);
+  Future<void> requestUnpause({bool userInitiated = false}) =>
+      _request(SyncPlayRequest(SyncPlayRequestType.unpause),
+          userInitiated: userInitiated);
+  Future<void> requestSeek(Duration position,
+      {bool userInitiated = false}) async {
     try {
-      await _request(SyncPlayRequest(SyncPlayRequestType.seek,
-          {'PositionTicks': syncPlayTicks(position)}));
+      await _request(
+          SyncPlayRequest(SyncPlayRequestType.seek,
+              {'PositionTicks': syncPlayTicks(position)}),
+          userInitiated: userInitiated);
     } on FormatException {
       _failure = const SyncPlayFailure(SyncPlayFailureCode.protocol);
       _emit();
@@ -533,8 +538,12 @@ class SyncPlayController {
   }
 
   Future<void> _request(SyncPlayRequest request,
-      {bool report = false, bool requireClock = true}) async {
-    if (_disposed || (!report && isApplyingRemote)) return;
+      {bool report = false,
+      bool requireClock = true,
+      bool userInitiated = false}) async {
+    // Backend callbacks must not echo a server command. An explicit user action
+    // remains valid while that command's asynchronous player work is pending.
+    if (_disposed || (!report && !userInitiated && isApplyingRemote)) return;
     if (!state.isJoined ||
         !_connected ||
         (requireClock && !clock.isSynchronized)) {

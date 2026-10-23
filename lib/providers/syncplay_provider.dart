@@ -253,17 +253,17 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
 
   @override
   Future<void> pause() async {
-    await _controller?.requestPause();
+    await _controller?.requestPause(userInitiated: true);
   }
 
   @override
   Future<void> play() async {
-    await _controller?.requestUnpause();
+    await _controller?.requestUnpause(userInitiated: true);
   }
 
   @override
   Future<void> seek(Duration position) async {
-    await _controller?.requestSeek(position);
+    await _controller?.requestSeek(position, userInitiated: true);
   }
 
   @override

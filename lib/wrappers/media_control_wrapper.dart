@@ -265,6 +265,13 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
       await player.loadVideo(model.media?.url ?? "", play && ref.read(sleepTimerProvider).allowsPlayback,
           startPosition: startPosition);
       if (!current() || !identical(_player, player)) return;
+      if (model.serverManagedQueue) {
+        // Backend rate can survive stop/open. Reset it after loading, bypassing
+        // the local speed control that is blocked while a room is active.
+        await player.setSpeed(1.0);
+        if (!current() || !identical(_player, player)) return;
+        ref.read(playbackRateProvider.notifier).state = 1.0;
+      }
       _player?.applySubtitleSettings(ref.read(subtitleSettingsProvider));
 
       final context = ref.read(localizationContextProvider);

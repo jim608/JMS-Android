@@ -129,7 +129,7 @@ class SyncPlayPlayerAdapter implements SyncPlayPlayerPort {
       _playlistItemId = null;
       return;
     }
-    final epoch = _loadEpoch;
+    final epoch = ++_loadEpoch;
     bool current() => isCurrent() && epoch == _loadEpoch;
     if (action.type != SyncPlayPlayerActionType.unpause) {
       await _player.pauseFromSyncPlay();
@@ -196,7 +196,7 @@ Future<SyncPlayPlaybackModel> createSyncPlayPlaybackModel({
           ], queryParameters: {
             'Static': 'true',
             'mediaSourceId': source.id,
-            'api_key': account.credentials.token,
+            'ApiKey': account.credentials.token,
             'PlaySessionId': info.playSessionId
           })
         : source.supportsTranscoding == true && source.transcodingUrl != null
@@ -226,12 +226,13 @@ Future<SyncPlayPlaybackModel> createSyncPlayPlaybackModel({
 Uri? _capturedUri(AccountModel account, String relativeUrl) {
   final base = Uri.tryParse(account.credentials.url);
   final uri = buildServerUriFromBase(account.credentials.url,
-      relativeUrl: relativeUrl, queryParameters: {'api_key': account.credentials.token});
+      relativeUrl: relativeUrl, queryParameters: {'ApiKey': account.credentials.token});
   if (base == null || uri == null || base.scheme != uri.scheme || base.host != uri.host || base.port != uri.port) {
     return null;
   }
   // Add the snapshot token only after rejecting a different origin.
-  return uri.replace(queryParameters: {...uri.queryParameters, 'api_key': account.credentials.token});
+  final query = {...uri.queryParameters, 'ApiKey': account.credentials.token}..remove('api_key');
+  return uri.replace(queryParameters: query);
 }
 
 MediaStreamsModel _capturedStreams(MediaSourceInfo source, AccountModel account) {

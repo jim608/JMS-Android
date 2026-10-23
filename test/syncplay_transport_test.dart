@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:chopper/chopper.dart';
 import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart' as jellyfin;
@@ -157,13 +158,55 @@ void main() {
     expect(uri.port, 8920);
     expect(uri.pathSegments, ['jellyfin demo', 'socket']);
     expect(uri.queryParameters,
-        {'api_key': capturedToken, 'deviceId': 'demo-device'});
+        {'ApiKey': capturedToken, 'deviceId': 'demo-device'});
     expect(fixture.transport.connected, isTrue);
     await fixture.transport.close();
     await fixture.transport.close();
     expect(statuses, [true, false]);
     expect(fixture.defaultSocket.closes, 1);
     await subscription.cancel();
+  });
+
+  test(
+      'real WebSocket handshake authenticates when legacy authorization is disabled',
+      () async {
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    WebSocket? serverSocket;
+    final authenticated = Completer<void>();
+    final serverSubscription = server.listen((request) async {
+      // Jellyfin 10.11/12.3 AuthorizationContext: ApiKey is unconditional;
+      // api_key is accepted only with EnableLegacyAuthorization enabled.
+      if (request.uri.path != '/jellyfin/socket' ||
+          request.uri.queryParameters['ApiKey'] != capturedToken) {
+        request.response.statusCode = HttpStatus.unauthorized;
+        await request.response.close();
+        return;
+      }
+      serverSocket = await WebSocketTransformer.upgrade(request);
+      authenticated.complete();
+      serverSocket!.add(jsonEncode({
+        'MessageType': 'SyncPlayGroupUpdate',
+        'Data': {'Type': 'GroupJoined', 'Data': group()},
+      }));
+    });
+    final uri = Uri.parse('http://127.0.0.1:${server.port}/jellyfin');
+    final api = jellyfin.JellyfinOpenApi.create(
+        baseUrl: uri,
+        httpClient: MockClient((_) async => http.Response('', 204)));
+    final transport = SyncPlayTransport(
+        api: api, baseUri: uri, token: capturedToken, deviceId: 'demo-device');
+    final event = transport.events.first;
+    try {
+      await transport.connect();
+      await authenticated.future;
+      expect(transport.connected, isTrue);
+      expect((await event)['Data'], {'Type': 'GroupJoined', 'Data': group()});
+    } finally {
+      await transport.close();
+      await serverSocket?.close();
+      await serverSubscription.cancel();
+      await server.close();
+    }
   });
 
   test('captured external HTTP client is closed once only when owned',

@@ -47,7 +47,12 @@ class _SmtcApi extends Fake implements RustLibApi {
 }
 
 class _ReadyPlayer extends Fake implements BasePlayer {
+  _ReadyPlayer({this.resetRateOnLoad = false});
   final rates = <double>[];
+  final rateAndLoadEvents = <String>[];
+  final bool resetRateOnLoad;
+  double rate = 1;
+  Completer<void>? rateReady;
   @override
   Future<void> init(VideoPlayerSettingsModel settings) async {}
   @override
@@ -55,12 +60,19 @@ class _ReadyPlayer extends Fake implements BasePlayer {
   @override
   Stream<PlayerState> get stateStream => const Stream.empty();
   @override
-  Future<void> loadVideo(String url, bool play, {Duration startPosition = Duration.zero}) async {}
+  Future<void> loadVideo(String url, bool play, {Duration startPosition = Duration.zero}) async {
+    rateAndLoadEvents.add('load');
+    if (resetRateOnLoad) rate = 1;
+  }
+
   @override
   void applySubtitleSettings(SubtitleSettingsModel settings) {}
   @override
   Future<void> setSpeed(double speed) async {
     rates.add(speed);
+    rateAndLoadEvents.add('rate:$speed');
+    await rateReady?.future;
+    rate = speed;
   }
 }
 
@@ -310,6 +322,30 @@ void main() {
     expect(wrapper.events, ['remote-seek', 'remote-seek', 'remote-play']);
   });
 
+  test('a newer remote pause supersedes an unpause still awaiting its seek', () async {
+    final ref = _Ref();
+    final wrapper = _Wrapper(ref);
+    final commands = _Commands();
+    wrapper.syncPlayCommands = commands;
+    ref.values[videoPlayerProvider] = wrapper;
+    final oldSeek = Completer<void>();
+    wrapper.seekReady = oldSeek;
+    final adapter = SyncPlayPlayerAdapter(ref: ref, account: account, api: _Api(), isCurrent: () => true);
+    final unpause = adapter.applyRemote(
+        const SyncPlayPlayerAction(type: SyncPlayPlayerActionType.unpause, position: Duration(seconds: 8)));
+    await Future<void>.delayed(Duration.zero);
+    expect(wrapper.events, ['remote-seek']);
+    wrapper.seekReady = null;
+    await adapter
+        .applyRemote(const SyncPlayPlayerAction(type: SyncPlayPlayerActionType.pause, position: Duration(seconds: 8)));
+    expect(wrapper.raw.playing, isFalse);
+    oldSeek.complete();
+    await unpause;
+    expect(wrapper.events, ['remote-seek', 'remote-pause', 'remote-seek']);
+    expect(wrapper.raw.playing, isFalse);
+    expect(commands.events, isEmpty);
+  });
+
   test('stale item fetch never starts another request and closes owned client', () async {
     var current = true;
     final api = _Api();
@@ -332,6 +368,43 @@ void main() {
     expect(api.ownedClient.transport.closes, 1);
     expect(api.ownedClient.disposes, 1);
   });
+
+  for (final source in const [
+    MediaSourceInfo(id: mediaId, supportsDirectPlay: true),
+    MediaSourceInfo(
+        id: mediaId,
+        supportsTranscoding: true,
+        transcodingUrl: 'Videos/test/master.m3u8?api_key=stale-fixture&segment=1'),
+    MediaSourceInfo(
+        id: mediaId,
+        supportsTranscoding: true,
+        transcodingUrl: 'https://media.example.invalid/jf/Videos/test/master.m3u8?api_key=stale-fixture&segment=1'),
+  ]) {
+    test('captured playback uses canonical authentication (${source.transcodingUrl ?? 'direct'})', () async {
+      final container = ProviderContainer(overrides: [videoProfileProvider.overrideWith((_) => const DeviceProfile())]);
+      addTearDown(container.dispose);
+      final refProvider = Provider<Ref>((ref) => ref);
+      final api = _Api();
+      api.itemReady.complete(response(dto));
+      api.infoReady.complete(response(PlaybackInfoResponse(mediaSources: [source])));
+      final model = await createSyncPlayPlaybackModel(
+          ref: container.read(refProvider),
+          api: api,
+          account: account,
+          queueItem: entry,
+          position: Duration.zero,
+          isCurrent: () => true,
+          ownsApi: true);
+      final uri = Uri.parse(model.media!.url);
+      expect(uri.origin, 'https://media.example.invalid');
+      expect(uri.path, startsWith('/jf/Videos/'));
+      expect(uri.queryParameters['ApiKey'], account.credentials.token);
+      expect(uri.queryParameters.containsKey('api_key'), isFalse);
+      if (source.supportsTranscoding == true) expect(uri.queryParameters['segment'], '1');
+      model.dispose();
+      expect(api.ownedClient.transport.closes, 1);
+    });
+  }
 
   test('foreign transcoding origin is refused before model creation', () async {
     final api = _Api();
@@ -417,6 +490,46 @@ void main() {
     await wrapper.dispose();
     container.dispose();
   });
+
+  for (final resetsOnLoad in [false, true]) {
+    test(
+        'server queue load resets and awaits the backend rate (${resetsOnLoad ? 'reset on load' : 'retained on load'})',
+        () async {
+      final container = ProviderContainer();
+      final refProvider = Provider<Ref>((ref) => ref);
+      final wrapper = MediaControlsWrapper(ref: container.read(refProvider));
+      final backend = _ReadyPlayer(resetRateOnLoad: resetsOnLoad);
+      final commands = _Commands()..active = false;
+      wrapper.syncPlayCommands = commands;
+      await wrapper.setup(backend);
+      await wrapper.setSpeed(1.5);
+      container.read(playbackRateProvider.notifier).state = 1.5;
+      expect(backend.rate, 1.5);
+      commands.active = true;
+      backend.rateReady = Completer<void>();
+      final queue = SyncPlayQueue(
+          lastUpdate: DateTime.utc(2026),
+          items: [entry],
+          playingIndex: 0,
+          position: Duration.zero,
+          isPlaying: false,
+          reason: 'NewPlaylist');
+      var completed = false;
+      final loading = wrapper.loadVideo(_model(_Api(), queue: () => queue), Duration.zero, false).then((_) {
+        completed = true;
+      });
+      await Future<void>.delayed(Duration.zero);
+      expect(completed, isFalse);
+      expect(backend.rateAndLoadEvents, ['rate:1.5', 'load', 'rate:1.0']);
+      expect(commands.events, isEmpty);
+      backend.rateReady!.complete();
+      await loading;
+      expect(backend.rate, 1.0);
+      expect(container.read(playbackRateProvider), 1.0);
+      await wrapper.dispose();
+      container.dispose();
+    });
+  }
 
   test('notifier group load stays paused and stale load cannot resume or set tracks', () async {
     final ref = _Ref();

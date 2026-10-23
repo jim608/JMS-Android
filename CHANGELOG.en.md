@@ -8,6 +8,9 @@
 - Watch Together uses normal playback speed and the Jellyfin room queue. Each participant can choose their own audio track, subtitles and volume.
 - Switching accounts or servers ends the previous synchronization connection so stale commands cannot affect playback under the new account.
 
+## Fixed
+- Improved Watch Together connection compatibility with Jellyfin servers that do not enable legacy authentication.
+
 ## Known issues
 - Watch Together requires separate accounts on the same Jellyfin server, access to the video and SyncPlay permission. Cross-server rooms, anonymous viewers, offline videos, music, live TV, Android TV and the manually selected Native player are not supported.
 - Synchronization depends on network latency, transcoding and device performance. The Windows app and installer do not yet have a publisher code signature.

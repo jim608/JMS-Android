@@ -115,7 +115,8 @@ class SyncPlayTransport implements SyncPlayApiPort {
     return baseUri.replace(
       scheme: baseUri.scheme == 'https' ? 'wss' : 'ws',
       pathSegments: [...segments, 'socket'],
-      queryParameters: {'api_key': token, 'deviceId': deviceId},
+      // ApiKey works without Jellyfin's optional legacy-authorization setting.
+      queryParameters: {'ApiKey': token, 'deviceId': deviceId},
     );
   }
 

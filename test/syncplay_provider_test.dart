@@ -173,6 +173,9 @@ class _Server {
         case 'Ping':
         case 'Ready':
         case 'Buffering':
+        case 'Pause':
+        case 'Unpause':
+        case 'Seek':
           await _reply(request, null, 204);
         default:
           await _reply(request, {'error': 'unsupported fixture endpoint'}, 404);
@@ -228,6 +231,8 @@ class _Wrapper extends MediaControlsWrapper {
   final snapshots = StreamController<PlayerState>.broadcast();
   final raw = PlayerState(playing: false);
   int pauses = 0, plays = 0;
+  Completer<void>? playGate;
+  Completer<void>? playStarted;
   @override
   bool get supportsSyncPlay => true;
   @override
@@ -249,6 +254,10 @@ class _Wrapper extends MediaControlsWrapper {
   Future<void> playFromSyncPlay() async {
     plays++;
     raw.playing = true;
+    if (playStarted != null && !playStarted!.isCompleted) {
+      playStarted!.complete();
+    }
+    await playGate?.future;
   }
 }
 
@@ -423,6 +432,42 @@ void main() {
     expect(scope.wrapper.syncPlayCommands, isNull);
     expect(scope.video.loaded, isEmpty);
     expect(server.requests.where((item) => item == 'SetNewQueue'), isEmpty);
+  }, timeout: const Timeout(Duration(seconds: 10)));
+
+  test(
+      'wrapper manual controls send exactly once while a remote play future is pending',
+      () async {
+    final server = _Server();
+    await server.start();
+    final scope = _Scope(server, preferences);
+    final gate = Completer<void>();
+    addTearDown(() async {
+      if (!gate.isCompleted) gate.complete();
+      scope.dispose();
+      await server.close();
+    });
+    await scope.notifier.createRoom();
+    await _until(
+        () => scope.video.loaded.length == 1 && scope.state.room.canControl,
+        'joined and loaded');
+    scope.wrapper.playGate = gate;
+    scope.wrapper.playStarted = Completer<void>();
+    server.unpause();
+    await scope.wrapper.playStarted!.future;
+    expect(gate.isCompleted, false);
+    final pauses = scope.wrapper.pauses;
+    await scope.wrapper.pause();
+    await scope.wrapper.play();
+    await scope.wrapper.seek(const Duration(seconds: 37));
+    for (final endpoint in ['Pause', 'Unpause', 'Seek']) {
+      expect(server.requests.where((request) => request == endpoint),
+          hasLength(1));
+    }
+    expect(scope.wrapper.plays, 1,
+        reason:
+            'manual controls wait for server commands instead of changing local playback');
+    expect(scope.wrapper.pauses, pauses);
+    gate.complete();
   }, timeout: const Timeout(Duration(seconds: 10)));
 
   test(
