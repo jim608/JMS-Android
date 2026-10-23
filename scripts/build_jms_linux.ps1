@@ -23,8 +23,19 @@ $image = "jms-linux-build:$version"
 & rtk proxy docker build --target package -f "$context/Dockerfile.linux" --build-arg "JMS_BUILD_ID=$buildId" --build-arg "JMS_SOURCE_COMMIT=$SourceCommit" -t $image $context
 if ($LASTEXITCODE) { throw 'Linux build failed; retained context and old artifacts' }
 $container = "jms-linux-export-$($SourceCommit.Substring(0,12))"
-& rtk proxy docker create --name $container $image /bin/true
-if ($LASTEXITCODE) { throw 'Export container creation failed' }
-& rtk proxy docker cp "${container}:/output/." $output
-if ($LASTEXITCODE) { throw 'Linux artifact export failed' }
+$ledger = Join-Path $output 'container-cleanup.json'
+$cleanupExit = 0
+try {
+    $containerId = & rtk proxy $python scripts/jms_docker_cleanup.py --ledger $ledger create --image $image --purpose linux-package-export -- --name $container $image /bin/true
+    if ($LASTEXITCODE -ne 0 -or $containerId -cnotmatch '^[a-f0-9]{64}$') { throw 'Export container creation failed; inspect cleanup evidence' }
+    & rtk proxy docker cp "${containerId}:/output/." $output
+    if ($LASTEXITCODE) { throw 'Linux artifact export failed' }
+} finally {
+    if (Test-Path -LiteralPath $ledger) {
+        & rtk proxy $python scripts/jms_docker_cleanup.py --ledger $ledger cleanup
+        $cleanupExit = $LASTEXITCODE
+        if ($cleanupExit) { Write-Warning "Container cleanup incomplete; inspect $ledger. Running containers were not stopped." }
+    }
+}
+if ($cleanupExit) { throw 'Linux container retirement requires attention; retained IDs and reasons are in cleanup receipt' }
 Write-Output "Linux package prepared: $output; not published or installed"

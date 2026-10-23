@@ -50,11 +50,12 @@ jobs:
         env:
           SOURCE_COMMIT: ${{ inputs.source_commit }}
         run: |
+          mkdir -p cleanup
           docker build --target package -f Dockerfile.linux --build-arg JMS_BUILD_ID="$BUILD_ID" --build-arg JMS_SOURCE_COMMIT="$SOURCE_COMMIT" -t jms-linux-candidate .
-          docker create --name jms-linux-export jms-linux-candidate /bin/true
+          export_cid=$(python3 scripts/jms_docker_cleanup.py --ledger cleanup/linux.json create --image jms-linux-candidate --purpose linux-package-export -- --name jms-linux-export jms-linux-candidate /bin/true)
           mkdir candidate
-          docker cp jms-linux-export:/output/. candidate/
-          docker run --rm -v "$PWD:/src:ro" -e JMS_ISOLATED_SECRET_TEST=1 jms-linux-candidate bash -ec 'apt-get update >/dev/null; apt-get install -y --no-install-recommends gnome-keyring procps >/dev/null; bash /src/scripts/test_jms_linux_secret.sh' > candidate/secret-service-test.log
+          docker cp "$export_cid:/output/." candidate/
+          python3 scripts/jms_docker_cleanup.py --ledger cleanup/linux.json run --image jms-linux-candidate --purpose linux-secret-service-test -- -v "$PWD:/src:ro" -e JMS_ISOLATED_SECRET_TEST=1 jms-linux-candidate bash -ec 'apt-get update >/dev/null; apt-get install -y --no-install-recommends gnome-keyring procps >/dev/null; bash /src/scripts/test_jms_linux_secret.sh' > candidate/secret-service-test.log
           python3 - <<'PY'
           import json, os, pathlib
           pathlib.Path('candidate/runner-source.json').write_text(json.dumps({key: os.environ[key] for key in ('SOURCE_COMMIT', 'VERSION', 'BUILD_ID', 'GITHUB_RUN_ID')}, indent=2))
@@ -86,9 +87,9 @@ jobs:
           SOURCE_COMMIT: ${{ inputs.source_commit }}
         run: |
           docker build -f Dockerfile.web --build-arg JMS_VERSION="$VERSION" --build-arg JMS_SOURCE_COMMIT="$SOURCE_COMMIT" --build-arg JMS_BUILD_ID="JMS-$VERSION-web-${SOURCE_COMMIT:0:12}" -t jms-diagnostics-web-test .
-          docker create --name jms-diagnostics-web-export jms-diagnostics-web-test
+          export_cid=$(python3 scripts/jms_docker_cleanup.py --ledger cleanup/linux.json create --image jms-diagnostics-web-test --purpose diagnostics-web-export -- --name jms-diagnostics-web-export jms-diagnostics-web-test)
           mkdir -p build/web
-          docker cp jms-diagnostics-web-export:/usr/share/nginx/html/. build/web/
+          docker cp "$export_cid:/usr/share/nginx/html/." build/web/
           JMS_ISOLATED_DIAGNOSTICS_TEST=1 JMS_DIAGNOSTICS_WEB_IMAGE=jms-diagnostics-web-test bash scripts/test_jms_diagnostics_container.sh
       - uses: actions/upload-artifact@v4
         if: inputs.candidate_run == ''
@@ -115,11 +116,30 @@ jobs:
           mkdir validation
           git show "$VALIDATION_COMMIT:scripts/test_jms_linux_install.sh" > validation/install-test.sh
           printf '%s\n' "$VALIDATION_COMMIT" > validation/validation-tools-commit.txt
-          docker run --rm -v "$PWD/candidate:/candidate:ro" -v "$PWD/validation:/output" -v "$PWD/validation/install-test.sh:/test.sh:ro" -e JMS_ISOLATED_INSTALL_TEST=1 archlinux:base bash /test.sh
+          docker pull archlinux:base
+          python3 scripts/jms_docker_cleanup.py --ledger cleanup/linux.json run --image archlinux:base --purpose linux-arch-install-test -- -v "$PWD/candidate:/candidate:ro" -v "$PWD/validation:/output" -v "$PWD/validation/install-test.sh:/test.sh:ro" -e JMS_ISOLATED_INSTALL_TEST=1 archlinux:base bash /test.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: jms-linux-install-validation-${{ inputs.source_commit }}
           path: validation/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: 封存並移除已結束的測試容器
+        if: always()
+        run: |
+          cleanup_result=0
+          if test -f cleanup/linux.json; then
+            python3 scripts/jms_docker_cleanup.py --ledger cleanup/linux.json cleanup || cleanup_result=1
+          fi
+          if test -f cleanup/diagnostics.json; then
+            python3 scripts/jms_docker_cleanup.py --ledger cleanup/diagnostics.json cleanup || cleanup_result=1
+          fi
+          exit "$cleanup_result"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jms-container-cleanup-${{ inputs.source_commit }}
+          path: cleanup/
           if-no-files-found: warn
           retention-days: 14
