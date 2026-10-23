@@ -6,7 +6,7 @@ JMS（Jim608 Media Server）桌面版與 Android、Web 共用同一份 Flutter �
 
 - Windows x64：安裝程式與 Portable ZIP；未簽章的測試版本可能顯示 SmartScreen 提示。
 - EndeavourOS／Arch Linux x64：pacman 套件與可攜式壓縮包。使用系統的 MPV、GTK 3 與 ALSA，不包含 MDK；可攜式版本也需要這些系統依賴。
-- Linux Flatpak x86_64：從 JMS-Linux 的 Flatpak Release 安裝，使用 GNOME runtime 與隨包的 MPV／FFmpeg／libass，設定與離線資料位於獨立沙箱。
+- Linux Flatpak：尚未發布；`.44` 沒有可下載的 Flatpak，請使用已發布的 EndeavourOS／Arch 套件或可攜式版本。
 - Linux 首版不提供 DEB／RPM，也不宣稱其他發行版已驗證。
 - 套件是否已可下載以 Release 的實際附件為準。原生依賴與來源材料尚未完成核對的平台不會提供安裝附件。
 
@@ -14,7 +14,7 @@ JMS（Jim608 Media Server）桌面版與 Android、Web 共用同一份 Flutter �
 
 - 首次使用須手動安裝包含 JMS 更新器的版本。
 - 在「設定 → 關於」開啟自動檢查更新。測試版需開啟「接收測試版」。自動檢查最多每 24 小時一次，不會自動下載或靜默安裝。
-- Windows 使用 `update.json`；Arch 套件使用 `update-linux.json`。各自從對應平台的公開 Release 核對平台、版本、大小、SHA-256 與實際套件資訊；Flatpak 使用下方的獨立安裝方式。
+- Windows 使用 `update.json`；Arch 套件使用 `update-linux.json`。各自從對應平台的公開 Release 核對平台、版本、大小、SHA-256 與實際套件資訊。
 - Arch 套件安裝使用系統 PolicyKit 與 pacman；使用者確認安裝後才要求系統授權。不修改 pacman 的信任政策，也不執行整台系統的更新。
 - EndeavourOS 首次安裝：在已完成正常系統更新的環境下載相應套件後，執行 `sudo pacman -U ./JMS-Linux-版本-x86_64.pkg.tar.xz`。桌面須有運作中的 PolicyKit 驗證代理，才能使用 App 內安裝。
 - 安裝完成後重新啟動 JMS，再確認版本。開啟安裝程序不等於更新成功。登入與播放設定不會因安裝而主動清除。
@@ -23,27 +23,15 @@ JMS（Jim608 Media Server）桌面版與 Android、Web 共用同一份 Flutter �
 
 ## Discord 作品封面
 
-Windows 自 `.41` 測試版起可在帳號設定的 Discord 區塊，依序啟用播放狀態、影片名稱及「分享作品封面」。每個帳號預設關閉，各項分享均需同意；請先開啟並登入同一台電腦的 Discord 桌面版。Linux 的共用原始碼已支援此功能，安裝包以該平台實際 Release 為準；既有 `.36` 安裝包沒有封面功能。
+桌面版提供可選的 Discord 播放資訊分享，每個帳號預設關閉，播放狀態與影片名稱需分別同意；請先開啟並登入同一台電腦的 Discord 桌面版。作品封面整合仍在驗證，不能把獨立封面測試視為完整 App 播放到 Discord 的端到端驗收。以下說明封面整合的來源及隱私邊界，實際可用範圍以各平台版本說明為準。
 
 動漫單集使用整部作品的海報。Jellyfin 的遠端中繼資料須提供 TMDB 或 TVDB 的公開封面；沒有可用封面或查詢失敗時維持文字狀態。私人伺服器圖片網址、認證資料與自訂上傳圖片不會送至 Discord。關閉分享、停止播放、登出或進入隱私模式時會清除封面。Android 與 Web 不提供此桌面 Discord 功能。
 
-## GitHub Linux Flatpak
+## Linux Flatpak 發布狀態
 
-從 [JMS-Linux Releases](https://github.com/jim608/JMS-Linux/releases) 選擇提供 `.flatpak` 的版本，下載套件與同版 `SHA256SUMS.txt`，先核對下載套件的 SHA256。已安裝 Flatpak 的 x86_64 Linux 桌面可執行：
+**目前未發布 Flatpak 或 Flathub 版本，`.44` 也沒有 `.flatpak` 附件。** 不應使用早期文件中的 `.35` 範例檔名嘗試安裝；那些準備工作不是公開交付成果。
 
-```bash
-flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-flatpak install --user ./JMS-Linux-0.11.1-jms.35-x86_64.flatpak
-flatpak run com.jim608.jms
-```
-
-首次安裝會取得 GNOME 50 runtime。Flathub remote 用於取得 runtime，JMS 套件由 GitHub 提供。更新前請關閉 JMS，下載並核對新版 `.flatpak`，再執行 `flatpak install --user ./新版套件.flatpak`。本機 bundle 不會隨 `flatpak update` 自動取得下一個 GitHub bundle；App 也不呼叫 pacman／PolicyKit 或下載 Arch 套件。
-
-設定與快取依 XDG 規範保存於 `~/.var/app/com.jim608.jms/`；離線媒體存入使用者選擇並授權的目錄。不自動搬移原有 Arch／Portable 資料或登入資訊。卸載時不要加 `--delete-data`，即可保留沙箱資料；外部目錄的離線媒體需另外管理。Seerr 使用桌面 Secret Service，需可解鎖的金鑰圈，沒有明文憑證備援。
-
-沙箱允許網路、顯示、音訊與 DRI 裝置；下載目錄可寫，其餘檔案透過選擇器 portal 授權。Discord 僅開放固定 IPC socket 與其 Flatpak IPC 目錄，播放狀態仍需在 JMS 內啟用。沒有整個家目錄、host filesystem 或完整 session/system D-Bus 存取。
-
-Release 附完整 JMS 來源、Flatpak 原生依賴來源與安裝內容驗證。安裝包以同版 SHA256 核對，未提供發行者簽章。隔離桌面驗證不等於實體 GPU、喇叭、本人登入與長時間播放驗收。
+EndeavourOS／Arch x86_64 請使用 [JMS-Linux Releases](https://github.com/jim608/JMS-Linux/releases) 的 pacman 套件、可攜式壓縮包或下方本機 yay／makepkg 配方。其他 Linux 發行版與 Flatpak 沙箱仍需各自驗證，不由 Arch 結果推定支援。
 
 ## Linux pacman 與本機 yay 配方
 
@@ -91,4 +79,4 @@ makepkg -si
 - 每個新版本仍須核對實際原生二進位、來源材料與授權；不得套用另一平台的材料結論。
 - Linux 的登入、GPU 播放、ASS 特效及安裝後設定保留需要 EndeavourOS 實機驗證。
 - Linux 的 Seerr 工作階段使用 Secret Service，需可解鎖的桌面金鑰圈；無法安全儲存時不使用明文替代。隔離環境的跨程序還原、服務重啟與清除驗證，不代表實體桌面的本人登入已驗收。
-- Arch／Portable 使用系統 MPV；Flatpak 使用隨包 MPV。硬體解碼能力仍取決於實體裝置與驅動。
+- 已發布的 Arch／Portable 使用系統 MPV；硬體解碼能力仍取決於實體裝置與驅動。Flatpak 未發布，不能套用其準備階段的相依與驗證結論。

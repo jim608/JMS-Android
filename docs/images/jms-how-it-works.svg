@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title description">
+  <title id="title">JMS 如何連接 Jellyfin 與選用的 Seerr</title>
+  <desc id="description">功能示意：你的 Jellyfin 伺服器提供媒體與資料給 JMS 用戶端。JMS 可瀏覽媒體庫、播放、調整字幕，並在支援的平台離線下載。選用的 Seerr 服務提供搜尋、點片、我的申請與問題回報。媒體保留在你的伺服器，JMS 不代管媒體。實線代表媒體與資料，虛線代表選用功能。</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#101d29"/><stop offset="1" stop-color="#080f19"/>
+    </linearGradient>
+    <linearGradient id="jms-panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#153a40"/><stop offset="1" stop-color="#142533"/>
+    </linearGradient>
+    <marker id="media-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M1 1 9 5 1 9" fill="none" stroke="#6ce2cc" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <marker id="optional-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M1 1 9 5 1 9" fill="none" stroke="#e6c27f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+  <g font-family="'Noto Sans TC','Microsoft JhengHei','PingFang TC',system-ui,sans-serif">
+    <rect width="1200" height="760" rx="28" fill="url(#background)"/>
+    <circle cx="62" cy="53" r="4" fill="#6ce2cc"/>
+    <text x="77" y="58" font-size="12" font-weight="600" letter-spacing="2" fill="#a2bdc9">JMS · HOW IT WORKS</text>
+    <text x="56" y="115" font-size="36" font-weight="700" fill="#eef6f7">從你的伺服器，連到每個螢幕</text>
+    <text x="58" y="154" font-size="20" fill="#9bb2c1">Jellyfin 提供內容，JMS 帶來熟悉的觀看介面。</text>
+    <rect x="1034" y="49" width="110" height="31" rx="15.5" fill="#26322f" stroke="#4c5245"/>
+    <text x="1089" y="70" text-anchor="middle" font-size="14" font-weight="600" fill="#e7c98d">功能示意</text>
+
+    <rect x="56" y="225" width="260" height="303" rx="22" fill="#13232f" stroke="#36515e"/>
+    <rect x="82" y="251" width="48" height="48" rx="13" fill="#1b3c43"/>
+    <g fill="none" stroke="#7ce4d1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="94" y="262" width="24" height="11" rx="2"/><rect x="94" y="277" width="24" height="11" rx="2"/>
+      <path d="M99 267h1m-1 15h1m8-15h5m-5 15h5"/>
+    </g>
+    <text x="82" y="339" font-size="29" font-weight="700" fill="#eef6f7">你的 Jellyfin</text>
+    <text x="82" y="372" font-size="16" fill="#9fb8c5">媒體與帳號由伺服器提供</text>
+    <g font-size="19" fill="#d5e4eb">
+      <circle cx="87" cy="408" r="3" fill="#68d7c2"/><text x="102" y="415">影片與音樂</text>
+      <circle cx="87" cy="441" r="3" fill="#68d7c2"/><text x="102" y="448">個人媒體庫</text>
+    </g>
+    <rect x="80" y="476" width="212" height="29" rx="9" fill="#253430"/>
+    <text x="186" y="496" text-anchor="middle" font-size="14" fill="#e2c58d">影片保留在你的伺服器</text>
+
+    <path d="M319 375H393" fill="none" stroke="#6ce2cc" stroke-width="2.3" marker-end="url(#media-arrow)"/>
+    <text x="355" y="345" text-anchor="middle" font-size="14" font-weight="600" fill="#90d8cc">媒體</text>
+    <text x="355" y="365" text-anchor="middle" font-size="14" fill="#90d8cc">與資料</text>
+
+    <rect x="398" y="209" width="360" height="355" rx="25" fill="url(#jms-panel)" stroke="#5da797" stroke-width="1.5"/>
+    <rect x="423" y="232" width="89" height="25" rx="12.5" fill="#24544e"/>
+    <text x="467.5" y="249" text-anchor="middle" font-size="12" font-weight="600" fill="#a3efdc">你的用戶端</text>
+    <!-- JMS mark paths reused from icons/jms/mark.svg. -->
+    <g transform="translate(488 197) scale(.18)" fill="none" stroke="#f1f8f6" stroke-width="48" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="222,402 332,402 332,586 298,622 254,622 220,586"/>
+      <polyline points="414,622 414,402 512,526 610,402 610,622"/>
+      <polyline points="804,402 710,402 678,438 678,478 710,512 772,512 804,548 804,586 772,622 678,622"/>
+    </g>
+    <text x="578" y="347" text-anchor="middle" font-size="17" fill="#adc9cd">連接、瀏覽，開始觀看</text>
+    <g fill="#152e39" stroke="#3b5d65">
+      <rect x="423" y="374" width="143" height="58" rx="12"/><rect x="590" y="374" width="143" height="58" rx="12"/>
+      <rect x="423" y="447" width="143" height="58" rx="12"/><rect x="590" y="447" width="143" height="58" rx="12"/>
+    </g>
+    <g fill="none" stroke="#84e4d2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="439" y="392" width="9" height="9" rx="1"/><rect x="452" y="392" width="9" height="9" rx="1"/>
+      <rect x="439" y="405" width="9" height="9" rx="1"/><rect x="452" y="405" width="9" height="9" rx="1"/>
+      <path d="m610 391 17 12-17 12z"/>
+      <rect x="438" y="465" width="25" height="21" rx="3"/><path d="M443 472h6m4 0h5m-15 7h15"/>
+      <path d="M618 463v17m-6-6 6 6 6-6m-18 9v5h24v-5"/>
+    </g>
+    <g font-size="20" font-weight="600" fill="#e2f0f1">
+      <text x="474" y="411">媒體庫</text><text x="642" y="411">播放</text>
+      <text x="474" y="484">字幕</text><text x="642" y="484">離線</text>
+    </g>
+    <text x="578" y="539" text-anchor="middle" font-size="14" fill="#98b9bf">功能依平台與伺服器設定提供</text>
+
+    <path d="M761 375H837" fill="none" stroke="#e6c27f" stroke-width="2.3" stroke-dasharray="5 6" marker-end="url(#optional-arrow)"/>
+    <text x="800" y="351" text-anchor="middle" font-size="14" font-weight="600" fill="#e6c98e">選用</text>
+
+    <rect x="842" y="225" width="302" height="303" rx="22" fill="#242b2c" stroke="#766a4c" stroke-dasharray="6 5"/>
+    <rect x="868" y="251" width="57" height="25" rx="12.5" fill="#49402b"/>
+    <text x="896.5" y="268" text-anchor="middle" font-size="12" font-weight="600" fill="#f1d69c">選用服務</text>
+    <text x="868" y="319" font-size="31" font-weight="700" fill="#f1e6ce">Seerr</text>
+    <text x="868" y="350" font-size="16" fill="#bfb9aa">需另設 Seerr 服務</text>
+    <g font-size="19" fill="#e1dece">
+      <text x="869" y="396">搜尋</text><text x="1001" y="396">點片</text>
+      <text x="869" y="440">我的申請</text><text x="1001" y="440">問題回報</text>
+    </g>
+    <path d="M868 411h248m-128-34v78" stroke="#625d4d" stroke-opacity=".7"/>
+    <text x="868" y="493" font-size="14" fill="#c4b993">服務設定與可用內容由伺服器決定</text>
+
+    <rect x="56" y="598" width="1088" height="67" rx="16" fill="#11222e" stroke="#2c424f"/>
+    <g font-size="20" font-weight="600" fill="#dce9ee">
+      <text x="94" y="639">登入你的 Jellyfin</text>
+      <text x="497" y="639">瀏覽收藏</text>
+      <text x="916" y="639">開始播放</text>
+    </g>
+    <path d="M345 631h77m-8-6 8 6-8 6m298-6h77m-8-6 8 6-8 6" fill="none" stroke="#6ce2cc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M58 695h28" stroke="#6ce2cc" stroke-width="2"/>
+    <text x="97" y="700" font-size="14" fill="#9bb3c0">實線：媒體與資料</text>
+    <path d="M309 695h28" stroke="#e6c27f" stroke-width="2" stroke-dasharray="5 5"/>
+    <text x="348" y="700" font-size="14" fill="#bdb59f">虛線：選用功能</text>
+    <text x="58" y="734" font-size="14" fill="#849eae">需自備 Jellyfin；離線下載依平台支援，Seerr 功能依伺服器設定提供。</text>
+  </g>
+</svg>
