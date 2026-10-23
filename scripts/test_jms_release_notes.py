@@ -20,8 +20,29 @@ class ReleaseNotesTests(unittest.TestCase):
         self.assertIn('https://jellyseer.jms.example.invalid', historical)
         self.assertNotIn('## English', historical)
         self.assertIn('## English', current)
-        self.assertIn('### Added', current)
+        self.assertEqual(current, validate_release_notes(
+            current, version.group(1), require_english=True))
         self.assertNotIn('先前的 `.10` 測試版', current)
+
+    def test_bilingual_change_only_release_does_not_invent_an_added_section(self):
+        with tempfile.TemporaryDirectory() as directory:
+            changelog = Path(directory) / 'CHANGELOG.md'
+            english = Path(directory) / 'CHANGELOG.en.md'
+            version = '0.11.1-jms.44'
+            changelog.write_text(
+                '# JMS ' + version + '\n\n## 調整\n- 改善介面排版。\n', encoding='utf-8')
+            english.write_text(
+                '# JMS ' + version + '\n\n## Changed\n- Improve interface typography.\n', encoding='utf-8')
+            notes = release_notes_for(changelog, version, english_changelog=english, require_english=True)
+            self.assertEqual(notes, validate_release_notes(notes, version, require_english=True))
+            self.assertIn('### 調整\n', notes)
+            self.assertIn('### Changed\n', notes)
+            self.assertNotIn('### Added', notes)
+            english.write_text(
+                '# JMS ' + version + '\n\n## Changed\n- Improve interface typography.\n- Add an unmatched item.\n',
+                encoding='utf-8')
+            with self.assertRaises(ValueError):
+                release_notes_for(changelog, version, english_changelog=english, require_english=True)
 
     def test_mismatched_version_or_drift_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
