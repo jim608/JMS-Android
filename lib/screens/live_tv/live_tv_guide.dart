@@ -11,6 +11,7 @@ import 'package:fladder/screens/live_tv/widgets/channel_row.dart';
 import 'package:fladder/screens/live_tv/widgets/guide_constants.dart';
 import 'package:fladder/screens/live_tv/widgets/timeline_header.dart';
 import 'package:fladder/util/fladder_image.dart';
+import 'package:fladder/util/jms_smooth_scroll.dart';
 
 class LiveTvGuide extends ConsumerStatefulWidget {
   final ChannelModel? currentChannel;
@@ -32,7 +33,7 @@ class LiveTvGuide extends ConsumerStatefulWidget {
 }
 
 class _LiveTvGuideState extends ConsumerState<LiveTvGuide> {
-  final ScrollController _verticalScrollController = ScrollController();
+  final ScrollController _verticalScrollController = JmsSmoothScrollController();
   final List<ScrollController> _channelScrollControllers = [];
   bool _isSyncingScroll = false;
 
@@ -182,7 +183,7 @@ class _LiveTvGuideState extends ConsumerState<LiveTvGuide> {
                   itemCount: channels.length,
                   itemBuilder: (context, index) {
                     while (_channelScrollControllers.length <= index) {
-                      final controller = ScrollController();
+                      final controller = JmsSmoothScrollController();
                       controller.addListener(() {
                         if (_isSyncingScroll) return;
                         _syncScrollPositions(controller);

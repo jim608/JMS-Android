@@ -38,7 +38,7 @@
   "jmsUpdateRetryDownload": "重新下載",
   "jmsLinuxPackageChannelHint": "目前使用本機 jms-bin 配方。請手動更新配方後執行 yay -Bi ./jms-bin，或自行選擇以 pacman 轉換套件。JMS 不會自動移除或切換您已安裝的套件。",
   "jmsUpdateTitle": "JMS Android 線上更新",
-  "jmsUpdateAutoHint": "最多每 24 小時檢查一次；不自動下載，播放中不彈窗。",
+  "jmsUpdateAutoHint": "启动时检查，五小时内最多自动检查一次。不自动下载，播放中不弹出提示。",
   "jmsUpdatePrerelease": "接收測試版",
   "jmsUpdateCheck": "檢查更新",
   "jmsUpdateDownload": "下載更新",
@@ -607,7 +607,7 @@
     "settingsPosterPinch": "捏合缩放以调整海报大小",
     "settingsPosterSize": "海报大小",
     "settingsPosterSlider": "显示比例滑块",
-    "settingsProfileDesc": "锁屏，本地网址，Seerr",
+    "settingsProfileDesc": "账号、隐私与 Discord",
     "settingsProfileTitle": "个人资料",
     "settingsQuickConnectTitle": "快速连接",
     "settingsSecurity": "安全",
@@ -2280,5 +2280,14 @@
   "jmsSecondarySameTrack": "此字幕轨已选为主要字幕。",
   "jmsSecondaryUnavailable": "当前视频流无法载入此字幕轨。",
   "jmsSecondaryFailed": "无法启用此轨，次要字幕已关闭；请选择可用的文字字幕轨。",
-  "jmsSecondaryMediaChanged": "已切换视频，次要字幕已关闭；请为本集重新选择字幕轨。"
+  "jmsSecondaryMediaChanged": "已切换视频，次要字幕已关闭；请为本集重新选择字幕轨。",
+  "jmsDiscordTitle": "在 Discord 显示 JMS 活动",
+  "jmsDiscordHint": "分享选片、作品浏览及播放状态。每个 JMS 账号默认关闭。",
+  "jmsDiscordAccountRequired": "请先登录 JMS 账号，再选择是否分享活动。",
+  "jmsDiscordShareTitle": "分享作品名称",
+  "jmsDiscordShareTitleHint": "默认关闭，需另外同意并启用 JMS 活动分享。",
+  "jmsDiscordShareArtworkHint": "默认关闭，需启用 JMS 活动与作品名称分享，仅使用 TMDB 或 TVDB 公开封面。",
+  "jmsDiscordArtworkConsent": "启用后，您浏览或观看作品的 TMDB 或 TVDB 公开封面网址会发送至 Discord，并与活动状态一同显示。您的朋友及 Discord 活动隐私设置允许的其他人可能看见。不会分享私人服务器网址或凭证。您可以随时关闭。",
+  "jmsDiscordConsent": "启用后，您的 Discord 个人资料与朋友可能看见您正在使用 JMS，以及选片、浏览作品、播放或暂停状态。依 Discord 活动隐私设置，其他人也可能看见。作品名称及公开封面需另外取得同意才会分享。您可以随时关闭。",
+  "jmsDiscordTitleConsent": "启用后，您浏览或观看的作品名称也会发送至 Discord，并与活动状态一同显示。您的朋友及 Discord 活动隐私设置允许的其他人可能看见。请确认您愿意分享作品名称，您可以随时关闭。"
 }

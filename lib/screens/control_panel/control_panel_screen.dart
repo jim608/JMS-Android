@@ -9,6 +9,7 @@ import 'package:fladder/screens/settings/settings_list_tile.dart';
 import 'package:fladder/screens/settings/settings_scaffold.dart';
 import 'package:fladder/screens/settings/widgets/settings_label_divider.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
+import 'package:fladder/util/jms_smooth_scroll.dart';
 import 'package:fladder/util/localization_helper.dart';
 import 'package:fladder/util/theme_extensions.dart';
 
@@ -21,7 +22,7 @@ class ControlPanelScreen extends ConsumerStatefulWidget {
 }
 
 class _ControlPanelScreenState extends ConsumerState<ControlPanelScreen> {
-  final scrollController = ScrollController();
+  final scrollController = JmsSmoothScrollController();
   final minVerticalPadding = 20.0;
   late LayoutMode lastAdaptiveLayout = AdaptiveLayout.layoutModeOf(context);
 

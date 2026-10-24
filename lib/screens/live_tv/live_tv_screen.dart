@@ -8,6 +8,7 @@ import 'package:fladder/screens/live_tv/live_tv_guide.dart';
 import 'package:fladder/screens/shared/default_alert_dialog.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
 import 'package:fladder/util/item_base_model/play_item_helpers.dart';
+import 'package:fladder/util/jms_smooth_scroll.dart';
 import 'package:fladder/util/localization_helper.dart';
 
 @RoutePage()
@@ -23,7 +24,7 @@ class LiveTvScreen extends ConsumerStatefulWidget {
 }
 
 class _LiveTvScreenState extends ConsumerState<LiveTvScreen> {
-  final ScrollController _horizontalScrollController = ScrollController();
+  final ScrollController _horizontalScrollController = JmsSmoothScrollController();
 
   @override
   Widget build(BuildContext context) {

@@ -1,14 +1,14 @@
 {
-  "jmsDiscordTitle": "Show playback status on Discord",
-  "jmsDiscordHint": "Share playing or paused status with Discord. Off by default for each JMS account.",
-  "jmsDiscordAccountRequired": "Sign in to a JMS account before choosing to share playback status.",
-  "jmsDiscordShareTitle": "Share video title",
-  "jmsDiscordShareTitleHint": "Off by default. Requires separate consent and playback-status sharing.",
+  "jmsDiscordTitle": "Show JMS activity on Discord",
+  "jmsDiscordHint": "Share browsing, title details, and playback status with Discord. Off by default for each JMS account.",
+  "jmsDiscordAccountRequired": "Sign in to a JMS account before choosing to share activity.",
+  "jmsDiscordShareTitle": "Share title",
+  "jmsDiscordShareTitleHint": "Off by default. Requires separate consent and JMS activity sharing.",
   "jmsDiscordShareArtwork": "Share artwork",
-  "jmsDiscordShareArtworkHint": "Off by default. Requires playback-status and video-title sharing. Uses available public TMDB or TVDB artwork only.",
-  "jmsDiscordArtworkConsent": "If you enable this, an available public artwork URL from TMDB or TVDB for the title you watch will be sent to Discord and shown with your playback status. Friends and other people allowed by your Discord activity privacy settings may see it. Private server URLs and credentials are not shared. You can turn this off at any time.",
-  "jmsDiscordConsent": "If you enable this, your Discord profile and friends may see that you are using JMS and whether playback is playing or paused. Other people may also see it depending on your Discord activity privacy settings. Video titles are not shared unless you separately agree. You can turn this off at any time.",
-  "jmsDiscordTitleConsent": "If you enable this, the video title you watch will also be sent to Discord and shown with your playback status. Friends and other people allowed by your Discord activity privacy settings may see it. Confirm that you want to share the title. You can turn this off at any time.",
+  "jmsDiscordShareArtworkHint": "Off by default. Requires JMS activity and title sharing. Uses available public TMDB or TVDB artwork only.",
+  "jmsDiscordArtworkConsent": "If you enable this, an available public artwork URL from TMDB or TVDB for the title you browse or watch will be sent to Discord and shown with your activity. Friends and other people allowed by your Discord activity privacy settings may see it. Private server URLs and credentials are not shared. You can turn this off at any time.",
+  "jmsDiscordConsent": "If you enable this, your Discord profile and friends may see that you are using JMS, browsing, viewing title details, or playing or pausing playback. Other people may also see it depending on your Discord activity privacy settings. Titles and public artwork require separate consent. You can turn this off at any time.",
+  "jmsDiscordTitleConsent": "If you enable this, the title you browse or watch will also be sent to Discord and shown with your activity. Friends and other people allowed by your Discord activity privacy settings may see it. Confirm that you want to share the title. You can turn this off at any time.",
   "jmsDiscordConfirm": "Agree and share",
   "jmsDiscordInactive": "Discord sharing is off",
   "jmsDiscordDisconnected": "Not connected to Discord. Open and sign in to the Discord desktop app on this computer.",
@@ -61,7 +61,7 @@
   "jmsUpdateRetryDownload": "Retry download",
   "jmsLinuxPackageChannelHint": "This installation uses the local jms-bin recipe. Update that recipe manually with yay -Bi ./jms-bin, or choose a pacman package conversion yourself. JMS will not remove or switch your installed package automatically.",
   "jmsUpdateTitle": "JMS Android updates",
-  "jmsUpdateAutoHint": "At most once every 24 hours. No automatic downloads or pop-ups during playback.",
+  "jmsUpdateAutoHint": "Check at startup, at most once every five hours. Updates are never downloaded automatically; prompts wait until playback ends.",
   "jmsUpdatePrerelease": "Receive pre-releases",
   "jmsUpdateCheck": "Check for updates",
   "jmsUpdateDownload": "Download update",
@@ -1129,7 +1129,7 @@
   "@settingsPosterPinch": {},
   "settingsPosterSize": "Poster size",
   "@settingsPosterSize": {},
-  "settingsProfileDesc": "Lockscreen, Local URL, Seerr",
+  "settingsProfileDesc": "Account, privacy and Discord",
   "@settingsProfileDesc": {},
   "settingsProfileTitle": "Profile",
   "@settingsProfileTitle": {},
@@ -3003,9 +3003,7 @@
   "jmsSubtitleOffsetValue": "{milliseconds} ms",
   "@jmsSubtitleOffsetValue": {
     "placeholders": {
-      "milliseconds": {
-        "type": "String"
-      }
+      "milliseconds": {"type": "String"}
     }
   },
   "jmsSecondarySubtitle": "Secondary subtitles",

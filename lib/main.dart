@@ -9,6 +9,7 @@ import 'package:fladder/bootstrap/app_bootstrap.dart';
 import 'package:fladder/bootstrap/platform/platform_app_wrapper.dart';
 import 'package:fladder/l10n/generated/app_localizations.dart';
 import 'package:fladder/util/locale_resolver.dart';
+import 'package:fladder/util/jms_smooth_scroll.dart';
 import 'package:fladder/localization_delegates.dart';
 import 'package:fladder/providers/arguments_provider.dart';
 import 'package:fladder/providers/crash_log_provider.dart';
@@ -108,12 +109,18 @@ class _FladderApp extends ConsumerWidget {
           supportedLocales: AppLocalizations.supportedLocales,
           locale: language,
           localeResolutionCallback: resolveSupportedLocale,
-          builder: (context, child) => MediaQueryScaler(
-            child: LocalizationContextWrapper(
-              child: PipLifecycleController(child: child ?? Container()),
-              currentLocale: language,
+          builder: (context, child) => Listener(
+            onPointerSignal: (event) => JmsWheelInputObserver.observe(
+              event,
+              enabled: !MediaQuery.disableAnimationsOf(context),
             ),
-            enable: ref.read(argumentsStateProvider).leanBackMode,
+            child: MediaQueryScaler(
+              child: LocalizationContextWrapper(
+                child: PipLifecycleController(child: child ?? Container()),
+                currentLocale: language,
+              ),
+              enable: ref.read(argumentsStateProvider).leanBackMode,
+            ),
           ),
           debugShowCheckedModeBanner: false,
           darkTheme: darkTheme.copyWith(

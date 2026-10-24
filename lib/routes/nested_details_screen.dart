@@ -6,6 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fladder/models/item_base_model.dart';
 import 'package:fladder/providers/items/item_details_provider.dart';
+import 'package:fladder/providers/discord_browsing_provider.dart';
+import 'package:fladder/providers/discord_presence_provider.dart';
+import 'package:fladder/providers/user_provider.dart';
+import 'package:fladder/services/discord/discord_activity.dart';
 import 'package:fladder/routes/auto_router.gr.dart';
 import 'package:fladder/util/fladder_image.dart';
 
@@ -52,9 +56,18 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
           currentWidget = widget.item!.detailScreenWidget;
         });
       } else {
+        final routeId = context.routeData.route.id;
+        final scope = discordAccountScope(ref.read(userProvider));
         final response = await ref.read(itemDetailsProvider.notifier).fetchDetails(widget.id);
         if (context.mounted) {
           if (response != null) {
+            ref.read(discordBrowsingProvider.notifier).resolveDetails(
+                routeId: routeId,
+                scope: scope,
+                snapshot: DiscordBrowsingSnapshot.details(
+                  title: response.title,
+                  artworkItemId: discordArtworkItemId(response),
+                ));
             setState(() {
               currentWidget = response.detailScreenWidget;
             });

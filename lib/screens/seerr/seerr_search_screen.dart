@@ -21,6 +21,7 @@ import 'package:fladder/screens/shared/outlined_text_field.dart';
 import 'package:fladder/seerr/seerr_models.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
 import 'package:fladder/util/debouncer.dart';
+import 'package:fladder/util/jms_smooth_scroll.dart';
 import 'package:fladder/util/localization_helper.dart';
 import 'package:fladder/util/position_provider.dart';
 import 'package:fladder/util/refresh_state.dart';
@@ -53,7 +54,7 @@ class SeerrSearchScreen extends ConsumerStatefulWidget {
 class _SeerrSearchScreenState extends ConsumerState<SeerrSearchScreen> {
   late final TextEditingController controller = TextEditingController();
   final GlobalKey<RefreshIndicatorState> refreshKey = GlobalKey<RefreshIndicatorState>();
-  final ScrollController scrollController = ScrollController();
+  final ScrollController scrollController = JmsSmoothScrollController();
   bool _forceSubmitOnRefresh = false;
 
   final Debouncer debouncer = Debouncer(const Duration(milliseconds: 500));

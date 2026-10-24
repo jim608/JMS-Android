@@ -6,6 +6,7 @@ import 'package:fladder/models/item_base_model.dart';
 import 'package:fladder/theme.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
 import 'package:fladder/util/fladder_image.dart';
+import 'package:fladder/util/jms_smooth_scroll.dart';
 import 'package:fladder/widgets/shared/item_actions.dart';
 
 Future<void> showItemContextMenu(
@@ -36,7 +37,7 @@ Future<void> showBottomSheetPill({
     enableDrag: true,
     context: context,
     builder: (context) {
-      final controller = ScrollController();
+      final controller = JmsSmoothScrollController();
       return ConstrainedBox(
         constraints: BoxConstraints(
           maxHeight: MediaQuery.sizeOf(context).height * 0.85,
@@ -76,7 +77,7 @@ Future<void> showBottomSheetPill({
                         ),
                         const Divider(),
                       },
-                      content(context, ScrollController()),
+                      content(context, JmsSmoothScrollController()),
                     ],
                   ),
                 ),

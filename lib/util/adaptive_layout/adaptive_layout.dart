@@ -17,6 +17,7 @@ import 'package:fladder/screens/home_screen.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout_model.dart';
 import 'package:fladder/util/debug_banner.dart';
 import 'package:fladder/util/input_detector.dart';
+import 'package:fladder/util/jms_smooth_scroll.dart';
 import 'package:fladder/util/localization_helper.dart';
 import 'package:fladder/util/poster_defaults.dart';
 import 'package:fladder/util/resolution_checker.dart';
@@ -97,7 +98,7 @@ class AdaptiveLayout extends InheritedWidget {
 
   static ScrollController scrollOf(BuildContext context, HomeTabs tab) {
     final AdaptiveLayout? result = maybeOf(context);
-    return result?.data.controller[tab] ?? ScrollController();
+    return result?.data.controller[tab] ?? JmsSmoothScrollController();
   }
 
   static bool isDesktop(BuildContext context) {
@@ -156,7 +157,7 @@ class _AdaptiveLayoutBuilderState extends ConsumerState<AdaptiveLayoutBuilder> {
   late TargetPlatform currentPlatform = defaultTargetPlatform;
 
   final Map<HomeTabs, ScrollController> scrollControllers = {
-    for (var item in HomeTabs.values) item: ScrollController(),
+    for (var item in HomeTabs.values) item: JmsSmoothScrollController(),
   };
 
   @override

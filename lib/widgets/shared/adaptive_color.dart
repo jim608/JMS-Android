@@ -104,9 +104,10 @@ class AdaptiveColorState extends ConsumerState<AdaptiveColor> with WidgetsBindin
     // Apply fonts
     final lightTheme = isLinux
         ? baseLightTheme
-        : FladderTheme.applyChineseFontToTheme(lightTheme: baseLightTheme, darkTheme: baseDarkTheme);
+        : FladderTheme.applyChineseFontToTheme(lightTheme: baseLightTheme, darkTheme: baseDarkTheme, locale: locale);
 
-    final darkTheme = isLinux ? baseDarkTheme : FladderTheme.applyChineseFontToDarkTheme(darkTheme: baseDarkTheme);
+    final darkTheme =
+        isLinux ? baseDarkTheme : FladderTheme.applyChineseFontToDarkTheme(darkTheme: baseDarkTheme, locale: locale);
 
     return ThemesData(
       light: lightTheme,

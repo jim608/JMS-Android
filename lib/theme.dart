@@ -207,24 +207,38 @@ class FladderTheme {
   static ThemeData applyChineseFontToTheme({
     required ThemeData lightTheme,
     required ThemeData darkTheme,
+    Locale? locale,
   }) {
     if (kIsWeb) return lightTheme;
     return lightTheme.copyWith(
-      textTheme: lightTheme.textTheme.useSystemChineseFont(Brightness.light),
-      primaryTextTheme: lightTheme.primaryTextTheme.useSystemChineseFont(
-        Brightness.light,
-      ),
+      textTheme: _chineseTextTheme(lightTheme.textTheme, Brightness.light, locale),
+      primaryTextTheme: _chineseTextTheme(lightTheme.primaryTextTheme, Brightness.light, locale),
     );
   }
 
   /// Apply Chinese system font to a dark theme (for Windows, macOS, Android, iOS)
-  static ThemeData applyChineseFontToDarkTheme({required ThemeData darkTheme}) {
+  static ThemeData applyChineseFontToDarkTheme({required ThemeData darkTheme, Locale? locale}) {
     if (kIsWeb) return darkTheme;
     return darkTheme.copyWith(
-      textTheme: darkTheme.textTheme.useSystemChineseFont(Brightness.dark),
-      primaryTextTheme: darkTheme.primaryTextTheme.useSystemChineseFont(
-        Brightness.dark,
-      ),
+      textTheme: _chineseTextTheme(darkTheme.textTheme, Brightness.dark, locale),
+      primaryTextTheme: _chineseTextTheme(darkTheme.primaryTextTheme, Brightness.dark, locale),
     );
+  }
+
+  static TextTheme _chineseTextTheme(TextTheme textTheme, Brightness brightness, Locale? locale) {
+    final isTraditionalChinese = locale?.languageCode == 'zh' &&
+        (locale?.scriptCode == 'Hant' ||
+            (locale?.scriptCode == null && {'TW', 'HK', 'MO'}.contains(locale?.countryCode)));
+    if (defaultTargetPlatform == TargetPlatform.windows && isTraditionalChinese) {
+      // Rubik remains the Latin face. All Chinese labels use the same TC glyphs,
+      // including headings and primary text, instead of the package's SC fallback.
+      return textTheme.apply(fontFamilyFallback: const [
+        'Microsoft JhengHei UI',
+        'Microsoft JhengHei',
+        'Noto Sans TC',
+        'sans-serif',
+      ]);
+    }
+    return textTheme.useSystemChineseFont(brightness);
   }
 }

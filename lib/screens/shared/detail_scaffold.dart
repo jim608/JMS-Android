@@ -19,6 +19,7 @@ import 'package:fladder/shaders/fade_edges.dart';
 import 'package:fladder/theme.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
 import 'package:fladder/util/fladder_image.dart';
+import 'package:fladder/util/jms_smooth_scroll.dart';
 import 'package:fladder/util/localization_helper.dart';
 import 'package:fladder/util/refresh_state.dart';
 import 'package:fladder/util/router_extension.dart';
@@ -35,12 +36,14 @@ Future<Color?> getDominantColor(ImageProvider imageProvider) async {
     maximumColorCount: 3,
   );
 
-  return paletteGenerator.dominantColor?.color ?? paletteGenerator.vibrantColor?.color;
+  return paletteGenerator.dominantColor?.color ??
+      paletteGenerator.vibrantColor?.color;
 }
 
 class DetailScaffold extends ConsumerStatefulWidget {
   final String label;
   final String? windowTitle;
+  final ScrollController? scrollController;
   final ItemBaseModel? item;
   final List<ItemAction>? Function(BuildContext context)? actions;
   final Color? backgroundColor;
@@ -52,6 +55,7 @@ class DetailScaffold extends ConsumerStatefulWidget {
   const DetailScaffold({
     required this.label,
     this.windowTitle,
+    this.scrollController,
     this.item,
     this.actions,
     this.backgroundColor,
@@ -82,7 +86,9 @@ class _DetailScaffoldState extends ConsumerState<DetailScaffold> {
     final isCurrent = ModalRoute.of(context)?.isCurrent ?? false;
     if (!isCurrent) return;
 
-    final newTitle = widget.windowTitle ?? widget.item?.windowTitle(context.localized) ?? widget.label;
+    final newTitle = widget.windowTitle ??
+        widget.item?.windowTitle(context.localized) ??
+        widget.label;
     if (newTitle.isNotEmpty) {
       ref.read(windowTitleProvider.notifier).updateTitle(this, newTitle);
     }
@@ -135,10 +141,12 @@ class _DetailScaffoldState extends ConsumerState<DetailScaffold> {
       });
       return;
     }
-    if (!ref.read(clientSettingsProvider.select((value) => value.deriveColorsFromItem))) {
+    if (!ref.read(
+        clientSettingsProvider.select((value) => value.deriveColorsFromItem))) {
       return;
     }
-    final newImage = widget.item?.getPosters?.primary ?? widget.item?.getPosters?.logo;
+    final newImage =
+        widget.item?.getPosters?.primary ?? widget.item?.getPosters?.logo;
     if (newImage == null || identical(newImage, _lastColorImage)) return;
     _lastColorImage = newImage;
 
@@ -162,16 +170,22 @@ class _DetailScaffoldState extends ConsumerState<DetailScaffold> {
     final isRtl = Directionality.of(context) == TextDirection.rtl;
     final horizontalBasePadding = size.width / 25;
     final safeArea = MediaQuery.paddingOf(context);
-    final backGroundColor = Theme.of(context).colorScheme.surface.withValues(alpha: 0.8);
+    final backGroundColor =
+        Theme.of(context).colorScheme.surface.withValues(alpha: 0.8);
     final minHeight = 450.0.clamp(0, size.height).toDouble();
     final maxHeight = size.height - 10;
     final sideBarPadding = AdaptiveLayout.of(context).sideBarWidth;
     final topBarPadding = AdaptiveLayout.of(context).topBarHeight;
-    final directionalSidePadding = EdgeInsetsDirectional.only(start: sideBarPadding);
+    final directionalSidePadding =
+        EdgeInsetsDirectional.only(start: sideBarPadding);
     final horizontalPadding = 16.0;
     final contentPadding = EdgeInsets.only(
-      left: isRtl ? horizontalBasePadding : sideBarPadding + horizontalPadding + safeArea.left,
-      right: isRtl ? sideBarPadding + horizontalPadding + safeArea.right : horizontalBasePadding,
+      left: isRtl
+          ? horizontalBasePadding
+          : sideBarPadding + horizontalPadding + safeArea.left,
+      right: isRtl
+          ? sideBarPadding + horizontalPadding + safeArea.right
+          : horizontalBasePadding,
     );
     final topRowPadding = safeArea
         .add(directionalSidePadding.resolve(Directionality.of(context)))
@@ -185,7 +199,8 @@ class _DetailScaffoldState extends ConsumerState<DetailScaffold> {
           await widget.onRefresh?.call();
           if (mounted) {
             setState(() {
-              if (widget.backDrops?.backDrop?.contains(backgroundImage) == true) {
+              if (widget.backDrops?.backDrop?.contains(backgroundImage) ==
+                  true) {
                 backgroundImage = widget.backDrops?.randomBackDrop;
               }
             });
@@ -197,106 +212,135 @@ class _DetailScaffoldState extends ConsumerState<DetailScaffold> {
           extendBodyBehindAppBar: true,
           body: Stack(
             children: [
-              SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Stack(
-                  children: [
-                    SizedBox(
-                      height: maxHeight,
-                      width: size.width,
-                      child: FladderImage(
-                        image: backgroundImage,
-                        blurOnly: !widget.posterFillsContent,
+              JmsScrollControllerScope(
+                controller: widget.scrollController,
+                builder: (context, controller) => SingleChildScrollView(
+                  controller: controller,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Stack(
+                    children: [
+                      SizedBox(
+                        height: maxHeight,
+                        width: size.width,
+                        child: FladderImage(
+                          image: backgroundImage,
+                          blurOnly: !widget.posterFillsContent,
+                        ),
                       ),
-                    ),
-                    if (backgroundImage != null && !widget.posterFillsContent)
-                      Align(
-                        alignment: Alignment.topCenter,
-                        child: Padding(
-                          padding: EdgeInsetsDirectional.only(
-                            start: sideBarPadding / 1.5,
-                            top: topBarPadding / 1.5,
-                          ),
-                          child: RepaintBoundary(
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(
-                                minWidth: double.infinity,
-                                minHeight: minHeight - 22,
-                                maxHeight: maxHeight.clamp(minHeight, 2500) - (20 + topBarPadding),
-                              ),
-                              child: FadeEdges(
-                                leftFade: sideBarPadding > 0 && !isRtl ? 0.05 : 0.0,
-                                rightFade: sideBarPadding > 0 && isRtl ? 0.05 : 0.0,
-                                topFade: topBarPadding > 0 ? 0.1 : 0.0,
-                                bottomFade: 0.2,
-                                child: FadeInImage(
-                                  placeholder: ResizeImage(
-                                    backgroundImage!.imageProvider,
-                                    height: maxHeight ~/ 1.5,
-                                  ),
-                                  placeholderColor: Colors.transparent,
-                                  fit: BoxFit.cover,
-                                  alignment: Alignment.topCenter,
-                                  placeholderFit: BoxFit.cover,
-                                  excludeFromSemantics: true,
-                                  image: ResizeImage(
-                                    backgroundImage!.imageProvider,
-                                    height: maxHeight ~/ 1.5,
+                      if (backgroundImage != null && !widget.posterFillsContent)
+                        Align(
+                          alignment: Alignment.topCenter,
+                          child: Padding(
+                            padding: EdgeInsetsDirectional.only(
+                              start: sideBarPadding / 1.5,
+                              top: topBarPadding / 1.5,
+                            ),
+                            child: RepaintBoundary(
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  minWidth: double.infinity,
+                                  minHeight: minHeight - 22,
+                                  maxHeight: maxHeight.clamp(minHeight, 2500) -
+                                      (20 + topBarPadding),
+                                ),
+                                child: FadeEdges(
+                                  leftFade:
+                                      sideBarPadding > 0 && !isRtl ? 0.05 : 0.0,
+                                  rightFade:
+                                      sideBarPadding > 0 && isRtl ? 0.05 : 0.0,
+                                  topFade: topBarPadding > 0 ? 0.1 : 0.0,
+                                  bottomFade: 0.2,
+                                  child: FadeInImage(
+                                    placeholder: ResizeImage(
+                                      backgroundImage!.imageProvider,
+                                      height: maxHeight ~/ 1.5,
+                                    ),
+                                    placeholderColor: Colors.transparent,
+                                    fit: BoxFit.cover,
+                                    alignment: Alignment.topCenter,
+                                    placeholderFit: BoxFit.cover,
+                                    excludeFromSemantics: true,
+                                    image: ResizeImage(
+                                      backgroundImage!.imageProvider,
+                                      height: maxHeight ~/ 1.5,
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    Container(
-                      width: double.infinity,
-                      height: maxHeight + 10,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: widget.posterFillsContent
-                              ? [
-                                  Theme.of(context).colorScheme.surface.withValues(alpha: 0),
-                                  Theme.of(context).colorScheme.surface.withValues(alpha: 0.95),
-                                  Theme.of(context).colorScheme.surface.withValues(alpha: 1),
-                                ]
-                              : [
-                                  Theme.of(context).colorScheme.surface.withValues(alpha: 0),
-                                  Theme.of(context).colorScheme.surface.withValues(alpha: 0.10),
-                                  Theme.of(context).colorScheme.surface.withValues(alpha: 0.35),
-                                  Theme.of(context).colorScheme.surface.withValues(alpha: 0.85),
-                                  Theme.of(context).colorScheme.surface,
-                                ],
+                      Container(
+                        width: double.infinity,
+                        height: maxHeight + 10,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: widget.posterFillsContent
+                                ? [
+                                    Theme.of(context)
+                                        .colorScheme
+                                        .surface
+                                        .withValues(alpha: 0),
+                                    Theme.of(context)
+                                        .colorScheme
+                                        .surface
+                                        .withValues(alpha: 0.95),
+                                    Theme.of(context)
+                                        .colorScheme
+                                        .surface
+                                        .withValues(alpha: 1),
+                                  ]
+                                : [
+                                    Theme.of(context)
+                                        .colorScheme
+                                        .surface
+                                        .withValues(alpha: 0),
+                                    Theme.of(context)
+                                        .colorScheme
+                                        .surface
+                                        .withValues(alpha: 0.10),
+                                    Theme.of(context)
+                                        .colorScheme
+                                        .surface
+                                        .withValues(alpha: 0.35),
+                                    Theme.of(context)
+                                        .colorScheme
+                                        .surface
+                                        .withValues(alpha: 0.85),
+                                    Theme.of(context).colorScheme.surface,
+                                  ],
+                          ),
                         ),
                       ),
-                    ),
-                    Container(
-                      height: size.height,
-                      width: size.width,
-                      color: widget.backgroundColor,
-                    ),
-                    FocusScope(
-                      autofocus: true,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minHeight: size.height,
-                          maxWidth: size.width,
-                        ),
-                        child: widget.content(
-                          context,
-                          contentPadding,
+                      Container(
+                        height: size.height,
+                        width: size.width,
+                        color: widget.backgroundColor,
+                      ),
+                      FocusScope(
+                        autofocus: true,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minHeight: size.height,
+                            maxWidth: size.width,
+                          ),
+                          child: widget.content(
+                            context,
+                            contentPadding,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               //Top row buttons
               if (AdaptiveLayout.inputDeviceOf(context) != InputDevice.dPad)
                 IconTheme(
-                  data: IconThemeData(color: Theme.of(context).colorScheme.onSurface),
+                  data: IconThemeData(
+                      color: Theme.of(context).colorScheme.onSurface),
                   child: Padding(
                     padding: topRowPadding,
                     child: Row(
@@ -307,8 +351,11 @@ class _DetailScaffoldState extends ConsumerState<DetailScaffold> {
                           ),
                           onPressed: () => context.router.popBack(),
                           icon: Padding(
-                            padding:
-                                EdgeInsets.all(AdaptiveLayout.inputDeviceOf(context) == InputDevice.pointer ? 0 : 4),
+                            padding: EdgeInsets.all(
+                                AdaptiveLayout.inputDeviceOf(context) ==
+                                        InputDevice.pointer
+                                    ? 0
+                                    : 4),
                             child: const BackButtonIcon(),
                           ),
                         ),
@@ -317,30 +364,39 @@ class _DetailScaffoldState extends ConsumerState<DetailScaffold> {
                           duration: const Duration(milliseconds: 250),
                           child: Container(
                             decoration: BoxDecoration(
-                                color: backGroundColor, borderRadius: FladderTheme.defaultShape.borderRadius),
+                                color: backGroundColor,
+                                borderRadius:
+                                    FladderTheme.defaultShape.borderRadius),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 if (item != null) ...[
                                   ref.watch(syncedItemProvider(item)).when(
-                                        error: (error, stackTrace) => const SizedBox.shrink(),
+                                        error: (error, stackTrace) =>
+                                            const SizedBox.shrink(),
                                         data: (syncedItem) {
                                           if (syncedItem == null &&
                                               ref.read(userProvider.select(
-                                                (value) => value?.canDownload ?? false,
+                                                (value) =>
+                                                    value?.canDownload ?? false,
                                               )) &&
                                               item?.syncAble == true) {
                                             return IconButton(
-                                              onPressed: () =>
-                                                  ref.read(syncProvider.notifier).addSyncItem(context, item!),
+                                              onPressed: () => ref
+                                                  .read(syncProvider.notifier)
+                                                  .addSyncItem(context, item!),
                                               icon: const Icon(
                                                 IconsaxPlusLinear.arrow_down_2,
                                               ),
                                             );
                                           } else if (syncedItem != null) {
                                             return IconButton(
-                                              onPressed: () => showSyncItemDetails(context, syncedItem, ref),
-                                              icon: SyncButton(item: item!, syncedItem: syncedItem),
+                                              onPressed: () =>
+                                                  showSyncItemDetails(
+                                                      context, syncedItem, ref),
+                                              icon: SyncButton(
+                                                  item: item!,
+                                                  syncedItem: syncedItem),
                                             );
                                           }
                                           return const SizedBox.shrink();
@@ -349,25 +405,40 @@ class _DetailScaffoldState extends ConsumerState<DetailScaffold> {
                                       ),
                                   Builder(
                                     builder: (context) {
-                                      final newActions = widget.actions?.call(context);
-                                      if (AdaptiveLayout.inputDeviceOf(context) == InputDevice.pointer) {
+                                      final newActions =
+                                          widget.actions?.call(context);
+                                      if (AdaptiveLayout.inputDeviceOf(
+                                              context) ==
+                                          InputDevice.pointer) {
                                         return PopupMenuButton(
-                                          tooltip: context.localized.moreOptions,
-                                          enabled: newActions?.isNotEmpty == true,
+                                          tooltip:
+                                              context.localized.moreOptions,
+                                          enabled:
+                                              newActions?.isNotEmpty == true,
                                           icon: Icon(
                                             item!.type.icon,
-                                            color: Theme.of(context).colorScheme.onSurface,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface,
                                           ),
-                                          itemBuilder: (context) => newActions?.popupMenuItems(useIcons: true) ?? [],
+                                          itemBuilder: (context) =>
+                                              newActions?.popupMenuItems(
+                                                  useIcons: true) ??
+                                              [],
                                         );
                                       } else {
                                         return IconButton(
                                           onPressed: () => showBottomSheetPill(
                                             context: context,
-                                            content: (context, scrollController) => ListView(
+                                            content:
+                                                (context, scrollController) =>
+                                                    ListView(
                                               controller: scrollController,
                                               shrinkWrap: true,
-                                              children: newActions?.listTileItems(context, useIcons: true) ?? [],
+                                              children: newActions
+                                                      ?.listTileItems(context,
+                                                          useIcons: true) ??
+                                                  [],
                                             ),
                                           ),
                                           icon: Icon(
@@ -378,30 +449,38 @@ class _DetailScaffoldState extends ConsumerState<DetailScaffold> {
                                     },
                                   ),
                                 ],
-                                if (AdaptiveLayout.inputDeviceOf(context) == InputDevice.pointer)
+                                if (AdaptiveLayout.inputDeviceOf(context) ==
+                                    InputDevice.pointer)
                                   Tooltip(
                                     message: context.localized.refresh,
                                     child: IconButton(
                                       onPressed: () => context.refreshData(),
-                                      icon: const Icon(IconsaxPlusLinear.refresh),
+                                      icon:
+                                          const Icon(IconsaxPlusLinear.refresh),
                                     ),
                                   ),
-                                if (AdaptiveLayout.layoutModeOf(context) == LayoutMode.single ||
-                                    AdaptiveLayout.viewSizeOf(context) == ViewSize.phone)
+                                if (AdaptiveLayout.layoutModeOf(context) ==
+                                        LayoutMode.single ||
+                                    AdaptiveLayout.viewSizeOf(context) ==
+                                        ViewSize.phone)
                                   Container(
-                                    margin: const EdgeInsets.symmetric(horizontal: 6),
+                                    margin: const EdgeInsets.symmetric(
+                                        horizontal: 6),
                                     child: const SizedBox(
                                       height: 30,
                                       width: 30,
                                       child: SettingsUserIcon(),
                                     ),
                                   ),
-                                if (AdaptiveLayout.layoutModeOf(context) == LayoutMode.single)
+                                if (AdaptiveLayout.layoutModeOf(context) ==
+                                    LayoutMode.single)
                                   Tooltip(
                                       message: context.localized.home,
                                       child: IconButton(
-                                        onPressed: () => context.navigateTo(const DashboardRoute()),
-                                        icon: const Icon(IconsaxPlusLinear.home),
+                                        onPressed: () => context
+                                            .navigateTo(const DashboardRoute()),
+                                        icon:
+                                            const Icon(IconsaxPlusLinear.home),
                                       )),
                               ],
                             ),

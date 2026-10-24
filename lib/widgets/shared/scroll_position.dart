@@ -1,3 +1,4 @@
+import 'package:fladder/util/jms_smooth_scroll.dart';
 import 'package:flutter/material.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,7 +24,7 @@ class ScrollStatePosition extends ConsumerStatefulWidget {
 }
 
 class _ScrollStatePositionState extends ConsumerState<ScrollStatePosition> {
-  late final ScrollController _scrollController = widget.controller ?? ScrollController();
+  late final ScrollController _scrollController = widget.controller ?? JmsSmoothScrollController();
   ScrollState _scrollState = ScrollState.top;
 
   @override

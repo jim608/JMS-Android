@@ -9,6 +9,7 @@ import 'package:fladder/providers/settings/client_settings_provider.dart';
 import 'package:fladder/screens/shared/media/poster_widget.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
 import 'package:fladder/util/focus_provider.dart';
+import 'package:fladder/util/jms_smooth_scroll.dart';
 import 'package:fladder/util/list_padding.dart';
 import 'package:fladder/util/sticky_header_text.dart';
 import 'package:fladder/widgets/navigation_scaffold/components/navigation_body.dart';
@@ -65,7 +66,7 @@ class _HorizontalListState extends ConsumerState<HorizontalList> with TickerProv
   FocusNode? lastFocused;
   final GlobalKey _firstItemKey = GlobalKey();
   final GlobalKey _listViewKey = GlobalKey();
-  final ScrollController _scrollController = ScrollController();
+  final ScrollController _scrollController = JmsSmoothScrollController();
   final contentPadding = 8.0;
   double? contentWidth;
   double? _firstItemWidth;

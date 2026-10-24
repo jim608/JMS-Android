@@ -41,6 +41,7 @@ class VideoPlayerScreenshotIndicatorState extends ConsumerState<VideoPlayerScree
       final playbackModel = ref.watch(playBackModel);
       final player = ref.watch(videoPlayerProvider);
       final selectedSubs = playbackModel?.mediaStreams?.currentSubStream;
+      final selectedSecondary = player.secondarySubtitleState.value.selected;
       final noSubsModel = await playbackModel?.setSubtitle(SubStreamModel.no(), player);
 
       ref.read(playBackModel.notifier).update((state) => noSubsModel);
@@ -56,6 +57,7 @@ class VideoPlayerScreenshotIndicatorState extends ConsumerState<VideoPlayerScree
 
       if (restoredModel != null) {
         await ref.read(playbackModelHelper).shouldReload(restoredModel);
+        if (selectedSecondary != null) await player.setSecondarySubtitleTrack(selectedSecondary, restoredModel);
       }
     } else {
       result = await ref.read(videoPlayerProvider.notifier).takeScreenshot();

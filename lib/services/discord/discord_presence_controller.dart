@@ -22,8 +22,7 @@ class DiscordPresenceController extends ChangeNotifier {
       if (_disposed) return;
       _status = state;
       notifyListeners();
-      if (state == DiscordConnectionState.disconnected ||
-          state == DiscordConnectionState.error) {
+      if (state == DiscordConnectionState.disconnected || state == DiscordConnectionState.error) {
         _connected = false;
         _lastSent = null;
         if (_desired != null && !_withdrawing) {
@@ -65,16 +64,14 @@ class DiscordPresenceController extends ChangeNotifier {
     required bool shareTitle,
     required bool privateMode,
     required DiscordPlaybackSnapshot? playback,
+    DiscordBrowsingSnapshot? browsing,
     bool shareArtwork = false,
     String? artworkUrl,
   }) {
     if (_disposed) return;
     final next = supported && scope != null && enabled && !privateMode
         ? discordActivity(playback,
-            shareTitle: shareTitle,
-            shareArtwork: shareArtwork,
-            artworkUrl: artworkUrl,
-            now: _now())
+            browsing: browsing, shareTitle: shareTitle, shareArtwork: shareArtwork, artworkUrl: artworkUrl, now: _now())
         : null;
     final changedScope = _scope != scope;
     final withdrewTitle = _sharingTitle && !shareTitle;
@@ -102,8 +99,7 @@ class DiscordPresenceController extends ChangeNotifier {
       _timer!.cancel();
       _timer = null;
     }
-    final interval =
-        content == _lastContent ? positionInterval : minimumInterval;
+    final interval = content == _lastContent ? positionInterval : minimumInterval;
     final since = _sentAt == null ? interval : _now().difference(_sentAt!);
     _schedule(since >= interval ? Duration.zero : interval - since);
   }
@@ -173,10 +169,7 @@ class DiscordPresenceController extends ChangeNotifier {
       }
     } finally {
       _draining = false;
-      if (!_disposed &&
-          _closing == null &&
-          _desired != null &&
-          _lastSent != jsonEncode(_desired)) {
+      if (!_disposed && _closing == null && _desired != null && _lastSent != jsonEncode(_desired)) {
         _schedule(minimumInterval);
       }
     }

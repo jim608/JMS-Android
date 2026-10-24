@@ -165,7 +165,8 @@ void main() {
     await accept(tester);
     await tester.tap(find.byKey(titleKey));
     await tester.pumpAndSettle();
-    expect(find.textContaining('the video title you watch'), findsOneWidget);
+    expect(
+        find.textContaining('the title you browse or watch'), findsOneWidget);
     expect(settings.titleCalls, 0);
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
@@ -369,8 +370,8 @@ void main() {
     await showSettings(tester, settings,
         locale:
             const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'));
-    expect(find.text('在 Discord 顯示播放狀態'), findsOneWidget);
-    expect(find.text('分享影片名稱'), findsOneWidget);
+    expect(find.text('在 Discord 顯示 JMS 活動'), findsOneWidget);
+    expect(find.text('分享作品名稱'), findsOneWidget);
     expect(find.text('分享作品封面'), findsOneWidget);
     await tester.tap(find.byKey(enabledKey));
     await tester.pumpAndSettle();

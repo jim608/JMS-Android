@@ -8,6 +8,7 @@ import 'package:fladder/providers/arguments_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/screens/shared/user_icon.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
+import 'package:fladder/util/jms_smooth_scroll.dart';
 import 'package:fladder/util/router_extension.dart';
 
 class SettingsScaffold extends ConsumerWidget {
@@ -34,7 +35,8 @@ class SettingsScaffold extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final padding = MediaQuery.paddingOf(context);
-    final singleLayout = AdaptiveLayout.layoutModeOf(context) == LayoutMode.single;
+    final singleLayout =
+        AdaptiveLayout.layoutModeOf(context) == LayoutMode.single;
     return Scaffold(
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: floatingActionButton,
@@ -43,67 +45,84 @@ class SettingsScaffold extends ConsumerWidget {
         child: Column(
           children: [
             Flexible(
-              child: CustomScrollView(
+              child: JmsScrollControllerScope(
                 controller: scrollController,
-                slivers: [
-                  if (singleLayout)
-                    SliverAppBar.large(
-                      leading: BackButton(
-                        onPressed: () => backAction(context),
-                      ),
-                      flexibleSpace: FlexibleSpaceBar(
-                        titlePadding: EdgeInsets.only(left: padding.left, right: padding.right, bottom: 4)
-                            .add(const EdgeInsets.symmetric(horizontal: 16)),
-                        title: Row(
-                          children: [
-                            Text(label, style: Theme.of(context).textTheme.headlineLarge),
-                            const Spacer(),
-                            if (showUserIcon)
-                              SizedBox.fromSize(
-                                size: const Size.fromRadius(14),
-                                child: UserIcon(
-                                  user: ref.watch(userProvider),
-                                  cornerRadius: 200,
-                                ),
-                              )
-                          ],
+                builder: (context, controller) => CustomScrollView(
+                  controller: controller,
+                  slivers: [
+                    if (singleLayout)
+                      SliverAppBar.large(
+                        leading: BackButton(
+                          onPressed: () => backAction(context),
                         ),
-                        expandedTitleScale: 1.2,
-                      ),
-                      expandedHeight: 100,
-                      collapsedHeight: 80,
-                      pinned: false,
-                      floating: true,
-                    )
-                  else
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: MediaQuery.paddingOf(context).copyWith(bottom: 0),
-                        child: Row(
-                          children: [
-                            if (showBackButtonNested && !ref.read(argumentsStateProvider).htpcMode)
-                              BackButton(
-                                onPressed: () => backAction(context),
-                              )
-                          ],
+                        flexibleSpace: FlexibleSpaceBar(
+                          titlePadding: EdgeInsets.only(
+                                  left: padding.left,
+                                  right: padding.right,
+                                  bottom: 4)
+                              .add(const EdgeInsets.symmetric(horizontal: 16)),
+                          title: Row(
+                            children: [
+                              Text(label,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineLarge),
+                              const Spacer(),
+                              if (showUserIcon)
+                                SizedBox.fromSize(
+                                  size: const Size.fromRadius(14),
+                                  child: UserIcon(
+                                    user: ref.watch(userProvider),
+                                    cornerRadius: 200,
+                                  ),
+                                )
+                            ],
+                          ),
+                          expandedTitleScale: 1.2,
                         ),
+                        expandedHeight: 100,
+                        collapsedHeight: 80,
+                        pinned: false,
+                        floating: true,
+                      )
+                    else
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding:
+                              MediaQuery.paddingOf(context).copyWith(bottom: 0),
+                          child: Row(
+                            children: [
+                              if (showBackButtonNested &&
+                                  !ref.read(argumentsStateProvider).htpcMode)
+                                BackButton(
+                                  onPressed: () => backAction(context),
+                                )
+                            ],
+                          ),
+                        ),
+                      ),
+                    SliverPadding(
+                      padding: singleLayout
+                          ? padding.copyWith(top: 0, bottom: 0)
+                          : EdgeInsets.zero,
+                      sliver: SliverList.separated(
+                        itemBuilder: (context, index) => items[index],
+                        separatorBuilder: (context, index) =>
+                            SizedBox(height: itemSpacing / 2),
+                        itemCount: items.length,
                       ),
                     ),
-                  SliverPadding(
-                    padding: singleLayout ? padding.copyWith(top: 0, bottom: 0) : EdgeInsets.zero,
-                    sliver: SliverList.separated(
-                      itemBuilder: (context, index) => items[index],
-                      separatorBuilder: (context, index) => SizedBox(height: itemSpacing / 2),
-                      itemCount: items.length,
-                    ),
-                  ),
-                  const SliverToBoxAdapter(child: SizedBox(height: kBottomNavigationBarHeight + 40)),
-                ],
+                    const SliverToBoxAdapter(
+                        child:
+                            SizedBox(height: kBottomNavigationBarHeight + 40)),
+                  ],
+                ),
               ),
             ),
             if (bottomActions.isNotEmpty) ...{
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4).add(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4).add(
                   EdgeInsets.only(bottom: padding.bottom),
                 ),
                 child: Row(
@@ -121,7 +140,8 @@ class SettingsScaffold extends ConsumerWidget {
 
   void backAction(BuildContext context) {
     if (kIsWeb) {
-      if (AdaptiveLayout.layoutModeOf(context) == LayoutMode.single && context.tabsRouter.activeIndex != 0) {
+      if (AdaptiveLayout.layoutModeOf(context) == LayoutMode.single &&
+          context.tabsRouter.activeIndex != 0) {
         context.tabsRouter.setActiveIndex(0);
       } else {
         context.router.pop();

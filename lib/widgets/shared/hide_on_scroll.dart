@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
+import 'package:fladder/util/jms_smooth_scroll.dart';
 
 class HideOnScroll extends ConsumerStatefulWidget {
   final Widget? child;
@@ -33,7 +34,7 @@ class HideOnScroll extends ConsumerStatefulWidget {
 }
 
 class _HideOnScrollState extends ConsumerState<HideOnScroll> {
-  late ScrollController scrollController = widget.controller ?? ScrollController();
+  late ScrollController scrollController = widget.controller ?? JmsSmoothScrollController();
   bool isVisible = true;
 
   double _lastOffset = 0.0;
@@ -60,7 +61,7 @@ class _HideOnScrollState extends ConsumerState<HideOnScroll> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
       scrollController.removeListener(_onScroll);
-      scrollController = widget.controller ?? ScrollController();
+      scrollController = widget.controller ?? JmsSmoothScrollController();
       scrollController.addListener(_onScroll);
     }
   }

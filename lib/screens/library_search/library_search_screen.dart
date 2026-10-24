@@ -34,6 +34,7 @@ import 'package:fladder/screens/shared/nested_scaffold.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
 import 'package:fladder/util/debouncer.dart';
 import 'package:fladder/util/item_base_model/item_base_model_extensions.dart';
+import 'package:fladder/util/jms_smooth_scroll.dart';
 import 'package:fladder/util/list_padding.dart';
 import 'package:fladder/util/localization_helper.dart';
 import 'package:fladder/util/map_bool_helper.dart';
@@ -91,7 +92,7 @@ class LibrarySearchScreen extends ConsumerStatefulWidget {
 class _LibrarySearchScreenState extends ConsumerState<LibrarySearchScreen> {
   final Debouncer debouncer = Debouncer(const Duration(seconds: 1));
   final GlobalKey<RefreshIndicatorState> refreshKey = GlobalKey<RefreshIndicatorState>();
-  final ScrollController scrollController = ScrollController();
+  final ScrollController scrollController = JmsSmoothScrollController();
   late double lastScale = 0;
 
   bool loadOnStart = false;

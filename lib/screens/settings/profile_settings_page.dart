@@ -8,27 +8,20 @@ import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fladder/jellyfin/jellyfin_open_api.enums.swagger.dart' as enums;
-import 'package:fladder/models/seerr_credentials_model.dart';
 import 'package:fladder/providers/cultures_provider.dart';
 import 'package:fladder/providers/home_preferences_provider.dart';
-import 'package:fladder/providers/seerr_user_provider.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
 import 'package:fladder/providers/update_notifications_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
-import 'package:fladder/providers/jms_entry_provider.dart';
 import 'package:fladder/screens/settings/settings_list_tile.dart';
 import 'package:fladder/screens/settings/settings_scaffold.dart';
 import 'package:fladder/screens/settings/widgets/home_preferences_editors.dart';
-import 'package:fladder/screens/settings/widgets/jms_entry_config_tile.dart';
 import 'package:fladder/screens/settings/widgets/settings_discord_presence.dart';
 import 'package:fladder/screens/settings/widgets/password_reset_dialog.dart';
-import 'package:fladder/screens/settings/widgets/seerr_connection_dialog.dart';
 import 'package:fladder/screens/settings/widgets/settings_label_divider.dart';
 import 'package:fladder/screens/settings/widgets/settings_list_group.dart';
 import 'package:fladder/screens/settings/widgets/settings_message_box.dart';
 import 'package:fladder/screens/shared/authenticate_button_options.dart';
-import 'package:fladder/seerr/seerr_models.dart';
-import 'package:fladder/screens/seerr/seerr_support_text.dart';
 import 'package:fladder/services/battery_optimization.dart';
 import 'package:fladder/services/notification_service.dart';
 import 'package:fladder/util/jellyfin_extension.dart';
@@ -46,25 +39,6 @@ class ProfileSettingsPage extends ConsumerStatefulWidget {
 
 class _UserSettingsPageState extends ConsumerState<ProfileSettingsPage> with WidgetsBindingObserver {
   bool? enabledBatteryOptimization;
-
-  String _seerrStatusLabel(
-    BuildContext context,
-    SeerrCredentialsModel? credentials,
-    SeerrUserModel? seerrUser,
-  ) {
-    if (credentials == null || credentials.serverUrl.isEmpty) return context.localized.seerrNotConfigured;
-
-    if (credentials.sessionCookie.isNotEmpty || credentials.apiKey.isNotEmpty) {
-      if (seerrUser == null) {
-        return context.localized.seerrLoadingUser;
-      }
-      final displayName =
-          seerrUser.displayName ?? seerrUser.username ?? seerrUser.email ?? context.localized.seerrUnknownUser;
-      return context.localized.loggedInAs(displayName);
-    }
-
-    return context.localized.none;
-  }
 
   @override
   void initState() {
@@ -104,7 +78,6 @@ class _UserSettingsPageState extends ConsumerState<ProfileSettingsPage> with Wid
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(userProvider);
-    final seerrUser = ref.watch(seerrUserProvider);
     final cultures = ref.watch(culturesProvider);
     final clientSettings = ref.watch(clientSettingsProvider);
     final lastUpdateAt = ref.watch(notificationsProvider).updatedAt;
@@ -323,41 +296,11 @@ class _UserSettingsPageState extends ConsumerState<ProfileSettingsPage> with Wid
         const SizedBox(height: 16),
         ...settingsListGroup(
           context,
-          SettingsLabelDivider(label: seerrText(context, 'Service integrations', '服務整合')),
-          [
-            SettingsListTile(
-              label: const Text('Jellyseerr / Seerr'),
-              subLabel: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(_seerrStatusLabel(context, user?.seerrCredentials, seerrUser)),
-                if (user != null && ref.read(jmsEntrySettingsProvider).isServerProvided(user))
-                  Text(seerrText(context, 'Provided by server', '由伺服器提供')),
-              ]),
-              onTap: () => showSeerrConnectionDialog(context),
-            ),
-            const JmsEntryConfigTile(),
-            const SettingsDiscordPresence(),
-            if (seerrUser?.canManageRequests ?? false)
-              SettingsListTileCheckbox(
-                label: Text(context.localized.seerrRequestNotifications),
-                value: user?.seerrRequestsEnabled ?? false,
-                onChanged: (val) async {
-                  final current = ref.read(userProvider);
-                  if (current == null || val == null) return;
-
-                  ref.read(userProvider.notifier).userState = current.copyWith(seerrRequestsEnabled: val);
-
-                  if (val) {
-                    await NotificationService.requestPermission();
-                    await ref.read(updateNotificationsProvider).registerBackgroundTask();
-                  } else {
-                    await ref.read(updateNotificationsProvider).conditionallyUnregisterBackgroundTask();
-                  }
-                },
-              ),
-          ],
+          const SettingsLabelDivider(label: 'Discord'),
+          const [SettingsDiscordPresence()],
         ),
         const SizedBox(height: 16),
-        const LibraryOrderEditor(),
+        const HomePreferencesEditor(),
         const SizedBox(height: 16),
         ...settingsListGroup(
           context,

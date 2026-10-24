@@ -13,6 +13,8 @@ import 'package:fladder/models/account_model.dart';
 import 'package:fladder/providers/arguments_provider.dart';
 import 'package:fladder/providers/connectivity_provider.dart';
 import 'package:fladder/providers/discord_presence_provider.dart';
+import 'package:fladder/providers/discord_browsing_provider.dart';
+import 'package:fladder/services/discord/discord_activity.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
 import 'package:fladder/providers/shared_provider.dart';
 import 'package:fladder/providers/update_notifications_provider.dart';
@@ -41,6 +43,7 @@ abstract class BaseAppWrapperState<T extends BaseAppWrapper> extends ConsumerSta
 
   DateTime _lastPaused = DateTime.now();
   bool _hidden = false;
+  int _discordRouteGeneration = 0;
 
   StreamSubscription<String?>? _notificationSub;
   late final DiscordPresenceSettings _discordPresence;
@@ -50,11 +53,51 @@ abstract class BaseAppWrapperState<T extends BaseAppWrapper> extends ConsumerSta
   void initState() {
     super.initState();
     _discordPresence = ref.read(discordPresenceSettingsProvider);
+    autoRouter.addListener(_updateDiscordBrowsing);
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _updateDiscordBrowsing();
       ref.read(sharedUtilityProvider).loadSettings();
       await platformInit();
       await _initializeNotifications();
+    });
+  }
+
+  void _updateDiscordBrowsing() {
+    final generation = ++_discordRouteGeneration;
+    // Nested routers notify the root; read their final active path after the
+    // navigation completes, outside any route widget's build.
+    scheduleMicrotask(() {
+      if (!mounted || generation != _discordRouteGeneration) return;
+      final segments = autoRouter.currentSegments;
+      final route = segments.lastOrNull;
+      final scope = discordAccountScope(ref.read(userProvider));
+      final blocked = segments.any((segment) => const {
+            LoginRoute.name,
+            SplashRoute.name,
+            LockRoute.name,
+          }.contains(segment.name));
+      DiscordBrowsingSnapshot? browsing;
+      if (route != null && !blocked) {
+        browsing = const DiscordBrowsingSnapshot.selecting();
+        final args = route.args;
+        if (route.name == DetailsRoute.name) {
+          final item = args is DetailsRouteArgs ? args.item : null;
+          browsing = DiscordBrowsingSnapshot.details(
+            title: item?.title ?? '',
+            artworkItemId: discordArtworkItemId(item),
+          );
+        } else if (route.name == SeerrDetailsRoute.name) {
+          final poster = args is SeerrDetailsRouteArgs ? args.poster : null;
+          browsing = DiscordBrowsingSnapshot.details(
+            title: poster?.title ?? '',
+            artworkUrl: poster?.images.primary?.path,
+          );
+        }
+      }
+      ref
+          .read(discordBrowsingProvider.notifier)
+          .activate(routeId: route?.id, scope: scope, snapshot: browsing, blocked: blocked);
     });
   }
 
@@ -140,6 +183,8 @@ abstract class BaseAppWrapperState<T extends BaseAppWrapper> extends ConsumerSta
 
   @override
   void dispose() {
+    _discordRouteGeneration++;
+    autoRouter.removeListener(_updateDiscordBrowsing);
     _discordPresence.suspend();
     _notificationSub?.cancel();
     WidgetsBinding.instance.removeObserver(this);
