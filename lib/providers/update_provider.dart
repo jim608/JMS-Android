@@ -11,6 +11,7 @@ import 'package:fladder/util/update_controller.dart';
 import 'package:fladder/util/update_source.dart';
 import 'package:fladder/util/windows_update_bridge.dart';
 import 'package:fladder/util/linux_update_bridge.dart';
+import 'package:fladder/util/jms_test_profile_policy.dart';
 
 final updateProvider = ChangeNotifierProvider<UpdateController>((ref) {
   final windows = !kIsWeb && defaultTargetPlatform == TargetPlatform.windows;
@@ -18,14 +19,17 @@ final updateProvider = ChangeNotifierProvider<UpdateController>((ref) {
   final controller = UpdateController(
     checker: UpdateChecker(
         source: UpdateSource.forPlatform(defaultTargetPlatform.name)),
-    bridge: windows
-        ? createWindowsUpdateBridge()
-        : linux
-            ? createLinuxUpdateBridge()
-            : AndroidUpdateBridge(),
+    bridge: JmsTestProfilePolicy.enabled
+        ? TestProfileUpdateBridge()
+        : windows
+            ? createWindowsUpdateBridge()
+            : linux
+                ? createLinuxUpdateBridge()
+                : AndroidUpdateBridge(),
     supported: !kIsWeb &&
         (windows || linux || defaultTargetPlatform == TargetPlatform.android),
   );
+  if (JmsTestProfilePolicy.enabled) return controller;
   controller.automatic = ref.read(clientSettingsProvider).checkForUpdates;
   controller.playback =
       ref.read(mediaPlaybackProvider).state != VideoPlayerState.disposed;
@@ -33,7 +37,10 @@ final updateProvider = ChangeNotifierProvider<UpdateController>((ref) {
       (previous, next) {
     controller.setPlayback(next != VideoPlayerState.disposed);
   });
-  unawaited(controller.initialize());
+  // Initialization and the optional startup query never block the first frame.
+  unawaited(controller.initialize().then((_) async {
+    if (controller.ready) await controller.check(manual: false);
+  }));
   return controller;
 });
 

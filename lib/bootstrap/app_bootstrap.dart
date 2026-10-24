@@ -12,6 +12,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fladder/models/settings/arguments_model.dart';
+import 'package:fladder/bootstrap/windows_test_profile.dart';
 import 'package:fladder/providers/crash_log_provider.dart';
 import 'package:fladder/src/video_player_helper.g.dart';
 import 'package:fladder/util/application_info.dart';
@@ -44,15 +45,18 @@ class AppBootstrapResult {
 }
 
 Future<AppBootstrapResult> bootstrapApplication(List<String> args) async {
+  await initializeWindowsTestProfile(args);
+
   LicenseRegistry.addLicense(() async* {
     yield LicenseEntryWithLineBreaks(
-        ['JMS / Fladder (DonutWare and contributors)'], await rootBundle.loadString('LICENSE'));
-    yield LicenseEntryWithLineBreaks(
-        ['Noto Sans CJK TC'], await rootBundle.loadString('assets/subtitle_fonts/OFL.txt'));
-    yield LicenseEntryWithLineBreaks(
-        ['Noto Sans TC (interface)'], await rootBundle.loadString('assets/fonts/notosanstc/OFL.txt'));
-    yield LicenseEntryWithLineBreaks(
-        ['JMS Android native components'], await rootBundle.loadString('assets/licenses/JMS_NATIVE_NOTICES.txt'));
+        ['JMS / Fladder (DonutWare and contributors)'],
+        await rootBundle.loadString('LICENSE'));
+    yield LicenseEntryWithLineBreaks(['Noto Sans CJK TC'],
+        await rootBundle.loadString('assets/subtitle_fonts/OFL.txt'));
+    yield LicenseEntryWithLineBreaks(['Noto Sans TC (interface)'],
+        await rootBundle.loadString('assets/fonts/notosanstc/OFL.txt'));
+    yield LicenseEntryWithLineBreaks(['JMS Android native components'],
+        await rootBundle.loadString('assets/licenses/JMS_NATIVE_NOTICES.txt'));
   });
   final crashProvider = CrashLogNotifier();
 

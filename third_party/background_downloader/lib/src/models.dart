@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'exceptions.dart';
+import 'desktop/desktop_directory_paths.dart';
 import 'task.dart';
 
 /// Defines a set of possible states which a [Task] can be in.
@@ -389,7 +390,10 @@ class ResumeData {
   String get taskId => task.taskId;
 
   /// The tempFilepath contained in the [data] field
-  String get tempFilepath => data;
+  String get tempFilepath {
+    desktopDirectoryPaths?.validateFilePath(data);
+    return data;
+  }
 
   @override
   bool operator ==(Object other) =>

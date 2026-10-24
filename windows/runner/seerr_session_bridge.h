@@ -3,10 +3,11 @@
 
 #include <flutter/encodable_value.h>
 #include <flutter/method_channel.h>
+#include <flutter/plugin_registrar.h>
 
 #include <memory>
 
-class SeerrSessionBridge {
+class SeerrSessionBridge : public flutter::Plugin {
  public:
   explicit SeerrSessionBridge(flutter::BinaryMessenger* messenger);
 

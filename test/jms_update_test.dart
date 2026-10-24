@@ -475,8 +475,10 @@ void main() {
   test(
       'auto check cooldown persists across restarts and manual check can bypass',
       () async {
-    SharedPreferences.setMockInitialValues(
-        {'jms.update.lastCheck': DateTime.now().millisecondsSinceEpoch});
+    SharedPreferences.setMockInitialValues({
+      UpdateController.lastAutomaticCheckKey:
+          DateTime.now().millisecondsSinceEpoch
+    });
     var requests = 0;
     final updater = UpdateChecker(
         source: source,

@@ -1,4 +1,5 @@
 export 'src/database.dart';
+export 'src/desktop/desktop_directory_paths.dart' show DesktopDirectoryPaths;
 export 'src/exceptions.dart';
 export 'src/file_downloader.dart';
 export 'src/models.dart';

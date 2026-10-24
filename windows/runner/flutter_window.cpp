@@ -4,6 +4,9 @@
 
 #include "desktop_multi_window/desktop_multi_window_plugin.h"
 #include "flutter/generated_plugin_registrant.h"
+#include <flutter/plugin_registrar_windows.h>
+
+#include "test_profile_bridge.h"
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
     : project_(project) {}
@@ -26,6 +29,7 @@ bool FlutterWindow::OnCreate() {
     return false;
   }
   RegisterPlugins(flutter_controller_->engine());
+  RegisterTestProfileBridge(flutter_controller_->engine());
   desktop_update_bridge_ = std::make_unique<DesktopUpdateBridge>(
       flutter_controller_->engine()->messenger());
   seerr_session_bridge_ = std::make_unique<SeerrSessionBridge>(
@@ -35,7 +39,12 @@ bool FlutterWindow::OnCreate() {
         +reinterpret_cast<flutter::FlutterViewController *>(controller);
     auto *registry = flutter_view_controller->engine();
     RegisterPlugins(registry);
-    
+    RegisterTestProfileBridge(registry);
+    auto* registrar = flutter::PluginRegistrarManager::GetInstance()
+        ->GetRegistrar<flutter::PluginRegistrarWindows>(
+            registry->GetRegistrarForPlugin("JmsSeerrSessionBridge"));
+    registrar->AddPlugin(
+        std::make_unique<SeerrSessionBridge>(registrar->messenger()));
   });
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 

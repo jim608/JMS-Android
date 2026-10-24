@@ -9,7 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:smtc_windows/smtc_windows.dart' if (dart.library.html) 'package:fladder/stubs/web/smtc_web.dart';
+import 'package:smtc_windows/smtc_windows.dart'
+    if (dart.library.html) 'package:fladder/stubs/web/smtc_web.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import 'package:fladder/models/item_base_model.dart';
@@ -43,10 +44,12 @@ import 'package:fladder/wrappers/players/lib_mpv.dart';
 import 'package:fladder/wrappers/players/native_player.dart';
 import 'package:fladder/wrappers/players/player_states.dart';
 import 'package:fladder/providers/sleep_timer_provider.dart';
+import 'package:fladder/util/jms_test_profile_policy.dart';
 
 part 'audio_queue_handler.dart';
 
-class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerControlsCallback {
+class MediaControlsWrapper extends BaseAudioHandler
+    implements VideoPlayerControlsCallback {
   MediaControlsWrapper({required this.ref});
 
   BasePlayer? _player;
@@ -54,18 +57,22 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
   int _setupGeneration = 0;
   String _initializationFailure = '';
   BasePlayer? _previousPlayer;
-  final StreamController<PlayerState> _stateController = StreamController.broadcast();
+  final StreamController<PlayerState> _stateController =
+      StreamController.broadcast();
   StreamSubscription<PlayerState>? _playerStateSubscription;
 
   bool get hasPlayer => _player != null;
   SubtitleOffsetController? get subtitleOffsets => _player?.subtitleOffsets;
   final _secondaryUnavailable = ValueNotifier(
-    const SecondarySubtitleState(issue: SecondarySubtitleIssue.unsupportedBackend),
+    const SecondarySubtitleState(
+        issue: SecondarySubtitleIssue.unsupportedBackend),
   );
-  bool get supportsSecondarySubtitles => _player?.supportsSecondarySubtitles ?? false;
+  bool get supportsSecondarySubtitles =>
+      _player?.supportsSecondarySubtitles ?? false;
   ValueListenable<SecondarySubtitleState> get secondarySubtitleState =>
       _player?.secondarySubtitles ?? _secondaryUnavailable;
-  Future<void> setSecondarySubtitleTrack(SubStreamModel? model, PlaybackModel playbackModel) async =>
+  Future<void> setSecondarySubtitleTrack(
+          SubStreamModel? model, PlaybackModel playbackModel) async =>
       _player?.setSecondarySubtitleTrack(model, playbackModel);
 
   PlayerOptions? get backend => switch (_player) {
@@ -84,13 +91,15 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
       _player?.subtitles(showOverlay, controlsKey: controlsKey);
   Widget? videoWidget(Key key, BoxFit fit) => _player?.videoWidget(key, fit);
   Object get ambientFrameSource => _player?.ambientFrameSource ?? this;
-  Future<ui.Image?> captureAmbientFrame(double maxDimension) async => await _player?.captureAmbientFrame(maxDimension);
+  Future<ui.Image?> captureAmbientFrame(double maxDimension) async =>
+      await _player?.captureAmbientFrame(maxDimension);
 
   Future<Map<String, String>> playbackDiagnostics() async =>
       await _player?.playbackDiagnostics() ??
       {
         'backend': 'unknown (no player)',
-        if (_initializationFailure.isNotEmpty) 'player initialization': _initializationFailure,
+        if (_initializationFailure.isNotEmpty)
+          'player initialization': _initializationFailure,
       };
 
   final Ref ref;
@@ -120,23 +129,26 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
   Future<void> init() async {
     if (!initializedWrapper) {
       initializedWrapper = true;
-      if (!kIsWeb && Platform.isAndroid) {
-        VideoPlayerControlsCallback.setUp(this);
+      if (!JmsTestProfilePolicy.enabled) {
+        if (!kIsWeb && Platform.isAndroid) {
+          VideoPlayerControlsCallback.setUp(this);
+        }
+        await AudioService.init(
+          builder: () => this,
+          config: const AudioServiceConfig(
+            androidNotificationChannelId:
+                'nl.jknaapen.fladder.channel.playback',
+            androidNotificationChannelName: 'Media playback',
+            androidNotificationIcon: 'drawable/ic_notification',
+            androidNotificationOngoing: true,
+            androidStopForegroundOnPause: true,
+            rewindInterval: Duration(seconds: 10),
+            fastForwardInterval: Duration(seconds: 15),
+            androidNotificationChannelDescription: "Playback",
+            androidShowNotificationBadge: true,
+          ),
+        );
       }
-      await AudioService.init(
-        builder: () => this,
-        config: const AudioServiceConfig(
-          androidNotificationChannelId: 'nl.jknaapen.fladder.channel.playback',
-          androidNotificationChannelName: 'Media playback',
-          androidNotificationIcon: 'drawable/ic_notification',
-          androidNotificationOngoing: true,
-          androidStopForegroundOnPause: true,
-          rewindInterval: Duration(seconds: 10),
-          fastForwardInterval: Duration(seconds: 15),
-          androidNotificationChannelDescription: "Playback",
-          androidShowNotificationBadge: true,
-        ),
-      );
     }
 
     final player = switch (ref.read(videoPlayerSettingsProvider).wantedPlayer) {
@@ -181,7 +193,9 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
     try {
       await _playerStateSubscription?.cancel();
       _playerStateSubscription = null;
-      if (oldPlayer != null && oldPlayer != newPlayer && _previousPlayer != oldPlayer) {
+      if (oldPlayer != null &&
+          oldPlayer != newPlayer &&
+          _previousPlayer != oldPlayer) {
         await oldPlayer.dispose();
       }
       await newPlayer.init(ref.read(videoPlayerSettingsProvider));
@@ -192,12 +206,15 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
       _player = newPlayer;
       _initPlayer();
       _subscribePlayerState();
-      ref.read(mediaPlaybackProvider.notifier).update((state) => state.copyWith(errorPlaying: false));
+      ref
+          .read(mediaPlaybackProvider.notifier)
+          .update((state) => state.copyWith(errorPlaying: false));
     } catch (error) {
       if (generation == _setupGeneration) {
         _player = null;
-        _initializationFailure =
-            error is TimeoutException ? 'renderer initialization timed out' : 'player initialization failed';
+        _initializationFailure = error is TimeoutException
+            ? 'renderer initialization timed out'
+            : 'player initialization failed';
         _markPlayerFailure();
       }
       try {
@@ -226,7 +243,8 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
     }
     subscriptions.clear();
     _subscribePlayer();
-    _subtitleSettingsSubscription = ref.listen(subtitleSettingsProvider, (_, next) {
+    _subtitleSettingsSubscription =
+        ref.listen(subtitleSettingsProvider, (_, next) {
       _player?.applySubtitleSettings(next);
     });
   }
@@ -243,7 +261,8 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
     });
   }
 
-  Future<void> loadVideo(PlaybackModel model, Duration startPosition, bool play, {bool Function()? isCurrent}) async {
+  Future<void> loadVideo(PlaybackModel model, Duration startPosition, bool play,
+      {bool Function()? isCurrent}) async {
     bool current() => isCurrent?.call() ?? true;
     if (!current()) return;
     final player = _player;
@@ -259,10 +278,12 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
       }
       if (_player is NativePlayer) {
         final context = ref.read(localizationContextProvider);
-        await (_player as NativePlayer).sendPlaybackDataToNative(context, model, startPosition);
+        await (_player as NativePlayer)
+            .sendPlaybackDataToNative(context, model, startPosition);
       }
       _isNewPlayback = play;
-      await player.loadVideo(model.media?.url ?? "", play && ref.read(sleepTimerProvider).allowsPlayback,
+      await player.loadVideo(model.media?.url ?? "",
+          play && ref.read(sleepTimerProvider).allowsPlayback,
           startPosition: startPosition);
       if (!current() || !identical(_player, player)) return;
       if (model.serverManagedQueue) {
@@ -276,7 +297,9 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
 
       final context = ref.read(localizationContextProvider);
       if (context != null) {
-        ref.read(windowTitleProvider.notifier).setPlayTitle(model.item.windowTitle(context.localized));
+        ref
+            .read(windowTitleProvider.notifier)
+            .setPlayTitle(model.item.windowTitle(context.localized));
       }
     } finally {
       if (current() && identical(_player, player)) _isStopped = false;
@@ -297,7 +320,8 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
 
   Future<void> openPlayer(BuildContext context) async => _player?.open(context);
 
-  Future<void> _updatePositionWithRetry(PlaybackModel model, Duration position, bool isPlaying) async {
+  Future<void> _updatePositionWithRetry(
+      PlaybackModel model, Duration position, bool isPlaying) async {
     try {
       await model.updatePlaybackPosition(position, isPlaying, ref);
     } catch (error, stackTrace) {
@@ -312,7 +336,7 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
   }
 
   void _subscribePlayer() {
-    if (!kIsWeb && Platform.isWindows) {
+    if (!JmsTestProfilePolicy.enabled && !kIsWeb && Platform.isWindows) {
       smtc = SMTCWindows(
         config: const SMTCConfig(
           fastForwardEnabled: true,
@@ -371,23 +395,32 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
       ref.read(sleepTimerProvider).completed();
     }
 
-    if (value.completed && _isAudioQueueMode && !_audioQueueTransitioning && !_audioQueueCompletionPending) {
+    if (value.completed &&
+        _isAudioQueueMode &&
+        !_audioQueueTransitioning &&
+        !_audioQueueCompletionPending) {
       _audioQueueCompletionPending = true;
-      unawaited(_onAudioTrackCompleted().whenComplete(() => _audioQueueCompletionPending = false));
+      unawaited(_onAudioTrackCompleted()
+          .whenComplete(() => _audioQueueCompletionPending = false));
     }
 
-    final keepForegroundAlive =
-        value.playing || value.buffering || _audioQueueTransitioning || _audioQueueCompletionPending;
+    final keepForegroundAlive = value.playing ||
+        value.buffering ||
+        _audioQueueTransitioning ||
+        _audioQueueCompletionPending;
 
     playbackState.add(playbackState.value.copyWith(
       bufferedPosition: value.buffer,
-      processingState: value.buffering ? AudioProcessingState.buffering : AudioProcessingState.ready,
+      processingState: value.buffering
+          ? AudioProcessingState.buffering
+          : AudioProcessingState.ready,
       updatePosition: value.position,
       playing: keepForegroundAlive,
     ));
 
     smtc?.setPosition(value.position);
-    smtc?.setPlaybackStatus(keepForegroundAlive ? PlaybackStatus.playing : PlaybackStatus.paused);
+    smtc?.setPlaybackStatus(
+        keepForegroundAlive ? PlaybackStatus.playing : PlaybackStatus.paused);
 
     return unawaited(_applyWakelock(_shouldKeepScreenOn(keepForegroundAlive)));
   }
@@ -421,14 +454,18 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
   Future<void> skipToPrevious() async {
     if (syncPlayActive) return;
     if (_isAudioQueueMode) {
-      if (_player?.lastState.position != null && _player!.lastState.position >= const Duration(seconds: 3)) {
+      if (_player?.lastState.position != null &&
+          _player!.lastState.position >= const Duration(seconds: 3)) {
         await _player?.seek(Duration.zero);
         await Future.delayed(const Duration(milliseconds: 125));
         await _player?.play();
         return;
       }
       final wasRepeatOne = await _disableRepeatOneForSkip();
-      if (!wasRepeatOne && _player is LibMPV && _isMpvPlaylistInSync() && _mpvPlaylistCurrentIndex > 0) {
+      if (!wasRepeatOne &&
+          _player is LibMPV &&
+          _isMpvPlaylistInSync() &&
+          _mpvPlaylistCurrentIndex > 0) {
         final current = _mpvPlaylistItems[_mpvPlaylistCurrentIndex];
         final previous = _mpvPlaylistItems[_mpvPlaylistCurrentIndex - 1];
         if (!_shouldCrossfade(current, previous, manual: true)) {
@@ -462,7 +499,8 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
   }
 
   Future<void> reassertWakelock() async =>
-      _applyWakelock(_shouldKeepScreenOn(_player?.lastState.playing ?? false), force: true);
+      _applyWakelock(_shouldKeepScreenOn(_player?.lastState.playing ?? false),
+          force: true);
 
   @override
   Future<void> pause() async {
@@ -517,11 +555,14 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
     await _player?.play();
     if (_isStopped) return;
 
-    final currentPosition = await ref.read(playBackModel.select((value) => value?.startDuration()));
+    final currentPosition =
+        await ref.read(playBackModel.select((value) => value?.startDuration()));
     if (_isStopped) return;
     if (_isNewPlayback || !playbackState.value.playing) {
       _isNewPlayback = false;
-      await ref.read(playBackModel)?.playbackStarted(currentPosition ?? Duration.zero, ref);
+      await ref
+          .read(playBackModel)
+          ?.playbackStarted(currentPosition ?? Duration.zero, ref);
     }
     if (playBackItem == null) return;
 
@@ -533,28 +574,38 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
     return super.play();
   }
 
-  Future<void> _refreshMediaControls({PlaybackModel? model, required bool playing}) async {
+  Future<void> _refreshMediaControls(
+      {PlaybackModel? model, required bool playing}) async {
     if (_isStopped) return;
     if (!ref.read(clientSettingsProvider).enableMediaKeys) return;
     final playbackModel = model ?? ref.read(playBackModel);
     if (playbackModel == null) return;
 
     final playBackItem = playbackModel.item;
-    final poster =
-        playBackItem.images?.primary ?? (playBackItem is ItemStreamModel ? playBackItem.parentImages?.primary : null);
-    final currentPosition = _player?.lastState.position ?? await playbackModel.startDuration() ?? Duration.zero;
+    final poster = playBackItem.images?.primary ??
+        (playBackItem is ItemStreamModel
+            ? playBackItem.parentImages?.primary
+            : null);
+    final currentPosition = _player?.lastState.position ??
+        await playbackModel.startDuration() ??
+        Duration.zero;
     if (_isStopped) return;
 
     windowSMTCSetup(playBackItem, currentPosition, playing);
 
-    final hasNextVideo = ref.read(playBackModel.select((value) => value?.nextVideo != null));
-    final hasPreviousVideo = ref.read(playBackModel.select((value) => value?.previousVideo != null));
+    final hasNextVideo =
+        ref.read(playBackModel.select((value) => value?.nextVideo != null));
+    final hasPreviousVideo =
+        ref.read(playBackModel.select((value) => value?.previousVideo != null));
 
     final queue = playbackModel.queue;
-    final currentQueueIndex = queue.indexWhere((entry) => entry.id == playbackModel.item.id);
+    final currentQueueIndex =
+        queue.indexWhere((entry) => entry.id == playbackModel.item.id);
     final hasAudioQueue = queue.length > 1;
-    final hasNextAudio = hasAudioQueue && (currentQueueIndex >= 0 ? currentQueueIndex < queue.length - 1 : true);
-    final hasPreviousAudio = _isAudioQueueMode || (hasAudioQueue && (currentQueueIndex > 0 || currentQueueIndex == -1));
+    final hasNextAudio = hasAudioQueue &&
+        (currentQueueIndex >= 0 ? currentQueueIndex < queue.length - 1 : true);
+    final hasPreviousAudio = _isAudioQueueMode ||
+        (hasAudioQueue && (currentQueueIndex > 0 || currentQueueIndex == -1));
 
     final canSkipNext = hasNextVideo || hasNextAudio;
     final canSkipPrevious = hasPreviousVideo || hasPreviousAudio;
@@ -562,7 +613,8 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
     final isMusic = playBackItem is AudioModel;
 
     final album = playBackItem is AudioModel ? playBackItem.album : null;
-    final artist = playBackItem is AudioModel ? playBackItem.artistModel?.name : null;
+    final artist =
+        playBackItem is AudioModel ? playBackItem.artistModel?.name : null;
 
     mediaItem.add(MediaItem(
       id: playBackItem.id,
@@ -577,7 +629,8 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
     playbackState.add(PlaybackState(
       playing: playing,
       updatePosition: currentPosition,
-      bufferedPosition: _player?.lastState.buffer ?? playbackState.value.bufferedPosition,
+      bufferedPosition:
+          _player?.lastState.buffer ?? playbackState.value.bufferedPosition,
       controls: [
         if (playing) MediaControl.pause else MediaControl.play,
         if (canSkipNext) MediaControl.skipToNext,
@@ -591,34 +644,46 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
         MediaAction.setSpeed,
         if (!isMusic) MediaAction.rewind,
       },
-      processingState:
-          (_player?.lastState.buffering ?? false) ? AudioProcessingState.buffering : AudioProcessingState.ready,
+      processingState: (_player?.lastState.buffering ?? false)
+          ? AudioProcessingState.buffering
+          : AudioProcessingState.ready,
     ));
   }
 
-  Future<void> windowSMTCSetup(ItemBaseModel playBackItem, Duration currentPosition, bool playing) async {
+  Future<void> windowSMTCSetup(ItemBaseModel playBackItem,
+      Duration currentPosition, bool playing) async {
+    if (JmsTestProfilePolicy.enabled) return;
     final mainContext = ref.read(localizationContextProvider);
-    final poster =
-        playBackItem.images?.primary ?? (playBackItem is ItemStreamModel ? playBackItem.parentImages?.primary : null);
+    final poster = playBackItem.images?.primary ??
+        (playBackItem is ItemStreamModel
+            ? playBackItem.parentImages?.primary
+            : null);
 
     //Windows setup
     smtc?.updateMetadata(MusicMetadata(
       title: playBackItem.title,
-      artist: mainContext != null ? playBackItem.label(mainContext.localized) : null,
-      thumbnail: poster != null ? _imageDataToUri(poster.path).toString() : null,
+      artist: mainContext != null
+          ? playBackItem.label(mainContext.localized)
+          : null,
+      thumbnail:
+          poster != null ? _imageDataToUri(poster.path).toString() : null,
     ));
     smtc?.updateTimeline(
       PlaybackTimeline(
         startTimeMs: 0,
-        endTimeMs: (playBackItem.overview.runTime ?? const Duration(seconds: 0)).inMilliseconds,
+        endTimeMs: (playBackItem.overview.runTime ?? const Duration(seconds: 0))
+            .inMilliseconds,
         positionMs: currentPosition.inMilliseconds,
         minSeekTimeMs: 0,
-        maxSeekTimeMs: (playBackItem.overview.runTime ?? const Duration(seconds: 0)).inMilliseconds,
+        maxSeekTimeMs:
+            (playBackItem.overview.runTime ?? const Duration(seconds: 0))
+                .inMilliseconds,
       ),
     );
 
     smtc?.enableSmtc();
-    smtc?.setPlaybackStatus(playing ? PlaybackStatus.playing : PlaybackStatus.paused);
+    smtc?.setPlaybackStatus(
+        playing ? PlaybackStatus.playing : PlaybackStatus.paused);
   }
 
   @override
@@ -654,7 +719,9 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
     final playbackModel = ref.read(playBackModel);
     if (playbackModel == null) return;
 
-    ref.read(mediaPlaybackProvider.notifier).update((state) => state.copyWith(state: VideoPlayerState.disposed));
+    ref
+        .read(mediaPlaybackProvider.notifier)
+        .update((state) => state.copyWith(state: VideoPlayerState.disposed));
     unawaited(_applyWakelock(false));
 
     _player?.stop();
@@ -667,7 +734,8 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
     await Future.delayed(const Duration(seconds: 1));
 
     try {
-      await playbackModel.playbackStopped(position ?? Duration.zero, totalDuration, ref);
+      await playbackModel.playbackStopped(
+          position ?? Duration.zero, totalDuration, ref);
     } finally {
       playbackModel.dispose();
     }
@@ -676,7 +744,9 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
 
     ref.read(playBackModel.notifier).update((_) => null);
 
-    ref.read(mediaPlaybackProvider.notifier).update((state) => state.copyWith(position: Duration.zero));
+    ref
+        .read(mediaPlaybackProvider.notifier)
+        .update((state) => state.copyWith(position: Duration.zero));
 
     if (_isAudioQueueMode) {
       _isAudioQueueMode = false;
@@ -714,11 +784,14 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
 
     final playerState = _player;
     if (playerState != null) {
-      ref.read(mediaPlaybackProvider.notifier).update((state) => state.copyWith(position: position));
+      ref
+          .read(mediaPlaybackProvider.notifier)
+          .update((state) => state.copyWith(position: position));
 
       final model = ref.read(playBackModel);
       if (model != null) {
-        await _updatePositionWithRetry(model, position, playerState.lastState.playing);
+        await _updatePositionWithRetry(
+            model, position, playerState.lastState.playing);
         if (_isStopped) return;
         await _refreshMediaControls(model: model, playing: playing);
       }
@@ -736,14 +809,20 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
     final playbackModel = ref.read(playBackModel);
     if (playbackModel == null) return false;
     if (_mpvPlaylistItems.isEmpty) return false;
-    if (_mpvPlaylistCurrentIndex < 0 || _mpvPlaylistCurrentIndex >= _mpvPlaylistItems.length) return false;
-    return _mpvPlaylistItems[_mpvPlaylistCurrentIndex].id == playbackModel.item.id;
+    if (_mpvPlaylistCurrentIndex < 0 ||
+        _mpvPlaylistCurrentIndex >= _mpvPlaylistItems.length) {
+      return false;
+    }
+    return _mpvPlaylistItems[_mpvPlaylistCurrentIndex].id ==
+        playbackModel.item.id;
   }
 
-  Future<int> setAudioTrack(AudioStreamModel? model, PlaybackModel playbackModel) async =>
+  Future<int> setAudioTrack(
+          AudioStreamModel? model, PlaybackModel playbackModel) async =>
       await _player?.setAudioTrack(model, playbackModel) ?? -1;
 
-  Future<int> setSubtitleTrack(SubStreamModel? model, PlaybackModel playbackModel) async =>
+  Future<int> setSubtitleTrack(
+          SubStreamModel? model, PlaybackModel playbackModel) async =>
       await _player?.setSubtitleTrack(model, playbackModel) ?? -1;
 
   Future<void> setVolume(double volume) async {
@@ -766,7 +845,9 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
   Future<void> seekFromSyncPlay(Duration position) async {
     await _player?.seek(position);
     if (_player?.lastState.playing == false) {
-      ref.read(mediaPlaybackProvider.notifier).update((state) => state.copyWith(position: position));
+      ref
+          .read(mediaPlaybackProvider.notifier)
+          .update((state) => state.copyWith(position: position));
     }
     return super.seek(position);
   }
@@ -785,17 +866,25 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
   @override
   Future<void> loadNextVideo() async {
     if (syncPlayActive) return;
-    final nextVideo = ref.read(playBackModel.select((value) => value?.nextVideo));
-    final buffering = ref.read(mediaPlaybackProvider.select((value) => value.buffering));
-    if (nextVideo != null && !buffering) ref.read(playbackModelHelper).loadNewVideo(nextVideo);
+    final nextVideo =
+        ref.read(playBackModel.select((value) => value?.nextVideo));
+    final buffering =
+        ref.read(mediaPlaybackProvider.select((value) => value.buffering));
+    if (nextVideo != null && !buffering) {
+      ref.read(playbackModelHelper).loadNewVideo(nextVideo);
+    }
   }
 
   @override
   Future<void> loadPreviousVideo() async {
     if (syncPlayActive) return;
-    final previousVideo = ref.read(playBackModel.select((value) => value?.previousVideo));
-    final buffering = ref.read(mediaPlaybackProvider.select((value) => value.buffering));
-    if (previousVideo != null && !buffering) ref.read(playbackModelHelper).loadNewVideo(previousVideo);
+    final previousVideo =
+        ref.read(playBackModel.select((value) => value?.previousVideo));
+    final buffering =
+        ref.read(mediaPlaybackProvider.select((value) => value.buffering));
+    if (previousVideo != null && !buffering) {
+      ref.read(playbackModelHelper).loadNewVideo(previousVideo);
+    }
   }
 
   @override
@@ -805,7 +894,9 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
   void swapAudioTrack(int value) async {
     final playbackModel = ref.read(playBackModel);
     final newModel = await playbackModel?.setAudio(
-        playbackModel.audioStreams?.firstWhere((element) => element.index == value), this);
+        playbackModel.audioStreams
+            ?.firstWhere((element) => element.index == value),
+        this);
     ref.read(playBackModel.notifier).update((state) => newModel);
     if (newModel != null) {
       await ref.read(playbackModelHelper).shouldReload(newModel);
@@ -816,7 +907,9 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
   void swapSubtitleTrack(int value) async {
     final playbackModel = ref.read(playBackModel);
     final newModel = await playbackModel?.setSubtitle(
-        playbackModel.subStreams?.firstWhere((element) => element.index == value), this);
+        playbackModel.subStreams
+            ?.firstWhere((element) => element.index == value),
+        this);
     ref.read(playBackModel.notifier).update((state) => newModel);
     if (newModel != null) {
       await ref.read(playbackModelHelper).shouldReload(newModel);
@@ -835,10 +928,14 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
 
   @override
   Future<List<GuideProgram>> fetchProgramsForChannel(String channelId) async {
-    final channel =
-        (await ref.read(jellyApiProvider).usersUserIdItemsItemIdGet(itemId: channelId)).body as ChannelModel;
+    final channel = (await ref
+            .read(jellyApiProvider)
+            .usersUserIdItemsItemIdGet(itemId: channelId))
+        .body as ChannelModel;
 
-    final programs = await ref.read(liveTvProvider.notifier).fetchProgramsForChannel(channel);
+    final programs = await ref
+        .read(liveTvProvider.notifier)
+        .fetchProgramsForChannel(channel);
 
     final context = ref.read(localizationContextProvider);
 

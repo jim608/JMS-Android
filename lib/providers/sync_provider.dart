@@ -48,6 +48,7 @@ import 'package:fladder/screens/shared/fladder_notification_overlay.dart';
 import 'package:fladder/util/duration_extensions.dart';
 import 'package:fladder/util/localization_helper.dart';
 import 'package:fladder/util/string_extensions.dart';
+import 'package:fladder/util/jms_test_profile_policy.dart';
 
 final syncProvider = StateNotifierProvider<SyncNotifier, SyncSettingsModel>((ref) => throw UnimplementedError());
 
@@ -218,7 +219,9 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
 
   late final JellyService api = ref.read(jellyApiProvider);
 
-  String? get _savePath => !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
+  String? get _savePath => JmsTestProfilePolicy.enabled
+      ? mobileDirectory.path
+      : !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
       ? ref.read(clientSettingsProvider.select((value) => value.syncPath))
       : mobileDirectory.path;
 

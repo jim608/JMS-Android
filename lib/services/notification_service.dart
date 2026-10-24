@@ -9,29 +9,35 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import 'package:fladder/models/notification_model.dart';
+import 'package:fladder/util/jms_test_profile_policy.dart';
 
 class NotificationService {
   NotificationService._();
 
-  static final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
+  static final FlutterLocalNotificationsPlugin _plugin =
+      FlutterLocalNotificationsPlugin();
   static const String _channelId = 'fladder_updates';
   static const String _channelName = 'Update notifications';
   static const String _channelDesc = 'Notifications for newly added items';
 
-  static final StreamController<String?> _selectNotificationController = StreamController<String?>.broadcast();
-  static Stream<String?> get notificationTapStream => _selectNotificationController.stream;
+  static final StreamController<String?> _selectNotificationController =
+      StreamController<String?>.broadcast();
+  static Stream<String?> get notificationTapStream =>
+      _selectNotificationController.stream;
 
   @pragma('vm:entry-point')
   static void _backgroundNotificationHandler(NotificationResponse resp) {
+    if (JmsTestProfilePolicy.enabled) return;
     _selectNotificationController.add(resp.payload);
   }
 
   static Future<void> init() async {
-    if (kIsWeb) return;
+    if (kIsWeb || JmsTestProfilePolicy.enabled) return;
 
     const android = AndroidInitializationSettings('ic_notification');
     final darwin = const DarwinInitializationSettings();
-    final linux = const LinuxInitializationSettings(defaultActionName: 'Open notification');
+    final linux = const LinuxInitializationSettings(
+        defaultActionName: 'Open notification');
     final windows = const WindowsInitializationSettings(
       appName: Brand.name,
       appUserModelId: Brand.applicationId,
@@ -49,7 +55,8 @@ class NotificationService {
       onDidReceiveNotificationResponse: (NotificationResponse resp) {
         _selectNotificationController.add(resp.payload);
       },
-      onDidReceiveBackgroundNotificationResponse: _notificationBackgroundEntryPoint,
+      onDidReceiveBackgroundNotificationResponse:
+          _notificationBackgroundEntryPoint,
     );
 
     if (!kIsWeb && Platform.isAndroid) {
@@ -60,20 +67,25 @@ class NotificationService {
         importance: Importance.defaultImportance,
       );
       await _plugin
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
           ?.createNotificationChannel(channel);
     }
   }
 
   static Future<String?> getInitialNotificationPayload() async {
     // Linux delivers notification actions only while the process is running.
-    if (kIsWeb || defaultTargetPlatform == TargetPlatform.linux) return null;
+    if (JmsTestProfilePolicy.enabled ||
+        kIsWeb ||
+        defaultTargetPlatform == TargetPlatform.linux) {
+      return null;
+    }
     final details = await _plugin.getNotificationAppLaunchDetails();
     return details?.notificationResponse?.payload;
   }
 
   static Future<bool> requestPermission() async {
-    if (kIsWeb) return false;
+    if (kIsWeb || JmsTestProfilePolicy.enabled) return false;
 
     if (Platform.isAndroid) {
       final status = await Permission.notification.status;
@@ -83,8 +95,10 @@ class NotificationService {
     }
 
     if (Platform.isIOS || Platform.isMacOS) {
-      final iosImpl = _plugin.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
-      final result = await iosImpl?.requestPermissions(alert: true, badge: true, sound: true);
+      final iosImpl = _plugin.resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin>();
+      final result = await iosImpl?.requestPermissions(
+          alert: true, badge: true, sound: true);
       return result ?? true;
     }
 
@@ -95,7 +109,9 @@ class NotificationService {
     return false;
   }
 
-  static Future<void> showNewItemsNotification(String title, String body) async {
+  static Future<void> showNewItemsNotification(
+      String title, String body) async {
+    if (JmsTestProfilePolicy.enabled) return;
     final androidDetails = const AndroidNotificationDetails(
       _channelId,
       _channelName,
@@ -104,7 +120,8 @@ class NotificationService {
       priority: Priority.defaultPriority,
     );
     const iosDetails = DarwinNotificationDetails();
-    final linuxDetails = const LinuxNotificationDetails(defaultActionName: 'Open notification');
+    final linuxDetails =
+        const LinuxNotificationDetails(defaultActionName: 'Open notification');
     final windowsDetails = const WindowsNotificationDetails();
 
     await _plugin.show(
@@ -126,7 +143,7 @@ class NotificationService {
     List<NotificationModel> notifications,
     String? summaryText,
   ) async {
-    if (notifications.isEmpty) return;
+    if (JmsTestProfilePolicy.enabled || notifications.isEmpty) return;
 
     final baseId = DateTime.now().millisecond;
     final groupKey = 'fladder_group_$groupId';
@@ -152,14 +169,17 @@ class NotificationService {
       );
 
       final iosSummary = DarwinNotificationDetails(threadIdentifier: groupKey);
-      final linuxSummary = const LinuxNotificationDetails(defaultActionName: 'Open notification');
+      final linuxSummary = const LinuxNotificationDetails(
+          defaultActionName: 'Open notification');
       final windowsSummary = const WindowsNotificationDetails();
 
       await _plugin.show(
         id: baseId,
         title: single.title,
         body: (summaryText?.isNotEmpty == true)
-            ? ((single.subtitle?.isNotEmpty == true) ? '${single.subtitle}' : summaryText!)
+            ? ((single.subtitle?.isNotEmpty == true)
+                ? '${single.subtitle}'
+                : summaryText!)
             : (single.subtitle ?? ''),
         payload: single.payLoad,
         notificationDetails: NotificationDetails(
@@ -187,7 +207,8 @@ class NotificationService {
         groupAlertBehavior: GroupAlertBehavior.summary,
       );
       final iosChild = DarwinNotificationDetails(threadIdentifier: groupKey);
-      final linuxChild = const LinuxNotificationDetails(defaultActionName: 'Open notification');
+      final linuxChild = const LinuxNotificationDetails(
+          defaultActionName: 'Open notification');
       final windowsChild = const WindowsNotificationDetails();
       futures.add(_plugin.show(
         id: childId,
@@ -222,7 +243,8 @@ class NotificationService {
     );
 
     final iosSummary = DarwinNotificationDetails(threadIdentifier: groupKey);
-    final linuxSummary = const LinuxNotificationDetails(defaultActionName: 'Open notification');
+    final linuxSummary =
+        const LinuxNotificationDetails(defaultActionName: 'Open notification');
     final windowsSummary = const WindowsNotificationDetails();
 
     await _plugin.show(

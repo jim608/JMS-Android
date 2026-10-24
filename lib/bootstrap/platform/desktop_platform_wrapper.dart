@@ -5,7 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:macos_window_utils/window_manipulator.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:smtc_windows/smtc_windows.dart' if (dart.library.html) 'package:fladder/stubs/web/smtc_web.dart';
+import 'package:smtc_windows/smtc_windows.dart'
+    if (dart.library.html) 'package:fladder/stubs/web/smtc_web.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'package:fladder/bootstrap/platform/base_app_wrapper.dart';
@@ -17,6 +18,7 @@ import 'package:fladder/providers/video_player_provider.dart';
 import 'package:fladder/src/application_menu.g.dart';
 import 'package:fladder/util/macos_window_helpers.dart';
 import 'package:fladder/util/window_helper.dart';
+import 'package:fladder/util/jms_test_profile_policy.dart';
 
 class DesktopAppWrapper extends BaseAppWrapper {
   const DesktopAppWrapper({super.key, required super.builder});
@@ -25,10 +27,12 @@ class DesktopAppWrapper extends BaseAppWrapper {
   ConsumerState<DesktopAppWrapper> createState() => _DesktopAppWrapperState();
 }
 
-class _DesktopAppWrapperState extends BaseAppWrapperState<DesktopAppWrapper> with WindowListener {
+class _DesktopAppWrapperState extends BaseAppWrapperState<DesktopAppWrapper>
+    with WindowListener {
   @override
   Future<void> platformInit() async {
-    if (defaultTargetPlatform == TargetPlatform.windows) {
+    if (defaultTargetPlatform == TargetPlatform.windows &&
+        !JmsTestProfilePolicy.enabled) {
       await SMTCWindows.initialize();
     }
     if (defaultTargetPlatform == TargetPlatform.macOS) {
@@ -95,7 +99,9 @@ class _DesktopAppWrapperState extends BaseAppWrapperState<DesktopAppWrapper> wit
 
   @override
   void onWindowEnterFullScreen() {
-    ref.read(mediaPlaybackProvider.notifier).update((state) => state.copyWith(fullScreen: true));
+    ref
+        .read(mediaPlaybackProvider.notifier)
+        .update((state) => state.copyWith(fullScreen: true));
     unawaited(toggleMacTrafficLights(true));
     super.onWindowEnterFullScreen();
   }
@@ -103,7 +109,9 @@ class _DesktopAppWrapperState extends BaseAppWrapperState<DesktopAppWrapper> wit
   @override
   void onWindowLeaveFullScreen() {
     unawaited(toggleMacTrafficLights(false));
-    ref.read(mediaPlaybackProvider.notifier).update((state) => state.copyWith(fullScreen: false));
+    ref
+        .read(mediaPlaybackProvider.notifier)
+        .update((state) => state.copyWith(fullScreen: false));
     super.onWindowLeaveFullScreen();
   }
 }

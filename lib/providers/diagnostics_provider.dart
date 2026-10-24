@@ -15,6 +15,7 @@ import 'package:fladder/util/app_diagnostics.dart';
 import 'package:fladder/util/application_info.dart';
 import 'package:fladder/util/build_info.dart';
 import 'package:fladder/util/fladder_config.dart';
+import 'package:fladder/util/jms_test_profile_policy.dart';
 
 final diagnosticsProvider = ChangeNotifierProvider<DiagnosticsSettings>((ref) {
   final info = ref.read(applicationInfoProvider);
@@ -46,7 +47,13 @@ class DiagnosticsSettings extends ChangeNotifier {
     this.configuredEndpoint,
     this.webOrigin,
     this.clientFactory,
-  }) {
+    bool disabledForTestProfile = JmsTestProfilePolicy.enabled,
+  }) : disabledForTestProfile =
+            JmsTestProfilePolicy.enabled || disabledForTestProfile {
+    if (disabledForTestProfile) {
+      _awaitingActivation = true;
+      return;
+    }
     // Native server/account state is loaded later. A legacy global consent must
     // not install hooks or send a report before that scope is known.
     _awaitingActivation = platform != 'web';
@@ -70,6 +77,7 @@ class DiagnosticsSettings extends ChangeNotifier {
   final String platform;
   final String? configuredEndpoint;
   final Uri? webOrigin;
+  final bool disabledForTestProfile;
   @visibleForTesting
   final http.Client Function()? clientFactory;
   bool _enabled = false;
@@ -97,10 +105,12 @@ class DiagnosticsSettings extends ChangeNotifier {
   bool get enabled => _enabled;
   String? get activeServerScope => _serverScope;
   bool get serverProvided =>
+      !disabledForTestProfile &&
       _serverScope != null &&
       (preferences.getString(_endpointKey)?.isNotEmpty != true) &&
       _providedEndpoint != null;
   String get endpointValue {
+    if (disabledForTestProfile) return '';
     final manual = preferences.getString(_endpointKey);
     if (manual != null && manual.isNotEmpty) return manual;
     if (_serverScope != null) return _providedEndpoint ?? '';
@@ -109,7 +119,9 @@ class DiagnosticsSettings extends ChangeNotifier {
 
   Uri? get endpoint => diagnosticEndpoint(endpointValue, webOrigin: webOrigin);
   bool get configured =>
-      !_awaitingActivation && (_reporter?.configured ?? false);
+      !disabledForTestProfile &&
+      !_awaitingActivation &&
+      (_reporter?.configured ?? false);
 
   bool _receiverMatchesConsent({bool allowLegacy = false}) {
     final receiver = endpoint?.toString();
@@ -123,6 +135,7 @@ class DiagnosticsSettings extends ChangeNotifier {
   /// changing scope or receiver revokes both the old and selected consent.
   Future<bool> activateServer(
       String? serverScope, String? providedEndpoint) async {
+    if (disabledForTestProfile) return false;
     final trimmed = serverScope?.trim();
     final scope = trimmed == null || trimmed.isEmpty ? null : trimmed;
     final provided =
@@ -194,6 +207,7 @@ class DiagnosticsSettings extends ChangeNotifier {
   }
 
   Future<bool> setEnabled(bool value) async {
+    if (disabledForTestProfile) return false;
     if (_disposed || (value && !configured)) return false;
     final generation = ++_generation;
     final consent = _consentKey;
@@ -219,6 +233,7 @@ class DiagnosticsSettings extends ChangeNotifier {
   }
 
   Future<bool> setEndpoint(String value) async {
+    if (disabledForTestProfile) return false;
     final normalized = value.trim();
     if (_disposed ||
         (normalized.isNotEmpty &&
@@ -255,6 +270,7 @@ class DiagnosticsSettings extends ChangeNotifier {
   }
 
   void _start() {
+    if (disabledForTestProfile) return;
     _hooks?.stop();
     _reporter?.dispose();
     _reporter = AppDiagnostics(
@@ -309,7 +325,11 @@ class DiagnosticsHooks with WidgetsBindingObserver {
   int _totalDurationMs = 0;
 
   void start() {
-    if (_started) return;
+    if (_started ||
+        JmsTestProfilePolicy.enabled ||
+        reporter.disabledForTestProfile) {
+      return;
+    }
     _started = true;
     _foreground = WidgetsBinding.instance.lifecycleState == null ||
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;

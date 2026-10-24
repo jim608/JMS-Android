@@ -15,13 +15,16 @@ import 'package:fladder/providers/shared_provider.dart';
 import 'package:fladder/seerr/seerr_models.dart';
 import 'package:fladder/services/notification_service.dart';
 import 'package:fladder/util/notification_helpers.dart';
+import 'package:fladder/util/jms_test_profile_policy.dart';
 
 const String updateTaskName = 'nl.jknaapen.fladder.update_notifications_check';
-const String updateTaskNameDebug = 'nl.jknaapen.fladder.update_notifications_check_debug';
+const String updateTaskNameDebug =
+    'nl.jknaapen.fladder.update_notifications_check_debug';
 const String updateWorkerPortName = 'fladder_notification_update_worker_port';
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
+  if (JmsTestProfilePolicy.enabled) return;
   Workmanager().executeTask(
     (taskName, inputData) async {
       log("Launching background task: $taskName with inputData: $inputData");
@@ -45,7 +48,10 @@ void callbackDispatcher() {
 
 @pragma('vm:entry-point')
 Future<LastSeenNotificationsModel?> performHeadlessUpdateCheck(
-    {int limit = 50, bool debug = false, bool includeHiddenViews = false}) async {
+    {int limit = 50,
+    bool debug = false,
+    bool includeHiddenViews = false}) async {
+  if (JmsTestProfilePolicy.enabled) return null;
   try {
     final currentDate = DateTime.now();
     log("Starting background update check at $currentDate (debug: $debug, includeHiddenViews: $includeHiddenViews)");
@@ -55,7 +61,8 @@ Future<LastSeenNotificationsModel?> performHeadlessUpdateCheck(
 
     final accounts = sharedHelper
         .getAccounts()
-        .where((element) => element.updateNotificationsEnabled || element.seerrRequestsEnabled)
+        .where((element) =>
+            element.updateNotificationsEnabled || element.seerrRequestsEnabled)
         .toList();
     if (accounts.isEmpty) return null;
 
@@ -73,7 +80,9 @@ Future<LastSeenNotificationsModel?> performHeadlessUpdateCheck(
 
     for (final account in accounts) {
       final baseUrl = account.credentials.url;
-      if (baseUrl.isEmpty && !(account.seerrRequestsEnabled && account.seerrCredentials?.isConfigured == true)) {
+      if (baseUrl.isEmpty &&
+          !(account.seerrRequestsEnabled &&
+              account.seerrCredentials?.isConfigured == true)) {
         continue;
       }
 
@@ -96,8 +105,10 @@ Future<LastSeenNotificationsModel?> performHeadlessUpdateCheck(
           accountNotifications.addAll(newNotifications);
         }
 
-        if (account.seerrRequestsEnabled && account.seerrCredentials?.isConfigured == true) {
-          final seerrNotifications = await _fetchAndNotifySeerrRequestsForAccount(
+        if (account.seerrRequestsEnabled &&
+            account.seerrCredentials?.isConfigured == true) {
+          final seerrNotifications =
+              await _fetchAndNotifySeerrRequestsForAccount(
             account,
             l10n,
             10,
@@ -111,7 +122,8 @@ Future<LastSeenNotificationsModel?> performHeadlessUpdateCheck(
           lastSeenStore = lastSeenStore.copyWith(
             lastSeen: NotificationHelpers.replaceOrAppendLastSeen(
               lastSeenStore.lastSeen,
-              LastSeenModel(userId: account.id, lastNotifications: accountNotifications),
+              LastSeenModel(
+                  userId: account.id, lastNotifications: accountNotifications),
             ),
           );
         }
@@ -162,16 +174,20 @@ Future<List<NotificationModel>> _fetchAndNotifyLatestItemsForAccount(
       account.credentials.token,
       limit,
       includeHiddenViews: includeHiddenViews,
-      since: debug ? lastUpdateCheck.subtract(const Duration(days: 3)) : lastUpdateCheck,
+      since: debug
+          ? lastUpdateCheck.subtract(const Duration(days: 3))
+          : lastUpdateCheck,
     );
 
-    final items = dtoItems.map((d) => ItemBaseModel.fromBaseDto(d, null)).toList();
+    final items =
+        dtoItems.map((d) => ItemBaseModel.fromBaseDto(d, null)).toList();
     if (items.isEmpty) return [];
 
     final newNotifications = NotificationModel.createList(items, l10n);
 
-    final serverName =
-        account.credentials.serverName.isNotEmpty ? account.credentials.serverName : account.credentials.serverId;
+    final serverName = account.credentials.serverName.isNotEmpty
+        ? account.credentials.serverName
+        : account.credentials.serverId;
     final summaryText = l10n.notificationNewItems(newNotifications.length);
 
     await NotificationService.showGroupedNotifications(
@@ -202,7 +218,8 @@ Future<List<NotificationModel>> _fetchAndNotifySeerrRequestsForAccount(
     if (seerrCredentials == null || !seerrCredentials.isConfigured) return [];
 
     final seerrBase = seerrCredentials.serverUrl.endsWith('/')
-        ? seerrCredentials.serverUrl.substring(0, seerrCredentials.serverUrl.length - 1)
+        ? seerrCredentials.serverUrl
+            .substring(0, seerrCredentials.serverUrl.length - 1)
         : seerrCredentials.serverUrl;
 
     final seerrApi = NotificationHelpers.createSeerrClient(seerrCredentials);
@@ -235,7 +252,8 @@ Future<List<NotificationModel>> _fetchAndNotifySeerrRequestsForAccount(
               final SeerrTvDetails details = detailsResp.body!;
               title = details.name;
               image = details.posterUrl;
-              payload = NotificationHelpers.buildSeerrDeepLink('tvshow', tmdbId);
+              payload =
+                  NotificationHelpers.buildSeerrDeepLink('tvshow', tmdbId);
             }
           } else {
             final detailsResp = await seerrApi.getMovieDetails(tmdbId);

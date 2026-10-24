@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fladder/util/update_checker.dart';
+import 'package:fladder/util/jms_test_profile_policy.dart';
 
 enum UpdatePackageChannel { official, community, unknown }
 
@@ -24,6 +25,26 @@ abstract class UpdateBridge {
   Future<UpdateTransfer?> restoreTransfer() async => null;
   Future<UpdatePackageChannel> currentPackageChannel() async =>
       UpdatePackageChannel.unknown;
+}
+
+/// Isolated test packages cannot restore, download, install or cancel an update.
+class TestProfileUpdateBridge extends UpdateBridge {
+  @override
+  Future<UpdateDevice> device() async =>
+      throw StateError('Updates disabled for test profile');
+  @override
+  Future<void> setAllowed(bool allowed) async {}
+  @override
+  Future<void> cancel() async {}
+  @override
+  Future<void> download(ReleaseInfo release) async =>
+      throw StateError('Updates disabled for test profile');
+  @override
+  Future<bool> canInstall() async => false;
+  @override
+  Future<void> permission() async {}
+  @override
+  Future<String> install() async => 'installBlocked';
 }
 
 class UpdateTransfer {
@@ -100,11 +121,16 @@ class AndroidUpdateBridge extends UpdateBridge {
 class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
   final UpdateChecker checker;
   final UpdateBridge bridge;
+  static const automaticCheckInterval = Duration(hours: 5);
+  static const lastAutomaticCheckKey = 'jms.update.lastAutoCheck';
+
   final Future<SharedPreferences> Function() preferences;
+  final DateTime Function() now;
   final bool supported;
+  final bool disabledForTestProfile;
   SharedPreferences? _prefs;
   UpdateDevice? _device;
-  Timer? _timer;
+  bool _startupCheckPending = true;
   bool _disposed = false;
   bool _initializing = false;
   bool _observingLifecycle = false;
@@ -133,6 +159,7 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
   bool get _transferAllowed =>
       !playback && (_foreground || bridge.supportsBackgroundDownload);
   bool get hasVerifiedDownload =>
+      !disabledForTestProfile &&
       latestRelease != null &&
       _validRelease(latestRelease!) &&
       _verifiedAsset == _assetIdentity(latestRelease!) &&
@@ -182,12 +209,14 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   bool _current(int generation, String identity) =>
+      !disabledForTestProfile &&
       !_disposed &&
       generation == _generation &&
       latestRelease != null &&
       _validRelease(latestRelease!) &&
       _assetIdentity(latestRelease!) == identity;
   bool get hasNewUpdate =>
+      !disabledForTestProfile &&
       !blocked &&
       !deferred &&
       latestRelease != null &&
@@ -197,13 +226,20 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
       {required this.checker,
       required this.bridge,
       this.preferences = SharedPreferences.getInstance,
+      this.now = DateTime.now,
+      bool disabledForTestProfile = JmsTestProfilePolicy.enabled,
       bool supported = true})
-      : supported = supported && !bridge.flatpakManaged {
+      : disabledForTestProfile =
+            JmsTestProfilePolicy.enabled || disabledForTestProfile,
+        supported = !(JmsTestProfilePolicy.enabled || disabledForTestProfile) &&
+            supported &&
+            !bridge.flatpakManaged {
     status = !this.supported
         ? UpdateStatus.unsupported
         : checker.source.configured
             ? UpdateStatus.idle
             : UpdateStatus.unconfigured;
+    if (this.disabledForTestProfile) return;
     bridge.onProgress = (value) {
       if (_disposed || !_downloading || !value.isFinite) return;
       progress = value.clamp(0, 1);
@@ -212,7 +248,13 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> initialize() async {
-    if (!supported || _disposed || ready || _initializing) return;
+    if (disabledForTestProfile ||
+        !supported ||
+        _disposed ||
+        ready ||
+        _initializing) {
+      return;
+    }
     _initializing = true;
     failure = null;
     status = UpdateStatus.checking;
@@ -287,7 +329,6 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
       }
       if (_disposed) return;
       ready = true;
-      _schedule();
     } catch (_) {
       ready = false;
       status = UpdateStatus.initializationFailed;
@@ -299,14 +340,15 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> setAutomatic(bool value) async {
+    if (disabledForTestProfile) return;
     automatic = value;
     await _prefs?.setBool('jms.update.auto', value);
-    _timer?.cancel();
-    if (value) _schedule();
+    if (value && ready) unawaited(check(manual: false));
     _notify();
   }
 
   Future<void> setPrerelease(bool value) async {
+    if (disabledForTestProfile) return;
     if (_disposed || busy || value == prerelease) return;
     ++_generation;
     _invalidateDownload();
@@ -320,17 +362,20 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> skip() async {
+    if (disabledForTestProfile) return;
     skipped = latestRelease?.manifest.versionCode;
     if (skipped != null) await _prefs?.setInt('jms.update.skipped', skipped!);
     _notify();
   }
 
   void later() {
+    if (disabledForTestProfile) return;
     deferred = true;
     _notify();
   }
 
   void setPlayback(bool value) {
+    if (disabledForTestProfile) return;
     playback = value;
     if (supported) {
       unawaited(bridge.setAllowed(_transferAllowed).catchError((Object _) {}));
@@ -344,6 +389,7 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (disabledForTestProfile) return;
     _foreground = state == AppLifecycleState.resumed;
     if (supported) {
       unawaited(bridge.setAllowed(_transferAllowed).catchError((Object _) {}));
@@ -355,19 +401,15 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
     _notify();
   }
 
-  void _schedule() {
-    _timer?.cancel();
-    if (!ready || !automatic || !checker.source.configured || _disposed) return;
-    final last = _prefs?.getInt('jms.update.lastCheck') ?? 0;
-    final next = DateTime.fromMillisecondsSinceEpoch(last)
-        .add(const Duration(hours: 24));
-    final delay = next.difference(DateTime.now());
-    _timer = Timer(delay.isNegative ? const Duration(seconds: 3) : delay,
-        () => check(manual: false));
+  Future<void> _recordAutomaticAttempt(int timestamp) async {
+    // Persist attempts before making a request, including offline failures.
+    if (!await _prefs!.setInt(lastAutomaticCheckKey, timestamp)) {
+      throw StateError('Unable to persist automatic update attempt');
+    }
   }
 
   Future<void> check({bool manual = true}) async {
-    if (_disposed || !supported || busy) return;
+    if (disabledForTestProfile || _disposed || !supported || busy) return;
     if (!ready) await initialize();
     if (_disposed || !ready || busy) return;
     if (blocked) {
@@ -382,24 +424,52 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
       _notify();
       return;
     }
-    final last = _prefs!.getInt('jms.update.lastCheck') ?? 0;
-    if (!manual &&
-        (!automatic ||
-            DateTime.now().millisecondsSinceEpoch - last <
-                const Duration(hours: 24).inMilliseconds)) {
-      _schedule();
-      return;
+    if (!manual && (!automatic || !_startupCheckPending)) return;
+    // Only startup (or its deferred completion after playback) checks
+    // automatically. A manual check also fulfils this launch's pending check.
+    _startupCheckPending = false;
+    int? automaticTimestamp;
+    if (!manual) {
+      final timestamp = now().millisecondsSinceEpoch;
+      // An invalid system clock must not cause a request on every restart.
+      if (timestamp <= 0) return;
+      final stored = _prefs!.get(lastAutomaticCheckKey);
+      final last = stored is int && stored > 0 ? stored : null;
+      if (last != null && last > timestamp) {
+        // Normalize a rollback without holding the request lock: this launch
+        // skips its automatic check, while a simultaneous manual check can run.
+        try {
+          await _prefs!.setInt(lastAutomaticCheckKey, timestamp);
+        } catch (_) {
+          // A failed normalization must still allow manual checks.
+        }
+        return;
+      }
+      if (last != null &&
+          timestamp - last < automaticCheckInterval.inMilliseconds) {
+        return;
+      }
+      automaticTimestamp = timestamp;
     }
+    // Decide skips synchronously so a skipped automatic check cannot swallow a
+    // manual check from the same event turn. Only actual requests hold the lock.
     _checking = true;
     final generation = _generation;
-    status = UpdateStatus.checking;
-    failure = null;
-    checkWarning = null;
-    if (manual) deferred = false;
-    _notify();
     try {
-      await _prefs!.setInt(
-          'jms.update.lastCheck', DateTime.now().millisecondsSinceEpoch);
+      if (automaticTimestamp != null) {
+        try {
+          await _recordAutomaticAttempt(automaticTimestamp);
+        } catch (_) {
+          failure = 'initializationPreferences';
+          rethrow;
+        }
+      }
+      if (_disposed) return;
+      status = UpdateStatus.checking;
+      failure = null;
+      checkWarning = null;
+      if (manual) deferred = false;
+      _notify();
       final result = await checker.check(_device!, prerelease: prerelease);
       if (_disposed || generation != _generation) return;
       _acceptCheck(result);
@@ -415,7 +485,6 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
       }
     } finally {
       _checking = false;
-      _schedule();
       _notify();
     }
   }
@@ -445,7 +514,13 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> download() async {
-    if (_disposed || !ready || busy || latestRelease == null) return;
+    if (disabledForTestProfile ||
+        _disposed ||
+        !ready ||
+        busy ||
+        latestRelease == null) {
+      return;
+    }
     if (blocked) {
       status = UpdateStatus.playbackBlocked;
       _notify();
@@ -478,6 +553,7 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> _completeDownload(ReleaseInfo release, int generation) async {
+    if (disabledForTestProfile) return;
     final identity = _assetIdentity(release);
     final channel = prerelease;
     try {
@@ -510,7 +586,7 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> cancel() async {
-    if (_disposed || !_downloading) return;
+    if (disabledForTestProfile || _disposed || !_downloading) return;
     ++_generation;
     _invalidateDownload();
     status = UpdateStatus.cancelled;
@@ -526,7 +602,13 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> install(
       {bool openPermission = false, ReleaseInfo? expectedRelease}) async {
-    if (_disposed || !ready || busy || latestRelease == null) return;
+    if (disabledForTestProfile ||
+        _disposed ||
+        !ready ||
+        busy ||
+        latestRelease == null) {
+      return;
+    }
     if (blocked) {
       status = UpdateStatus.playbackBlocked;
       _notify();
@@ -625,11 +707,12 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
   void dispose() {
     _disposed = true;
     ++_generation;
-    bridge.onProgress = null;
-    _timer?.cancel();
-    WidgetsBinding.instance.removeObserver(this);
-    if (supported && !bridge.supportsBackgroundDownload) {
-      unawaited(bridge.cancel().catchError((Object _) {}));
+    if (!disabledForTestProfile) {
+      bridge.onProgress = null;
+      WidgetsBinding.instance.removeObserver(this);
+      if (supported && !bridge.supportsBackgroundDownload) {
+        unawaited(bridge.cancel().catchError((Object _) {}));
+      }
     }
     checker.close();
     super.dispose();

@@ -20,6 +20,7 @@ import '../file_downloader.dart';
 import '../models.dart';
 import '../task.dart';
 import '../utils.dart';
+import 'desktop_directory_paths.dart';
 import 'isolate.dart';
 
 const okResponses = [200, 201, 202, 203, 204, 205, 206];
@@ -149,7 +150,8 @@ final class DesktopDownloader extends BaseDownloader {
       return;
     }
     log.finer('${isResume ? "Resuming" : "Starting"} taskId ${task.taskId}');
-    await Isolate.spawn(doTask, (rootIsolateToken, receivePort.sendPort),
+    await Isolate.spawn(doTask,
+        (rootIsolateToken, receivePort.sendPort, desktopDirectoryPaths?.toMessage()),
         onError: errorPort.sendPort);
     final messagesFromIsolate = StreamQueue<dynamic>(receivePort);
     final sendPort = await messagesFromIsolate.next as SendPort;
@@ -415,6 +417,7 @@ final class DesktopDownloader extends BaseDownloader {
     if (fileUri case Uri(scheme: 'file')) {
       filePath = fileUri.toFilePath(windows: Platform.isWindows);
     }
+    desktopDirectoryPaths?.validateFilePath(filePath);
     final destDirectoryPath =
         await getDestinationDirectoryPath(destination, directory);
     if (destDirectoryPath == null) {
@@ -425,6 +428,7 @@ final class DesktopDownloader extends BaseDownloader {
     }
     final fileName = path.basename(filePath);
     final destFilePath = path.join(destDirectoryPath, fileName);
+    desktopDirectoryPaths?.validateFilePath(destFilePath);
     try {
       await File(filePath).rename(destFilePath);
     } on FileSystemException catch (e) {
@@ -445,6 +449,7 @@ final class DesktopDownloader extends BaseDownloader {
     }
     final fileName = path.basename(filePath);
     var destFilePath = path.join(destDirectoryPath, fileName);
+    desktopDirectoryPaths?.validateFilePath(destFilePath);
     return asUriString ? Uri.file(destFilePath).toString() : destFilePath;
   }
 
@@ -467,9 +472,11 @@ final class DesktopDownloader extends BaseDownloader {
     // remove leading and trailing slashes from [directory]
     var cleanDirectory = directory.replaceAll(RegExp(r'^/+'), '');
     cleanDirectory = cleanDirectory.replaceAll(RegExp(r'/$'), '');
-    return cleanDirectory.isEmpty
+    final resolvedPath = cleanDirectory.isEmpty
         ? downloadsDirectory.path
         : path.join(downloadsDirectory.path, cleanDirectory);
+    desktopDirectoryPaths?.validateFilePath(resolvedPath);
+    return resolvedPath;
   }
 
   @override
@@ -480,6 +487,7 @@ final class DesktopDownloader extends BaseDownloader {
             ? 'open'
             : 'start';
     filePath ??= await task!.filePath();
+    desktopDirectoryPaths?.validateFilePath(filePath);
     if (!await File(filePath).exists()) {
       _log.fine('File to open does not exist: $filePath');
       return false;

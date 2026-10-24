@@ -15,14 +15,22 @@ import 'package:fladder/models/last_seen_notifications_model.dart';
 import 'package:fladder/providers/arguments_provider.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
 import 'package:fladder/providers/shared_provider.dart';
+import 'package:fladder/util/jms_test_profile_policy.dart';
 
 final supportsNotificationsProvider = Provider.autoDispose<bool>((ref) {
-  final leanBackMode = ref.watch(argumentsStateProvider.select((value) => value.leanBackMode));
+  if (JmsTestProfilePolicy.enabled) return false;
+  final leanBackMode =
+      ref.watch(argumentsStateProvider.select((value) => value.leanBackMode));
   return (!kIsWeb && !leanBackMode) &&
-      (Platform.isAndroid || Platform.isIOS || Platform.isWindows || Platform.isMacOS || Platform.isLinux);
+      (Platform.isAndroid ||
+          Platform.isIOS ||
+          Platform.isWindows ||
+          Platform.isMacOS ||
+          Platform.isLinux);
 });
 
-final updateNotificationsProvider = Provider<UpdateNotifications>((ref) => UpdateNotifications(ref));
+final updateNotificationsProvider =
+    Provider<UpdateNotifications>((ref) => UpdateNotifications(ref));
 
 final notificationsProvider = StateProvider<LastSeenNotificationsModel>((ref) {
   return const LastSeenNotificationsModel();
@@ -42,6 +50,7 @@ class UpdateNotifications {
   ReceivePort? _workerReceivePort;
 
   Future<void> registerBackgroundTask() async {
+    if (JmsTestProfilePolicy.enabled) return;
     await Future.delayed(const Duration(milliseconds: 500));
     final accounts = ref
         .read(sharedUtilityProvider)
@@ -53,7 +62,8 @@ class UpdateNotifications {
       return;
     }
 
-    final interval = ref.read(clientSettingsProvider).updateNotificationsInterval;
+    final interval =
+        ref.read(clientSettingsProvider).updateNotificationsInterval;
 
     try {
       if (kIsWeb) return;
@@ -88,6 +98,7 @@ class UpdateNotifications {
   }
 
   Future<void> unregisterBackgroundTask() async {
+    if (JmsTestProfilePolicy.enabled) return;
     try {
       _desktopTimer?.cancel();
       _desktopTimer = null;
@@ -100,6 +111,7 @@ class UpdateNotifications {
   }
 
   Future<void> conditionallyUnregisterBackgroundTask() async {
+    if (JmsTestProfilePolicy.enabled) return;
     try {
       await Future.delayed(const Duration(milliseconds: 500));
       final accounts = ref
@@ -122,8 +134,10 @@ class UpdateNotifications {
 
   //Used for debug purposes, to trigger the background task immediately and show a notification for any new items
   Future<void> executeBackgroundTask() async {
+    if (JmsTestProfilePolicy.enabled) return;
     try {
-      if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+      if (!kIsWeb &&
+          (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
         await performHeadlessUpdateCheck(debug: true);
         return;
       } else {
@@ -142,6 +156,7 @@ class UpdateNotifications {
   }
 
   Future<void> cancelAllTasks() async {
+    if (JmsTestProfilePolicy.enabled) return;
     _desktopTimer?.cancel();
     _desktopTimer = null;
     if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
@@ -150,15 +165,18 @@ class UpdateNotifications {
   }
 
   void startWorkerListener() {
+    if (JmsTestProfilePolicy.enabled) return;
     if (_workerReceivePort != null) return;
     _workerReceivePort = ReceivePort();
     IsolateNameServer.removePortNameMapping(updateWorkerPortName);
-    IsolateNameServer.registerPortWithName(_workerReceivePort!.sendPort, updateWorkerPortName);
+    IsolateNameServer.registerPortWithName(
+        _workerReceivePort!.sendPort, updateWorkerPortName);
     _workerReceivePort?.listen(_updateProvider);
   }
 
   void _updateProvider(dynamic value) {
-    final lastSeenStore = LastSeenNotificationsModel.fromJson(jsonDecode(value));
+    final lastSeenStore =
+        LastSeenNotificationsModel.fromJson(jsonDecode(value));
     try {
       ref.read(notificationsProvider.notifier).state = lastSeenStore;
     } catch (e) {

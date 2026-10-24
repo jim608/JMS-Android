@@ -23,21 +23,27 @@ import 'package:fladder/services/discord/discord_activity.dart';
 import 'package:fladder/services/discord/discord_artwork.dart';
 import 'package:fladder/services/discord/discord_ipc_client.dart';
 import 'package:fladder/services/discord/discord_presence_controller.dart';
+import 'package:fladder/util/jms_test_profile_policy.dart';
 
-export 'package:fladder/services/discord/discord_presence_client.dart' show DiscordConnectionState;
+export 'package:fladder/services/discord/discord_presence_client.dart'
+    show DiscordConnectionState;
 
 final discordPresenceClientProvider = Provider<DiscordPresenceClient>(
-  (ref) => createDiscordPresenceClient(),
+  (ref) => JmsTestProfilePolicy.enabled
+      ? DiscordIpcClient(supported: false)
+      : createDiscordPresenceClient(),
 );
 
 final discordArtworkLoaderProvider = Provider<DiscordArtworkLoader>((ref) {
+  if (JmsTestProfilePolicy.enabled) return (_) async => null;
   return (itemId) async {
     final account = ref.read(userProvider);
     if (account == null) return null;
     // Bind the request before any await. A later account switch must never
     // route this item's lookup through the next account's server or headers.
-    final api =
-        createJellyfinApiForAccount(ref, account.credentials.url, account.credentials.header(ref), privateLink: true);
+    final api = createJellyfinApiForAccount(
+        ref, account.credentials.url, account.credentials.header(ref),
+        privateLink: true);
     try {
       final response = await api
           .itemsItemIdRemoteImagesGet(
@@ -66,12 +72,15 @@ String? discordArtworkItemId(ItemBaseModel? item) {
   return id == null || id.isEmpty ? null : id;
 }
 
-final discordPresenceSettingsProvider = ChangeNotifierProvider<DiscordPresenceSettings>((ref) {
+final discordPresenceSettingsProvider =
+    ChangeNotifierProvider<DiscordPresenceSettings>((ref) {
   final settings = DiscordPresenceSettings(
     preferences: ref.read(sharedPreferencesProvider),
     artworkLoader: (itemId) => ref.read(discordArtworkLoaderProvider)(itemId),
-    controller: DiscordPresenceController(client: ref.read(discordPresenceClientProvider)),
+    controller: DiscordPresenceController(
+        client: ref.read(discordPresenceClientProvider)),
   );
+  if (JmsTestProfilePolicy.enabled) return settings;
   String? previousScope;
   Object? previousAccountPlayback;
   var initialized = false;
@@ -88,7 +97,11 @@ final discordPresenceSettingsProvider = ChangeNotifierProvider<DiscordPresenceSe
     settings.activateAccount(scope);
     final playback = ref.read(mediaPlaybackProvider);
     final item = model?.item;
-    final title = item == null ? '' : (item.title == item.name ? item.title : '${item.title} • ${item.name}');
+    final title = item == null
+        ? ''
+        : (item.title == item.name
+            ? item.title
+            : '${item.title} • ${item.name}');
     final privateMode = scope == null ||
         ref.read(incognitoProvider) ||
         ref.read(lockScreenActiveProvider) ||
@@ -134,20 +147,31 @@ final discordPresenceSettingsProvider = ChangeNotifierProvider<DiscordPresenceSe
 });
 
 String? discordAccountScope(AccountModel? account) {
-  if (account == null || account.id.isEmpty || account.credentials.serverId.isEmpty) {
+  if (account == null ||
+      account.id.isEmpty ||
+      account.credentials.serverId.isEmpty) {
     return null;
   }
-  return sha256.convert(utf8.encode('${account.credentials.serverId}|${account.id}')).toString();
+  return sha256
+      .convert(utf8.encode('${account.credentials.serverId}|${account.id}'))
+      .toString();
 }
 
 class DiscordPresenceSettings extends ChangeNotifier {
-  DiscordPresenceSettings({required this.preferences, required this.controller, this.artworkLoader}) {
+  DiscordPresenceSettings({
+    required this.preferences,
+    required this.controller,
+    this.artworkLoader,
+    bool disabledForTestProfile = JmsTestProfilePolicy.enabled,
+  }) : disabledForTestProfile =
+            JmsTestProfilePolicy.enabled || disabledForTestProfile {
     controller.addListener(_notify);
   }
 
   final SharedPreferences preferences;
   final DiscordPresenceController controller;
   final DiscordArtworkLoader? artworkLoader;
+  final bool disabledForTestProfile;
   String? _scope;
   bool _enabled = false;
   bool _shareTitle = false;
@@ -163,7 +187,7 @@ class DiscordPresenceSettings extends ChangeNotifier {
   String? _artworkUrl;
   int _artworkGeneration = 0;
 
-  bool get supported => controller.supported;
+  bool get supported => !disabledForTestProfile && controller.supported;
   bool get hasAccount => _scope != null;
   bool get enabled => _enabled;
   bool get shareTitle => _shareTitle;
@@ -171,44 +195,54 @@ class DiscordPresenceSettings extends ChangeNotifier {
   bool get busy => _busy;
   String? get activeScope => _scope;
   DiscordConnectionState get status => controller.status;
-  String _key(String field, String scope) => 'jms.discord.presence.v1.$scope.$field';
+  String _key(String field, String scope) =>
+      'jms.discord.presence.v1.$scope.$field';
 
   void _notify() {
     if (!_disposed) notifyListeners();
   }
 
   void activateAccount(String? scope) {
+    if (disabledForTestProfile) return;
     if (_disposed || _scope == scope) return;
     _scope = scope;
     _playback = null;
     _browsing = null;
-    _enabled = supported && scope != null && (preferences.getBool(_key('enabled', scope)) ?? false);
-    _shareTitle = scope != null && (preferences.getBool(_key('shareTitle', scope)) ?? false);
-    _shareArtwork = scope != null && (preferences.getBool(_key('shareArtwork', scope)) ?? false);
+    _enabled = supported &&
+        scope != null &&
+        (preferences.getBool(_key('enabled', scope)) ?? false);
+    _shareTitle = scope != null &&
+        (preferences.getBool(_key('shareTitle', scope)) ?? false);
+    _shareArtwork = scope != null &&
+        (preferences.getBool(_key('shareArtwork', scope)) ?? false);
     _apply();
     _notify();
   }
 
-  void updatePlayback(DiscordPlaybackSnapshot playback, {required bool privateMode, String? artworkItemId}) {
-    if (_disposed) return;
+  void updatePlayback(DiscordPlaybackSnapshot playback,
+      {required bool privateMode, String? artworkItemId}) {
+    if (_disposed || disabledForTestProfile) return;
     _playback = playback;
     _privateMode = privateMode;
     _artworkItemId = artworkItemId;
     _apply();
   }
 
-  void updateBrowsing(DiscordBrowsingSnapshot? browsing, {required bool privateMode}) {
-    if (_disposed) return;
+  void updateBrowsing(DiscordBrowsingSnapshot? browsing,
+      {required bool privateMode}) {
+    if (_disposed || disabledForTestProfile) return;
     _browsing = browsing;
     _privateMode = privateMode;
     _apply();
   }
 
   void _apply() {
+    if (disabledForTestProfile) return;
     final playing = _playback?.active == true;
     final title = playing ? _playback!.title : _browsing?.title ?? '';
     final artworkItemId = playing ? _artworkItemId : _browsing?.artworkItemId;
-    final publicPoster = playing ? null : discordArtworkUrl(_browsing?.artworkUrl);
+    final publicPoster =
+        playing ? null : discordArtworkUrl(_browsing?.artworkUrl);
     final canShareArtwork = supported &&
         _scope != null &&
         _enabled &&
@@ -219,7 +253,10 @@ class DiscordPresenceSettings extends ChangeNotifier {
         (playing || _browsing?.viewingDetails == true) &&
         (!playing || _playback?.audio == false) &&
         discordDisplayTitle(title) != null;
-    final canLoadArtwork = canShareArtwork && publicPoster == null && artworkItemId != null && artworkLoader != null;
+    final canLoadArtwork = canShareArtwork &&
+        publicPoster == null &&
+        artworkItemId != null &&
+        artworkLoader != null;
     final key = canLoadArtwork ? '$_scope|$artworkItemId' : null;
     if (key != _artworkRequestKey) {
       _artworkRequestKey = key;
@@ -245,7 +282,8 @@ class DiscordPresenceSettings extends ChangeNotifier {
   Future<void> _loadArtwork(String itemId, int generation) async {
     String? url;
     try {
-      url = discordArtworkUrl(await artworkLoader!(itemId).timeout(const Duration(seconds: 8)));
+      url = discordArtworkUrl(
+          await artworkLoader!(itemId).timeout(const Duration(seconds: 8)));
     } catch (_) {
       // Missing metadata, offline servers and timeouts keep text presence.
       // Do not log replies, item IDs or server details.
@@ -260,6 +298,7 @@ class DiscordPresenceSettings extends ChangeNotifier {
   Future<bool> setShareArtwork(bool value) => _save('shareArtwork', value);
 
   Future<bool> _save(String field, bool value) async {
+    if (disabledForTestProfile) return false;
     final scope = _scope;
     if (_disposed ||
         _busy ||
@@ -296,6 +335,7 @@ class DiscordPresenceSettings extends ChangeNotifier {
 
   /// Closing the app window must clear presence before platform teardown.
   void suspend() {
+    if (disabledForTestProfile) return;
     _suspended = true;
     _playback = null;
     _browsing = null;

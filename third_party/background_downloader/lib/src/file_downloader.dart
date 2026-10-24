@@ -8,6 +8,7 @@ import 'package:logging/logging.dart';
 
 import 'base_downloader.dart';
 import 'database.dart';
+import 'desktop/desktop_directory_paths.dart';
 import 'localstore/localstore.dart';
 import 'models.dart';
 import 'permissions.dart';
@@ -21,6 +22,15 @@ import 'web_downloader.dart'
 /// Provides access to all functions of the plugin in a single place.
 interface class FileDownloader {
   static FileDownloader? _singleton;
+
+  /// Configures an explicit directory namespace before persistent storage or
+  /// any desktop worker is initialized. Null preserves the platform defaults.
+  static void setDesktopDirectoryPaths(DesktopDirectoryPaths? paths) {
+    if (_singleton != null) {
+      throw StateError('Desktop directories must be set before FileDownloader()');
+    }
+    desktopDirectoryPaths = paths;
+  }
 
   /// If no group is specified the default group name will be used
   static const defaultGroup = 'default';

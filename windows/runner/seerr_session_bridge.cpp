@@ -12,9 +12,14 @@
 
 #include <flutter/standard_method_codec.h>
 
+#include "test_profile.h"
+
 namespace {
 
 std::filesystem::path StorageDirectory() {
+  if (const auto root = GetIsolatedTestProfileRoot()) {
+    return *root / L"seerr-sessions";
+  }
   PWSTR raw_path = nullptr;
   if (FAILED(SHGetKnownFolderPath(FOLDERID_LocalAppData, KF_FLAG_DEFAULT,
                                  nullptr, &raw_path))) {
@@ -67,6 +72,7 @@ void HandleCall(
     if (scope == nullptr || !ValidScope(*scope)) throw std::runtime_error("invalid scope");
     const auto directory = StorageDirectory();
     const auto file = directory / std::filesystem::path(scope->begin(), scope->end());
+    ValidateIsolatedTestProfileFile(file);
 
     if (call.method_name() == "read") {
       if (!std::filesystem::exists(file)) {
@@ -92,6 +98,7 @@ void HandleCall(
         std::filesystem::create_directories(directory);
         auto temporary = file;
         temporary += L".tmp";
+        ValidateIsolatedTestProfileFile(temporary);
         const std::string ciphertext = Protect(*value, *scope, true);
         {
           std::ofstream stream(temporary, std::ios::binary | std::ios::trunc);

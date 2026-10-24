@@ -11,6 +11,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import 'file_downloader.dart';
+import 'desktop/desktop_directory_paths.dart';
 import 'models.dart';
 import 'options/task_options.dart';
 import 'uri/uri_helpers.dart';
@@ -375,21 +376,26 @@ sealed class Task extends Request implements Comparable {
     if (this is MultiUploadTask && withFilename == null) {
       return '';
     }
+    final String resolvedPath;
     switch (this) {
       case UriTask t:
         if (t.fileUri != null) {
           assert(t.fileUri?.scheme == 'file',
               'fileUri must be a URI scheme to return a path');
-          return t.fileUri!.toFilePath(windows: Platform.isWindows);
+          resolvedPath = t.fileUri!.toFilePath(windows: Platform.isWindows);
         } else {
           assert(t.directoryUri?.scheme == 'file',
               'directoryUri must be a URI scheme to return a path');
-          return '${t.directoryUri!.toFilePath(windows: Platform.isWindows)}${Platform.pathSeparator}${withFilename ?? filename}';
+          resolvedPath = '${t.directoryUri!.toFilePath(windows: Platform.isWindows)}${Platform.pathSeparator}${withFilename ?? filename}';
         }
+        break;
       default:
-        return p.join(await baseDirectoryPath(baseDirectory), directory,
+        resolvedPath = p.join(await baseDirectoryPath(baseDirectory), directory,
             withFilename ?? filename);
+        break;
     }
+    desktopDirectoryPaths?.validateFilePath(resolvedPath);
+    return resolvedPath;
   }
 
   /// Returns the path to the directory represented by [baseDirectory]
@@ -930,6 +936,14 @@ final class UploadTask extends Task {
       final filenameOrPath = (fileUri?.scheme == 'file')
           ? fileUri!.toFilePath(windows: Platform.isWindows)
           : filenames[i];
+      if (desktopDirectoryPaths != null) {
+        final resolvedPath = p.isAbsolute(filenameOrPath)
+            ? filenameOrPath
+            : await filePath(withFilename: filenameOrPath);
+        desktopDirectoryPaths!.validateFilePath(resolvedPath);
+        result.add((fileFields[i], resolvedPath, mimeTypes[i]));
+        continue;
+      }
       final file = File(filenameOrPath);
       if (await file.exists()) {
         result.add((fileFields[i], filenameOrPath, mimeTypes[i]));

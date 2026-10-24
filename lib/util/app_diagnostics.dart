@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import 'package:fladder/util/diagnostics_http_client.dart';
+import 'package:fladder/util/jms_test_profile_policy.dart';
 
 enum DiagnosticCategory { flutterFramework, unhandledAsync, slowFrames }
 
@@ -55,7 +56,10 @@ class AppDiagnostics {
     this.timeout = const Duration(seconds: 3),
     this.minimumInterval = const Duration(minutes: 5),
     this.maximumReports = 20,
-  })  : sourceCommit = sourceCommit != null &&
+    bool disabledForTestProfile = JmsTestProfilePolicy.enabled,
+  })  : disabledForTestProfile =
+            JmsTestProfilePolicy.enabled || disabledForTestProfile,
+        sourceCommit = sourceCommit != null &&
                 RegExp(r'^[0-9a-f]{40}$').hasMatch(sourceCommit)
             ? sourceCommit
             : null,
@@ -70,6 +74,7 @@ class AppDiagnostics {
   final Duration timeout;
   final Duration minimumInterval;
   final int maximumReports;
+  final bool disabledForTestProfile;
   final http.Client Function() _clientFactory;
   final DateTime Function() _now;
   final Map<DiagnosticCategory, DateTime> _lastAttempt = {};
@@ -89,8 +94,8 @@ class AppDiagnostics {
           .hasMatch(buildId);
 
   set enabled(bool value) {
-    _enabled = value;
-    if (!value) {
+    _enabled = value && !disabledForTestProfile;
+    if (!_enabled) {
       _generation++;
       _activeClient?.close();
       _activeClient = null;
@@ -128,7 +133,8 @@ class AppDiagnostics {
 
   Future<bool> _send(DiagnosticCategory category,
       [Map<String, int>? metrics]) async {
-    if (_disposed ||
+    if (disabledForTestProfile ||
+        _disposed ||
         !_enabled ||
         !configured ||
         _activeClient != null ||

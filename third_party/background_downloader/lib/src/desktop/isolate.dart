@@ -15,6 +15,7 @@ import '../models.dart';
 import '../task.dart';
 import 'data_isolate.dart';
 import 'desktop_downloader.dart';
+import 'desktop_directory_paths.dart';
 import 'download_isolate.dart';
 import 'parallel_download_isolate.dart';
 import 'upload_isolate.dart';
@@ -48,9 +49,13 @@ final log = Logger('FileDownloader');
 ///
 /// The first message sent back is a [ReceivePort] that is the command port
 /// for the isolate. The first command must be the arguments: task and filePath.
-Future<void> doTask((RootIsolateToken, SendPort) isolateArguments) async {
-  final (rootIsolateToken, sendPort) = isolateArguments;
+Future<void> doTask(
+    (RootIsolateToken, SendPort, Map<String, String>?) isolateArguments) async {
+  final (rootIsolateToken, sendPort, directoryPaths) = isolateArguments;
   BackgroundIsolateBinaryMessenger.ensureInitialized(rootIsolateToken);
+  if (directoryPaths != null) {
+    DesktopDirectoryPaths.fromMessage(directoryPaths).installForCurrentIsolate();
+  }
   final receivePort = ReceivePort();
   // send the receive port back to the main Isolate
   sendPort.send(receivePort.sendPort);

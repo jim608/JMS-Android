@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:fladder/util/jms_test_profile_policy.dart';
 
 part 'arguments_model.freezed.dart';
 
@@ -24,17 +25,20 @@ abstract class ArgumentsModel with _$ArgumentsModel {
     @Default(false) bool skipNotifications,
   }) = _ArgumentsModel;
 
-  factory ArgumentsModel.fromArguments(List<String> arguments, String windowArguments, bool leanBackEnabled) {
+  factory ArgumentsModel.fromArguments(
+      List<String> arguments, String windowArguments, bool leanBackEnabled) {
     arguments = arguments.map((e) => e.trim()).toList();
     leanBackMode = leanBackEnabled;
     final parsedWindowArgs = windowArguments.split(',');
-    final shouldSkipNotifications = arguments.contains(NotificationKeys.skipNotifications) ||
+    final shouldSkipNotifications = JmsTestProfilePolicy.enabled ||
+        arguments.contains(NotificationKeys.skipNotifications) ||
         parsedWindowArgs.contains(NotificationKeys.skipNotifications) ||
         parsedWindowArgs.contains(NotificationKeys.newWindow);
     return ArgumentsModel(
-      htpcMode: arguments.contains(NotificationKeys.htpcMode) || leanBackEnabled,
-      handheldMode:
-          arguments.contains(NotificationKeys.handheldMode) || parsedWindowArgs.contains(NotificationKeys.handheldMode),
+      htpcMode:
+          arguments.contains(NotificationKeys.htpcMode) || leanBackEnabled,
+      handheldMode: arguments.contains(NotificationKeys.handheldMode) ||
+          parsedWindowArgs.contains(NotificationKeys.handheldMode),
       leanBackMode: leanBackEnabled,
       newWindow: parsedWindowArgs.contains(NotificationKeys.newWindow),
       skipNotifications: shouldSkipNotifications,

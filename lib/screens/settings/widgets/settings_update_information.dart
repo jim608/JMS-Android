@@ -70,7 +70,9 @@ class SettingsUpdateInformation extends ConsumerWidget {
       children: [
         const Divider(),
         ListTile(
-          leading: const Icon(Icons.system_update),
+          leading: Icon(updates.bridge.isDesktop
+              ? Icons.desktop_windows
+              : Icons.system_update),
           title: Text(updates.platform == 'linux-x64'
               ? labels.jmsLinuxUpdateTitle
               : updates.bridge.isDesktop

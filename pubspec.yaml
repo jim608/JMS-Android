@@ -67,6 +67,8 @@ dependencies:
   # Local Storage
   shared_preferences: ^2.5.3
   path_provider: ^2.1.5
+  path_provider_platform_interface: 2.1.2
+  shared_preferences_platform_interface: 2.4.1
 
   # Media
   media_kit: ^1.2.2 # Primary package.
