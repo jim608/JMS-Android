@@ -10,6 +10,7 @@
 - Windows uses an installer, Android retains the established production package signature, Arch-based Linux uses a native package, and Steam Deck uses a user-scoped Flatpak installation entry.
 
 ## Fixed
+- Failed or missing movie details now offer retry and back instead of a blank page; retry waits for the bounded connection check.
 - When Linux cannot read system network status, use a bounded server reachability check instead of forcing media detail requests into offline caches.
 - Corrected HDR10-to-SDR conversion in the Windows software renderer without applying another conversion to SDR or inapplicable media.
 

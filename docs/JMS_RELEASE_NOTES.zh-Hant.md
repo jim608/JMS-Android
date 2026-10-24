@@ -12,6 +12,7 @@
 - Windows 使用安裝程式、Android 使用既有正式套件簽章、Arch 系 Linux 使用原生套件，Steam Deck 使用使用者層級 Flatpak 安裝入口。
 
 ### 修正
+- 電影詳情載入失敗或缺少資料時提供重試與返回，避免空白頁；重試會先完成連線檢查。
 - Linux 無法讀取系統網路狀態時，改以有限時的伺服器連線檢查判斷離線，避免有網路卻只讀離線快取。
 - 修正 Windows 軟體渲染路徑中 HDR10 影片在 SDR 螢幕上的轉換，SDR 與不適用的影片不重複轉換。
 
@@ -37,6 +38,7 @@
 - Windows uses an installer, Android retains the established production package signature, Arch-based Linux uses a native package, and Steam Deck uses a user-scoped Flatpak installation entry.
 
 ### Fixed
+- Failed or missing movie details now offer retry and back instead of a blank page; retry waits for the bounded connection check.
 - When Linux cannot read system network status, use a bounded server reachability check instead of forcing media detail requests into offline caches.
 - Corrected HDR10-to-SDR conversion in the Windows software renderer without applying another conversion to SDR or inapplicable media.
 

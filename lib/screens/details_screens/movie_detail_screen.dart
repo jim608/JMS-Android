@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 
 import 'package:fladder/models/item_base_model.dart';
+import 'package:fladder/providers/connectivity_provider.dart';
 import 'package:fladder/providers/items/movies_details_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/routes/auto_router.gr.dart';
@@ -12,6 +13,7 @@ import 'package:fladder/screens/details_screens/components/media_stream_informat
 import 'package:fladder/screens/details_screens/components/overview_header.dart';
 import 'package:fladder/screens/seerr/widgets/seerr_poster_row.dart';
 import 'package:fladder/screens/shared/detail_scaffold.dart';
+import 'package:fladder/screens/shared/detail_load_state.dart';
 import 'package:fladder/screens/shared/media/chapter_row.dart';
 import 'package:fladder/screens/shared/media/components/media_play_button.dart';
 import 'package:fladder/screens/shared/media/expanding_text.dart';
@@ -35,17 +37,39 @@ class MovieDetailScreen extends ConsumerStatefulWidget {
   const MovieDetailScreen({required this.item, super.key});
 
   @override
-  ConsumerState<ConsumerStatefulWidget> createState() => _ItemDetailScreenState();
+  ConsumerState<ConsumerStatefulWidget> createState() =>
+      _ItemDetailScreenState();
 }
 
 class _ItemDetailScreenState extends ConsumerState<MovieDetailScreen> {
-  MovieDetailsProvider get providerInstance => movieDetailsProvider(widget.item.id);
+  MovieDetailsProvider get providerInstance =>
+      movieDetailsProvider(widget.item.id);
+  bool _loadingDetails = false;
+
+  Future<void> _refreshDetails({bool probe = false}) async {
+    if (!mounted || _loadingDetails) return;
+    setState(() => _loadingDetails = true);
+    try {
+      if (probe) {
+        final connectivity = ref.read(connectivityStatusProvider.notifier);
+        await connectivity.checkConnectivity(immediate: true);
+        await connectivity.waitForProbe();
+        if (!mounted) return;
+      }
+      await ref.read(providerInstance.notifier).fetchDetails(widget.item);
+    } catch (_) {
+      // The empty state below offers retry without displaying private errors.
+    } finally {
+      if (mounted) setState(() => _loadingDetails = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final details = ref.watch(providerInstance);
-    final wrapAlignment =
-        AdaptiveLayout.viewSizeOf(context) != ViewSize.phone ? WrapAlignment.start : WrapAlignment.center;
+    final wrapAlignment = AdaptiveLayout.viewSizeOf(context) != ViewSize.phone
+        ? WrapAlignment.start
+        : WrapAlignment.center;
 
     return DetailScaffold(
       label: widget.item.name,
@@ -64,7 +88,7 @@ class _ItemDetailScreenState extends ConsumerState<MovieDetailScreen> {
           }
         },
       ),
-      onRefresh: () async => await ref.read(providerInstance.notifier).fetchDetails(widget.item),
+      onRefresh: _refreshDetails,
       backDrops: details?.images,
       content: (detailsContext, padding) => details != null
           ? Padding(
@@ -86,7 +110,9 @@ class _ItemDetailScreenState extends ConsumerState<MovieDetailScreen> {
                           showPlaybackOption: true,
                           startPosition: restart ? Duration.zero : null,
                         );
-                        ref.read(providerInstance.notifier).fetchDetails(widget.item);
+                        ref
+                            .read(providerInstance.notifier)
+                            .fetchDetails(widget.item);
                       },
                       onPressed: (restart) async {
                         await details.play(
@@ -94,7 +120,9 @@ class _ItemDetailScreenState extends ConsumerState<MovieDetailScreen> {
                           ref,
                           startPosition: restart ? Duration.zero : null,
                         );
-                        ref.read(providerInstance.notifier).fetchDetails(widget.item);
+                        ref
+                            .read(providerInstance.notifier)
+                            .fetchDetails(widget.item);
                       },
                     ),
                     centerButtons: Wrap(
@@ -105,9 +133,8 @@ class _ItemDetailScreenState extends ConsumerState<MovieDetailScreen> {
                       children: [
                         SelectableIconButton(
                           onPressed: () async {
-                            await ref
-                                .read(userProvider.notifier)
-                                .setAsFavorite(!details.userData.isFavourite, details.id);
+                            await ref.read(userProvider.notifier).setAsFavorite(
+                                !details.userData.isFavourite, details.id);
                           },
                           selected: details.userData.isFavourite,
                           selectedIcon: IconsaxPlusBold.heart,
@@ -115,7 +142,8 @@ class _ItemDetailScreenState extends ConsumerState<MovieDetailScreen> {
                         ),
                         SelectableIconButton(
                           onPressed: () async {
-                            await ref.read(userProvider.notifier).markAsPlayed(!details.userData.played, details.id);
+                            await ref.read(userProvider.notifier).markAsPlayed(
+                                !details.userData.played, details.id);
                           },
                           selected: details.userData.played,
                           selectedIcon: IconsaxPlusBold.tick_circle,
@@ -129,8 +157,9 @@ class _ItemDetailScreenState extends ConsumerState<MovieDetailScreen> {
                               content: (context, scrollController) => ListView(
                                 controller: scrollController,
                                 shrinkWrap: true,
-                                children:
-                                    details.generateActions(detailsContext, ref).listTileItems(context, useIcons: true),
+                                children: details
+                                    .generateActions(detailsContext, ref)
+                                    .listTileItems(context, useIcons: true),
                               ),
                             );
                           },
@@ -157,7 +186,9 @@ class _ItemDetailScreenState extends ConsumerState<MovieDetailScreen> {
                         ? MediaStreamHelper(
                             mediaStream: details.mediaStreams,
                             onItemChanged: (changed) {
-                              ref.read(providerInstance.notifier).setMediaStreamHelper(changed);
+                              ref
+                                  .read(providerInstance.notifier)
+                                  .setMediaStreamHelper(changed);
                             },
                           )
                         : null,
@@ -186,7 +217,8 @@ class _ItemDetailScreenState extends ConsumerState<MovieDetailScreen> {
                   if (details.specialFeatures.isNotEmpty)
                     SpecialFeaturesRow(
                         contentPadding: padding,
-                        label: detailsContext.localized.specialFeature(details.specialFeatures.length),
+                        label: detailsContext.localized
+                            .specialFeature(details.specialFeatures.length),
                         specialFeatures: details.specialFeatures),
                   if (details.related.isNotEmpty)
                     PosterRow(
@@ -204,7 +236,8 @@ class _ItemDetailScreenState extends ConsumerState<MovieDetailScreen> {
                   if (details.seerrRelated.isNotEmpty)
                     SeerrPosterRow(
                       posters: details.seerrRelated,
-                      label: "${detailsContext.localized.discover} ${detailsContext.localized.related.toLowerCase()}",
+                      label:
+                          "${detailsContext.localized.discover} ${detailsContext.localized.related.toLowerCase()}",
                       contentPadding: padding,
                     ),
                   if (details.overview.externalUrls?.isNotEmpty == true)
@@ -217,7 +250,14 @@ class _ItemDetailScreenState extends ConsumerState<MovieDetailScreen> {
                 ].addPadding(const EdgeInsets.symmetric(vertical: 16)),
               ),
             )
-          : Container(),
+          : Padding(
+              padding: padding,
+              child: DetailLoadState(
+                loading: _loadingDetails,
+                onRetry: () => _refreshDetails(probe: true),
+                onBack: () => context.router.popBack(),
+              ),
+            ),
     );
   }
 }
