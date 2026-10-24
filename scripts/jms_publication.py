@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import time
 import urllib.error
@@ -64,7 +65,10 @@ def release_lock(path):
 
 
 def execute(command, *, environment=None, data=None, log=None, timeout=600):
-    result = subprocess.run(['rtk', 'proxy', *map(str, command)], cwd=ROOT,
+    runtime_environment = os.environ if environment is None else environment
+    rtk = shutil.which('rtk', path=runtime_environment.get('PATH', os.defpath))
+    prefix = [rtk, 'proxy'] if rtk else []
+    result = subprocess.run([*prefix, *map(str, command)], cwd=ROOT,
                             env=environment, input=data, capture_output=True, timeout=timeout)
     if log:
         output = result.stdout + result.stderr
