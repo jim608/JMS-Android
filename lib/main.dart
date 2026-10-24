@@ -28,6 +28,7 @@ import 'package:fladder/util/themes_data.dart';
 import 'package:fladder/widgets/media_query_scaler.dart';
 import 'package:fladder/widgets/pip_lifecycle_controller.dart';
 import 'package:fladder/widgets/shared/adaptive_color.dart';
+import 'package:fladder/widgets/shared/controller_navigation.dart';
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -116,7 +117,12 @@ class _FladderApp extends ConsumerWidget {
             ),
             child: MediaQueryScaler(
               child: LocalizationContextWrapper(
-                child: PipLifecycleController(child: child ?? Container()),
+                child: ControllerNavigation(
+                  onBack: () {
+                    autoRouter.maybePopTop();
+                  },
+                  child: PipLifecycleController(child: child ?? Container()),
+                ),
                 currentLocale: language,
               ),
               enable: ref.read(argumentsStateProvider).leanBackMode,
@@ -136,6 +142,11 @@ class _FladderApp extends ConsumerWidget {
           themeMode: themeMode,
           routerConfig: autoRouter.config(
             deepLinkBuilder: (deepLink) => deepLinkBuilder(deepLink.uri),
+            navigatorObservers: () => [
+              ControllerFocusObserver(
+                  enabled: () =>
+                      AdaptiveLayout.of(context).controllerMode),
+            ],
           ),
         ),
       ),

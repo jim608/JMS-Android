@@ -17,6 +17,7 @@ import 'package:fladder/screens/home_screen.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout_model.dart';
 import 'package:fladder/util/debug_banner.dart';
 import 'package:fladder/util/input_detector.dart';
+import 'package:fladder/util/handheld_layout.dart';
 import 'package:fladder/util/jms_smooth_scroll.dart';
 import 'package:fladder/util/localization_helper.dart';
 import 'package:fladder/util/poster_defaults.dart';
@@ -283,43 +284,51 @@ class _AdaptiveLayoutBuilderState extends ConsumerState<AdaptiveLayoutBuilder> {
         return InputDetector(
           isDesktop: isDesktop,
           htpcMode: htpcMode,
-          child: (input) => MediaQuery(
-            data: mediaQuery.copyWith(
-              navigationMode: input == InputDevice.dPad ? NavigationMode.directional : NavigationMode.traditional,
-              padding: (useAdditionalPadding
-                  ? EdgeInsets.only(top: topPadding, bottom: 16)
-                  : mediaQuery.padding.copyWith(
-                      top: defaultTargetPlatform == TargetPlatform.iOS
-                          ? math.max(24, bannerHeight + statusBarHeight)
-                          : bannerHeight + statusBarHeight,
-                    )),
-              viewPadding: useAdditionalPadding
-                  ? EdgeInsets.only(top: topPadding, bottom: 16)
-                  : mediaQuery.viewPadding.copyWith(top: mediaQuery.viewPadding.top + bannerHeight),
-            ),
-            child: AdaptiveLayout(
-              data: currentLayout.copyWith(
-                viewSize: selectedViewSize,
-                layoutMode: selectedLayoutMode,
-                inputDevice: input,
-                platform: currentPlatform,
-                isDesktop: isDesktop,
-                controller: scrollControllers,
-                posterDefaults: posterDefaults,
+          controllerMode: arguments.handheldMode,
+          child: (input) {
+            final controllerActive = InputDetector.activeControllerMode ?? htpcMode;
+            final handheld = controllerActive && !htpcMode && !isAndroidTV && isHandheldViewport(mediaQuery.size);
+            return MediaQuery(
+              data: mediaQuery.copyWith(
+                navigationMode: input == InputDevice.dPad ? NavigationMode.directional : NavigationMode.traditional,
+                padding: (useAdditionalPadding
+                    ? EdgeInsets.only(top: topPadding, bottom: 16)
+                    : mediaQuery.padding.copyWith(
+                        top: defaultTargetPlatform == TargetPlatform.iOS
+                            ? math.max(24, bannerHeight + statusBarHeight)
+                            : bannerHeight + statusBarHeight,
+                      )),
+                viewPadding: useAdditionalPadding
+                    ? EdgeInsets.only(top: topPadding, bottom: 16)
+                    : mediaQuery.viewPadding.copyWith(top: mediaQuery.viewPadding.top + bannerHeight),
               ),
-              child: Builder(
-                builder: (context) => isDesktop
-                    ? ResolutionChecker(
-                        child: widget.adaptiveLayout == null
-                            ? DebugBanner(child: widget.child(context))
-                            : widget.child(context),
-                      )
-                    : widget.adaptiveLayout == null
-                        ? DebugBanner(child: widget.child(context))
-                        : widget.child(context),
+              child: AdaptiveLayout(
+                data: currentLayout.copyWith(
+                  viewSize: handheld ? ViewSize.tablet : selectedViewSize,
+                  layoutMode: handheld ? LayoutMode.single : selectedLayoutMode,
+                  inputDevice: input,
+                  controllerMode: controllerActive,
+                  platform: currentPlatform,
+                  isDesktop: isDesktop,
+                  controller: scrollControllers,
+                  posterDefaults: handheld
+                      ? PosterDefaults(size: handheldPosterSize(mediaQuery.size), ratio: 0.55)
+                      : posterDefaults,
+                ),
+                child: Builder(
+                  builder: (context) => isDesktop
+                      ? ResolutionChecker(
+                          child: widget.adaptiveLayout == null
+                              ? DebugBanner(child: widget.child(context))
+                              : widget.child(context),
+                        )
+                      : widget.adaptiveLayout == null
+                          ? DebugBanner(child: widget.child(context))
+                          : widget.child(context),
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );

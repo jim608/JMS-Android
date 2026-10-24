@@ -9,6 +9,7 @@ class NotificationKeys {
   static const String skipNotifications = '--skipNotifications';
   static const String newWindow = '--newWindow';
   static const String htpcMode = '--htpc';
+  static const String handheldMode = '--handheld';
 }
 
 @Freezed(copyWith: true)
@@ -17,6 +18,7 @@ abstract class ArgumentsModel with _$ArgumentsModel {
 
   factory ArgumentsModel({
     @Default(false) bool htpcMode,
+    @Default(false) bool handheldMode,
     @Default(false) bool leanBackMode,
     @Default(false) bool newWindow,
     @Default(false) bool skipNotifications,
@@ -31,6 +33,8 @@ abstract class ArgumentsModel with _$ArgumentsModel {
         parsedWindowArgs.contains(NotificationKeys.newWindow);
     return ArgumentsModel(
       htpcMode: arguments.contains(NotificationKeys.htpcMode) || leanBackEnabled,
+      handheldMode:
+          arguments.contains(NotificationKeys.handheldMode) || parsedWindowArgs.contains(NotificationKeys.handheldMode),
       leanBackMode: leanBackEnabled,
       newWindow: parsedWindowArgs.contains(NotificationKeys.newWindow),
       skipNotifications: shouldSkipNotifications,

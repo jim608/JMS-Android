@@ -11,12 +11,18 @@ import 'package:fladder/util/focus_helper.dart';
 ///
 /// Descendant controls still receive their own focus events and actions.
 class PlayerShortcutBoundary extends InheritedWidget {
-  const PlayerShortcutBoundary({required super.child, super.key});
+  const PlayerShortcutBoundary({required super.child, this.keys, this.isEnabled, super.key});
 
-  static bool _containsPrimaryFocus() {
-    return FocusManager.instance.primaryFocus?.context
-            ?.getInheritedWidgetOfExactType<PlayerShortcutBoundary>() !=
-        null;
+  /// Null blocks every shortcut, as needed while editing subtitle offsets.
+  final Set<LogicalKeyboardKey>? keys;
+  final bool Function()? isEnabled;
+
+  static bool _containsPrimaryFocus(KeyEvent event) {
+    final boundary =
+        FocusManager.instance.primaryFocus?.context?.getInheritedWidgetOfExactType<PlayerShortcutBoundary>();
+    return boundary != null &&
+        (boundary.isEnabled?.call() ?? true) &&
+        (boundary.keys == null || boundary.keys!.contains(event.logicalKey));
   }
 
   @override
@@ -51,7 +57,7 @@ class _InputHandlerState<T> extends ConsumerState<InputHandler<T>> {
   static bool _hardwareListening = false;
 
   static bool _handleHardwareKey(KeyEvent event) {
-    if (PlayerShortcutBoundary._containsPrimaryFocus()) {
+    if (PlayerShortcutBoundary._containsPrimaryFocus(event)) {
       for (final handler in _hardwareHandlers) {
         handler.pressedModifier = null;
       }
@@ -123,7 +129,7 @@ class _InputHandlerState<T> extends ConsumerState<InputHandler<T>> {
           }
         },
         onKeyEvent: (node, event) {
-          if (PlayerShortcutBoundary._containsPrimaryFocus() ||
+          if (PlayerShortcutBoundary._containsPrimaryFocus(event) ||
               (widget.ignoreWhenTextFieldFocused && isEditableTextFocused())) {
             pressedModifier = null;
             return KeyEventResult.ignored;

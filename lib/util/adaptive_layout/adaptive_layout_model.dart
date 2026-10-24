@@ -44,6 +44,7 @@ class AdaptiveLayoutModel {
   final ViewSize viewSize;
   final LayoutMode layoutMode;
   final InputDevice inputDevice;
+  final bool controllerMode;
   final TargetPlatform platform;
   final bool isDesktop;
   final PosterDefaults posterDefaults;
@@ -56,6 +57,7 @@ class AdaptiveLayoutModel {
     required this.viewSize,
     required this.layoutMode,
     required this.inputDevice,
+    this.controllerMode = false,
     required this.platform,
     required this.isDesktop,
     required this.posterDefaults,
@@ -69,6 +71,7 @@ class AdaptiveLayoutModel {
     ViewSize? viewSize,
     LayoutMode? layoutMode,
     InputDevice? inputDevice,
+    bool? controllerMode,
     TargetPlatform? platform,
     bool? isDesktop,
     PosterDefaults? posterDefaults,
@@ -81,6 +84,7 @@ class AdaptiveLayoutModel {
       viewSize: viewSize ?? this.viewSize,
       layoutMode: layoutMode ?? this.layoutMode,
       inputDevice: inputDevice ?? this.inputDevice,
+      controllerMode: controllerMode ?? this.controllerMode,
       platform: platform ?? this.platform,
       isDesktop: isDesktop ?? this.isDesktop,
       posterDefaults: posterDefaults ?? this.posterDefaults,
@@ -97,9 +101,13 @@ class AdaptiveLayoutModel {
     return other.viewSize == viewSize &&
         other.layoutMode == layoutMode &&
         other.sideBarWidth == sideBarWidth &&
-        other.inputDevice == inputDevice;
+        other.inputDevice == inputDevice &&
+        other.controllerMode == controllerMode &&
+        other.posterDefaults.size == posterDefaults.size &&
+        other.posterDefaults.ratio == posterDefaults.ratio;
   }
 
   @override
-  int get hashCode => viewSize.hashCode ^ layoutMode.hashCode ^ sideBarWidth.hashCode;
+  int get hashCode => Object.hash(
+      viewSize, layoutMode, sideBarWidth, inputDevice, controllerMode, posterDefaults.size, posterDefaults.ratio);
 }

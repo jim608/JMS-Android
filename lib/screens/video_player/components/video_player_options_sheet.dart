@@ -85,17 +85,20 @@ class _VideoOptionsMobileState extends ConsumerState<VideoOptions> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 children: [
-                  Column(
-                    mainAxisSize: MainAxisSize.max,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
+                  Expanded(
+                    child: Tooltip(
+                      message: currentItem?.title ?? "",
+                      excludeFromSemantics: true,
+                      child: Text(
                         currentItem?.title ?? "",
                         style: Theme.of(context).textTheme.titleLarge,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        semanticsLabel: currentItem?.title ?? "",
                       ),
-                    ],
+                    ),
                   ),
-                  const Spacer(),
+                  const SizedBox(width: 12),
                   const Opacity(opacity: 0.1, child: Icon(Icons.info_outline_rounded))
                 ],
               ),

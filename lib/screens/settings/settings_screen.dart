@@ -1,5 +1,3 @@
-import 'package:fladder/util/brand.dart';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -144,8 +142,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               const SizedBox(height: 8),
             ],
             SettingsListTile(
-              label: Text(context.localized.settingsClientTitle),
-              subLabel: Text(context.localized.settingsClientDesc),
+              label: Text(context.localized.general),
               autoFocus: true,
               selected: containsRoute(const ClientSettingsRoute()),
               icon: deviceIcon,
@@ -161,21 +158,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             SettingsListTile(
               label: Text(context.localized.settingsProfileTitle),
-              subLabel: Text(context.localized.settingsProfileDesc),
               selected: containsRoute(const ProfileSettingsRoute()),
               icon: IconsaxPlusLinear.security_user,
               onTap: () => navigateTo(const ProfileSettingsRoute()),
             ),
             SettingsListTile(
               label: Text(context.localized.settingsPlayerTitle),
-              subLabel: Text(context.localized.settingsPlayerDesc),
               selected: containsRoute(const PlayerSettingsRoute()),
               icon: IconsaxPlusLinear.video_play,
               onTap: () => navigateTo(const PlayerSettingsRoute()),
             ),
             SettingsListTile(
               label: Text(context.localized.about),
-              subLabel: const Text(Brand.fullName),
               selected: containsRoute(const AboutSettingsRoute()),
               leading: Opacity(
                 opacity: 1,

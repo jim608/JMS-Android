@@ -87,7 +87,7 @@ class FocusButtonState extends State<FocusButton> {
   ValueNotifier<bool> onHover = ValueNotifier(false);
   Timer? _longPressTimer;
   bool _longPressTriggered = false;
-  bool _keyDownActive = false;
+  LogicalKeyboardKey? _activeAcceptKey;
 
   static const Duration _kLongPressTimeout = Duration(milliseconds: 500);
 
@@ -96,25 +96,24 @@ class FocusButtonState extends State<FocusButton> {
 
     if (widget.onKeyEvent != null) {
       final result = widget.onKeyEvent!(node, event);
-      if (result == KeyEventResult.handled) return result;
+      if (result != KeyEventResult.ignored) return result;
     }
 
     if (acceptKeys.contains(event.logicalKey)) {
       if (event is KeyDownEvent) {
-        if (_keyDownActive) return KeyEventResult.ignored;
-        _keyDownActive = true;
-        _startLongPressTimer();
+        if (_activeAcceptKey != null) return KeyEventResult.handled;
+        _activeAcceptKey = event.logicalKey;
+        if (widget.onLongPress != null) _startLongPressTimer();
       } else if (event is KeyUpEvent) {
-        if (!_keyDownActive) return KeyEventResult.ignored;
-        if (_longPressTriggered) {
+        if (_activeAcceptKey == event.logicalKey) {
+          final shouldTap = !_longPressTriggered;
           _resetKeyState();
-
-          return KeyEventResult.ignored;
+          if (shouldTap) widget.onTap?.call();
         }
-        _cancelLongPressTimer();
-        _keyDownActive = false;
-        widget.onTap?.call();
       }
+      // Consume repeats and releases too: parent/player shortcuts must not
+      // activate a second action for the same physical press.
+      return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
   }
@@ -123,9 +122,9 @@ class FocusButtonState extends State<FocusButton> {
     _longPressTriggered = false;
     _longPressTimer?.cancel();
     _longPressTimer = Timer(_kLongPressTimeout, () {
+      if (!mounted || !focusNode.hasFocus) return;
       _longPressTriggered = true;
       widget.onLongPress?.call();
-      _resetKeyState();
     });
   }
 
@@ -136,13 +135,14 @@ class FocusButtonState extends State<FocusButton> {
 
   void _resetKeyState() {
     _cancelLongPressTimer();
-    _keyDownActive = false;
+    _activeAcceptKey = null;
     _longPressTriggered = false;
   }
 
   @override
   void dispose() {
     _resetKeyState();
+    onHover.dispose();
     if (lastMainFocus == focusNode) {
       lastMainFocus = null;
     }
@@ -185,9 +185,30 @@ class FocusButtonState extends State<FocusButton> {
         canRequestFocus: widget.onTap != null || widget.onLongPress != null || widget.onSecondaryTapDown != null,
         skipTraversal: widget.onTap == null && widget.onLongPress == null && widget.onSecondaryTapDown != null,
         onFocusChange: (value) {
+          if (!value) _resetKeyState();
           widget.onFocusChanged?.call(value);
           if (value) {
             lastMainFocus = focusNode;
+            WidgetsBinding.instance.addPostFrameCallback((_) async {
+              if (mounted && focusNode.hasFocus) {
+                final duration = MediaQuery.maybeOf(context)?.disableAnimations == true
+                    ? Duration.zero
+                    : const Duration(milliseconds: 150);
+                await Scrollable.ensureVisible(
+                  context,
+                  duration: duration,
+                  alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+                );
+                if (!mounted || !focusNode.hasFocus) return;
+                // The complementary policy reveals earlier cards. Both leave
+                // already visible controls at their existing scroll position.
+                await Scrollable.ensureVisible(
+                  context,
+                  duration: duration,
+                  alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtStart,
+                );
+              }
+            });
           }
           onHover.value = value;
         },
@@ -196,7 +217,7 @@ class FocusButtonState extends State<FocusButton> {
           child: ValueListenableBuilder(
             valueListenable: onHover,
             builder: (context, value, child) {
-              final hasFocus = widget.forceFocusOutline ? true : value;
+              final hasFocus = widget.forceFocusOutline || focusNode.hasFocus || value;
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 curve: Curves.easeInOut,

@@ -15,6 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ArgumentsModel {
   bool get htpcMode;
+  bool get handheldMode;
   bool get leanBackMode;
   bool get newWindow;
   bool get skipNotifications;
@@ -29,7 +30,7 @@ mixin _$ArgumentsModel {
 
   @override
   String toString() {
-    return 'ArgumentsModel(htpcMode: $htpcMode, leanBackMode: $leanBackMode, newWindow: $newWindow, skipNotifications: $skipNotifications)';
+    return 'ArgumentsModel(htpcMode: $htpcMode, handheldMode: $handheldMode, leanBackMode: $leanBackMode, newWindow: $newWindow, skipNotifications: $skipNotifications)';
   }
 }
 
@@ -41,6 +42,7 @@ abstract mixin class $ArgumentsModelCopyWith<$Res> {
   @useResult
   $Res call(
       {bool htpcMode,
+      bool handheldMode,
       bool leanBackMode,
       bool newWindow,
       bool skipNotifications});
@@ -60,6 +62,7 @@ class _$ArgumentsModelCopyWithImpl<$Res>
   @override
   $Res call({
     Object? htpcMode = null,
+    Object? handheldMode = null,
     Object? leanBackMode = null,
     Object? newWindow = null,
     Object? skipNotifications = null,
@@ -68,6 +71,10 @@ class _$ArgumentsModelCopyWithImpl<$Res>
       htpcMode: null == htpcMode
           ? _self.htpcMode
           : htpcMode // ignore: cast_nullable_to_non_nullable
+              as bool,
+      handheldMode: null == handheldMode
+          ? _self.handheldMode
+          : handheldMode // ignore: cast_nullable_to_non_nullable
               as bool,
       leanBackMode: null == leanBackMode
           ? _self.leanBackMode
@@ -178,16 +185,16 @@ extension ArgumentsModelPatterns on ArgumentsModel {
 
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>(
-    TResult Function(bool htpcMode, bool leanBackMode, bool newWindow,
-            bool skipNotifications)?
+    TResult Function(bool htpcMode, bool handheldMode, bool leanBackMode,
+            bool newWindow, bool skipNotifications)?
         $default, {
     required TResult orElse(),
   }) {
     final _that = this;
     switch (_that) {
       case _ArgumentsModel() when $default != null:
-        return $default(_that.htpcMode, _that.leanBackMode, _that.newWindow,
-            _that.skipNotifications);
+        return $default(_that.htpcMode, _that.handheldMode, _that.leanBackMode,
+            _that.newWindow, _that.skipNotifications);
       case _:
         return orElse();
     }
@@ -208,15 +215,15 @@ extension ArgumentsModelPatterns on ArgumentsModel {
 
   @optionalTypeArgs
   TResult when<TResult extends Object?>(
-    TResult Function(bool htpcMode, bool leanBackMode, bool newWindow,
-            bool skipNotifications)
+    TResult Function(bool htpcMode, bool handheldMode, bool leanBackMode,
+            bool newWindow, bool skipNotifications)
         $default,
   ) {
     final _that = this;
     switch (_that) {
       case _ArgumentsModel():
-        return $default(_that.htpcMode, _that.leanBackMode, _that.newWindow,
-            _that.skipNotifications);
+        return $default(_that.htpcMode, _that.handheldMode, _that.leanBackMode,
+            _that.newWindow, _that.skipNotifications);
       case _:
         throw StateError('Unexpected subclass');
     }
@@ -236,15 +243,15 @@ extension ArgumentsModelPatterns on ArgumentsModel {
 
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>(
-    TResult? Function(bool htpcMode, bool leanBackMode, bool newWindow,
-            bool skipNotifications)?
+    TResult? Function(bool htpcMode, bool handheldMode, bool leanBackMode,
+            bool newWindow, bool skipNotifications)?
         $default,
   ) {
     final _that = this;
     switch (_that) {
       case _ArgumentsModel() when $default != null:
-        return $default(_that.htpcMode, _that.leanBackMode, _that.newWindow,
-            _that.skipNotifications);
+        return $default(_that.htpcMode, _that.handheldMode, _that.leanBackMode,
+            _that.newWindow, _that.skipNotifications);
       case _:
         return null;
     }
@@ -256,6 +263,7 @@ extension ArgumentsModelPatterns on ArgumentsModel {
 class _ArgumentsModel extends ArgumentsModel {
   _ArgumentsModel(
       {this.htpcMode = false,
+      this.handheldMode = false,
       this.leanBackMode = false,
       this.newWindow = false,
       this.skipNotifications = false})
@@ -264,6 +272,9 @@ class _ArgumentsModel extends ArgumentsModel {
   @override
   @JsonKey()
   final bool htpcMode;
+  @override
+  @JsonKey()
+  final bool handheldMode;
   @override
   @JsonKey()
   final bool leanBackMode;
@@ -284,7 +295,7 @@ class _ArgumentsModel extends ArgumentsModel {
 
   @override
   String toString() {
-    return 'ArgumentsModel(htpcMode: $htpcMode, leanBackMode: $leanBackMode, newWindow: $newWindow, skipNotifications: $skipNotifications)';
+    return 'ArgumentsModel(htpcMode: $htpcMode, handheldMode: $handheldMode, leanBackMode: $leanBackMode, newWindow: $newWindow, skipNotifications: $skipNotifications)';
   }
 }
 
@@ -298,6 +309,7 @@ abstract mixin class _$ArgumentsModelCopyWith<$Res>
   @useResult
   $Res call(
       {bool htpcMode,
+      bool handheldMode,
       bool leanBackMode,
       bool newWindow,
       bool skipNotifications});
@@ -317,6 +329,7 @@ class __$ArgumentsModelCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   $Res call({
     Object? htpcMode = null,
+    Object? handheldMode = null,
     Object? leanBackMode = null,
     Object? newWindow = null,
     Object? skipNotifications = null,
@@ -325,6 +338,10 @@ class __$ArgumentsModelCopyWithImpl<$Res>
       htpcMode: null == htpcMode
           ? _self.htpcMode
           : htpcMode // ignore: cast_nullable_to_non_nullable
+              as bool,
+      handheldMode: null == handheldMode
+          ? _self.handheldMode
+          : handheldMode // ignore: cast_nullable_to_non_nullable
               as bool,
       leanBackMode: null == leanBackMode
           ? _self.leanBackMode
