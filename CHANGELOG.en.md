@@ -10,9 +10,11 @@
 - Windows uses an installer, Android retains the established production package signature, Arch-based Linux uses a native package, and Steam Deck uses a user-scoped Flatpak installation entry.
 
 ## Fixed
+- When Linux cannot read system network status, use a bounded server reachability check instead of forcing media detail requests into offline caches.
 - Corrected HDR10-to-SDR conversion in the Windows software renderer without applying another conversion to SDR or inapplicable media.
 
 ## Known issues
+- Controllers on Linux and Steam Deck currently require Steam Input keyboard mappings for directions, confirm and back; native analog axes are not implemented.
 - Some account and server combinations may still be unable to find a Watch Together room; network conditions, transcoding and device performance affect cross-device synchronization, and not every scenario has been accepted.
 - The Windows installer still has no publisher code signature; other HDR formats, physical Steam Deck hardware and all hardware combinations have not been fully verified.
 

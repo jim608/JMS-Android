@@ -12,9 +12,11 @@
 - Windows 使用安裝程式、Android 使用既有正式套件簽章、Arch 系 Linux 使用原生套件，Steam Deck 使用使用者層級 Flatpak 安裝入口。
 
 ### 修正
+- Linux 無法讀取系統網路狀態時，改以有限時的伺服器連線檢查判斷離線，避免有網路卻只讀離線快取。
 - 修正 Windows 軟體渲染路徑中 HDR10 影片在 SDR 螢幕上的轉換，SDR 與不適用的影片不重複轉換。
 
 ### 已知問題
+- Linux／Steam Deck 手把目前需透過 Steam Input 將方向、確認與返回映射為鍵盤按鍵，尚未支援原生類比軸。
 - 部分帳號與伺服器組合仍可能找不到一起看房間；網路、轉碼與裝置效能會影響跨裝置同步，並非所有情境均已驗收。
 - Windows 安裝程式仍未提供發行者程式碼簽章；其他 HDR 格式、實體 Steam Deck 與全部硬體組合尚未完整驗證。
 
@@ -35,9 +37,11 @@
 - Windows uses an installer, Android retains the established production package signature, Arch-based Linux uses a native package, and Steam Deck uses a user-scoped Flatpak installation entry.
 
 ### Fixed
+- When Linux cannot read system network status, use a bounded server reachability check instead of forcing media detail requests into offline caches.
 - Corrected HDR10-to-SDR conversion in the Windows software renderer without applying another conversion to SDR or inapplicable media.
 
 ### Known issues
+- Controllers on Linux and Steam Deck currently require Steam Input keyboard mappings for directions, confirm and back; native analog axes are not implemented.
 - Some account and server combinations may still be unable to find a Watch Together room; network conditions, transcoding and device performance affect cross-device synchronization, and not every scenario has been accepted.
 - The Windows installer still has no publisher code signature; other HDR formats, physical Steam Deck hardware and all hardware combinations have not been fully verified.
 

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -43,6 +44,7 @@ class ConnectivityStatus extends _$ConnectivityStatus {
   Timer? _debounceTimer;
   int _probeId = 0;
   Completer<void>? _probeCompleter;
+  String? _probeTargetUrl;
   bool _active = true;
   final _pendingConnectivityChecks = <void Function()>{};
 
@@ -53,6 +55,9 @@ class ConnectivityStatus extends _$ConnectivityStatus {
       next,
     ) {
       if (previous != next) {
+        _debounceTimer?.cancel();
+        _probeId++;
+        _resolveProbe();
         checkConnectivity(immediate: true);
       }
     });
@@ -64,9 +69,7 @@ class ConnectivityStatus extends _$ConnectivityStatus {
       // callback before forwarding an error through the stream itself.
       scheduleMicrotask(() {
         if (_active) {
-          _handleHardwareChange(const [
-            ConnectivityResult.none,
-          ], immediate: true);
+          _handleBackendUnavailable();
         }
       });
     }
@@ -114,9 +117,7 @@ class ConnectivityStatus extends _$ConnectivityStatus {
       finish();
       scheduleMicrotask(() {
         if (_active) {
-          _handleHardwareChange(const [
-            ConnectivityResult.none,
-          ], immediate: true);
+          _handleBackendUnavailable();
         }
       });
     }
@@ -145,6 +146,19 @@ class ConnectivityStatus extends _$ConnectivityStatus {
 
   Future<void> waitForProbe() async => _probeCompleter?.future;
 
+  void _handleBackendUnavailable() {
+    final targetUrl = ref.read(userProvider)?.credentials.url;
+    if (targetUrl == null || targetUrl.isEmpty) {
+      _handleHardwareChange(const [ConnectivityResult.none], immediate: true);
+      return;
+    }
+    // A sandbox can hide NetworkManager while HTTP remains available. Retain
+    // the current state until the existing finite server probe decides.
+    if (_probeCompleter != null && _probeTargetUrl == targetUrl) return;
+    // Unknown transport must not enable the unmetered/home bitrate policy.
+    _queueProbe(ConnectionState.mobile, immediate: true);
+  }
+
   void _handleHardwareChange(
     List<ConnectivityResult> results, {
     bool immediate = false,
@@ -152,6 +166,12 @@ class ConnectivityStatus extends _$ConnectivityStatus {
     final hardwareState = _parseHardwareState(results);
 
     if (hardwareState == ConnectionState.offline) {
+      if (!kIsWeb &&
+          defaultTargetPlatform == TargetPlatform.linux &&
+          (ref.read(userProvider)?.credentials.url.isNotEmpty ?? false)) {
+        _handleBackendUnavailable();
+        return;
+      }
       _debounceTimer?.cancel();
       _probeId++;
       _resolveProbe();
@@ -166,6 +186,7 @@ class ConnectivityStatus extends _$ConnectivityStatus {
     _debounceTimer?.cancel();
     final id = ++_probeId;
     _probeCompleter ??= Completer<void>();
+    _probeTargetUrl = ref.read(userProvider)?.credentials.url;
 
     if (immediate) {
       unawaited(_probeReachability(id, candidateState));
@@ -220,6 +241,7 @@ class ConnectivityStatus extends _$ConnectivityStatus {
       _probeCompleter?.complete();
     }
     _probeCompleter = null;
+    _probeTargetUrl = null;
   }
 
   ConnectionState _parseHardwareState(List<ConnectivityResult> results) {
@@ -237,6 +259,7 @@ class ConnectivityStatus extends _$ConnectivityStatus {
 
 Future<PublicSystemInfo?> fetchSystemInfoDynamic(String baseUrl) async {
   if (baseUrl.isEmpty) return null;
+  http.Client? client;
   try {
     final uri = buildServerUriFromBase(
       baseUrl,
@@ -244,7 +267,8 @@ Future<PublicSystemInfo?> fetchSystemInfoDynamic(String baseUrl) async {
     );
     if (uri == null) return null;
 
-    final response = await http.get(uri).timeout(const Duration(seconds: 2));
+    client = http.Client();
+    final response = await client.get(uri).timeout(const Duration(seconds: 2));
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return PublicSystemInfo.fromJson(jsonDecode(response.body));
@@ -253,5 +277,7 @@ Future<PublicSystemInfo?> fetchSystemInfoDynamic(String baseUrl) async {
   } catch (e) {
     log(e.toString());
     return null;
+  } finally {
+    client?.close();
   }
 }
