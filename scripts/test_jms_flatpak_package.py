@@ -5,6 +5,7 @@ import os
 import tarfile
 import tempfile
 import unittest
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from unittest import mock
 
@@ -26,6 +27,11 @@ class FlatpakPackageTests(unittest.TestCase):
         (self.root / 'LICENSE').write_text('Fixture license\n', encoding='utf-8')
         (self.root / 'flatpak').mkdir()
         (self.root / 'flatpak/com.jim608.jms.yaml').write_text('id: com.jim608.jms\n', encoding='utf-8')
+        self.metainfo = self.root / 'flatpak/com.jim608.jms.metainfo.xml'
+        self.metainfo.write_text(
+            '<component type="desktop-application"><id>com.jim608.jms</id>'
+            '<releases><release version="0.11.1-jms.35" date="2026-10-04"/>'
+            '</releases></component>\n', encoding='utf-8')
         icon = self.root / 'icons/jms/mark.svg'
         icon.parent.mkdir(parents=True)
         icon.write_text('<svg/>\n', encoding='utf-8')
@@ -69,6 +75,50 @@ class FlatpakPackageTests(unittest.TestCase):
         self.assertEqual(json.loads((staged / 'payload/JMS_BUILD_INFO.json').read_text())['sourceCommit'], self.commit)
         self.assertFalse((staged / 'private-local-settings.json').exists())
         self.assertFalse((staged / 'payload/private-local-settings.json').exists())
+
+    def test_stage_accepts_current_appstream_release_and_preserves_history(self):
+        (self.root / 'pubspec.yaml').write_text('version: 0.11.1-jms.47+50\n', encoding='utf-8')
+        current = Path(__file__).resolve().parents[1] / 'flatpak/com.jim608.jms.metainfo.xml'
+        expected = current.read_bytes()
+        self.metainfo.write_bytes(expected)
+        staged = self.workspace / 'staged'
+        build = package.stage(self.bundle, staged, self.commit)
+        copied = (staged / 'com.jim608.jms.metainfo.xml').read_bytes()
+        self.assertEqual(copied, expected)
+        component = ET.fromstring(copied)
+        releases = component.findall('./releases/release')
+        self.assertEqual(releases[0].attrib, {'version': build['versionName'], 'date': '2026-10-24'})
+        self.assertEqual(releases[1].get('version'), '0.11.1-jms.35')
+        self.assertEqual(component.findtext('metadata_license'), 'CC0-1.0')
+        self.assertEqual(component.findtext('project_license'), 'GPL-3.0-only')
+
+    def test_stage_rejects_stale_appstream_release_before_copying(self):
+        (self.root / 'pubspec.yaml').write_text('version: 0.11.1-jms.47+50\n', encoding='utf-8')
+        staged = self.workspace / 'staged'
+        with self.assertRaisesRegex(ValueError, 'AppStream latest release version differs from pubspec'):
+            package.stage(self.bundle, staged, self.commit)
+        self.assertFalse(staged.exists())
+
+    def test_stage_rejects_missing_or_malformed_appstream_before_copying(self):
+        staged = self.workspace / 'staged'
+        for invalid in (None, '<component>'):
+            with self.subTest(invalid=invalid):
+                if invalid is None:
+                    self.metainfo.unlink()
+                else:
+                    self.metainfo.write_text(invalid, encoding='utf-8')
+                with self.assertRaisesRegex(ValueError, 'AppStream metadata is missing or invalid'):
+                    package.stage(self.bundle, staged, self.commit)
+                self.assertFalse(staged.exists())
+
+    def test_stage_rejects_appstream_for_another_application_before_copying(self):
+        self.metainfo.write_text('<component><id>org.example.Other</id>'
+                                 '<releases><release version="0.11.1-jms.35"/></releases></component>',
+                                 encoding='utf-8')
+        staged = self.workspace / 'staged'
+        with self.assertRaisesRegex(ValueError, 'AppStream application ID differs'):
+            package.stage(self.bundle, staged, self.commit)
+        self.assertFalse(staged.exists())
 
     def test_stage_rejects_symlink_to_file_outside_source_bundle(self):
         outside = self.workspace / 'outside.so'

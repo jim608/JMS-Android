@@ -41,11 +41,19 @@ fi
 mkdir -p "$JMS_FLATPAK_OUTPUT" "$HOME/.local/share"
 echo 'Flatpak validation phase: install'
 flatpak --user install --noninteractive --bundle "$JMS_FLATPAK_BUNDLE"
-flatpak --user info "$app" > "$JMS_FLATPAK_OUTPUT/installed-info.txt"
+LC_ALL=C flatpak --user info "$app" > "$JMS_FLATPAK_OUTPUT/installed-info.txt"
 deployment=$(flatpak --user info --show-location "$app")
 commit=$(flatpak --user info --show-commit "$app")
 printf '%s\n' "$deployment" > "$JMS_FLATPAK_OUTPUT/deployment-location.txt"
 printf '%s\n' "$commit" > "$JMS_FLATPAK_OUTPUT/installed-commit.txt"
+python3 - "$deployment/files/share/jms/JMS_BUILD_INFO.json" "$JMS_FLATPAK_OUTPUT/installed-info.txt" <<'PY_VERSION'
+import json, pathlib, re, sys
+build = json.loads(pathlib.Path(sys.argv[1]).read_text())
+info = pathlib.Path(sys.argv[2]).read_text()
+match = re.search(r'^\s*Version:\s*(\S+)\s*$', info, re.M)
+if match is None or match[1] != build['versionName']:
+    raise SystemExit('Installed AppStream version differs from native build identity')
+PY_VERSION
 flatpak --user info --show-permissions "$app" > "$JMS_FLATPAK_OUTPUT/permissions.txt"
 # Save the actual exported launcher Steam selects, including Flatpak's rewrite.
 deck_entry="$HOME/.local/share/flatpak/exports/share/applications/com.jim608.jms.SteamDeck.desktop"

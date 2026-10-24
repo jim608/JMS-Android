@@ -6,6 +6,7 @@ import json
 import re
 import shutil
 import tarfile
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,6 +32,18 @@ def identity(commit):
             'buildId': f'JMS-{version}-flatpak-{commit[:12]}'}
 
 
+def validate_appstream_release(path, version):
+    try:
+        component = ET.parse(path).getroot()
+    except (OSError, ET.ParseError) as error:
+        raise ValueError('AppStream metadata is missing or invalid') from error
+    if component.tag != 'component' or component.findtext('id') != APP_ID:
+        raise ValueError('AppStream application ID differs')
+    releases = component.findall('./releases/release')
+    if not releases or releases[0].get('version') != version:
+        raise ValueError('AppStream latest release version differs from pubspec')
+
+
 def stage(bundle, output, commit):
     build = identity(commit)
     if output.exists():
@@ -42,6 +55,7 @@ def stage(bundle, output, commit):
             raise ValueError('Escaping source bundle symlink')
         if any(word in path.name.lower() for word in ('mdk', 'fvp')):
             raise ValueError('Excluded player dependency present')
+    validate_appstream_release(ROOT / 'flatpak/com.jim608.jms.metainfo.xml', build['versionName'])
     shutil.copytree(ROOT / 'flatpak', output, ignore=shutil.ignore_patterns('shared-modules'))
     shutil.copy2(ROOT / 'icons/jms/mark.svg', output / 'jms.svg')
     shutil.copy2(ROOT / 'LICENSE', output / 'LICENSE')
