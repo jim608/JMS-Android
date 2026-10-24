@@ -1,3 +1,26 @@
+# JMS 0.11.1-jms.47
+
+## Added
+- Open Watch Together from the home screen or side navigation without first playing an arbitrary video.
+- Added directional controller navigation, visible focus and handheld layouts while retaining keyboard, mouse and touch input.
+
+## Changed
+- Windows mouse-wheel input accumulates into short continuous scrolling animations and responds immediately to direction changes.
+- Watch Together adjusts prebuffering and recovery using actual media buffers, with clear synchronization state while a slow participant catches up.
+- Windows uses an installer, Android retains the established production package signature, Arch-based Linux uses a native package, and Steam Deck uses a user-scoped Flatpak installation entry.
+
+## Fixed
+- Corrected HDR10-to-SDR conversion in the Windows software renderer without applying another conversion to SDR or inapplicable media.
+
+## Known issues
+- Some account and server combinations may still be unable to find a Watch Together room; network conditions, transcoding and device performance affect cross-device synchronization, and not every scenario has been accepted.
+- The Windows installer still has no publisher code signature; other HDR formats, physical Steam Deck hardware and all hardware combinations have not been fully verified.
+
+## Update notes
+- Older clients with test releases enabled may encounter incomplete update data; turn that option off temporarily or download the production installer once from the relevant platform release page.
+- The production Android package differs from the previous .dev test app; update with the installer for the relevant platform to retain existing accounts and settings.
+- On Steam Deck, open the Flatpak installer in a supporting software center in Desktop Mode; disabling SteamOS read-only protection is unnecessary, and a standalone bundle does not imply a configured automatic-update repository.
+
 # JMS 0.11.1-jms.45
 
 ## Added

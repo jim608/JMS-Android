@@ -342,7 +342,8 @@ class FlatpakPublicationTests(unittest.TestCase):
     def ci_fixture(self):
         repository = {'full_name': 'jim608/JMS-Android'}
         run = {'id': 100, 'status': 'completed', 'conclusion': 'success', 'head_branch': 'jms',
-               'head_sha': 'a' * 40, 'path': desktop.FLATPAK_WORKFLOW, 'event': 'workflow_dispatch',
+               'head_sha': self.record['flatpak']['ci'].get('verificationCommit', 'a' * 40),
+               'path': desktop.FLATPAK_WORKFLOW, 'event': 'workflow_dispatch',
                'repository': repository, 'head_repository': repository}
         stream = io.BytesIO()
         flatpak = self.record['flatpak']
@@ -350,23 +351,65 @@ class FlatpakPublicationTests(unittest.TestCase):
             for name in [flatpak[field] for field in
                          ('bundle', 'payload', 'receipt', 'buildManifest', 'nativeSources', 'source')] + ['native.tar.gz']:
                 archive.writestr(name, (self.directory / name).read_bytes())
+            runner = {'SOURCE_COMMIT': self.record['sourceCommit'], 'VERSION': self.record['versionName'],
+                      'BUILD_ID': self.record['buildId'], 'GITHUB_RUN_ID': '100'}
+            if 'verificationCommit' in flatpak['ci']:
+                runner['VERIFICATION_COMMIT'] = flatpak['ci']['verificationCommit']
+            if 'nativeBuildRunId' in flatpak['ci']:
+                runner['NATIVE_BUILD_RUN_ID'] = str(flatpak['ci']['nativeBuildRunId'])
+                archive.writestr('native-build-origin.json', json.dumps(flatpak['ci']['nativeBuildOrigin']))
+            archive.writestr('runner-source.json', json.dumps(runner))
         content = stream.getvalue()
         artifact = {'id': 200, 'name': flatpak['ci']['artifactName'], 'expired': False,
                     'size_in_bytes': len(content), 'digest': 'sha256:' + self.digest(content),
-                    'workflow_run': {'id': 100, 'head_branch': 'jms', 'head_sha': 'a' * 40}}
+                    'workflow_run': {'id': 100, 'head_branch': 'jms', 'head_sha': run['head_sha']}}
         return run, artifact, content
 
-    def verify_ci(self, run, artifact, content):
+    @staticmethod
+    def ci_jobs(run_id, required, conclusion='success'):
+        return {'total_count': 1, 'jobs': [{'name': 'flatpak', 'run_id': run_id,
+                'status': 'completed', 'conclusion': conclusion,
+                'steps': [{'name': name, 'status': 'completed', 'conclusion': 'success'} for name in required]}]}
+
+    def verify_ci(self, run, artifact, content, jobs=None, parent=None, parent_jobs=None):
         def download(*args, **kwargs):
-            kwargs['stdout'].write(content)
+            data = parent[2] if parent and '/artifacts/201/zip' in args[0][-1] else content
+            kwargs['stdout'].write(data)
             return SimpleNamespace(returncode=0)
         with patch.object(desktop, 'Github') as github_type, \
                 patch.object(desktop.subprocess, 'run', side_effect=download):
             github = github_type.return_value
             github.executable = 'gh'
             github.environment = {}
-            github.api.side_effect = [run, {'total_count': 1, 'artifacts': [artifact]}]
+            resumed = 'nativeBuildRunId' in self.record['flatpak']['ci']
+            steps = desktop.FLATPAK_VERIFICATION_STEPS + (() if resumed else desktop.FLATPAK_BUILD_STEPS)
+            github.api.side_effect = [run, jobs or self.ci_jobs(100, steps),
+                                     {'total_count': 1, 'artifacts': [artifact]}] + (
+                [parent[0], parent_jobs or self.ci_jobs(99, desktop.FLATPAK_BUILD_STEPS, 'failure'),
+                 {'total_count': 1, 'artifacts': [parent[1]]}] if parent else [])
             return desktop.verify_flatpak_ci(self.record, self.refresh_assets())
+
+    def resumed_ci_fixture(self):
+        parent_run = {'id': 99, 'run_attempt': 1, 'status': 'completed', 'conclusion': 'failure',
+                      'head_branch': 'jms', 'head_sha': 'a' * 40, 'path': desktop.FLATPAK_WORKFLOW,
+                      'event': 'workflow_dispatch', 'repository': {'full_name': 'jim608/JMS-Android'},
+                      'head_repository': {'full_name': 'jim608/JMS-Android'}}
+        bundle = self.record['flatpak']['bundle']
+        stream = io.BytesIO()
+        with zipfile.ZipFile(stream, 'w') as archive:
+            archive.writestr('candidate/' + bundle, (self.directory / bundle).read_bytes())
+        content = stream.getvalue()
+        name = 'jms-flatpak-failure-' + 'a' * 40 + '-1'
+        artifact = {'id': 201, 'name': name, 'expired': False, 'size_in_bytes': len(content),
+                    'digest': 'sha256:' + self.digest(content),
+                    'workflow_run': {'id': 99, 'head_branch': 'jms', 'head_sha': 'a' * 40}}
+        origin = {'schemaVersion': 1, 'sourceCommit': 'a' * 40, 'buildId': self.record['buildId'],
+                  'runId': 99, 'artifactId': 201, 'artifactName': name,
+                  'artifactDigest': artifact['digest'], 'bundle': self.asset(bundle),
+                  'bundleMember': 'candidate/' + bundle}
+        self.record['flatpak']['ci'].update(verificationCommit='d' * 40,
+                                            nativeBuildRunId=99, nativeBuildOrigin=origin)
+        return parent_run, artifact, content
 
     def test_flatpak_ci_verifies_independently_downloaded_registered_artifact(self):
         run, artifact, content = self.ci_fixture()
@@ -393,6 +436,138 @@ class FlatpakPublicationTests(unittest.TestCase):
         (self.directory / self.record['flatpak']['bundle']).write_bytes(b'substituted bundle')
         with self.assertRaisesRegex(ReleaseError, 'asset size differs|candidate differs'):
             self.verify_ci(run, artifact, content)
+
+    def test_flatpak_resume_preserves_source_and_independently_verifies_parent_bundle(self):
+        parent = self.resumed_ci_fixture()
+        run, artifact, content = self.ci_fixture()
+        with patch.object(desktop, 'verify_flatpak_verification_inputs') as inputs:
+            self.assertEqual(self.verify_ci(run, artifact, content, parent=parent), self.digest(content))
+            inputs.assert_called_once_with('a' * 40, 'd' * 40)
+        self.assertEqual(self.record['sourceCommit'], 'a' * 40)
+        self.assertTrue(self.record['buildId'].endswith('a' * 12))
+
+    def test_flatpak_resume_rejects_self_declared_parent_origin_and_changed_binary(self):
+        parent = self.resumed_ci_fixture()
+        for field, value in (('head_sha', 'b' * 40), ('conclusion', 'success'),
+                             ('head_repository', {'full_name': 'other/fork'})):
+            run, artifact, content = self.ci_fixture()
+            changed = (dict(parent[0], **{field: value}), parent[1], parent[2])
+            with patch.object(desktop, 'verify_flatpak_verification_inputs'), self.subTest(field=field), \
+                    self.assertRaisesRegex(ReleaseError, 'pinned JMS build'):
+                self.verify_ci(run, artifact, content, parent=changed)
+        run, artifact, content = self.ci_fixture()
+        changed = (parent[0], parent[1], parent[2] + b'changed')
+        with patch.object(desktop, 'verify_flatpak_verification_inputs'), \
+                self.assertRaisesRegex(ReleaseError, 'artifact digest differs'):
+            self.verify_ci(run, artifact, content, parent=changed)
+        origin = self.record['flatpak']['ci']['nativeBuildOrigin']
+        origin['bundle']['sha256'] = 'b' * 64
+        run, artifact, content = self.ci_fixture()
+        with patch.object(desktop, 'verify_flatpak_verification_inputs'), \
+                self.assertRaisesRegex(ReleaseError, 'artifact binding differs'):
+            self.verify_ci(run, artifact, content, parent=parent)
+
+    def test_flatpak_resume_rejects_successful_parent_archive_with_a_different_bundle(self):
+        parent_run, parent_artifact, _ = self.resumed_ci_fixture()
+        stream = io.BytesIO()
+        bundle = self.record['flatpak']['bundle']
+        original = (self.directory / bundle).read_bytes()
+        with zipfile.ZipFile(stream, 'w') as archive:
+            archive.writestr('candidate/' + bundle, bytes([original[0] ^ 1]) + original[1:])
+        parent_content = stream.getvalue()
+        parent_artifact.update(size_in_bytes=len(parent_content), digest='sha256:' + self.digest(parent_content))
+        self.record['flatpak']['ci']['nativeBuildOrigin']['artifactDigest'] = parent_artifact['digest']
+        run, artifact, content = self.ci_fixture()
+        with patch.object(desktop, 'verify_flatpak_verification_inputs'), \
+                self.assertRaisesRegex(ReleaseError, 'differs from original native build bundle'):
+            self.verify_ci(run, artifact, content, parent=(parent_run, parent_artifact, parent_content))
+
+    def test_flatpak_resume_requires_original_native_build_steps_to_succeed(self):
+        parent = self.resumed_ci_fixture()
+        run, artifact, content = self.ci_fixture()
+        jobs = self.ci_jobs(99, desktop.FLATPAK_BUILD_STEPS, 'failure')
+        jobs['jobs'][0]['steps'][-1]['conclusion'] = 'failure'
+        with patch.object(desktop, 'verify_flatpak_verification_inputs'), \
+                self.assertRaisesRegex(ReleaseError, 'required step did not succeed'):
+            self.verify_ci(run, artifact, content, parent=parent, parent_jobs=jobs)
+
+    def test_flatpak_ci_requires_runtime_and_source_collection_steps_to_succeed(self):
+        run, artifact, content = self.ci_fixture()
+        for required in desktop.FLATPAK_VERIFICATION_STEPS:
+            jobs = self.ci_jobs(100, desktop.FLATPAK_VERIFICATION_STEPS + desktop.FLATPAK_BUILD_STEPS)
+            next(step for step in jobs['jobs'][0]['steps'] if step['name'] == required)['conclusion'] = 'skipped'
+            with self.subTest(step=required), self.assertRaisesRegex(ReleaseError, 'required step did not succeed'):
+                self.verify_ci(run, artifact, content, jobs=jobs)
+
+    def test_flatpak_resume_cannot_omit_parent_or_rebind_runner_source(self):
+        self.record['flatpak']['ci']['verificationCommit'] = 'd' * 40
+        run, artifact, content = self.ci_fixture()
+        with self.assertRaisesRegex(ReleaseError, 'Invalid Flatpak CI identity'):
+            self.verify_ci(run, artifact, content)
+        self.record['flatpak']['ci'].pop('verificationCommit')
+        run, artifact, content = self.ci_fixture()
+        stream = io.BytesIO()
+        with zipfile.ZipFile(io.BytesIO(content)) as old, zipfile.ZipFile(stream, 'w') as new:
+            for name in old.namelist():
+                data = old.read(name)
+                if name == 'runner-source.json':
+                    runner = json.loads(data)
+                    runner['SOURCE_COMMIT'] = 'b' * 40
+                    data = json.dumps(runner).encode()
+                new.writestr(name, data)
+        content = stream.getvalue()
+        artifact.update(size_in_bytes=len(content), digest='sha256:' + self.digest(content))
+        with self.assertRaisesRegex(ReleaseError, 'runner source/verification identity differs'):
+            self.verify_ci(run, artifact, content)
+
+
+class FlatpakVerificationCommitTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        self.command('init', '--quiet')
+        self.command('config', 'user.name', 'fixture')
+        self.command('config', 'user.email', 'fixture@users.noreply.github.com')
+        self.inputs = ['Dockerfile.linux', 'pubspec.lock', '.fvmrc', 'lib/main.dart',
+                       'linux/CMakeLists.txt', 'flatpak/jms-flatpak', 'LICENSE', '.dockerignore']
+        for name in self.inputs:
+            path = self.root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text('original input\n')
+        self.command('add', '--', *self.inputs)
+        self.command('commit', '--quiet', '-m', 'source')
+        self.source = self.command('rev-parse', 'HEAD')
+        (self.root / 'verification.py').write_text('verification tool\n')
+        self.command('add', '--', 'verification.py')
+        self.command('commit', '--quiet', '-m', 'verification')
+        self.verification = self.command('rev-parse', 'HEAD')
+
+    def command(self, *arguments):
+        return desktop.subprocess.check_output(['git', *arguments], cwd=self.root,
+                                                stderr=desktop.subprocess.PIPE).decode().strip()
+
+    def test_later_verification_tools_preserve_original_app_inputs(self):
+        with patch.object(desktop, 'ROOT', self.root):
+            desktop.verify_flatpak_verification_inputs(self.source, self.verification)
+
+    def test_changed_app_native_recipe_license_or_toolchain_input_is_rejected(self):
+        for name in self.inputs:
+            self.command('checkout', '--quiet', '--detach', self.verification)
+            (self.root / name).write_text('changed input\n')
+            self.command('add', '--', name)
+            self.command('commit', '--quiet', '-m', 'changed input')
+            changed = self.command('rev-parse', 'HEAD')
+            with self.subTest(path=name), patch.object(desktop, 'ROOT', self.root), \
+                    self.assertRaisesRegex(ReleaseError, 'changes candidate build inputs'):
+                desktop.verify_flatpak_verification_inputs(self.source, changed)
+
+    def test_unrelated_verification_commit_is_rejected_even_with_identical_tree(self):
+        tree = self.command('rev-parse', self.verification + '^{tree}')
+        unrelated = self.command('commit-tree', tree, '-m', 'unrelated verification')
+        with patch.object(desktop, 'ROOT', self.root), \
+                self.assertRaisesRegex(ReleaseError, 'not descended'):
+            desktop.verify_flatpak_verification_inputs(self.source, unrelated)
 
 
 if __name__ == '__main__':

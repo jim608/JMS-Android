@@ -211,6 +211,9 @@ class UpdateChecker {
         final metadataName = device.platform == 'linux-x64'
             ? 'update-linux.json'
             : 'update.json';
+        if (_isManualTestRelease(device.platform, release, assets)) {
+          continue;
+        }
         if (device.platform == 'linux-x64' &&
             !assets.any((asset) => asset['name'] == metadataName)) {
           continue;
@@ -269,6 +272,57 @@ class UpdateChecker {
     } finally {
       _busy = false;
     }
+  }
+
+  bool _isManualTestRelease(
+      String platform, Map release, List<Map<String, dynamic>> assets) {
+    final tag = release['tag_name'];
+    if (release['prerelease'] != true || tag is! String) {
+      return false;
+    }
+    final tagPattern = switch (platform) {
+      'windows-x64' => r'^v\d+\.\d+\.\d+-jms\.\d+-syncplay-hdr-test\.\d{8}$',
+      'android' => r'^test-\d+\.\d+\.\d+-jms\.\d+-syncplay-hdr-test\.\d{8}$',
+      _ => null,
+    };
+    if (tagPattern == null || !RegExp(tagPattern).hasMatch(tag)) return false;
+    // These explicitly named manual TEST builds do not offer an updater contract.
+    // A declared manifest or executable must still pass every normal check.
+    if (assets.any((asset) {
+      final name = asset['name'];
+      return name == 'update.json' ||
+          (name is String && name.toLowerCase().endsWith('.exe'));
+    })) {
+      return false;
+    }
+    if (platform == 'android') {
+      final prefix = 'JMS-Android-TEST-${tag.substring(5)}-';
+      bool isManualApk(String name) =>
+          name.startsWith(prefix) &&
+          RegExp(r'^[1-9][0-9]*-arm64-v8a\.apk$')
+              .hasMatch(name.substring(prefix.length));
+      if (assets.any((asset) {
+        final name = asset['name'];
+        return name is String &&
+            name.toLowerCase().endsWith('.apk') &&
+            !isManualApk(name);
+      })) {
+        return false;
+      }
+      return assets.any((asset) {
+        final name = asset['name'];
+        return asset['state'] == 'uploaded' &&
+            name is String &&
+            isManualApk(name);
+      });
+    }
+    return assets.any((asset) {
+      final name = asset['name'];
+      return asset['state'] == 'uploaded' &&
+          name is String &&
+          RegExp(r'^JMS-SyncPlay-HDR-Isolated-Test-[A-Za-z0-9._+-]+-x64\.zip$')
+              .hasMatch(name);
+    });
   }
 
   Map<String, dynamic> _asset(List<Map<String, dynamic>> assets, String name) {

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=JMS (Steam Deck)
+Name[zh_TW]=JMS（Steam Deck）
+StartupWMClass=com.jim608.jms
+Comment=Play your Jellyfin library with the handheld interface.
+Exec=jms --handheld
+Icon=com.jim608.jms
+Terminal=false
+Type=Application
+Categories=AudioVideo;Video;Player;

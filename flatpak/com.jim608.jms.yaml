@@ -160,6 +160,7 @@ modules:
       - install -Dm644 JMS_BUILD_INFO.json /app/share/jms/JMS_BUILD_INFO.json
       - install -Dm755 jms-flatpak /app/bin/jms
       - install -Dm644 JMS.desktop /app/share/applications/${FLATPAK_ID}.desktop
+      - install -Dm644 JMS-SteamDeck.desktop /app/share/applications/${FLATPAK_ID}.SteamDeck.desktop
       - install -Dm644 jms.svg /app/share/icons/hicolor/scalable/apps/${FLATPAK_ID}.svg
       - install -Dm644 com.jim608.jms.metainfo.xml /app/share/metainfo/${FLATPAK_ID}.metainfo.xml
       - install -Dm644 LICENSE /app/share/licenses/jms/LICENSE
@@ -170,6 +171,8 @@ modules:
         path: jms-flatpak
       - type: file
         path: JMS.desktop
+      - type: file
+        path: JMS-SteamDeck.desktop
       - type: file
         path: com.jim608.jms.metainfo.xml
       - type: file

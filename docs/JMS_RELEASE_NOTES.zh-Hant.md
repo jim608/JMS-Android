@@ -1,45 +1,47 @@
-# JMS 0.11.1-jms.45
+# JMS 0.11.1-jms.47
 
 ## 繁體中文 / Traditional Chinese
 
 ### 新增
-- 新增「一起看」：朋友各自登入同一台 Jellyfin，在播放器建立房間或輸入 6 位房間碼加入，同步播放、暫停及跳轉。
-- 房間顯示參與者與連線狀態，支援緩衝協調、重新連線確認及離開房間。
+- 首頁與側邊導覽新增「一起看」入口，不必先開啟任意影片才能輸入房間碼。
+- 新增手把方向導航、可見焦點與掌機布局，保留鍵盤、滑鼠及觸控操作。
 
 ### 調整
-- 一起看期間使用正常倍速，由 Jellyfin 的房間佇列管理影片；音軌、字幕與音量仍可各自選擇。
-- 切換帳號或伺服器時結束原同步連線，避免過期指令影響新帳號的播放。
+- Windows 滾輪以連續短動畫累積捲動，反向操作會立即更新方向。
+- 一起看依實際媒體緩衝調整預載與恢復，慢速端追趕時會保留清楚的同步狀態。
+- Windows 使用安裝程式、Android 使用既有正式套件簽章、Arch 系 Linux 使用原生套件，Steam Deck 使用使用者層級 Flatpak 安裝入口。
 
 ### 修正
-- 改善新版 Jellyfin 未開啟舊式認證時的一起看連線相容性。
+- 修正 Windows 軟體渲染路徑中 HDR10 影片在 SDR 螢幕上的轉換，SDR 與不適用的影片不重複轉換。
 
 ### 已知問題
-- 一起看需要同一台 Jellyfin 的個別帳號、影片觀看權限及 SyncPlay 權限；不支援跨伺服器、匿名觀眾、離線影片、音樂、直播、Android TV 或手動 Native 播放器。
-- 同步精度受網路延遲、轉碼與裝置效能影響；Windows App 與安裝程式尚未提供正式發行者簽章。
+- 部分帳號與伺服器組合仍可能找不到一起看房間；網路、轉碼與裝置效能會影響跨裝置同步，並非所有情境均已驗收。
+- Windows 安裝程式仍未提供發行者程式碼簽章；其他 HDR 格式、實體 Steam Deck 與全部硬體組合尚未完整驗證。
 
 ### 更新注意事項
-- 6 位房間碼用來尋找 Jellyfin 房間，不是密碼或私人房間保護；同伺服器有權限的其他客戶端仍可能列出房間。每人各自向 Jellyfin 取得影片，不需分享登入憑證。
-- 先開啟線上影片，再按播放器的「一起看」。關閉房間視窗會保留連線，選擇「離開房間」或結束播放器才離開。
-- Android、Windows x64 與 EndeavourOS／Arch x86_64 提供測試版更新，請保留既有帳號與設定並使用覆蓋更新。私人 Web 更新後，使用一般重新整理載入新版。
+- 舊版若開啟接收測試版而遇到更新資料錯誤，可先關閉該選項，或從對應平台發行頁下載一次正式安裝程式。
+- Android 正式套件與先前的 .dev 測試版不同；請使用對應平台的安裝檔更新，保留既有帳號與設定。
+- Steam Deck 請在桌面模式透過 Flatpak 支援的軟體中心開啟安裝檔；不需要解除 SteamOS 唯讀保護，獨立安裝包不代表已配置自動更新來源。
 
 ## English
 
 ### Added
-- Watch together with separate accounts on the same Jellyfin server. Create a room in the video player or enter its six-digit code to synchronize playback, pause and seeking.
-- View participants and connection status, coordinate buffering, reconnect to confirm room state, and leave a room.
+- Open Watch Together from the home screen or side navigation without first playing an arbitrary video.
+- Added directional controller navigation, visible focus and handheld layouts while retaining keyboard, mouse and touch input.
 
 ### Changed
-- Watch Together uses normal playback speed and the Jellyfin room queue. Each participant can choose their own audio track, subtitles and volume.
-- Switching accounts or servers ends the previous synchronization connection so stale commands cannot affect playback under the new account.
+- Windows mouse-wheel input accumulates into short continuous scrolling animations and responds immediately to direction changes.
+- Watch Together adjusts prebuffering and recovery using actual media buffers, with clear synchronization state while a slow participant catches up.
+- Windows uses an installer, Android retains the established production package signature, Arch-based Linux uses a native package, and Steam Deck uses a user-scoped Flatpak installation entry.
 
 ### Fixed
-- Improved Watch Together connection compatibility with Jellyfin servers that do not enable legacy authentication.
+- Corrected HDR10-to-SDR conversion in the Windows software renderer without applying another conversion to SDR or inapplicable media.
 
 ### Known issues
-- Watch Together requires separate accounts on the same Jellyfin server, access to the video and SyncPlay permission. Cross-server rooms, anonymous viewers, offline videos, music, live TV, Android TV and the manually selected Native player are not supported.
-- Synchronization depends on network latency, transcoding and device performance. The Windows app and installer do not yet have a publisher code signature.
+- Some account and server combinations may still be unable to find a Watch Together room; network conditions, transcoding and device performance affect cross-device synchronization, and not every scenario has been accepted.
+- The Windows installer still has no publisher code signature; other HDR formats, physical Steam Deck hardware and all hardware combinations have not been fully verified.
 
 ### Update notes
-- The six-digit code locates a Jellyfin room; it is not a password or private-room protection. Other authorized clients on the server may still list the room. Each participant streams directly from Jellyfin without sharing login credentials.
-- Open an online video before selecting Watch Together in the player. Closing the room dialog keeps the connection; select Leave room or close the player to leave.
-- Prerelease updates are available for Android, Windows x64 and EndeavourOS/Arch x86_64. Upgrade over the existing installation to retain accounts and settings. After the private Web app updates, use a normal refresh to load the new version.
+- Older clients with test releases enabled may encounter incomplete update data; turn that option off temporarily or download the production installer once from the relevant platform release page.
+- The production Android package differs from the previous .dev test app; update with the installer for the relevant platform to retain existing accounts and settings.
+- On Steam Deck, open the Flatpak installer in a supporting software center in Desktop Mode; disabling SteamOS read-only protection is unnecessary, and a standalone bundle does not imply a configured automatic-update repository.

@@ -1,22 +1,37 @@
 #!/bin/bash
-set -euo pipefail
+set -Eeuo pipefail
+trap 'printf "Flatpak validation failed at line %s\n" "$LINENO" >&2' ERR
+guard() {
+  local label=$1
+  shift
+  if ! "$@"; then
+    printf 'Flatpak validation guard failed: %s\n' "$label" >&2
+    return 1
+  fi
+}
 # Only a newly created CI account with a disposable keyring may run this test.
-test "${JMS_ISOLATED_FLATPAK_TEST:-}" = 1
-test "$(id -u)" != 0
-test "$(id -un)" = jms-flatpak-validation
-test "$HOME" = /home/jms-flatpak-validation
-test -n "${JMS_FLATPAK_BUNDLE:-}"
-test -n "${JMS_FLATPAK_TEST_DIR:-}"
-test -n "${JMS_FLATPAK_OUTPUT:-}"
+guard explicit-isolated-test test "${JMS_ISOLATED_FLATPAK_TEST:-}" = 1
+guard nonroot-account test "$(id -u)" != 0
+guard expected-account test "$(id -un)" = jms-flatpak-validation
+guard isolated-home test "${HOME:-}" = /home/jms-flatpak-validation
+guard bundle-variable test -n "${JMS_FLATPAK_BUNDLE:-}"
+guard helpers-variable test -n "${JMS_FLATPAK_TEST_DIR:-}"
+guard output-variable test -n "${JMS_FLATPAK_OUTPUT:-}"
 app=com.jim608.jms
-test -r "$JMS_FLATPAK_BUNDLE"
-test -x "$JMS_FLATPAK_TEST_DIR/secret-test"
-test -x "$JMS_FLATPAK_TEST_DIR/media-test"
-test -r "$JMS_FLATPAK_TEST_DIR/synthetic.mkv"
+guard readable-bundle test -r "$JMS_FLATPAK_BUNDLE"
+guard executable-secret-helper test -x "$JMS_FLATPAK_TEST_DIR/secret-test"
+guard executable-media-helper test -x "$JMS_FLATPAK_TEST_DIR/media-test"
+guard readable-synthetic-media test -r "$JMS_FLATPAK_TEST_DIR/synthetic.mkv"
+# Do not inherit runner-image XDG paths into the disposable account's keyring.
+export XDG_CONFIG_HOME="$HOME/.config"
+export XDG_DATA_HOME="$HOME/.local/share"
+export XDG_CACHE_HOME="$HOME/.cache"
+export XDG_STATE_HOME="$HOME/.local/state"
 if flatpak --user info "$app" >/dev/null 2>&1 || test -e "$HOME/.var/app/$app"; then
   echo 'Fresh-install validation requires a new isolated account' >&2; exit 1
 fi
 mkdir -p "$JMS_FLATPAK_OUTPUT" "$HOME/.local/share"
+echo 'Flatpak validation phase: install'
 flatpak --user install --noninteractive --bundle "$JMS_FLATPAK_BUNDLE"
 flatpak --user info "$app" > "$JMS_FLATPAK_OUTPUT/installed-info.txt"
 deployment=$(flatpak --user info --show-location "$app")
@@ -36,6 +51,8 @@ if filesystems & {'home', 'host', 'host-os', 'host-etc', 'host-root', '/'} or so
 PY
 export JMS_FLATPAK_DEPLOYMENT="$deployment"
 dbus-run-session -- xvfb-run -a bash -euo pipefail <<'TEST_SESSION'
+set -E
+trap 'printf "Flatpak sandbox validation failed at line %s\n" "$LINENO" >&2' ERR
 export XDG_RUNTIME_DIR
 XDG_RUNTIME_DIR=$(mktemp -d /tmp/jms-flatpak-runtime.XXXXXX)
 chmod 700 "$XDG_RUNTIME_DIR"
@@ -43,6 +60,7 @@ trap 'flatpak kill com.jim608.jms 2>/dev/null || true; pulseaudio --kill 2>/dev/
 printf '%s' fixture-keyring-passphrase | gnome-keyring-daemon --unlock --components=secrets >/dev/null
 pulseaudio --start --exit-idle-time=-1
 helper="$JMS_FLATPAK_TEST_DIR/secret-test"
+echo 'Flatpak validation phase: secret-service'
 run_secret() {
   timeout --kill-after=5s 30s flatpak --user run --filesystem="$JMS_FLATPAK_TEST_DIR:ro" --command="$helper" com.jim608.jms "$1"
 }
@@ -72,6 +90,7 @@ if grep -RaFq fixture-session-only "$HOME/.local/share/keyrings"; then
   echo 'Unexpected plaintext keyring session' >&2; exit 1
 fi
 timeout --kill-after=5s 30s flatpak --user run --no-talk-name=org.freedesktop.secrets --filesystem="$JMS_FLATPAK_TEST_DIR:ro" --command="$helper" com.jim608.jms unavailable
+echo 'Flatpak validation phase: media-decode'
 timeout --kill-after=5s 30s flatpak --user run --filesystem="$JMS_FLATPAK_TEST_DIR:ro" --command="$JMS_FLATPAK_TEST_DIR/media-test" com.jim608.jms "$JMS_FLATPAK_TEST_DIR/synthetic.mkv" > "$JMS_FLATPAK_OUTPUT/media-test.log"
 launch() {
   label=$1
@@ -93,6 +112,7 @@ launch() {
   flatpak kill com.jim608.jms
   wait "$app_pid" || true
 }
+echo 'Flatpak validation phase: product-launch'
 launch first-launch
 # Preserve all product-created settings and a known file during reinstall.
 app_data="$HOME/.var/app/com.jim608.jms"
@@ -101,6 +121,7 @@ settings="$app_data/config/jms-flatpak-validation.json"
 printf '%s\n' '{"fixture":"retained-local-setting","themeMode":"dark"}' > "$settings"
 sha256sum "$settings" > "$JMS_FLATPAK_OUTPUT/settings-before.txt"
 find "$app_data/config" "$app_data/data" -type f -print0 | sort -z | xargs -0 -r sha256sum > "$JMS_FLATPAK_OUTPUT/config-before.txt"
+echo 'Flatpak validation phase: reinstall-retention'
 flatpak --user install --noninteractive --reinstall --bundle "$JMS_FLATPAK_BUNDLE"
 sha256sum --check "$JMS_FLATPAK_OUTPUT/config-before.txt"
 sha256sum "$settings" > "$JMS_FLATPAK_OUTPUT/settings-after.txt"
@@ -115,6 +136,18 @@ run_secret empty
 if grep -RaFq fixture-session-only "$HOME/.local/share/keyrings"; then
   echo 'Unexpected plaintext keyring session after reinstall' >&2; exit 1
 fi
+echo 'Flatpak validation phase: uninstall-and-reinstall'
+flatpak --user uninstall --noninteractive com.jim608.jms
+if flatpak --user info com.jim608.jms >/dev/null 2>&1; then
+  echo 'Flatpak application still installed after uninstall' >&2; exit 1
+fi
+# The default uninstall keeps app data; never use --delete-data in this check.
+sha256sum --check "$JMS_FLATPAK_OUTPUT/settings-before.txt"
+flatpak --user install --noninteractive --bundle "$JMS_FLATPAK_BUNDLE"
+test "$(flatpak --user info --show-commit com.jim608.jms)" = "$(cat "$JMS_FLATPAK_OUTPUT/installed-commit.txt")"
+flatpak --user info --show-location com.jim608.jms > "$JMS_FLATPAK_OUTPUT/deployment-location.txt"
+sha256sum --check "$JMS_FLATPAK_OUTPUT/settings-before.txt"
+
 echo 'Sandbox Secret Service cross-process restore, verified daemon restart, account isolation, same-bundle reinstall retention, clear and denied-service passed' > "$JMS_FLATPAK_OUTPUT/secret-service-test.log"
 TEST_SESSION
 python3 - "$JMS_FLATPAK_OUTPUT" <<'PY'
@@ -124,6 +157,8 @@ output = pathlib.Path(sys.argv[1])
   'install': True, 'launch': True, 'freshInstall': True, 'reinstall': True, 'restart': True,
   'configurationFilesRetainedOnReinstall': True,
   'syntheticSettingsFixtureRetained': True,
+  'uninstallRemovesApplication': True, 'uninstallRetainsDataWithoutDeleteData': True,
+  'reinstallAfterUninstall': True,
   'secretServiceSandbox': True, 'secretServiceCrossProcessRestore': True,
   'secretServiceDaemonRestartRestore': True, 'secretServiceRetainedOnReinstall': True,
   'secretServiceAccountIsolation': True, 'secretServiceClear': True,

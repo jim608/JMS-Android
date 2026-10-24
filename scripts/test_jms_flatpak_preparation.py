@@ -47,7 +47,8 @@ class FlatpakPreparationTests(unittest.TestCase):
                 archive.addfile(member, io.BytesIO(data))
         (self.directory / 'validation').mkdir()
         fixture.write_json('validation/runtime-validation.json', fixture.receipt['validation'])
-        fixture.write_json('runner-source.json', {'local': 'synthetic runner evidence'})
+        fixture.write_json('runner-source.json', {'SOURCE_COMMIT': commit, 'VERSION': version,
+                            'BUILD_ID': self.build['buildId'], 'GITHUB_RUN_ID': '100'})
         fixture.write_json('validation/diagnostic.json', {'local': 'synthetic diagnostics'})
         for name in ('desktop-publication.json', 'SHA256SUMS.txt', 'RELEASE_NOTES.md'):
             (self.directory / name).unlink()
@@ -78,6 +79,9 @@ class FlatpakPreparationTests(unittest.TestCase):
     def test_existing_prepared_candidate_is_never_replaced_with_another_run(self):
         record = self.prepare()
         before = (self.directory / 'desktop-publication.json').read_bytes()
+        runner = json.loads((self.directory / 'runner-source.json').read_text())
+        runner['GITHUB_RUN_ID'] = '101'
+        (self.directory / 'runner-source.json').write_text(json.dumps(runner))
         with self.assertRaisesRegex(ReleaseError, 'refusing replacement'):
             self.prepare(101)
         self.assertEqual((self.directory / 'desktop-publication.json').read_bytes(), before)
@@ -95,6 +99,46 @@ class FlatpakPreparationTests(unittest.TestCase):
         (self.directory / 'validation/runtime-validation.json').write_text('{}')
         with self.assertRaisesRegex(ReleaseError, 'runtime verification differs'):
             self.prepare()
+
+    def test_fresh_ci_runner_has_no_native_parent(self):
+        runner = json.loads((self.directory / 'runner-source.json').read_text())
+        runner.update(VERIFICATION_COMMIT=self.build['sourceCommit'], NATIVE_BUILD_RUN_ID='')
+        (self.directory / 'runner-source.json').write_text(json.dumps(runner))
+        with patch.object(preparation, 'verify_flatpak_verification_inputs') as inputs:
+            record = self.prepare()
+        inputs.assert_called_once_with(self.build['sourceCommit'], self.build['sourceCommit'])
+        self.assertEqual(record['flatpak']['ci']['verificationCommit'], self.build['sourceCommit'])
+        self.assertNotIn('nativeBuildRunId', record['flatpak']['ci'])
+        self.assertNotIn('nativeBuildOrigin', record['flatpak']['ci'])
+
+    def test_resumed_ci_records_verification_head_without_rebinding_source_or_public_assets(self):
+        runner = json.loads((self.directory / 'runner-source.json').read_text())
+        runner.update(VERIFICATION_COMMIT='d' * 40, NATIVE_BUILD_RUN_ID='99')
+        (self.directory / 'runner-source.json').write_text(json.dumps(runner))
+        bundle = self.directory / f'JMS-Linux-{self.build["versionName"]}-x86_64.flatpak'
+        origin = {'schemaVersion': 1, 'sourceCommit': self.build['sourceCommit'],
+                  'buildId': self.build['buildId'], 'runId': 99, 'artifactId': 201,
+                  'artifactName': 'synthetic-failure-artifact', 'artifactDigest': 'sha256:' + 'b' * 64,
+                  'bundle': preparation.item(bundle), 'bundleMember': 'candidate/' + bundle.name}
+        (self.directory / 'native-build-origin.json').write_text(json.dumps(origin))
+        with patch.object(preparation, 'verify_flatpak_verification_inputs') as inputs:
+            record = self.prepare()
+        inputs.assert_called_once_with(self.build['sourceCommit'], 'd' * 40)
+        self.assertEqual(record['sourceCommit'], self.build['sourceCommit'])
+        self.assertEqual(record['buildId'], self.build['buildId'])
+        self.assertEqual(record['flatpak']['ci']['nativeBuildRunId'], 99)
+        self.assertEqual(record['flatpak']['ci']['nativeBuildOrigin'], origin)
+        self.assertEqual(len(record['assets']), 9)
+        self.assertNotIn('native-build-origin.json', {entry['name'] for entry in record['assets']})
+
+    def test_resumed_ci_requires_matching_parent_and_runner_identity(self):
+        runner = json.loads((self.directory / 'runner-source.json').read_text())
+        for changed in (dict(runner, VERIFICATION_COMMIT='d' * 40),
+                        dict(runner, SOURCE_COMMIT='b' * 40),
+                        dict(runner, NATIVE_BUILD_RUN_ID='true')):
+            (self.directory / 'runner-source.json').write_text(json.dumps(changed))
+            with self.subTest(runner=changed), self.assertRaisesRegex(ReleaseError, 'runner source/verification identity'):
+                self.prepare()
 
 
 if __name__ == '__main__':

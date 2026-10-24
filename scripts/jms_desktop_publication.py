@@ -18,6 +18,13 @@ from jms_release_notes import release_body_for_candidate, release_notes_from_arc
 REPOSITORIES = {'windows': 'jim608/JMS-Desktop', 'linux': 'jim608/JMS-Linux', 'web': 'jim608/JMS-Web'}
 FLATPAK_WORKFLOW = '.github/workflows/jms-flatpak.yml'
 MAX_CI_ARCHIVE_BYTES = 512 * 1024 * 1024
+FLATPAK_BUILD_INPUTS = (
+    'Dockerfile.linux', 'pubspec.yaml', 'pubspec.lock', '.fvmrc', 'lib', 'linux',
+    'third_party', 'flatpak', 'assets', 'icons', 'LICENSE', 'l10n.yaml',
+    '.dockerignore', '.gitattributes', '.gitmodules',
+)
+FLATPAK_BUILD_STEPS = ('建置鎖定的 Flutter Linux 來源', '建置原生依賴與 Flatpak')
+FLATPAK_VERIFICATION_STEPS = ('在隔離帳號驗證真正的 Flatpak 沙箱', '封存相應來源與建置材料')
 FLATPAK_REQUIRED_LICENSES = (
     'jms/LICENSE', 'ffmpeg/COPYING.GPLv3', 'ffmpeg/LICENSE.md', 'libass/COPYING',
     'libplacebo/LICENSE', 'mpv/Copyright', 'mpv/LICENSE.GPL', 'mpv/LICENSE.LGPL',
@@ -201,66 +208,178 @@ def prepared_assets(directory, record):
     return files
 
 
-def verify_flatpak_ci(record, files):
-    """Read the registered CI artifact independently before trusting deployment exports."""
-    ci = record['flatpak']['ci']
-    run_id = ci.get('runId')
-    if (type(run_id) is not int or run_id <= 0
-            or ci.get('artifactName') != 'jms-flatpak-' + record['sourceCommit']):
-        raise ReleaseError('Invalid Flatpak CI identity')
-    github = Github(repository='jim608/JMS-Android')
+def verify_flatpak_verification_inputs(source, verification):
+    if not isinstance(verification, str) or not re.fullmatch('[a-f0-9]{40}', verification):
+        raise ReleaseError('Invalid Flatpak verification commit')
+    if source != verification:
+        try:
+            git('merge-base', '--is-ancestor', source, verification, cwd=ROOT)
+            changed = git('diff', '--name-only', source, verification, '--',
+                          *FLATPAK_BUILD_INPUTS, cwd=ROOT)
+        except subprocess.CalledProcessError as error:
+            raise ReleaseError('Flatpak verification commit is not descended from App source') from error
+        if changed:
+            raise ReleaseError('Flatpak verification commit changes candidate build inputs')
+
+
+def flatpak_ci_run(github, run_id, head, conclusion):
     prefix = 'repos/jim608/JMS-Android/actions/'
     run = github.api(prefix + 'runs/' + str(run_id))
     if (run.get('id') != run_id or run.get('status') != 'completed'
-            or run.get('conclusion') != 'success' or run.get('head_branch') != 'jms'
-            or run.get('head_sha') != record['sourceCommit']
+            or run.get('conclusion') != conclusion or run.get('head_branch') != 'jms'
+            or run.get('head_sha') != head
             or run.get('path') != FLATPAK_WORKFLOW
             or run.get('event') not in ('push', 'workflow_dispatch')
             or run.get('repository', {}).get('full_name') != 'jim608/JMS-Android'
             or run.get('head_repository', {}).get('full_name') != 'jim608/JMS-Android'):
         raise ReleaseError('Flatpak CI run is not a successful pinned JMS build')
+    return run
+
+
+def flatpak_ci_steps(github, run_id, required, conclusion):
+    listing = github.api(f'repos/jim608/JMS-Android/actions/runs/{run_id}/jobs?per_page=100')
+    jobs = listing.get('jobs', [])
+    if listing.get('total_count', 101) > 100 or len(jobs) != 1:
+        raise ReleaseError('Flatpak CI job inventory is missing or ambiguous')
+    job = jobs[0]
+    if (job.get('name') != 'flatpak' or job.get('run_id') != run_id
+            or job.get('status') != 'completed' or job.get('conclusion') != conclusion):
+        raise ReleaseError('Flatpak CI job identity differs')
+    for name in required:
+        steps = [step for step in job.get('steps', []) if step.get('name') == name]
+        if (len(steps) != 1 or steps[0].get('status') != 'completed'
+                or steps[0].get('conclusion') != 'success'):
+            raise ReleaseError('Flatpak CI required step did not succeed: ' + name)
+
+
+def flatpak_ci_artifact(github, run_id, name, head):
+    prefix = 'repos/jim608/JMS-Android/actions/'
     listing = github.api(prefix + 'runs/' + str(run_id) + '/artifacts?per_page=100')
     if listing.get('total_count', 101) > 100:
         raise ReleaseError('Flatpak CI artifact inventory exceeds inspection limit')
     matches = [entry for entry in listing.get('artifacts', [])
-               if entry.get('name') == ci['artifactName']]
+               if entry.get('name') == name]
     if len(matches) != 1:
         raise ReleaseError('Flatpak CI artifact is missing or ambiguous')
     artifact = matches[0]
     digest = artifact.get('digest', '')
     identity = artifact.get('workflow_run', {})
-    if (artifact.get('expired') is not False or type(artifact.get('id')) is not int
+    if (artifact.get('expired') is not False or type(artifact.get('id')) is not int or artifact['id'] <= 0
             or not 0 < artifact.get('size_in_bytes', 0) <= MAX_CI_ARCHIVE_BYTES
             or not re.fullmatch(r'sha256:[a-f0-9]{64}', digest)
             or identity.get('id') != run_id or identity.get('head_branch') != 'jms'
-            or identity.get('head_sha') != record['sourceCommit']):
+            or identity.get('head_sha') != head):
         raise ReleaseError('Flatpak CI artifact provenance is incomplete')
+    return artifact
+
+
+def download_flatpak_ci_artifact(github, artifact, downloaded):
+    prefix = 'repos/jim608/JMS-Android/actions/'
+    with downloaded.open('wb') as output:
+        try:
+            result = subprocess.run(['rtk', 'proxy', str(github.executable), 'api',
+                prefix + 'artifacts/' + str(artifact['id']) + '/zip'], cwd=ROOT,
+                env=github.environment, stdout=output, stderr=subprocess.PIPE, timeout=600)
+        except subprocess.TimeoutExpired as error:
+            raise ReleaseError('Flatpak CI artifact download timed out') from error
+    if result.returncode != 0:
+        raise ReleaseError('Flatpak CI artifact download failed')
+    if (downloaded.stat().st_size != artifact['size_in_bytes']
+            or downloaded.stat().st_size > MAX_CI_ARCHIVE_BYTES
+            or sha256(downloaded) != artifact['digest'].removeprefix('sha256:')):
+        raise ReleaseError('Flatpak CI artifact digest differs from GitHub metadata')
+
+
+def flatpak_ci_archive_names(archive):
+    names = archive.namelist()
+    if len(names) != len(set(names)) or len(names) > 200000:
+        raise ReleaseError('Flatpak CI archive has duplicate or excessive members')
+    if any('\\' in name or PurePosixPath(name).is_absolute()
+           or '..' in PurePosixPath(name).parts for name in names):
+        raise ReleaseError('Unsafe Flatpak CI archive member')
+    if sum(item.file_size for item in archive.infolist()) > 4 * 1024**3:
+        raise ReleaseError('Flatpak CI archive expansion limit exceeded')
+    return names
+
+
+def flatpak_ci_json(archive, name):
+    if name not in archive.namelist() or archive.getinfo(name).file_size > 1024 * 1024:
+        raise ReleaseError('Flatpak CI identity evidence missing or excessive: ' + name)
+    try:
+        result = json.loads(archive.read(name))
+    except (ValueError, UnicodeError) as error:
+        raise ReleaseError('Invalid Flatpak CI identity evidence') from error
+    if not isinstance(result, dict):
+        raise ReleaseError('Invalid Flatpak CI identity evidence')
+    return result
+
+
+def verify_flatpak_native_origin(github, record, files):
+    ci = record['flatpak']['ci']
+    run_id = ci['nativeBuildRunId']
+    origin = ci.get('nativeBuildOrigin', {})
+    allowed = {'schemaVersion', 'sourceCommit', 'buildId', 'runId', 'artifactId',
+               'artifactName', 'artifactDigest', 'bundle', 'bundleMember'}
+    if (not isinstance(origin, dict) or set(origin) != allowed or origin.get('schemaVersion') != 1
+            or type(run_id) is not int or run_id <= 0 or run_id == ci['runId']
+            or origin.get('runId') != run_id or origin.get('sourceCommit') != record['sourceCommit']
+            or origin.get('buildId') != record['buildId']):
+        raise ReleaseError('Flatpak native build origin identity differs')
+    run = flatpak_ci_run(github, run_id, record['sourceCommit'], 'failure')
+    flatpak_ci_steps(github, run_id, FLATPAK_BUILD_STEPS, 'failure')
+    attempt = run.get('run_attempt')
+    if type(attempt) is not int or attempt <= 0:
+        raise ReleaseError('Flatpak native build attempt is missing')
+    name = f'jms-flatpak-failure-{record["sourceCommit"]}-{attempt}'
+    artifact = flatpak_ci_artifact(github, run_id, name, record['sourceCommit'])
+    bundle = record['flatpak']['bundle']
+    member_name = 'candidate/' + bundle
+    expected = {'name': bundle, 'size': files[bundle]['size'], 'sha256': files[bundle]['sha256']}
+    if (origin.get('artifactId') != artifact['id'] or origin.get('artifactName') != name
+            or origin.get('artifactDigest') != artifact['digest']
+            or origin.get('bundle') != expected or origin.get('bundleMember') != member_name):
+        raise ReleaseError('Flatpak native build artifact binding differs')
+    with tempfile.TemporaryDirectory(prefix='jms-flatpak-native-ci-') as temporary:
+        downloaded = Path(temporary) / 'artifact.zip'
+        download_flatpak_ci_artifact(github, artifact, downloaded)
+        with zipfile.ZipFile(downloaded) as archive:
+            names = flatpak_ci_archive_names(archive)
+            if [name for name in names if name.endswith('.flatpak')] != [member_name]:
+                raise ReleaseError('Flatpak native build bundle member is missing or ambiguous')
+            member = archive.getinfo(member_name)
+            if member.file_size != expected['size'] or member.file_size > MAX_CI_ARCHIVE_BYTES:
+                raise ReleaseError('Flatpak native build bundle size differs')
+            with archive.open(member) as stream:
+                if hashlib.file_digest(stream, 'sha256').hexdigest() != expected['sha256']:
+                    raise ReleaseError('Flatpak candidate differs from original native build bundle')
+
+
+def verify_flatpak_ci(record, files):
+    """Verify original binary and later validation without rebinding the App source."""
+    ci = record['flatpak']['ci']
+    run_id = ci.get('runId')
+    verification = ci.get('verificationCommit', record['sourceCommit'])
+    resumed = ci.get('nativeBuildRunId') is not None
+    if (type(run_id) is not int or run_id <= 0
+            or ci.get('artifactName') != 'jms-flatpak-' + record['sourceCommit']
+            or (verification != record['sourceCommit'] and not resumed)
+            or (not resumed and ci.get('nativeBuildOrigin') is not None)):
+        raise ReleaseError('Invalid Flatpak CI identity')
+    verify_flatpak_verification_inputs(record['sourceCommit'], verification)
+    github = Github(repository='jim608/JMS-Android')
+    flatpak_ci_run(github, run_id, verification, 'success')
+    required_steps = FLATPAK_VERIFICATION_STEPS + (() if resumed else FLATPAK_BUILD_STEPS)
+    flatpak_ci_steps(github, run_id, required_steps, 'success')
+    artifact = flatpak_ci_artifact(github, run_id, ci['artifactName'], verification)
+    digest = artifact['digest']
     required = {record['flatpak'][field] for field in
                 ('bundle', 'payload', 'receipt', 'buildManifest', 'nativeSources', 'source')}
     required.update(record['nativeReview']['materials'])
     with tempfile.TemporaryDirectory(prefix='jms-flatpak-ci-') as temporary:
         downloaded = Path(temporary) / 'artifact.zip'
-        with downloaded.open('wb') as output:
-            try:
-                result = subprocess.run(['rtk', 'proxy', str(github.executable), 'api',
-                    prefix + 'artifacts/' + str(artifact['id']) + '/zip'], cwd=ROOT,
-                    env=github.environment, stdout=output, stderr=subprocess.PIPE, timeout=600)
-            except subprocess.TimeoutExpired as error:
-                raise ReleaseError('Flatpak CI artifact download timed out') from error
-        if result.returncode != 0:
-            raise ReleaseError('Flatpak CI artifact download failed')
-        if (downloaded.stat().st_size > MAX_CI_ARCHIVE_BYTES
-                or sha256(downloaded) != digest.removeprefix('sha256:')):
-            raise ReleaseError('Flatpak CI artifact digest differs from GitHub metadata')
+        download_flatpak_ci_artifact(github, artifact, downloaded)
         with zipfile.ZipFile(downloaded) as archive:
-            names = archive.namelist()
-            if len(names) != len(set(names)) or len(names) > 200000:
-                raise ReleaseError('Flatpak CI archive has duplicate or excessive members')
-            if any('\\' in name or PurePosixPath(name).is_absolute()
-                   or '..' in PurePosixPath(name).parts for name in names):
-                raise ReleaseError('Unsafe Flatpak CI archive member')
-            if sum(item.file_size for item in archive.infolist()) > 4 * 1024**3:
-                raise ReleaseError('Flatpak CI archive expansion limit exceeded')
+            names = flatpak_ci_archive_names(archive)
             for name in required:
                 if name not in files or name not in names:
                     raise ReleaseError('Flatpak asset missing from pinned CI artifact: ' + name)
@@ -271,6 +390,18 @@ def verify_flatpak_ci(record, files):
                     actual = hashlib.file_digest(stream, 'sha256').hexdigest()
                 if actual != files[name]['sha256']:
                     raise ReleaseError('Flatpak candidate differs from pinned CI artifact: ' + name)
+            runner = flatpak_ci_json(archive, 'runner-source.json')
+            if (runner.get('SOURCE_COMMIT') != record['sourceCommit']
+                    or runner.get('VERSION') != record['versionName']
+                    or runner.get('BUILD_ID') != record['buildId']
+                    or runner.get('GITHUB_RUN_ID') != str(run_id)
+                    or runner.get('VERIFICATION_COMMIT', record['sourceCommit']) != verification
+                    or runner.get('NATIVE_BUILD_RUN_ID', '') != (str(ci['nativeBuildRunId']) if resumed else '')):
+                raise ReleaseError('Flatpak CI runner source/verification identity differs')
+            if resumed and flatpak_ci_json(archive, 'native-build-origin.json') != ci.get('nativeBuildOrigin'):
+                raise ReleaseError('Flatpak CI native origin receipt differs')
+    if resumed:
+        verify_flatpak_native_origin(github, record, files)
     return digest.removeprefix('sha256:')
 
 

@@ -10,7 +10,8 @@ import zipfile
 
 from jms_publication import ReleaseError, sha256
 from jms_release_notes import release_notes_from_archive, release_body_for_candidate
-from jms_desktop_publication import verify_flatpak_payload, verify_source_archive
+from jms_desktop_publication import (verify_flatpak_payload, verify_source_archive,
+                                     verify_flatpak_verification_inputs)
 
 
 def item(path):
@@ -58,6 +59,36 @@ def native_source_materials(directory, build, material):
     return evidence
 
 
+def ci_identity(directory, build, run_id):
+    runner = json.loads((directory / 'runner-source.json').read_text(encoding='utf-8'))
+    commit = build['sourceCommit']
+    verification = runner.get('VERIFICATION_COMMIT', commit)
+    parent = runner.get('NATIVE_BUILD_RUN_ID', '')
+    if (runner.get('SOURCE_COMMIT') != commit or runner.get('VERSION') != build['versionName']
+            or runner.get('BUILD_ID') != build['buildId'] or runner.get('GITHUB_RUN_ID') != str(run_id)
+            or not isinstance(verification, str) or not re.fullmatch('[a-f0-9]{40}', verification)
+            or not isinstance(parent, str) or (parent and not re.fullmatch('[1-9][0-9]*', parent))
+            or (verification != commit and not parent)):
+        raise ReleaseError('Flatpak CI runner source/verification identity is invalid')
+    verify_flatpak_verification_inputs(commit, verification)
+    ci = {'runId': run_id, 'artifactName': 'jms-flatpak-' + commit}
+    if verification != commit or 'VERIFICATION_COMMIT' in runner:
+        ci['verificationCommit'] = verification
+    if parent:
+        origin = json.loads((directory / 'native-build-origin.json').read_text(encoding='utf-8'))
+        allowed = {'schemaVersion', 'sourceCommit', 'buildId', 'runId', 'artifactId',
+                   'artifactName', 'artifactDigest', 'bundle', 'bundleMember'}
+        if (not isinstance(origin, dict) or set(origin) != allowed or origin.get('schemaVersion') != 1
+                or origin.get('sourceCommit') != commit or origin.get('buildId') != build['buildId']
+                or type(origin.get('runId')) is not int or origin['runId'] != int(parent)
+                or origin['runId'] == run_id):
+            raise ReleaseError('Flatpak native build origin identity is invalid')
+        ci.update(nativeBuildRunId=int(parent), nativeBuildOrigin=origin)
+    elif (directory / 'native-build-origin.json').exists():
+        raise ReleaseError('Flatpak native build origin lacks a bound parent run')
+    return ci
+
+
 def prepare(directory, run_id):
     directory = Path(directory).resolve()
     if type(run_id) is not int or run_id <= 0:
@@ -73,6 +104,7 @@ def prepare(directory, run_id):
             or build.get('platform') != 'linux-x64' or build.get('packageFormat') != 'flatpak'
             or build.get('buildId') != f'JMS-{version}-flatpak-{commit[:12]}'):
         raise ReleaseError('Flatpak CI build identity is invalid')
+    ci = ci_identity(directory, build, run_id)
     material = f'JMS-Linux-{version}-flatpak-native-materials.tar.gz'
     native_source_materials(directory, build, material)
     receipt = json.loads((directory / 'flatpak-verification.json').read_text(encoding='utf-8'))
@@ -94,7 +126,7 @@ def prepare(directory, run_id):
             'payload': f'JMS-Linux-{version}-flatpak-payload.tar.gz',
             'receipt': 'flatpak-verification.json', 'buildManifest': 'flatpak-build-manifest.json',
             'nativeSources': 'flatpak-native-sources.json', 'source': source,
-            'ci': {'runId': run_id, 'artifactName': 'jms-flatpak-' + commit}},
+            'ci': ci},
     }
     public_names = {record['flatpak'][field] for field in
                     ('bundle', 'payload', 'receipt', 'buildManifest', 'nativeSources', 'source')}
