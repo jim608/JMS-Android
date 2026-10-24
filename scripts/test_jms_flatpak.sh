@@ -47,6 +47,18 @@ commit=$(flatpak --user info --show-commit "$app")
 printf '%s\n' "$deployment" > "$JMS_FLATPAK_OUTPUT/deployment-location.txt"
 printf '%s\n' "$commit" > "$JMS_FLATPAK_OUTPUT/installed-commit.txt"
 flatpak --user info --show-permissions "$app" > "$JMS_FLATPAK_OUTPUT/permissions.txt"
+# Save the actual exported launcher Steam selects, including Flatpak's rewrite.
+deck_entry="$HOME/.local/share/flatpak/exports/share/applications/com.jim608.jms.SteamDeck.desktop"
+test -f "$deck_entry"
+cp -L "$deck_entry" "$JMS_FLATPAK_OUTPUT/steamdeck.desktop"
+python3 - "$JMS_FLATPAK_OUTPUT/steamdeck.desktop" <<'PY_DESKTOP'
+import configparser, shlex, sys
+entry = configparser.ConfigParser(interpolation=None)
+entry.read(sys.argv[1])
+command = shlex.split(entry['Desktop Entry']['Exec'])
+if '--handheld' not in command or 'com.jim608.jms' not in command:
+    raise SystemExit('Exported Steam Deck launcher lacks application or handheld argument')
+PY_DESKTOP
 python3 - "$JMS_FLATPAK_OUTPUT/permissions.txt" <<'PY'
 import configparser, sys
 permissions = configparser.ConfigParser(interpolation=None)
@@ -101,7 +113,8 @@ echo 'Flatpak validation phase: media-decode'
 timeout --kill-after=5s 30s flatpak --user run --filesystem="$JMS_FLATPAK_TEST_DIR:ro" --command="$JMS_FLATPAK_TEST_DIR/media-test" com.jim608.jms "$JMS_FLATPAK_TEST_DIR/synthetic.mkv" > "$JMS_FLATPAK_OUTPUT/media-test.log"
 launch() {
   label=$1
-  flatpak --user run com.jim608.jms > "$JMS_FLATPAK_OUTPUT/$label.log" 2>&1 &
+  shift
+  flatpak --user run com.jim608.jms "$@" > "$JMS_FLATPAK_OUTPUT/$label.log" 2>&1 &
   app_pid=$!
   found=false
   for attempt in $(seq 1 30); do
@@ -123,7 +136,7 @@ launch() {
   wait "$app_pid" || true
 }
 echo 'Flatpak validation phase: product-launch'
-launch first-launch
+launch first-launch --handheld
 # Preserve all product-created settings and a known file during reinstall.
 app_data="$HOME/.var/app/com.jim608.jms"
 mkdir -p "$app_data/config" "$app_data/data"
@@ -131,12 +144,22 @@ settings="$app_data/config/jms-flatpak-validation.json"
 printf '%s\n' '{"fixture":"retained-local-setting","themeMode":"dark"}' > "$settings"
 sha256sum "$settings" > "$JMS_FLATPAK_OUTPUT/settings-before.txt"
 find "$app_data/config" "$app_data/data" -type f -print0 | sort -z | xargs -0 -r sha256sum > "$JMS_FLATPAK_OUTPUT/config-before.txt"
+# Flatpak 1.14 refuses an identical already-installed bundle even with --reinstall.
+# Exercise an actual remove/install cycle without --delete-data instead of accepting
+# that error or pretending it is an upgrade from a previous published Flatpak.
+echo 'Flatpak validation phase: uninstall-retains-data'
+flatpak --user uninstall --noninteractive --keep-ref app/com.jim608.jms/x86_64/stable
+if flatpak --user info com.jim608.jms >/dev/null 2>&1; then
+  echo 'Flatpak application still installed after uninstall' >&2; exit 1
+fi
+sha256sum --check "$JMS_FLATPAK_OUTPUT/config-before.txt"
 echo 'Flatpak validation phase: reinstall-retention'
-flatpak --user install --noninteractive --reinstall --bundle "$JMS_FLATPAK_BUNDLE"
+flatpak --user install --noninteractive --bundle "$JMS_FLATPAK_BUNDLE"
 sha256sum --check "$JMS_FLATPAK_OUTPUT/config-before.txt"
 sha256sum "$settings" > "$JMS_FLATPAK_OUTPUT/settings-after.txt"
 cmp "$JMS_FLATPAK_OUTPUT/settings-before.txt" "$JMS_FLATPAK_OUTPUT/settings-after.txt"
 test "$(flatpak --user info --show-commit com.jim608.jms)" = "$(cat "$JMS_FLATPAK_OUTPUT/installed-commit.txt")"
+flatpak --user info --show-location com.jim608.jms > "$JMS_FLATPAK_OUTPUT/deployment-location.txt"
 run_secret read
 run_secret isolated
 launch restart
@@ -146,17 +169,6 @@ run_secret empty
 if grep -RaFq fixture-session-only "$HOME/.local/share/keyrings"; then
   echo 'Unexpected plaintext keyring session after reinstall' >&2; exit 1
 fi
-echo 'Flatpak validation phase: uninstall-and-reinstall'
-flatpak --user uninstall --noninteractive com.jim608.jms
-if flatpak --user info com.jim608.jms >/dev/null 2>&1; then
-  echo 'Flatpak application still installed after uninstall' >&2; exit 1
-fi
-# The default uninstall keeps app data; never use --delete-data in this check.
-sha256sum --check "$JMS_FLATPAK_OUTPUT/settings-before.txt"
-flatpak --user install --noninteractive --bundle "$JMS_FLATPAK_BUNDLE"
-test "$(flatpak --user info --show-commit com.jim608.jms)" = "$(cat "$JMS_FLATPAK_OUTPUT/installed-commit.txt")"
-flatpak --user info --show-location com.jim608.jms > "$JMS_FLATPAK_OUTPUT/deployment-location.txt"
-sha256sum --check "$JMS_FLATPAK_OUTPUT/settings-before.txt"
 
 echo 'Sandbox Secret Service cross-process restore, verified daemon restart, account isolation, same-bundle reinstall retention, clear and denied-service passed' > "$JMS_FLATPAK_OUTPUT/secret-service-test.log"
 TEST_SESSION
@@ -178,5 +190,6 @@ output = pathlib.Path(sys.argv[1])
   'environment': 'Isolated Ubuntu x86_64 account, real Flatpak sandbox, Xvfb and PulseAudio',
   'physicalDesktop': False, 'realAccountLogin': False, 'hardwareGpuAudio': False,
   'upgradeFromPreviousFlatpak': False,
+  'exportedSteamDeckLauncherHandheldArgument': True, 'firstLaunchArguments': ['--handheld'],
 }, indent=2) + '\n')
 PY
