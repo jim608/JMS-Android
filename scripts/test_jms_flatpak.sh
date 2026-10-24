@@ -107,7 +107,10 @@ launch() {
   for attempt in $(seq 1 30); do
     kill -0 "$app_pid"
     xwininfo -root -tree > "$JMS_FLATPAK_OUTPUT/$label-windows.txt"
-    if grep -q 'JMS' "$JMS_FLATPAK_OUTPUT/$label-windows.txt"; then found=true; break; fi
+    if flatpak ps --columns=application | grep -Fxq com.jim608.jms &&
+       python3 "$JMS_FLATPAK_TEST_DIR/jms_flatpak_window.py" "$JMS_FLATPAK_OUTPUT/$label-windows.txt" --output "$JMS_FLATPAK_OUTPUT/$label-window.json"; then
+      found=true; break
+    fi
     sleep 1
   done
   test "$found" = true

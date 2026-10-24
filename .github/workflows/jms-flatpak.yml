@@ -133,6 +133,7 @@ jobs:
           original_sha=$(sha256sum "candidate/JMS-Linux-$VERSION-x86_64.flatpak" | cut -d' ' -f1)
           test "$original_sha" = "$(sha256sum "$test_dir/candidate.flatpak" | cut -d' ' -f1)"
           install -m644 verification-tools/scripts/test_jms_flatpak.sh "$test_dir/validate.sh"
+          install -m644 verification-tools/scripts/jms_flatpak_window.py "$test_dir/jms_flatpak_window.py"
           sudo install -d -m755 -o jms-flatpak-validation -g jms-flatpak-validation "$test_dir/validation"
           if sudo -H -u jms-flatpak-validation env -u XDG_RUNTIME_DIR -u DBUS_SESSION_BUS_ADDRESS -u DISPLAY -u XAUTHORITY JMS_ISOLATED_FLATPAK_TEST=1 JMS_FLATPAK_BUNDLE="$test_dir/candidate.flatpak" JMS_FLATPAK_TEST_DIR="$test_dir" JMS_FLATPAK_OUTPUT="$test_dir/validation" bash "$test_dir/validate.sh"; then
             :
