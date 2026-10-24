@@ -139,8 +139,8 @@ jobs:
           else
             validation_status=$?
             mkdir -p candidate/validation
-            sudo cp -a "$test_dir/validation/." candidate/validation/
-            sudo chown -R "$(id -u):$(id -g)" candidate/validation
+            sudo cp -a "$test_dir/validation/." candidate/validation/ || printf 'Could not preserve all validation logs\n' >&2
+            sudo chown -R "$(id -u):$(id -g)" candidate/validation || printf 'Could not normalize validation log ownership\n' >&2
             exit "$validation_status"
           fi
           mkdir candidate/validation

@@ -14,10 +14,11 @@ from pathlib import Path
 import yaml
 from package_jms_flatpak import ROOT, identity, item
 
-BASELINE_COMMIT = '6cb548f1814e4700676aca63c7789b906c847ad3'
-BASELINE_NAME = 'JMS-Linux-0.11.1-jms.33-native-materials.zip'
-BASELINE_SHA = '25cc8cb9ed1f8123328bbad3fda5c69ecae4a6cbb59d038e260c0a079edaee0c'
-BASELINE_URL = 'https://github.com/jim608/JMS-Linux/releases/download/v0.11.1-jms.33/' + BASELINE_NAME
+BASELINE_COMMIT = '8ee653a242171c02d639a770a4965cf2bdc33e8d'
+BASELINE_NAME = 'JMS-Third-Party-Sources-20261024.tar.gz'
+BASELINE_SHA = '4674801f277f2b32b31f00248c1646da6106456aa5dc9aa512a1ea5b03877519'
+BASELINE_SIZE = 310532681
+BASELINE_URL = 'https://github.com/jim608/JMS-SteamDeck/releases/download/v0.11.1-jms.46-deck-test.20261024/' + BASELINE_NAME
 
 
 def git(*args, cwd=ROOT):
@@ -82,7 +83,9 @@ def collect(manifest_path, output, commit):
     with tempfile.TemporaryDirectory(prefix='jms-flatpak-sources-') as temporary:
         work = Path(temporary)
         baseline = work / BASELINE_NAME
-        download(BASELINE_URL, baseline, BASELINE_SHA)
+        download(BASELINE_URL, baseline, BASELINE_SHA, limit=512 * 1024 * 1024)
+        if baseline.stat().st_size != BASELINE_SIZE:
+            raise ValueError('Pinned corresponding-source baseline size differs')
         with tarfile.open(destination, 'w:gz') as materials:
             materials.add(baseline, arcname='unchanged-native-plugins/' + BASELINE_NAME)
             for module in modules(manifest):
