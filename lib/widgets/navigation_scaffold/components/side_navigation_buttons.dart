@@ -20,6 +20,7 @@ import 'package:fladder/util/localization_helper.dart';
 import 'package:fladder/widgets/navigation_scaffold/components/destination_model.dart';
 import 'package:fladder/widgets/navigation_scaffold/components/navigation_button.dart';
 import 'package:fladder/widgets/navigation_scaffold/components/navigation_items.dart';
+import 'package:fladder/widgets/navigation_scaffold/components/syncplay_navigation_button.dart';
 import 'package:fladder/widgets/shared/custom_tooltip.dart';
 import 'package:fladder/widgets/shared/simple_overflow_widget.dart';
 
@@ -96,7 +97,7 @@ class SideNavigationButtons extends ConsumerWidget {
           : views),
     ];
 
-    return Column(
+    final content = Column(
       mainAxisAlignment: !largeBar ? MainAxisAlignment.center : MainAxisAlignment.start,
       children: [
         ...destinations.mapIndexed(
@@ -120,6 +121,10 @@ class SideNavigationButtons extends ConsumerWidget {
               shouldExpand,
             ),
           ),
+        ),
+        SyncPlayNavigationButton(
+          expanded: shouldExpand,
+          tooltipPosition: tooltipPosition,
         ),
         if (largeBar) ...[
           if (useOverflow)
@@ -252,6 +257,15 @@ class SideNavigationButtons extends ConsumerWidget {
             ...navItems,
         ]
       ],
+    );
+    if (largeBar) return content;
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: content,
+        ),
+      ),
     );
   }
 }

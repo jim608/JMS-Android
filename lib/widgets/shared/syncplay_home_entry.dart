@@ -7,9 +7,10 @@ import 'package:fladder/screens/video_player/components/syncplay_dialog.dart';
 
 /// The home entry is available before a player or a playback model exists.
 class SyncPlayHomeEntry extends ConsumerStatefulWidget {
-  const SyncPlayHomeEntry({super.key, this.onPressed});
+  const SyncPlayHomeEntry({super.key, this.onPressed, this.builder});
 
   final VoidCallback? onPressed;
+  final Widget Function(BuildContext context, VoidCallback onPressed)? builder;
 
   @override
   ConsumerState<SyncPlayHomeEntry> createState() => _SyncPlayHomeEntryState();
@@ -42,6 +43,11 @@ class _SyncPlayHomeEntryState extends ConsumerState<SyncPlayHomeEntry> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.builder case final builder?) {
+      return SyncPlayKeyGuard(
+        child: builder(context, widget.onPressed ?? _open),
+      );
+    }
     final strings = SyncPlayStrings.of(context);
     return SyncPlayKeyGuard(
         child: SafeArea(
