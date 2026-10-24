@@ -1,4 +1,5 @@
 import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart';
+import 'package:fladder/util/web_video_capabilities.dart';
 
 const DeviceProfile webProfile = DeviceProfile(
   maxStreamingBitrate: 120000000,
@@ -24,14 +25,18 @@ const DeviceProfile webProfile = DeviceProfile(
       audioCodec: 'aac,mp3,mp2,opus,flac,vorbis',
     ),
     DirectPlayProfile(container: 'opus', type: DlnaProfileType.audio),
-    DirectPlayProfile(container: 'webm', audioCodec: 'opus', type: DlnaProfileType.audio),
+    DirectPlayProfile(
+        container: 'webm', audioCodec: 'opus', type: DlnaProfileType.audio),
     DirectPlayProfile(container: 'mp3', type: DlnaProfileType.audio),
     DirectPlayProfile(container: 'aac', type: DlnaProfileType.audio),
-    DirectPlayProfile(container: 'm4a', audioCodec: 'aac', type: DlnaProfileType.audio),
-    DirectPlayProfile(container: 'm4b', audioCodec: 'aac', type: DlnaProfileType.audio),
+    DirectPlayProfile(
+        container: 'm4a', audioCodec: 'aac', type: DlnaProfileType.audio),
+    DirectPlayProfile(
+        container: 'm4b', audioCodec: 'aac', type: DlnaProfileType.audio),
     DirectPlayProfile(container: 'flac', type: DlnaProfileType.audio),
     DirectPlayProfile(container: 'webma', type: DlnaProfileType.audio),
-    DirectPlayProfile(container: 'webm', audioCodec: 'webma', type: DlnaProfileType.audio),
+    DirectPlayProfile(
+        container: 'webm', audioCodec: 'webma', type: DlnaProfileType.audio),
     DirectPlayProfile(container: 'wav', type: DlnaProfileType.audio),
     DirectPlayProfile(container: 'ogg', type: DlnaProfileType.audio),
     DirectPlayProfile(
@@ -166,7 +171,7 @@ const DeviceProfile webProfile = DeviceProfile(
         ProfileCondition(
           condition: ProfileConditionType.equalsany,
           property: ProfileConditionValue.videorangetype,
-          $Value: 'SDR',
+          $Value: webAdvertisedVideoRangeTypes,
           isRequired: false,
         ),
         ProfileCondition(
@@ -202,7 +207,7 @@ const DeviceProfile webProfile = DeviceProfile(
         ProfileCondition(
           condition: ProfileConditionType.equalsany,
           property: ProfileConditionValue.videorangetype,
-          $Value: 'SDR|HDR10|HLG',
+          $Value: webAdvertisedVideoRangeTypes,
           isRequired: false,
         ),
         ProfileCondition(
@@ -226,7 +231,7 @@ const DeviceProfile webProfile = DeviceProfile(
         ProfileCondition(
           condition: ProfileConditionType.equalsany,
           property: ProfileConditionValue.videorangetype,
-          $Value: 'SDR|HDR10|HLG',
+          $Value: webAdvertisedVideoRangeTypes,
           isRequired: false,
         ),
       ],
@@ -250,7 +255,7 @@ const DeviceProfile webProfile = DeviceProfile(
         ProfileCondition(
           condition: ProfileConditionType.equalsany,
           property: ProfileConditionValue.videorangetype,
-          $Value: 'SDR|HDR10|HLG',
+          $Value: webAdvertisedVideoRangeTypes,
           isRequired: false,
         ),
         ProfileCondition(

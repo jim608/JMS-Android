@@ -32,6 +32,8 @@ import 'package:fladder/util/web_subtitle_timing.dart';
 import 'package:fladder/widgets/dual_subtitle_text.dart';
 import 'package:fladder/util/mpv_subtitle_selection.dart';
 import 'package:fladder/util/mpv_video_configuration.dart';
+import 'package:fladder/util/mpv_render_capabilities.dart';
+import 'package:fladder/util/mpv_hdr_tonemap.dart';
 import 'package:fladder/util/ambient_frame_capture.dart';
 import 'package:fladder/wrappers/players/base_player.dart';
 import 'package:fladder/wrappers/players/player_states.dart';
@@ -42,6 +44,29 @@ class LibMPV extends BasePlayer {
   @override
   Object get ambientFrameSource => _ambientFrameSource;
   VideoController? _controller;
+  MpvHdrToneMapper? _hdrToneMapper;
+  final _renderCapabilityOwner = MpvRenderCapabilityOwner();
+  MpvRenderCapabilities get _renderCapabilities => _renderCapabilityOwner.value;
+  MpvHdrSource _nextHdrSource = const MpvHdrSource();
+  final _hdrSurfaceReady = ValueNotifier(true);
+  Future<void> _hdrPreparation = Future.value();
+  int _mediaLoadGeneration = 0;
+  bool _hdrPreparing = false;
+  bool _desiredPlaying = false;
+  MpvLoadReadiness? _loadReadiness;
+
+  /// Called with the selected playback stream, never inferred from a title or
+  /// from PQ alone. Transcode outputs need their own classification later.
+  void prepareVideoColor(PlaybackModel model) {
+    final videos = model.mediaStreams?.videoStreams ?? const <VideoStreamModel>[];
+    final stream = videos.length == 1 ? videos.single : videos.where((video) => video.isDefault).singleOrNull;
+    _nextHdrSource = MpvHdrSource(
+      range: stream?.videoRangeType?.value ?? '',
+      dolbyVision: stream?.videoDoViTitle?.trim().isNotEmpty ?? false,
+      transcoded: model is TranscodePlaybackModel,
+    );
+  }
+
   SubStreamModel? _primarySubtitle;
   bool _subtitleTextReady = false;
   final _subtitleTexts = ValueNotifier(const SubtitleTextPair());
@@ -154,10 +179,29 @@ class LibMPV extends BasePlayer {
         _player!,
         configuration: mpvVideoConfiguration(hardwareAcceleration: settings.hardwareAccel),
       );
+      final player = _player!;
+      final controller = _controller!;
+      bool currentController() => player == _player && controller == _controller;
       if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
         // Apply the fixed decoder policy and create the texture before open().
         WidgetsBinding.instance.ensureVisualUpdate();
-        await _controller!.platform.future.timeout(const Duration(seconds: 10));
+        await controller.platform.future.timeout(const Duration(seconds: 10));
+        if (!currentController()) return;
+        _renderCapabilityOwner.reset(MpvRenderCapabilities.configuredWindows);
+      } else if (!kIsWeb && defaultTargetPlatform == TargetPlatform.linux) {
+        final resolved = await _renderCapabilityOwner.resolve(() async {
+          try {
+            // The native constructor has now selected GL or its SW fallback.
+            // The saved acceleration preference alone cannot identify that API.
+            WidgetsBinding.instance.ensureVisualUpdate();
+            await controller.platform.future.timeout(const Duration(seconds: 10));
+            if (!currentController()) return const MpvRenderCapabilities();
+            return queryMpvRenderCapabilities(playerHandle: () => player.handle);
+          } catch (_) {
+            return const MpvRenderCapabilities(reason: 'Linux texture initialization was not confirmed');
+          }
+        }, isCurrent: currentController);
+        if (!resolved || !currentController()) return;
       }
       _setupPlayerStreams(_player!);
     }
@@ -176,9 +220,10 @@ class LibMPV extends BasePlayer {
       // Pinned Android libmpv supports primary delay but predates independent
       // secondary delay. Probe each channel without disabling primary timing.
       _subtitleOffsetSupported = double.tryParse(await _readProperty(_player!, 'sub-delay')) != null;
-      _subtitleOffsets.setSecondarySupported(
-          double.tryParse(await _readProperty(_player!, 'secondary-sub-delay')) != null);
+      _subtitleOffsets
+          .setSecondarySupported(double.tryParse(await _readProperty(_player!, 'secondary-sub-delay')) != null);
       final observedPlayer = _player!;
+      _hdrToneMapper = _createHdrToneMapper(observedPlayer);
       await nativePlayer.observeProperty('seeking', (String value) async {
         final generation = _subtitleGeneration;
         await _subtitleSeekRefresh.onSeekingChanged(
@@ -204,6 +249,33 @@ class LibMPV extends BasePlayer {
 
   @override
   Future<void> dispose() async {
+    final generation = ++_mediaLoadGeneration;
+    _desiredPlaying = false;
+    _loadReadiness?.cancel();
+    _loadReadiness = null;
+    final player = _player;
+    final hdr = _hdrToneMapper;
+    _hdrToneMapper = null;
+    _renderCapabilityOwner.reset();
+    try {
+      if (hdr != null) {
+        final stopVideo = hdr.applied || _hdrPreparing;
+        await stopMpvWithHdr(
+          mapper: hdr,
+          isCurrent: () => generation == _mediaLoadGeneration && player == _player,
+          stop: () async {
+            if (stopVideo) await player?.stop();
+          },
+          surfaceReady: (ready) => _hdrSurfaceReady.value = ready,
+          forceCover: _hdrPreparing,
+          uncover: false,
+          reason: 'disposed',
+        );
+      }
+    } catch (_) {
+      // Disposing the owning native context also drops its remaining filters.
+    }
+    _nextHdrSource = const MpvHdrSource();
     _subtitleOffsetSupported = false;
     _subtitleOffsets.clear();
     await _subtitleOffsets.idle;
@@ -222,12 +294,25 @@ class LibMPV extends BasePlayer {
     _cancelPlayerStreams();
     _onCompleted?.cancel();
     _onCompleted = null;
-    final player = _player;
     _player = null;
     _controller = null;
     _retryTimer?.cancel();
     _retryTimer = null;
     await player?.dispose();
+    _hdrPreparing = false;
+    _hdrSurfaceReady.value = true;
+  }
+
+  MpvHdrToneMapper? _createHdrToneMapper(mpv.Player player) {
+    if (!_renderCapabilities.softwareSdr || player.platform is! mpv.NativePlayer) return null;
+    return MpvHdrToneMapper(
+      softwareRenderer: true,
+      read: (name) => _readProperty(player, name),
+      command: (arguments) async {
+        if (player != _player) throw StateError('The native player was replaced');
+        await (player.platform as dynamic).command(arguments);
+      },
+    );
   }
 
   void setState(PlayerState state) {
@@ -256,9 +341,10 @@ class LibMPV extends BasePlayer {
         }
       }),
       player.stream.playing.listen((value) {
+        if (_hdrPreparing) return;
         setState(lastState.update(playing: value));
       }),
-      player.stream.buffering.listen((value) => setState(lastState.update(buffering: value))),
+      player.stream.buffering.listen((value) => setState(lastState.update(buffering: _hdrPreparing || value))),
       player.stream.position.listen((value) => setState(lastState.update(position: value))),
       player.stream.duration.listen((value) => setState(lastState.update(duration: value))),
       player.stream.volume.listen((value) {
@@ -271,6 +357,27 @@ class LibMPV extends BasePlayer {
   }
 
   Future<void> crossfadeToUrl(String url, Duration startPosition, {double? replayGainDb}) async {
+    final mediaGeneration = ++_mediaLoadGeneration;
+    final previous = _player;
+    final hdr = _hdrToneMapper;
+    _loadReadiness?.cancel();
+    _loadReadiness = null;
+    if (hdr != null) {
+      final stopVideo = hdr.applied || _hdrPreparing;
+      await stopMpvWithHdr(
+        mapper: hdr,
+        isCurrent: () => mediaGeneration == _mediaLoadGeneration && previous == _player,
+        stop: () async {
+          if (stopVideo) await previous?.stop();
+        },
+        surfaceReady: (ready) => _hdrSurfaceReady.value = ready,
+        forceCover: _hdrPreparing,
+        reason: 'audio transition',
+      );
+    }
+    if (mediaGeneration != _mediaLoadGeneration || previous != _player) return;
+    _hdrPreparing = false;
+    _hdrSurfaceReady.value = true;
     if (!_settings.enableCrossfade || !VideoPlayerSettingsModel.crossfadeSupportedOnCurrentPlatform) {
       await _applyReplayGainSettings(trackGainDb: replayGainDb);
       await loadVideo(url, true, startPosition: startPosition);
@@ -335,6 +442,10 @@ class LibMPV extends BasePlayer {
 
     _cancelPlayerStreams();
     _player = incomingPlayer;
+    // Crossfaded audio has no video texture. Do not inherit a previous texture's
+    // capability classification for a different native player handle.
+    _renderCapabilityOwner.reset(const MpvRenderCapabilities(reason: 'Audio player has no video texture'));
+    _hdrToneMapper = _createHdrToneMapper(incomingPlayer);
     _controller = null;
     _setupPlayerStreams(incomingPlayer);
 
@@ -358,6 +469,18 @@ class LibMPV extends BasePlayer {
 
   @override
   Future<void> loadVideo(String url, bool play, {Duration startPosition = Duration.zero}) async {
+    final generation = ++_mediaLoadGeneration;
+    final player = _player;
+    final source = _nextHdrSource;
+    final hdrGated =
+        _hdrToneMapper != null && (source.skipReason == null || _hdrToneMapper!.applied || !_hdrSurfaceReady.value);
+    _desiredPlaying = play;
+    _loadReadiness?.cancel();
+    _loadReadiness = null;
+    if (_loadCompleter?.isCompleted == false) _loadCompleter!.complete();
+    final completion = Completer<void>();
+    _loadCompleter = completion;
+    _nextHdrSource = const MpvHdrSource();
     _ambientFrameSource = Object();
     _subtitleGeneration++;
     _webSubtitleTiming.clearTrack();
@@ -368,16 +491,23 @@ class LibMPV extends BasePlayer {
     if (subtitleOffsets != null && !await _subtitleOffsets.resetForMedia()) {
       throw StateError('Subtitle timing could not be reset');
     }
+    if (generation != _mediaLoadGeneration || player != _player) return;
     await _clearSecondary(issue: SecondarySubtitleIssue.mediaChanged);
+    if (generation != _mediaLoadGeneration || player != _player) return;
     _subtitleRoute.value = const MpvSubtitleRoute();
     _currentSubtitleCodec = '';
-    _loadCompleter = Completer<void>();
     _subtitleDelivery = 'unknown';
     _firstLoadAttempt = DateTime.now();
 
     await setStartPosition(startPosition);
+    if (generation != _mediaLoadGeneration || player != _player) return;
 
-    await _player?.open(mpv.Media(url), play: play);
+    if (player != null) {
+      final preparation = _openWithVideoColor(player, url, play, source, generation);
+      _hdrPreparation = preparation;
+      await preparation;
+      if (generation != _mediaLoadGeneration || player != _player) return;
+    }
 
     _retryTimer?.cancel();
     _retryTimer = null;
@@ -385,7 +515,9 @@ class LibMPV extends BasePlayer {
     _retryTimer = RestartableTimer(
       _currentRetryDuration,
       () async {
+        if (generation != _mediaLoadGeneration || player != _player) return;
         await Future.delayed(const Duration(milliseconds: 150));
+        if (generation != _mediaLoadGeneration || player != _player) return;
         if (DateTime.now().isAfter(_firstLoadAttempt.add(_maxRetryDuration))) {
           log("Max retry duration reached, stopping retries.");
           _retryTimer?.cancel();
@@ -393,43 +525,93 @@ class LibMPV extends BasePlayer {
         } else {
           log("Retrying to load media");
           await setStartPosition(startPosition);
-          await _player?.open(mpv.Media(url), play: play);
+          if (generation != _mediaLoadGeneration || player != _player) return;
+          if (player != null) {
+            final preparation = _openWithVideoColor(player, url, play, source, generation);
+            _hdrPreparation = preparation;
+            try {
+              await preparation;
+            } catch (error) {
+              log('HDR-aware media retry failed: $error');
+              _retryTimer?.cancel();
+              return;
+            }
+          }
           _retryTimer?.reset();
         }
       },
     );
 
     // Wait for the player to be ready
-    if (_loadCompleter?.isCompleted == false) {
-      StreamSubscription? subBuffering;
-      StreamSubscription? subDuration;
-
-      void onReady() {
-        if (_loadCompleter?.isCompleted == true) return;
-        _finishedLoading();
-        subBuffering?.cancel();
-        subDuration?.cancel();
-      }
-
-      subBuffering = _player?.stream.buffering.listen((event) {
-        if (event == false && (_player?.state.duration ?? Duration.zero) > Duration.zero) {
-          onReady();
-        }
-      });
-      subDuration = _player?.stream.duration.listen((event) {
-        if (event > Duration.zero) onReady();
-      });
+    if (!completion.isCompleted && player != null) {
+      final readiness = MpvLoadReadiness(
+        isCurrent: () => generation == _mediaLoadGeneration && player == _player,
+        isReady: () => player.state.duration > Duration.zero,
+        onReady: () => _finishedLoading(completion),
+      );
+      _loadReadiness = readiness;
+      readiness.observe([player.stream.buffering, player.stream.duration]);
     }
 
-    _loadCompleter?.future.then(
+    completion.future.then(
       (value) async {
+        if (generation != _mediaLoadGeneration || player != _player) return;
         // Backup seek in case property didn't work
         if (startPosition != Duration.zero && (_player?.state.position.inSeconds ?? 0) < startPosition.inSeconds - 5) {
           await _player?.seek(startPosition);
         }
       },
     );
-    return setState(lastState.update(buffering: true));
+    return setState(lastState.update(
+      playing: hdrGated ? player?.state.playing : null,
+      buffering: hdrGated ? (player?.state.buffering ?? true) : true,
+    ));
+  }
+
+  Future<void> _openWithVideoColor(
+      mpv.Player player, String url, bool play, MpvHdrSource source, int generation) async {
+    bool current() => generation == _mediaLoadGeneration && player == _player;
+    if (!current()) return;
+    final mapper = _hdrToneMapper;
+    if (mapper == null) {
+      await player.open(mpv.Media(url), play: play);
+      return;
+    }
+    final inheritedCover = !_hdrSurfaceReady.value;
+    final gate = source.skipReason == null || mapper.applied || inheritedCover;
+    _hdrPreparing = gate;
+    if (gate) {
+      setState(lastState.update(buffering: true));
+    }
+    try {
+      await openMpvWithHdr(
+        mapper: mapper,
+        source: source,
+        play: play,
+        shouldResume: () => _desiredPlaying,
+        forceSurfaceGate: inheritedCover,
+        isCurrent: current,
+        surfaceReady: (ready) => _hdrSurfaceReady.value = ready,
+        pause: player.pause,
+        open: (play) => player.open(mpv.Media(url), play: play),
+        resume: player.play,
+        stop: player.stop,
+        frameBarrier: () async {
+          // Native output confirmation precedes this. Keep the cover during
+          // texture propagation; actual display presentation still needs QA.
+          for (var frame = 0; frame < 2; frame++) {
+            WidgetsBinding.instance.ensureVisualUpdate();
+            await WidgetsBinding.instance.endOfFrame.timeout(const Duration(milliseconds: 500));
+            if (!current()) return;
+          }
+        },
+      );
+    } catch (_) {
+      if (current()) setState(lastState.update(playing: false, buffering: false));
+      rethrow;
+    } finally {
+      if (current()) _hdrPreparing = false;
+    }
   }
 
   /// Apply ReplayGain normalization for the given [item] before loading it.
@@ -500,8 +682,9 @@ class LibMPV extends BasePlayer {
     }
   }
 
-  void _finishedLoading() {
-    _loadCompleter?.complete();
+  void _finishedLoading(Completer<void> completion) {
+    if (!identical(_loadCompleter, completion) || completion.isCompleted) return;
+    completion.complete();
     _retryTimer?.cancel();
     _retryTimer = null;
   }
@@ -563,6 +746,7 @@ class LibMPV extends BasePlayer {
 
   @override
   Future<void> pause() async {
+    _desiredPlaying = false;
     _musicPaused = true;
     setState(lastState.update(playing: false));
     unawaited(_audioSession?.setActive(false));
@@ -571,6 +755,10 @@ class LibMPV extends BasePlayer {
 
   @override
   Future<void> play() async {
+    _desiredPlaying = true;
+    final generation = _mediaLoadGeneration;
+    await _hdrPreparation;
+    if (generation != _mediaLoadGeneration || !_desiredPlaying) return;
     _musicPaused = false;
     setState(lastState.update(playing: true));
     unawaited(_audioSession?.setActive(true));
@@ -579,7 +767,7 @@ class LibMPV extends BasePlayer {
 
   @override
   Future<void> playOrPause() async {
-    if ((_player?.state.playing ?? lastState.playing) == true) {
+    if ((_hdrPreparing ? _desiredPlaying : (_player?.state.playing ?? lastState.playing)) == true) {
       await pause();
     } else {
       await play();
@@ -685,12 +873,12 @@ class LibMPV extends BasePlayer {
     final external = kIsWeb
         ? wantedSubtitle.url != null && (wantedSubtitle.isExternal || wantedSubtitle.supportsExternalStream)
         : useExternalSubtitleSource(
-      isExternal: wantedSubtitle.isExternal,
-      transcoded: playbackModel is TranscodePlaybackModel,
-      supportsExternalStream: wantedSubtitle.supportsExternalStream,
-      codec: wantedSubtitle.codec,
-      url: wantedSubtitle.url,
-    );
+            isExternal: wantedSubtitle.isExternal,
+            transcoded: playbackModel is TranscodePlaybackModel,
+            supportsExternalStream: wantedSubtitle.supportsExternalStream,
+            codec: wantedSubtitle.codec,
+            url: wantedSubtitle.url,
+          );
     _subtitleDelivery = external
         ? wantedSubtitle.isExternal
             ? 'external/local subtitle'
@@ -703,9 +891,8 @@ class LibMPV extends BasePlayer {
         await (player.platform as dynamic).setProperty('sub-codepage', _externalEncoding.codepage);
         if (generation != _subtitleGeneration || player != _player) return -1;
       }
-      final subtitleUrl = kIsWeb && isPlainTextSubtitle(wantedSubtitle.codec)
-          ? await _webSubtitleTiming.prepareSubtitle(url)
-          : url;
+      final subtitleUrl =
+          kIsWeb && isPlainTextSubtitle(wantedSubtitle.codec) ? await _webSubtitleTiming.prepareSubtitle(url) : url;
       if (generation != _subtitleGeneration || player != _player) return -1;
       await player.setSubtitleTrack(mpv.SubtitleTrack.uri(subtitleUrl));
     } else {
@@ -798,7 +985,8 @@ class LibMPV extends BasePlayer {
 
   void _updateSubtitleOffsetAvailability() {
     if (kIsWeb) {
-      _subtitleOffsets.setAvailable(primary: _primarySubtitle != null && _webSubtitleTiming.available, secondary: false);
+      _subtitleOffsets.setAvailable(
+          primary: _primarySubtitle != null && _webSubtitleTiming.available, secondary: false);
       return;
     }
     final route = _subtitleRoute.value;
@@ -806,7 +994,9 @@ class LibMPV extends BasePlayer {
     final primary = supportsSecondarySubtitles &&
         _primarySubtitle != null &&
         route.codec.isNotEmpty &&
-        sid.isNotEmpty && sid != 'no' && sid != 'auto';
+        sid.isNotEmpty &&
+        sid != 'no' &&
+        sid != 'auto';
     _subtitleOffsets.setAvailable(primary: primary, secondary: primary && secondarySubtitles.value.selected != null);
   }
 
@@ -1008,6 +1198,8 @@ class LibMPV extends BasePlayer {
       values['subtitle source warning'] = 'ASS requested, but native decoder received $codec';
     }
     values['plain subtitle preference (saved)'] = '${_settings.useLibass} (ASS always native)';
+    values.addAll(_renderCapabilities.diagnostics);
+    values.addAll(_hdrToneMapper?.diagnostics ?? {'HDR SDR policy': _renderCapabilities.reason});
     return values;
   }
 
@@ -1033,6 +1225,27 @@ class LibMPV extends BasePlayer {
 
   @override
   Future<void> stop() async {
+    final generation = ++_mediaLoadGeneration;
+    _desiredPlaying = false;
+    _loadReadiness?.cancel();
+    _loadReadiness = null;
+    final player = _player;
+    final hdr = _hdrToneMapper;
+    if (hdr != null) {
+      await stopMpvWithHdr(
+        mapper: hdr,
+        isCurrent: () => generation == _mediaLoadGeneration && player == _player,
+        stop: () async {
+          await player?.stop();
+        },
+        surfaceReady: (ready) => _hdrSurfaceReady.value = ready,
+        forceCover: _hdrPreparing,
+      );
+    } else {
+      await player?.stop();
+    }
+    if (generation != _mediaLoadGeneration || player != _player) return;
+    _nextHdrSource = const MpvHdrSource();
     _subtitleGeneration++;
     _subtitleSeekRefresh.cancel();
     _webSubtitleTiming.clearTrack();
@@ -1046,7 +1259,9 @@ class LibMPV extends BasePlayer {
     _subtitleDelivery = 'off';
     await _subtitleOffsets.idle;
     unawaited(_audioSession?.setActive(false));
-    return _player?.stop();
+    if (generation == _mediaLoadGeneration && player == _player) {
+      _hdrPreparing = false;
+    }
   }
 
   @override
@@ -1065,14 +1280,21 @@ class LibMPV extends BasePlayer {
   ) =>
       _controller == null
           ? null
-          : Video(
-              key: key,
-              controller: _controller!,
-              wakelock: false,
-              fill: Colors.transparent,
-              fit: fit,
-              subtitleViewConfiguration: const SubtitleViewConfiguration(visible: false),
-              controls: NoVideoControls,
+          : ValueListenableBuilder<bool>(
+              valueListenable: _hdrSurfaceReady,
+              builder: (context, ready, child) => Stack(
+                fit: StackFit.passthrough,
+                children: [child!, if (!ready) const Positioned.fill(child: ColoredBox(color: Colors.black))],
+              ),
+              child: Video(
+                key: key,
+                controller: _controller!,
+                wakelock: false,
+                fill: Colors.transparent,
+                fit: fit,
+                subtitleViewConfiguration: const SubtitleViewConfiguration(visible: false),
+                controls: NoVideoControls,
+              ),
             );
 
   @override

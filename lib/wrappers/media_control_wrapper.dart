@@ -275,6 +275,7 @@ class MediaControlsWrapper extends BaseAudioHandler
     try {
       if (_player is LibMPV) {
         (_player as LibMPV).setMusicPlaybackMode(false);
+        (_player as LibMPV).prepareVideoColor(model);
       }
       if (_player is NativePlayer) {
         final context = ref.read(localizationContextProvider);

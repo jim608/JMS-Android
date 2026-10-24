@@ -53,6 +53,14 @@ class Media {
   });
 }
 
+/// Server permission is separate from source HDR labels or display capability.
+bool nativeTvServerAllowsDirectPlayback({
+  required bool nativePlayer,
+  required bool liveTv,
+  required MediaSourceInfo source,
+}) =>
+    !nativePlayer || !liveTv || source.supportsDirectPlay == true || source.supportsDirectStream == true;
+
 extension PlaybackModelExtension on PlaybackModel? {
   SubStreamModel? get defaultSubStream {
     final streams = this?.subStreams;
@@ -217,7 +225,10 @@ class PlaybackModelHelper {
           oldModel: currentModel,
         );
 
-    if (newModel == null) return;
+    if (newModel == null) {
+      ref.read(mediaPlaybackProvider.notifier).update((state) => state.copyWith(buffering: false));
+      return;
+    }
     ref.read(videoPlayerProvider.notifier).loadPlaybackItem(newModel, Duration.zero);
   }
 
@@ -397,8 +408,7 @@ class PlaybackModelHelper {
           newStreamModel?.defaultSubStreamIndex);
 
 //Native player does not allow for loading external subtitles with transcoding
-      final isNativePlayer =
-          ref.read(videoPlayerSettingsProvider.select((value) => value.wantedPlayer == PlayerOptions.nativePlayer));
+      final isNativePlayer = videoPlayerSettings.wantedPlayer == PlayerOptions.nativePlayer;
       final isExternalSub = newStreamModel?.currentSubStream?.isExternal == true;
 
       final Response<PlaybackInfoResponse> response = await api.itemsItemIdPlaybackInfoPost(
@@ -409,7 +419,11 @@ class PlaybackModelHelper {
           subtitleStreamIndex: subStreamIndex,
           enableTranscoding: true,
           autoOpenLiveStream: true,
-          deviceProfile: type != PlaybackType.tv ? ref.read(videoProfileProvider) : null,
+          deviceProfile: playbackDeviceProfile(
+            profile: ref.read(videoProfileProvider),
+            player: videoPlayerSettings.wantedPlayer,
+            liveTv: type == PlaybackType.tv,
+          ),
           userId: userId,
           enableDirectPlay: type != PlaybackType.transcode,
           enableDirectStream: type != PlaybackType.transcode,
@@ -428,6 +442,16 @@ class PlaybackModelHelper {
       final mediaSource = playbackInfo.mediaSources?[newStreamModel?.versionStreamIndex ?? 0];
 
       if (mediaSource == null) {
+        return null;
+      }
+
+      if (!nativeTvServerAllowsDirectPlayback(
+        nativePlayer: isNativePlayer,
+        liveTv: type == PlaybackType.tv,
+        source: mediaSource,
+      )) {
+        log('Native TV direct playback was not allowed by the server; '
+            'refusing an unverified live TV transcode path.');
         return null;
       }
 
@@ -551,6 +575,11 @@ class PlaybackModelHelper {
 
   Future<void> shouldReload(PlaybackModel playbackModel) async {
     if (playbackModel is OfflinePlaybackModel) {
+      return;
+    }
+    // Android applies Native TV track choices locally in the same UI handler.
+    // Keep its TV model instead of entering the generic VOD reload path.
+    if (playbackModel is TvPlaybackModel && playbackModel.isNativePlayerBackend) {
       return;
     }
 

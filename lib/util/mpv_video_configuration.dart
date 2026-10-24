@@ -1,6 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
+/// This is the renderer requested by configuration, not a guess from current-vo
+/// (both libmpv OpenGL and software report the same VO name).
+bool mpvUsesWindowsSoftwareTexture({TargetPlatform? platform, bool web = kIsWeb}) =>
+    !web && (platform ?? defaultTargetPlatform) == TargetPlatform.windows;
+
 /// Windows uses the software texture transfer path to avoid ANGLE shared
 /// surface failures. Hardware decoding remains enabled through copyback.
 /// The pinned Windows software renderer limits output to 1920x1080.
@@ -9,8 +14,7 @@ VideoControllerConfiguration mpvVideoConfiguration({
   TargetPlatform? platform,
   bool web = kIsWeb,
 }) {
-  final windows =
-      !web && (platform ?? defaultTargetPlatform) == TargetPlatform.windows;
+  final windows = mpvUsesWindowsSoftwareTexture(platform: platform, web: web);
   return VideoControllerConfiguration(
     enableHardwareAcceleration: windows ? false : hardwareAcceleration,
     hwdec: windows ? (hardwareAcceleration ? 'auto-copy' : 'no') : null,
@@ -24,10 +28,8 @@ Map<String, String> windowsMpvDecodeDiagnostics({
     {
       'Windows hardware acceleration (saved)': '$hardwareAcceleration',
       'Windows decoder (requested)': hardwareAcceleration ? 'auto-copy' : 'no',
-      'Windows renderer (requested)':
-          'software texture / libmpv (Windows compatibility)',
-      'Windows renderer output limit':
-          '1920x1080 (pinned software texture renderer)',
+      'Windows renderer (requested)': 'software texture / libmpv (Windows compatibility)',
+      'Windows renderer output limit': '1920x1080 (pinned software texture renderer)',
       'Windows decoder fallback': !hardwareAcceleration
           ? 'software requested'
           : currentDecoder == 'no'
