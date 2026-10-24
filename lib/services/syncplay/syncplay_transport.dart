@@ -273,6 +273,7 @@ class SyncPlayTransport implements SyncPlayApiPort {
     Future<Response<T>> Function() request, {
     bool ambiguousMutation = false,
     bool requiresSocket = false,
+    bool unsupportedIsDefinitive = false,
   }) async {
     _checkCurrent();
     if (requiresSocket && !connected) {
@@ -283,6 +284,10 @@ class SyncPlayTransport implements SyncPlayApiPort {
       _checkCurrent();
       if (response.statusCode == 401 || response.statusCode == 403) {
         throw const SyncPlayFailure(SyncPlayFailureCode.denied);
+      }
+      if (unsupportedIsDefinitive &&
+          const {404, 405, 501}.contains(response.statusCode)) {
+        throw const SyncPlayFailure(SyncPlayFailureCode.unsupported);
       }
       if (!response.isSuccessful) {
         throw SyncPlayFailure(ambiguousMutation && response.statusCode >= 500
@@ -378,10 +383,17 @@ class SyncPlayTransport implements SyncPlayApiPort {
                   body: jellyfin.BufferRequestDto.fromJson(request.body)),
               SyncPlayRequestType.ready => _api.syncPlayReadyPost(
                   body: jellyfin.ReadyRequestDto.fromJson(request.body)),
+              SyncPlayRequestType.setIgnoreWait =>
+                _api.syncPlaySetIgnoreWaitPost(
+                    body: jellyfin.IgnoreWaitRequestDto(
+                        ignoreWait: request.body['IgnoreWait'] as bool)),
               SyncPlayRequestType.ping => _api.syncPlayPingPost(
                   body: jellyfin.PingRequestDto.fromJson(request.body)),
             },
-        requiresSocket: true);
+        requiresSocket: true,
+        ambiguousMutation: request.type == SyncPlayRequestType.setIgnoreWait,
+        unsupportedIsDefinitive:
+            request.type == SyncPlayRequestType.setIgnoreWait);
   }
 
   @override

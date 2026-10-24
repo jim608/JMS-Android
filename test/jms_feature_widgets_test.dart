@@ -53,7 +53,7 @@ class FixtureMedia extends MediaControlsWrapper {
   @override
   Stream<PlayerState> get stateStream => events.stream;
   @override
-  Future<void> init() async {
+  Future<void> init({PlayerOptions? overridePlayer}) async {
     activeInitializations++;
     if (activeInitializations > maximumInitializations) {
       maximumInitializations = activeInitializations;

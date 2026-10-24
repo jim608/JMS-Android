@@ -1352,6 +1352,7 @@ class Api implements SyncPlayApiPort {
       case SyncPlayRequestType.buffering:
       case SyncPlayRequestType.ready:
       case SyncPlayRequestType.ping:
+      case SyncPlayRequestType.setIgnoreWait:
         break;
     }
   }

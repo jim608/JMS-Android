@@ -49,6 +49,7 @@ enum SyncPlayFailureCode {
   protocol,
   player,
   clock,
+  unsupported,
 }
 
 class SyncPlayFailure implements Exception {
@@ -252,12 +253,18 @@ enum SyncPlayRequestType {
   setNewQueue,
   buffering,
   ready,
+  setIgnoreWait,
   ping
 }
 
 class SyncPlayRequest {
   SyncPlayRequest(this.type, [Map<String, dynamic> body = const {}])
-      : body = Map.unmodifiable(body);
+      : body = Map.unmodifiable(body) {
+    if (type == SyncPlayRequestType.setIgnoreWait &&
+        (body.length != 1 || body['IgnoreWait'] is! bool)) {
+      throw const FormatException('IgnoreWait requires one boolean');
+    }
+  }
   final SyncPlayRequestType type;
   final Map<String, dynamic> body;
   String get endpoint => switch (type) {
@@ -267,6 +274,7 @@ class SyncPlayRequest {
         SyncPlayRequestType.setNewQueue => 'SetNewQueue',
         SyncPlayRequestType.buffering => 'Buffering',
         SyncPlayRequestType.ready => 'Ready',
+        SyncPlayRequestType.setIgnoreWait => 'SetIgnoreWait',
         SyncPlayRequestType.ping => 'Ping',
       };
 }
@@ -329,6 +337,20 @@ class SyncPlayDiagnostics {
       };
 }
 
+/// Playback can recover while this session remains excluded from group wait.
+/// A Playing-state Ready acknowledgement does not clear Jellyfin's buffer flag.
+enum SyncPlayWaitParticipation {
+  following,
+  ignoring,
+  ignored,
+  recovering,
+  ignoredRecovered,
+  unsupported,
+  uncertain,
+}
+
+enum SyncPlayMembershipFreshness { unverified, confirmed, stale, uncertain }
+
 class SyncPlayControllerState {
   const SyncPlayControllerState({
     this.status = SyncPlayStatus.idle,
@@ -338,6 +360,15 @@ class SyncPlayControllerState {
     this.clockSynchronized = false,
     this.failure,
     this.diagnostics = const SyncPlayDiagnostics(),
+    this.waitParticipation = SyncPlayWaitParticipation.following,
+    this.mediaReady,
+    this.bufferedAhead,
+    this.targetBufferedAhead,
+    this.waitAge,
+    this.catchupAttempts = 0,
+    this.mediaBufferEpoch = 0,
+    this.membershipFreshness = SyncPlayMembershipFreshness.unverified,
+    this.membershipCheckAge,
   });
 
   final SyncPlayStatus status;
@@ -347,6 +378,15 @@ class SyncPlayControllerState {
   final bool clockSynchronized;
   final SyncPlayFailure? failure;
   final SyncPlayDiagnostics diagnostics;
+  final SyncPlayWaitParticipation waitParticipation;
+  final bool? mediaReady;
+  final Duration? bufferedAhead;
+  final Duration? targetBufferedAhead;
+  final Duration? waitAge;
+  final int catchupAttempts;
+  final int mediaBufferEpoch;
+  final SyncPlayMembershipFreshness membershipFreshness;
+  final Duration? membershipCheckAge;
   bool get isJoined => status == SyncPlayStatus.joined && group != null;
   bool get canControl => isJoined && connected && clockSynchronized;
 }

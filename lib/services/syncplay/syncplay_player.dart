@@ -3,7 +3,8 @@ import 'dart:async';
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart' hide SyncPlayQueueItem;
+import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart'
+    hide SyncPlayQueueItem;
 import 'package:fladder/models/account_model.dart';
 import 'package:fladder/models/item_base_model.dart';
 import 'package:fladder/models/items/item_shared_models.dart';
@@ -47,7 +48,11 @@ class SyncPlayPlayerAdapter implements SyncPlayPlayerPort {
       required this.isCurrent,
       this.queue,
       this.createPlaybackApi,
-      this.isPlaybackIdentityCurrent});
+      this.isPlaybackIdentityCurrent,
+      this.playbackPrepared,
+      this.prepareForPlayback,
+      this.onLoaded,
+      this.playbackProfile});
 
   final Ref ref;
   final AccountModel account;
@@ -56,6 +61,10 @@ class SyncPlayPlayerAdapter implements SyncPlayPlayerPort {
   final SyncPlayQueue? Function()? queue;
   final JellyfinOpenApi Function()? createPlaybackApi;
   final bool Function()? isPlaybackIdentityCurrent;
+  final bool Function()? playbackPrepared;
+  final Future<bool> Function()? prepareForPlayback;
+  final void Function()? onLoaded;
+  final DeviceProfile? playbackProfile;
   String? _mediaId;
   String? _playlistItemId;
   int _loadEpoch = 0;
@@ -76,7 +85,9 @@ class SyncPlayPlayerAdapter implements SyncPlayPlayerPort {
   Future<void> _waitForReady(Duration target, bool Function() current) async {
     bool ready() {
       final state = _player.lastState;
-      return state != null && !state.buffering && (state.position - target).abs() <= _alignmentTolerance;
+      return state != null &&
+          !state.buffering &&
+          (state.position - target).abs() <= _alignmentTolerance;
     }
 
     if (!current() || ready()) return;
@@ -98,10 +109,18 @@ class SyncPlayPlayerAdapter implements SyncPlayPlayerPort {
   @override
   String? get playlistItemId => _playlistItemId;
   @override
-  Duration get position => isCurrent() ? (_player.lastState?.position ?? Duration.zero) : Duration.zero;
+  Duration get position => isCurrent() && (playbackPrepared?.call() ?? true)
+      ? (_player.lastState?.position ?? Duration.zero)
+      : Duration.zero;
   @override
-  bool get isPlaying => isCurrent() && _player.lastState?.playing == true;
-  bool get isBuffering => isCurrent() && _player.lastState?.buffering == true;
+  bool get isPlaying =>
+      isCurrent() &&
+      (playbackPrepared?.call() ?? true) &&
+      _player.lastState?.playing == true;
+  bool get isBuffering =>
+      isCurrent() &&
+      (playbackPrepared?.call() ?? true) &&
+      _player.lastState?.buffering == true;
 
   @override
   Future<void> applyRemote(SyncPlayPlayerAction action) async {
@@ -113,14 +132,8 @@ class SyncPlayPlayerAdapter implements SyncPlayPlayerPort {
       }
       final epoch = _beginAction();
       bool current() => isCurrent() && epoch == _loadEpoch;
-      final notifier = ref.read(videoPlayerProvider.notifier);
-      final ready = await notifier.waitUntilReady();
-      if (!current()) return;
-      if (!ready || !_player.supportsSyncPlay) {
-        throw const SyncPlayFailure(SyncPlayFailureCode.player);
-      }
-      await _player.pauseFromSyncPlay();
-      if (!current()) return;
+      // Resolve the room item using this participant's account before touching
+      // existing playback or lazily preparing a built-in backend.
       final model = await createSyncPlayPlaybackModel(
           ref: ref,
           api: createPlaybackApi?.call() ?? api,
@@ -130,33 +143,37 @@ class SyncPlayPlayerAdapter implements SyncPlayPlayerPort {
           isCurrent: current,
           queue: queue,
           ownsApi: createPlaybackApi != null,
+          profile: playbackProfile,
           isPlaybackIdentityCurrent: isPlaybackIdentityCurrent ?? isCurrent,
           isActuallyPlaying: () => _player.lastState?.playing == true);
-      if (!current()) {
-        model.dispose();
-        return;
-      }
-      final bool loaded;
+      var retained = false;
       try {
-        loaded = await notifier.loadPlaybackItem(model, action.position, playWhenReady: false, isCurrent: current);
-      } catch (_) {
-        model.dispose();
-        rethrow;
-      }
-      if (!current() || !loaded) {
-        model.dispose();
         if (!current()) return;
-        throw const SyncPlayFailure(SyncPlayFailureCode.player);
+        final notifier = ref.read(videoPlayerProvider.notifier);
+        final ready =
+            await (prepareForPlayback?.call() ?? notifier.waitUntilReady());
+        if (!current()) return;
+        if (!ready || !_player.supportsSyncPlay) {
+          throw const SyncPlayFailure(SyncPlayFailureCode.player);
+        }
+        await _player.pauseFromSyncPlay();
+        if (!current()) return;
+        final loaded = await notifier.loadPlaybackItem(model, action.position,
+            playWhenReady: false, isCurrent: current);
+        if (!current()) return;
+        if (!loaded) throw const SyncPlayFailure(SyncPlayFailureCode.player);
+        await _waitForReady(action.position, current);
+        if (!current()) return;
+        _mediaId = entry.mediaId;
+        _playlistItemId = entry.playlistItemId;
+        retained = true;
+        onLoaded?.call();
+      } finally {
+        if (!retained) model.dispose();
       }
-      await _waitForReady(action.position, current);
-      if (!current()) {
-        model.dispose();
-        return;
-      }
-      _mediaId = entry.mediaId;
-      _playlistItemId = entry.playlistItemId;
       return;
     }
+    if (!(playbackPrepared?.call() ?? true)) return;
     if (action.type == SyncPlayPlayerActionType.stop) {
       final epoch = _beginAction();
       await _player.stopFromSyncPlay();
@@ -171,8 +188,10 @@ class SyncPlayPlayerAdapter implements SyncPlayPlayerPort {
       await _player.pauseFromSyncPlay();
       if (!current()) return;
     }
-    final offset = (_player.lastState?.position ?? Duration.zero) - action.position;
-    if (action.type == SyncPlayPlayerActionType.seek || offset.abs() > _alignmentTolerance) {
+    final offset =
+        (_player.lastState?.position ?? Duration.zero) - action.position;
+    if (action.type == SyncPlayPlayerActionType.seek ||
+        offset.abs() > _alignmentTolerance) {
       await _player.seekFromSyncPlay(action.position);
       if (!current()) return;
     }
@@ -197,6 +216,7 @@ Future<SyncPlayPlaybackModel> createSyncPlayPlaybackModel({
   bool ownsApi = false,
   bool Function()? isPlaybackIdentityCurrent,
   bool Function()? isActuallyPlaying,
+  DeviceProfile? profile,
 }) async {
   final apiOwner = SyncPlayPlaybackApiOwner(api, ownsApi: ownsApi);
   try {
@@ -205,11 +225,15 @@ Future<SyncPlayPlaybackModel> createSyncPlayPlaybackModel({
     }
 
     check();
-    final profile = ref.read(videoProfileProvider);
-    final response = await api.itemsItemIdGet(itemId: queueItem.mediaId, userId: account.id);
+    final deviceProfile = profile ?? ref.read(videoProfileProvider);
+    final response =
+        await api.itemsItemIdGet(itemId: queueItem.mediaId, userId: account.id);
     check();
     final dto = response.body;
-    if (!response.isSuccessful || dto == null || dto.id != queueItem.mediaId || dto.mediaType != MediaType.video) {
+    if (!response.isSuccessful ||
+        dto == null ||
+        dto.id != queueItem.mediaId ||
+        dto.mediaType != MediaType.video) {
       throw const SyncPlayFailure(SyncPlayFailureCode.player);
     }
     final playback = await api.itemsItemIdPlaybackInfoPost(
@@ -221,14 +245,18 @@ Future<SyncPlayPlaybackModel> createSyncPlayPlaybackModel({
             enableDirectStream: true,
             enableTranscoding: true,
             autoOpenLiveStream: true,
-            deviceProfile: profile));
+            deviceProfile: deviceProfile));
     check();
     final info = playback.body;
     final source = info?.mediaSources?.firstOrNull;
-    if (!playback.isSuccessful || source?.id == null || source == null || info == null) {
+    if (!playback.isSuccessful ||
+        source?.id == null ||
+        source == null ||
+        info == null) {
       throw const SyncPlayFailure(SyncPlayFailureCode.player);
     }
-    final direct = source.supportsDirectPlay == true || source.supportsDirectStream == true;
+    final direct = source.supportsDirectPlay == true ||
+        source.supportsDirectStream == true;
     final Uri? uri = direct
         ? buildServerUriFromBase(account.credentials.url, pathSegments: [
             'Videos',
@@ -267,16 +295,23 @@ Future<SyncPlayPlaybackModel> createSyncPlayPlaybackModel({
 Uri? _capturedUri(AccountModel account, String relativeUrl) {
   final base = Uri.tryParse(account.credentials.url);
   final uri = buildServerUriFromBase(account.credentials.url,
-      relativeUrl: relativeUrl, queryParameters: {'ApiKey': account.credentials.token});
-  if (base == null || uri == null || base.scheme != uri.scheme || base.host != uri.host || base.port != uri.port) {
+      relativeUrl: relativeUrl,
+      queryParameters: {'ApiKey': account.credentials.token});
+  if (base == null ||
+      uri == null ||
+      base.scheme != uri.scheme ||
+      base.host != uri.host ||
+      base.port != uri.port) {
     return null;
   }
   // Add the snapshot token only after rejecting a different origin.
-  final query = {...uri.queryParameters, 'ApiKey': account.credentials.token}..remove('api_key');
+  final query = {...uri.queryParameters, 'ApiKey': account.credentials.token}
+    ..remove('api_key');
   return uri.replace(queryParameters: query);
 }
 
-MediaStreamsModel _capturedStreams(MediaSourceInfo source, AccountModel account) {
+MediaStreamsModel _capturedStreams(
+    MediaSourceInfo source, AccountModel account) {
   final streams = source.mediaStreams ?? const <MediaStream>[];
   return MediaStreamsModel(
       defaultAudioStreamIndex: source.defaultAudioStreamIndex,
@@ -288,12 +323,19 @@ MediaStreamsModel _capturedStreams(MediaSourceInfo source, AccountModel account)
             id: source.id,
             defaultAudioStreamIndex: source.defaultAudioStreamIndex,
             defaultSubStreamIndex: source.defaultSubtitleStreamIndex,
-            videoStreams:
-                streams.where((s) => s.type == MediaStreamType.video).map(VideoStreamModel.fromMediaStream).toList(),
-            audioStreams:
-                streams.where((s) => s.type == MediaStreamType.audio).map(AudioStreamModel.fromMediaStream).toList(),
-            subStreams: streams.where((s) => s.type == MediaStreamType.subtitle).map((s) {
-              final delivery = subtitleDeliveryUrl(s.deliveryUrl, s.codec ?? '');
+            videoStreams: streams
+                .where((s) => s.type == MediaStreamType.video)
+                .map(VideoStreamModel.fromMediaStream)
+                .toList(),
+            audioStreams: streams
+                .where((s) => s.type == MediaStreamType.audio)
+                .map(AudioStreamModel.fromMediaStream)
+                .toList(),
+            subStreams: streams
+                .where((s) => s.type == MediaStreamType.subtitle)
+                .map((s) {
+              final delivery =
+                  subtitleDeliveryUrl(s.deliveryUrl, s.codec ?? '');
               return SubStreamModel(
                   name: s.title ?? '',
                   id: '${source.id}/${s.index}',
@@ -305,7 +347,9 @@ MediaStreamsModel _capturedStreams(MediaSourceInfo source, AccountModel account)
                   isDefault: s.isDefault ?? false,
                   isExternal: s.isExternal ?? false,
                   supportsExternalStream: s.supportsExternalStream ?? false,
-                  url: delivery == null ? null : _capturedUri(account, delivery)?.toString());
+                  url: delivery == null
+                      ? null
+                      : _capturedUri(account, delivery)?.toString());
             }).toList())
       ]);
 }
@@ -332,6 +376,8 @@ class SyncPlayPlaybackModel extends PlaybackModel {
   final SyncPlayQueueItem queueItem;
   final SyncPlayQueue? Function()? groupQueue;
   final PlayMethod playMethod;
+  @override
+  bool get isServerTranscoded => playMethod == PlayMethod.transcode;
   final SyncPlayPlaybackApiOwner _apiOwner;
   final bool Function()? isActuallyPlaying;
   bool get _available => !_apiOwner.closed && isCurrent();
@@ -346,11 +392,14 @@ class SyncPlayPlaybackModel extends PlaybackModel {
   @override
   ItemBaseModel? get previousVideo => null;
   @override
-  List<SubStreamModel> get subStreams => [SubStreamModel.no(), ...?mediaStreams?.subStreams];
+  List<SubStreamModel> get subStreams =>
+      [SubStreamModel.no(), ...?mediaStreams?.subStreams];
   @override
-  List<AudioStreamModel> get audioStreams => [AudioStreamModel.no(), ...?mediaStreams?.audioStreams];
+  List<AudioStreamModel> get audioStreams =>
+      [AudioStreamModel.no(), ...?mediaStreams?.audioStreams];
   List<QueueItem> get _wireQueue => (groupQueue?.call()?.items ?? [queueItem])
-      .map((entry) => QueueItem(id: entry.mediaId, playlistItemId: entry.playlistItemId))
+      .map((entry) =>
+          QueueItem(id: entry.mediaId, playlistItemId: entry.playlistItemId))
       .toList();
 
   @override
@@ -371,7 +420,8 @@ class SyncPlayPlaybackModel extends PlaybackModel {
   }
 
   @override
-  Future<PlaybackModel?> updatePlaybackPosition(Duration position, bool isPlaying, Ref ref) async {
+  Future<PlaybackModel?> updatePlaybackPosition(
+      Duration position, bool isPlaying, Ref ref) async {
     if (!_available) return null;
     await api.sessionsPlayingProgressPost(
         body: PlaybackProgressInfo(
@@ -388,7 +438,8 @@ class SyncPlayPlaybackModel extends PlaybackModel {
   }
 
   @override
-  Future<PlaybackModel?> playbackStopped(Duration position, Duration? totalDuration, Ref ref) async {
+  Future<PlaybackModel?> playbackStopped(
+      Duration position, Duration? totalDuration, Ref ref) async {
     if (!_available) return null;
     await api.sessionsPlayingStoppedPost(
         body: PlaybackStopInfo(
@@ -401,20 +452,23 @@ class SyncPlayPlaybackModel extends PlaybackModel {
     return null;
   }
 
-  SyncPlayPlaybackModel _copy({ItemBaseModel? item, MediaStreamsModel? streams}) => SyncPlayPlaybackModel(
-      item: item ?? this.item,
-      media: media,
-      playbackInfo: playbackInfo,
-      mediaStreams: streams ?? mediaStreams,
-      api: api,
-      isCurrent: isCurrent,
-      queueItem: queueItem,
-      groupQueue: groupQueue,
-      playMethod: playMethod,
-      apiOwner: _apiOwner,
-      isActuallyPlaying: isActuallyPlaying);
+  SyncPlayPlaybackModel _copy(
+          {ItemBaseModel? item, MediaStreamsModel? streams}) =>
+      SyncPlayPlaybackModel(
+          item: item ?? this.item,
+          media: media,
+          playbackInfo: playbackInfo,
+          mediaStreams: streams ?? mediaStreams,
+          api: api,
+          isCurrent: isCurrent,
+          queueItem: queueItem,
+          groupQueue: groupQueue,
+          playMethod: playMethod,
+          apiOwner: _apiOwner,
+          isActuallyPlaying: isActuallyPlaying);
   @override
-  PlaybackModel updateUserData(UserData userData) => _copy(item: item.copyWith(userData: userData));
+  PlaybackModel updateUserData(UserData userData) =>
+      _copy(item: item.copyWith(userData: userData));
   @override
   PlaybackModel updatePlaybackQueue(PlaybackQueueState newQueue) => this;
   @override
@@ -422,7 +476,8 @@ class SyncPlayPlaybackModel extends PlaybackModel {
   @override
   Future<PlaybackModel> setQualityOption(Map<Bitrate, bool> map) async => this;
   @override
-  Future<PlaybackModel> setSubtitle(SubStreamModel? model, MediaControlsWrapper player) async {
+  Future<PlaybackModel> setSubtitle(
+      SubStreamModel? model, MediaControlsWrapper player) async {
     if (!isCurrent()) return this;
     final index = await player.setSubtitleTrack(model, this);
     if (!isCurrent()) return this;
@@ -430,10 +485,12 @@ class SyncPlayPlaybackModel extends PlaybackModel {
   }
 
   @override
-  Future<PlaybackModel> setAudio(AudioStreamModel? model, MediaControlsWrapper player) async {
+  Future<PlaybackModel> setAudio(
+      AudioStreamModel? model, MediaControlsWrapper player) async {
     if (!isCurrent()) return this;
     final index = await player.setAudioTrack(model, this);
     if (!isCurrent()) return this;
-    return _copy(streams: mediaStreams?.copyWith(defaultAudioStreamIndex: index));
+    return _copy(
+        streams: mediaStreams?.copyWith(defaultAudioStreamIndex: index));
   }
 }

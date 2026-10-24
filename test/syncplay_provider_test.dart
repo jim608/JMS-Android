@@ -18,6 +18,7 @@ import 'package:fladder/providers/syncplay_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
 import 'package:fladder/services/syncplay/syncplay_models.dart';
+import 'package:fladder/services/syncplay/syncplay_prebuffer.dart';
 import 'package:fladder/util/application_info.dart';
 import 'package:fladder/util/sleep_timer.dart';
 import 'package:fladder/wrappers/media_control_wrapper.dart';
@@ -54,6 +55,12 @@ class _Server {
   String policyAccess = 'CreateAndJoinGroups';
   int policyStatus = 200;
   Completer<void>? policyGate;
+  Completer<void>? listGate, joinGate, itemGate;
+  final listStarted = Completer<void>();
+  final joinStarted = Completer<void>();
+  final itemStarted = Completer<void>();
+  int itemStatus = 200;
+  final mediaUsers = <String?>[];
   final policyStarted = Completer<void>();
   final createdAt = DateTime.now().toUtc();
 
@@ -142,6 +149,8 @@ class _Server {
               },
               policyStatus);
         case 'List':
+          if (!listStarted.isCompleted) listStarted.complete();
+          await listGate?.future;
           await _reply(request, name == null ? [] : [group]);
         case 'New':
           name = body['GroupName'] as String;
@@ -151,6 +160,8 @@ class _Server {
           emit('GroupJoined', group);
           await _reply(request, group);
         case 'Join':
+          if (!joinStarted.isCompleted) joinStarted.complete();
+          await joinGate?.future;
           emit('GroupJoined', group);
           if (queue != null) emit('PlayQueue', queue);
           await _reply(request, null, 204);
@@ -181,7 +192,10 @@ class _Server {
           emit('PlayQueue', queue);
           await _reply(request, null, 204);
         case _media:
-          await _reply(request, _item.toJson());
+          mediaUsers.add(request.uri.queryParameters['userId']);
+          if (!itemStarted.isCompleted) itemStarted.complete();
+          await itemGate?.future;
+          await _reply(request, _item.toJson(), itemStatus);
         case 'PlaybackInfo':
           await _reply(request, {
             'PlaySessionId': 'synthetic-play-session',
@@ -207,6 +221,9 @@ class _Server {
   }
 
   Future<void> close() async {
+    for (final gate in [listGate, joinGate, itemGate]) {
+      if (gate != null && !gate.isCompleted) gate.complete();
+    }
     if (newGate != null && !newGate!.isCompleted) newGate!.complete();
     if (upgradeGate != null && !upgradeGate!.isCompleted) {
       upgradeGate!.complete();
@@ -224,7 +241,7 @@ class _User extends User {
   final AccountModel account;
   @override
   AccountModel? build() => account;
-  void replace(AccountModel next) => state = next;
+  void replace(AccountModel? next) => state = next;
 }
 
 class _InitialModel extends Fake implements PlaybackModel {
@@ -252,6 +269,18 @@ class _Wrapper extends MediaControlsWrapper {
   int pauses = 0, plays = 0;
   Completer<void>? playGate;
   Completer<void>? playStarted;
+  Duration? bufferedAhead = const Duration(seconds: 10);
+  @override
+  Future<int?> configureSyncPlayBufferBudget() async => null;
+  @override
+  Future<SyncPlayBufferSample> readSyncPlayBufferSample() async =>
+      SyncPlayBufferSample(
+          position: raw.position,
+          bufferEnd:
+              bufferedAhead == null ? null : raw.position + bufferedAhead!,
+          duration: raw.duration,
+          buffering: raw.buffering,
+          observedAt: DateTime.now());
   @override
   bool get supportsSyncPlay => true;
   @override
@@ -285,6 +314,19 @@ class _Video extends VideoPlayerNotifier {
     state = _Wrapper(ref);
   }
   final loaded = <PlaybackModel>[];
+  int prepares = 0;
+  final preparedCurrent = <bool>[];
+  Completer<void>? prepareGate;
+  @override
+  Future<bool> prepareSyncPlayPlayback(
+      {required bool Function() isCurrent}) async {
+    prepares++;
+    await prepareGate?.future;
+    final current = isCurrent();
+    preparedCurrent.add(current);
+    return current;
+  }
+
   @override
   Future<bool> waitUntilReady() async => true;
   @override
@@ -301,7 +343,9 @@ class _Video extends VideoPlayerNotifier {
 }
 
 class _Scope {
-  _Scope(this.server, SharedPreferences preferences) {
+  _Scope(this.server, SharedPreferences preferences,
+      {bool noMedia = false,
+      TargetPlatform platform = TargetPlatform.windows}) {
     account = AccountModel(
       name: 'Fixture',
       id: '44444444444444444444444444444444',
@@ -324,33 +368,40 @@ class _Scope {
           name: 'JMS-test',
           version: '0.0.0',
           buildNumber: '0',
-          platform: TargetPlatform.windows)),
+          platform: platform)),
       videoProfileProvider.overrideWith((_) => const jellyfin.DeviceProfile()),
       sleepTimerProvider.overrideWith((_) => _SleepTimer()),
-      playBackModel.overrideWith((_) => _InitialModel()),
+      playBackModel.overrideWith((_) => noMedia ? null : _InitialModel()),
       videoPlayerProvider.overrideWith((ref) => _Video(ref)),
     ]);
     notifier = container.read(syncPlayProvider.notifier);
-    video = container.read(videoPlayerProvider.notifier) as _Video;
-    wrapper = container.read(videoPlayerProvider) as _Wrapper;
   }
   final _Server server;
   late final AccountModel account;
   late final ProviderContainer container;
   late final SyncPlayNotifier notifier;
-  late final _Video video;
-  late final _Wrapper wrapper;
+  _Video? _video;
+  _Wrapper? _wrapper;
+  _Video get video =>
+      _video ??= container.read(videoPlayerProvider.notifier) as _Video;
+  _Wrapper get wrapper =>
+      _wrapper ??= container.read(videoPlayerProvider) as _Wrapper;
   bool disposed = false;
   SyncPlayViewState get state => container.read(syncPlayProvider);
 
   void dispose() {
     if (disposed) return;
     disposed = true;
+    final models = container.exists(videoPlayerProvider)
+        ? video.loaded
+        : <PlaybackModel>[];
+    final snapshots =
+        container.exists(videoPlayerProvider) ? wrapper.snapshots : null;
     container.dispose();
-    for (final model in video.loaded) {
+    for (final model in models) {
       model.dispose();
     }
-    unawaited(wrapper.snapshots.close());
+    unawaited(snapshots?.close());
   }
 }
 
@@ -367,6 +418,280 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     preferences = await SharedPreferences.getInstance();
+  });
+
+  Map<String, dynamic> homeQueue() => {
+        'Reason': 'NewPlaylist',
+        'LastUpdate': DateTime.now().toUtc().toIso8601String(),
+        'Playlist': [
+          {'ItemId': _media, 'PlaylistItemId': _queueEntry}
+        ],
+        'PlayingItemIndex': 0,
+        'StartPositionTicks': 0,
+        'IsPlaying': false,
+        'ShuffleMode': 'Sorted',
+        'RepeatMode': 'RepeatNone',
+      };
+
+  Future<_Scope> homeScope(_Server server) async {
+    await server.start();
+    final scope = _Scope(server, preferences,
+        noMedia: true, platform: TargetPlatform.android);
+    addTearDown(() async {
+      scope.dispose();
+      await server.close();
+    });
+    return scope;
+  }
+
+  test(
+      'Android home joins with no media, authorizes own item and becomes ready once',
+      () async {
+    final server = _Server()
+      ..name = 'JMS-123456'
+      ..queue = homeQueue();
+    final scope = await homeScope(server);
+    expect(scope.container.exists(videoPlayerProvider), isFalse);
+    expect(scope.notifier.canJoinFromHome, isTrue);
+    final ticket = scope.notifier.beginHomeJoin('123456');
+    expect(ticket, isNotNull);
+    await _until(
+        () => scope.state.readyHomeJoin == ticket, 'home playback ready');
+    expect(scope.video.prepares, 1);
+    expect(scope.video.loaded, hasLength(1));
+    expect(server.mediaUsers, [scope.account.id]);
+    expect(server.requests.where((e) => e == 'PlaybackInfo'), hasLength(1));
+    expect(scope.notifier.consumeHomeJoin(ticket!), isTrue);
+    expect(scope.notifier.consumeHomeJoin(ticket), isFalse);
+    expect(scope.state.readyHomeJoin, isNull);
+    await scope.notifier.stop();
+  });
+
+  test('provider waits for measured media ahead while raw buffering is false',
+      () async {
+    final server = _Server();
+    await server.start();
+    final scope = _Scope(server, preferences);
+    addTearDown(() async {
+      scope.dispose();
+      await server.close();
+    });
+    scope.wrapper.bufferedAhead = const Duration(milliseconds: 100);
+    await scope.notifier.createRoom();
+    await _until(() => scope.state.prebuffer != null, 'first measured sample');
+    expect(scope.wrapper.raw.buffering, isFalse);
+    expect(scope.state.prebuffer!.ready, isFalse);
+    expect(server.requests.where((e) => e == 'Ready'), isEmpty);
+    expect(server.requests.where((e) => e == 'Buffer'), isEmpty);
+    scope.wrapper.bufferedAhead = const Duration(seconds: 10);
+    await _until(
+        () =>
+            server.requests.contains('Ready') &&
+            scope.state.room.mediaReady == true,
+        'media target reached and acknowledgement reflected in state');
+    expect(scope.state.room.mediaReady, isTrue);
+    await scope.notifier.stop();
+  });
+
+  test('home lookup cancellation sends no Join and never initializes playback',
+      () async {
+    final server = _Server()
+      ..name = 'JMS-123456'
+      ..listGate = Completer<void>();
+    final scope = await homeScope(server);
+    final ticket = scope.notifier.beginHomeJoin('123456')!;
+    await server.listStarted.future;
+    await scope.notifier.cancelHomeJoin(ticket);
+    server.listGate!.complete();
+    await _until(() => !scope.state.busy, 'lookup cancelled');
+    expect(server.requests.where((e) => e == 'Join'), isEmpty);
+    expect(scope.container.exists(videoPlayerProvider), isFalse);
+    expect(scope.state.readyHomeJoin, isNull);
+  });
+
+  test('home cancel waits late Join then Leave and prevents late media/Ready',
+      () async {
+    final server = _Server()
+      ..name = 'JMS-123456'
+      ..queue = homeQueue()
+      ..joinGate = Completer<void>();
+    final scope = await homeScope(server);
+    final ticket = scope.notifier.beginHomeJoin('123456')!;
+    await server.joinStarted.future;
+    final cancelled = scope.notifier.cancelHomeJoin(ticket);
+    server.joinGate!.complete();
+    await cancelled;
+    await _until(() => !scope.state.busy, 'join cleanup complete');
+    expect(server.requests.where((e) => e == 'Leave'), hasLength(1));
+    expect(server.requests.where((e) => e == 'Ready'), isEmpty);
+    expect(scope.container.exists(videoPlayerProvider), isFalse);
+    expect(scope.state.room.status, SyncPlayStatus.idle);
+  });
+
+  test('missing and empty rooms leave existing playback untouched', () async {
+    final server = _Server();
+    final scope = await homeScope(server);
+    final first = scope.notifier.beginHomeJoin('123456')!;
+    await _until(() => scope.state.room.failure != null, 'missing room');
+    expect(scope.state.room.failure!.code, SyncPlayFailureCode.noGroup);
+    expect(scope.container.exists(videoPlayerProvider), isFalse);
+    await scope.notifier.cancelHomeJoin(first);
+    server.name = 'JMS-123456';
+    final second = scope.notifier.beginHomeJoin('123456')!;
+    await _until(() => scope.state.room.isJoined, 'empty room joined');
+    expect(scope.state.preparingPlayback, isTrue);
+    expect(scope.state.readyHomeJoin, isNull);
+    expect(scope.container.exists(videoPlayerProvider), isFalse);
+    await scope.notifier.cancelHomeJoin(second);
+  });
+
+  test(
+      'media denial occurs before player prepare, then explicit cleanup permits retry',
+      () async {
+    final server = _Server()
+      ..name = 'JMS-123456'
+      ..queue = homeQueue()
+      ..itemStatus = 403;
+    final scope = await homeScope(server);
+    final first = scope.notifier.beginHomeJoin('123456')!;
+    await _until(
+        () => scope.state.room.failure?.code == SyncPlayFailureCode.player,
+        'own media denied');
+    expect(scope.container.exists(videoPlayerProvider), isFalse);
+    expect(server.requests.where((e) => e == 'PlaybackInfo'), isEmpty);
+    expect(scope.notifier.beginHomeJoin('123456'), isNull);
+    await scope.notifier.cancelHomeJoin(first);
+    server.itemStatus = 200;
+    final second = scope.notifier.beginHomeJoin('123456')!;
+    await _until(() => scope.state.readyHomeJoin == second, 'retry loaded');
+    await scope.notifier.cancelHomeJoin(first);
+    expect(scope.state.readyHomeJoin, second);
+    expect(scope.notifier.consumeHomeJoin(second), isTrue);
+    await scope.notifier.stop();
+  });
+
+  test(
+      'cancel during captured item fetch cannot pause existing playback or prepare',
+      () async {
+    final server = _Server()
+      ..name = 'JMS-123456'
+      ..queue = homeQueue()
+      ..itemGate = Completer<void>();
+    final scope = await homeScope(server);
+    final wrapper = scope.wrapper..raw.playing = true;
+    final ticket = scope.notifier.beginHomeJoin('123456')!;
+    await server.itemStarted.future;
+    expect(wrapper.pauses, 0);
+    await scope.notifier.cancelHomeJoin(ticket);
+    server.itemGate!.complete();
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+    expect(wrapper.pauses, 0);
+    expect(wrapper.raw.playing, isTrue);
+    expect(scope.video.prepares, 0);
+    expect(scope.video.loaded, isEmpty);
+    expect(scope.state.readyHomeJoin, isNull);
+  });
+
+  test('logout revokes home load and old ready ticket', () async {
+    final server = _Server()
+      ..name = 'JMS-123456'
+      ..queue = homeQueue()
+      ..itemGate = Completer<void>();
+    final scope = await homeScope(server);
+    final ticket = scope.notifier.beginHomeJoin('123456')!;
+    await server.itemStarted.future;
+    (scope.container.read(userProvider.notifier) as _User).replace(null);
+    server.itemGate!.complete();
+    await _until(() => !scope.state.busy, 'logout detached');
+    expect(scope.notifier.canJoinFromHome, isFalse);
+    expect(scope.notifier.consumeHomeJoin(ticket), isFalse);
+    expect(scope.container.exists(videoPlayerProvider), isFalse);
+  });
+
+  test('failed cleanup blocks replacement room until membership is reconciled',
+      () async {
+    final server = _Server()
+      ..name = 'JMS-123456'
+      ..leaveFails = true;
+    final scope = await homeScope(server);
+    final ticket = scope.notifier.beginHomeJoin('123456')!;
+    await _until(() => scope.state.room.isJoined, 'joined empty room');
+    await scope.notifier.cancelHomeJoin(ticket);
+    expect(scope.state.room.status, SyncPlayStatus.unknown);
+    expect(scope.notifier.beginHomeJoin('123456'), isNull);
+    expect(scope.container.exists(videoPlayerProvider), isFalse);
+    server.leaveFails = false;
+    await scope.notifier.stop();
+  });
+
+  test('home cancel during handshake cannot initialize or open playback later',
+      () async {
+    final server = _Server()
+      ..name = 'JMS-123456'
+      ..queue = homeQueue()
+      ..upgradeGate = Completer<void>();
+    final scope = await homeScope(server);
+    final ticket = scope.notifier.beginHomeJoin('123456')!;
+    await server.socketStarted.future;
+    await scope.notifier.cancelHomeJoin(ticket);
+    server.upgradeGate!.complete();
+    await _until(
+        () => server.closedSockets == 1, 'cancelled home socket closed');
+    expect(server.requests.where((e) => e == 'Join'), isEmpty);
+    expect(scope.container.exists(videoPlayerProvider), isFalse);
+    expect(scope.state.readyHomeJoin, isNull);
+  });
+
+  test(
+      'new reconnect ticket cannot revive a cancelled queued player preparation',
+      () async {
+    final server = _Server()
+      ..name = 'JMS-123456'
+      ..queue = homeQueue()
+      ..leaveFails = true;
+    final scope = await homeScope(server);
+    scope.video.prepareGate = Completer<void>();
+    final first = scope.notifier.beginHomeJoin('123456')!;
+    await _until(() => scope.video.prepares == 1, 'first preparation pending');
+    await scope.notifier.cancelHomeJoin(first);
+    expect(scope.state.room.status, SyncPlayStatus.unknown);
+    final second = scope.notifier.beginHomeReconnect()!;
+    await _until(() => scope.video.prepares == 2, 'new exact-room preparation');
+    scope.video.prepareGate!.complete();
+    await _until(() => scope.state.readyHomeJoin == second, 'new ticket ready');
+    expect(scope.video.preparedCurrent, [false, true]);
+    expect(scope.video.loaded, hasLength(1));
+    expect(scope.notifier.consumeHomeJoin(first), isFalse);
+    expect(scope.notifier.consumeHomeJoin(second), isTrue);
+    server.leaveFails = false;
+    await scope.notifier.stop();
+  });
+
+  test('ready home ticket is revoked when the host changes its queued item',
+      () async {
+    final server = _Server()
+      ..name = 'JMS-123456'
+      ..queue = homeQueue();
+    final scope = await homeScope(server);
+    final ticket = scope.notifier.beginHomeJoin('123456')!;
+    await _until(() => scope.state.readyHomeJoin == ticket, 'first item ready');
+    server.itemGate = Completer<void>();
+    server.emit('PlayQueue', {
+      ...homeQueue(),
+      'Playlist': [
+        {'ItemId': _media, 'PlaylistItemId': '77777777777777777777777777777777'}
+      ],
+    });
+    await _until(() => server.mediaUsers.length == 2, 'new item authorizing');
+    expect(scope.state.readyHomeJoin, isNull);
+    expect(scope.state.preparingPlayback, isTrue);
+    expect(scope.notifier.consumeHomeJoin(ticket), isFalse);
+    server.itemGate!.complete();
+    await _until(
+        () => scope.state.readyHomeJoin == ticket, 'replacement ready');
+    expect(scope.video.loaded, hasLength(2));
+    expect(scope.notifier.consumeHomeJoin(ticket), isTrue);
+    await scope.notifier.stop();
   });
 
   test(

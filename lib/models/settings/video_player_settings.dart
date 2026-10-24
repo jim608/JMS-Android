@@ -139,11 +139,18 @@ abstract class VideoPlayerSettingsModel with _$VideoPlayerSettingsModel {
       {TargetPlatform.windows, TargetPlatform.linux}.contains(defaultTargetPlatform) &&
       playerOptions == PlayerOptions.libMDK;
 
-  PlayerOptions get wantedPlayer => leanBackMode
-      ? PlayerOptions.nativePlayer
-      : androidMdkUnavailable || windowsMdkUnavailable
-          ? PlayerOptions.libMPV
-          : playerOptions ?? PlayerOptions.platformDefaults;
+  PlayerOptions get wantedPlayer {
+    // Restored settings may refer to a backend unavailable on this platform.
+    // Resolve at runtime without replacing the user's stored preference.
+    if (kIsWeb) return PlayerOptions.libMPV;
+    if ({TargetPlatform.windows, TargetPlatform.linux}.contains(defaultTargetPlatform) &&
+        (leanBackMode || playerOptions == PlayerOptions.nativePlayer)) {
+      return PlayerOptions.libMPV;
+    }
+    if (leanBackMode) return PlayerOptions.nativePlayer;
+    if (androidMdkUnavailable || windowsMdkUnavailable) return PlayerOptions.libMPV;
+    return playerOptions ?? PlayerOptions.platformDefaults;
+  }
 
   Map<VideoHotKeys, KeyCombination> get currentShortcuts =>
       _defaultVideoHotKeys.map((key, value) => MapEntry(key, hotKeys[key] ?? value));

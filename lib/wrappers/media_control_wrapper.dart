@@ -33,6 +33,8 @@ import 'package:fladder/providers/settings/video_player_settings_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
 import 'package:fladder/providers/window_title_provider.dart';
 import 'package:fladder/services/syncplay/syncplay_player_commands.dart';
+import 'package:fladder/services/syncplay/syncplay_prebuffer.dart';
+import 'package:fladder/util/syncplay_buffer_probe.dart';
 import 'package:fladder/src/video_player_helper.g.dart' hide PlaybackState;
 import 'package:fladder/util/localization_helper.dart';
 import 'package:fladder/util/dual_subtitle.dart';
@@ -78,6 +80,7 @@ class MediaControlsWrapper extends BaseAudioHandler
   PlayerOptions? get backend => switch (_player) {
         LibMPV _ => PlayerOptions.libMPV,
         LibMDK _ => PlayerOptions.libMDK,
+        NativePlayer _ => PlayerOptions.nativePlayer,
         _ => null,
       };
 
@@ -85,7 +88,28 @@ class MediaControlsWrapper extends BaseAudioHandler
   PlayerState? get lastState => _player?.lastState;
   SyncPlayPlayerCommands? syncPlayCommands;
   bool get syncPlayActive => syncPlayCommands?.active == true;
-  bool get supportsSyncPlay => _player is LibMPV || _player is LibMDK;
+  bool get supportsSyncPlay =>
+      _player is LibMPV || (!kIsWeb && _player is LibMDK);
+
+  Future<int?> configureSyncPlayBufferBudget() async {
+    final player = _player;
+    if (player is! LibMPV) return null;
+    final bytes = await player.configureSyncPlayBufferBudget();
+    return player == _player ? bytes : null;
+  }
+
+  Future<SyncPlayBufferSample> readSyncPlayBufferSample() async {
+    final player = _player;
+    if (player is LibMPV) {
+      final sample = await player.readSyncPlayBufferSample();
+      return player == _player ? sample : unknownSyncPlayBufferSample();
+    }
+    // Unsupported engines expose no measured buffer contract. Copying their
+    // current scalar playback state permits only the labelled unknown fallback.
+    final state = player?.lastState;
+    return state == null ? unknownSyncPlayBufferSample() : SyncPlayBufferSample(
+      position: state.position, buffering: state.buffering, duration: state.duration, observedAt: DateTime.now());
+  }
 
   Widget? subtitleWidget(bool showOverlay, {GlobalKey? controlsKey}) =>
       _player?.subtitles(showOverlay, controlsKey: controlsKey);
@@ -126,7 +150,7 @@ class MediaControlsWrapper extends BaseAudioHandler
   bool _audioQueueSourceDepleted = false;
   int _audioQueueNextStartIndex = 0;
 
-  Future<void> init() async {
+  Future<void> init({PlayerOptions? overridePlayer}) async {
     if (!initializedWrapper) {
       initializedWrapper = true;
       if (!JmsTestProfilePolicy.enabled) {
@@ -151,7 +175,8 @@ class MediaControlsWrapper extends BaseAudioHandler
       }
     }
 
-    final player = switch (ref.read(videoPlayerSettingsProvider).wantedPlayer) {
+    final player = switch (
+        overridePlayer ?? ref.read(videoPlayerSettingsProvider).wantedPlayer) {
       PlayerOptions.libMDK => LibMDK(),
       PlayerOptions.libMPV => LibMPV(),
       PlayerOptions.nativePlayer => NativePlayer(),

@@ -34,6 +34,7 @@ import 'package:fladder/widgets/navigation_scaffold/components/background_image.
 import 'package:fladder/widgets/shared/pinch_poster_zoom.dart';
 import 'package:fladder/widgets/shared/poster_size_slider.dart';
 import 'package:fladder/widgets/shared/pull_to_refresh.dart';
+import 'package:fladder/widgets/shared/syncplay_home_entry.dart';
 
 @RoutePage()
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -77,6 +78,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const SyncPlayHomeEntry(),
+        Expanded(child: _buildDashboard(context)),
+      ],
+    );
+  }
+
+  Widget _buildDashboard(BuildContext context) {
     if (ref.watch(musicDashboardModeProvider)) {
       return const MusicDashboardScreen();
     }

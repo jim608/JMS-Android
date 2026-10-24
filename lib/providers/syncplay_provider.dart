@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fladder/jellyfin/jellyfin_open_api.enums.swagger.dart';
 import 'package:fladder/models/account_model.dart';
+import 'package:fladder/models/settings/video_player_settings.dart';
+import 'package:fladder/profiles/default_profile.dart';
 import 'package:fladder/models/playback/offline_playback_model.dart';
 import 'package:fladder/models/playback/tv_playback_model.dart';
 import 'package:fladder/providers/api_provider.dart';
@@ -15,6 +17,8 @@ import 'package:fladder/services/syncplay/syncplay_buffering.dart';
 import 'package:fladder/services/syncplay/syncplay_models.dart';
 import 'package:fladder/services/syncplay/syncplay_player.dart';
 import 'package:fladder/services/syncplay/syncplay_player_commands.dart';
+import 'package:fladder/services/syncplay/syncplay_prebuffer.dart';
+import 'package:fladder/services/syncplay/syncplay_prebuffer_coordinator.dart';
 import 'package:fladder/services/syncplay/syncplay_transport.dart';
 import 'package:fladder/wrappers/media_control_wrapper.dart';
 
@@ -28,10 +32,16 @@ class SyncPlayViewState {
     this.room = const SyncPlayControllerState(connected: false),
     this.busy = false,
     this.failure,
+    this.preparingPlayback = false,
+    this.readyHomeJoin,
+    this.prebuffer,
   });
   final SyncPlayControllerState room;
   final bool busy;
   final SyncPlayFailure? failure;
+  final bool preparingPlayback;
+  final int? readyHomeJoin;
+  final SyncPlayPrebufferDecision? prebuffer;
 }
 
 /// Explicitly opened by the room dialog. No socket, room, or sharing at startup.
@@ -65,9 +75,96 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
   MediaControlsWrapper? _wrapper;
   bool _disposed = false;
   SyncPlayBufferingReporter? _bufferingReporter;
+  SyncPlayPrebufferCoordinator? _prebuffer;
+  static const _prebufferConfig = SyncPlayPrebufferConfig();
   int _permissionOperation = 0;
   bool _permissionChecking = false;
   bool _permissionFailed = false;
+  int _homeSerial = 0;
+  int? _homeJoinAttempt;
+  int? _readyHomeJoin;
+  bool _homeMode = false;
+  bool _preparingPlayback = false;
+
+  SyncPlayViewState _view(
+          {SyncPlayControllerState? room,
+          bool busy = false,
+          SyncPlayFailure? failure}) =>
+      SyncPlayViewState(
+          room: room ?? state.room,
+          busy: busy,
+          failure: failure,
+          preparingPlayback: _preparingPlayback,
+          readyHomeJoin: _readyHomeJoin,
+          prebuffer: _prebuffer?.decision);
+
+  /// Home joining is independent of the currently selected media/backend.
+  /// The captured room item is authorized before preparing a built-in player.
+  bool get canJoinFromHome {
+    final account = ref.read(userProvider);
+    return canJoin &&
+        account != null &&
+        account.credentials.token.isNotEmpty &&
+        account.credentials.deviceId.isNotEmpty;
+  }
+
+  int? beginHomeJoin(String code) {
+    if (_disposed ||
+        state.busy ||
+        _preparingPlayback ||
+        !canJoinFromHome ||
+        state.room.status != SyncPlayStatus.idle) {
+      return null;
+    }
+    final ticket = ++_homeSerial;
+    _homeJoinAttempt = ticket;
+    _readyHomeJoin = null;
+    _homeMode = true;
+    _preparingPlayback = true;
+    unawaited(joinRoom(code));
+    return ticket;
+  }
+
+  Future<void> cancelHomeJoin(int ticket) async {
+    if (_disposed || ticket != _homeJoinAttempt) return;
+    _homeJoinAttempt = null;
+    _readyHomeJoin = null;
+    _preparingPlayback = false;
+    await stop();
+  }
+
+  int? beginHomeReconnect() {
+    if (_disposed ||
+        state.busy ||
+        !canJoinFromHome ||
+        !const {SyncPlayStatus.unknown, SyncPlayStatus.disconnected}
+            .contains(state.room.status)) {
+      return null;
+    }
+    final ticket = ++_homeSerial;
+    _homeJoinAttempt = ticket;
+    _readyHomeJoin = null;
+    _homeMode = true;
+    _preparingPlayback = true;
+    unawaited(reconnect());
+    return ticket;
+  }
+
+  bool consumeHomeJoin(int ticket) {
+    if (_disposed ||
+        ticket != _homeJoinAttempt ||
+        ticket != _readyHomeJoin ||
+        !state.room.isJoined ||
+        state.room.failure != null ||
+        _player?.playlistItemId != state.room.queue?.current?.playlistItemId ||
+        _player?.mediaId != state.room.queue?.current?.mediaId) {
+      return false;
+    }
+    _homeJoinAttempt = null;
+    _readyHomeJoin = null;
+    state = _view(room: state.room, busy: state.busy, failure: state.failure);
+    return true;
+  }
 
   static bool _sameLogin(AccountModel? a, AccountModel? b) =>
       a?.id == b?.id && a?.credentials == b?.credentials;
@@ -104,8 +201,7 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
     _permissionChecking = true;
     _permissionFailed = false;
     void notify() {
-      state = SyncPlayViewState(
-          room: state.room, busy: state.busy, failure: state.failure);
+      state = _view(room: state.room, busy: state.busy, failure: state.failure);
     }
 
     notify();
@@ -165,7 +261,9 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
               .contains(_controller!.state.status));
 
   Future<bool> _ensureSession() async {
-    if (_disposed || !supported || !canJoin) return false;
+    if (_disposed || !(_homeMode ? canJoinFromHome : supported && canJoin)) {
+      return false;
+    }
     if (_transport != null) return _transport!.connected;
     final account = ref.read(userProvider);
     if (account == null ||
@@ -205,6 +303,35 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
             privateLink: true),
         isPlaybackIdentityCurrent: () =>
             !_disposed && _sameLogin(account, ref.read(userProvider)),
+        playbackPrepared: () => !_homeMode || _wrapper != null,
+        playbackProfile:
+            _homeMode ? defaultProfile(PlayerOptions.libMPV) : null,
+        prepareForPlayback: _homeMode
+            ? () async {
+                if (_wrapper != null) return current();
+                final ticket = _homeJoinAttempt;
+                bool preparingCurrent() =>
+                    current() && ticket != null && ticket == _homeJoinAttempt;
+                if (!preparingCurrent()) return false;
+                final ready = await ref
+                    .read(videoPlayerProvider.notifier)
+                    .prepareSyncPlayPlayback(isCurrent: preparingCurrent);
+                if (!ready || !preparingCurrent()) {
+                  return false;
+                }
+                _bindPlayer(
+                    controller: _controller!,
+                    player: _player!,
+                    current: current);
+                return true;
+              }
+            : null,
+        onLoaded: () {
+          if (!current() || _homeJoinAttempt == null) return;
+          _preparingPlayback = false;
+          _readyHomeJoin = _homeJoinAttempt;
+          state = _view(room: _controller!.state, busy: state.busy);
+        },
       );
       _player = player;
       final controller = SyncPlayController(
@@ -216,48 +343,49 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
         player: player,
         events: transport.events,
         isPlayerBuffering: () => player.isBuffering,
+        mediaReadiness: () => _prebuffer?.ready ?? false,
+        bufferedAhead: () => _prebuffer?.ahead,
+        targetBufferedAhead: () => _prebuffer?.target,
+        slowWaitBudget: _prebufferConfig.maximumWait,
         cancelPendingPlayerActions: player.cancelPendingActions,
       );
       _controller = controller;
       controller.setConnected(false);
-      final wrapper = ref.read(videoPlayerProvider);
-      _wrapper = wrapper;
-      wrapper.syncPlayCommands = this;
-      final bufferingReporter = SyncPlayBufferingReporter(
-        isCurrent: current,
-        isBuffering: () => player.isBuffering,
-        queueKey: () {
-          final room = controller.state;
-          final entry = room.queue?.current;
-          return room.isJoined && room.connected && entry != null
-              ? (room.group!.groupId, entry.playlistItemId)
-              : null;
-        },
-        report: (buffering) => unawaited(controller.reportBuffering(buffering)),
-      );
-      _bufferingReporter = bufferingReporter;
       _stateSubscription = controller.states.listen((room) {
         if (current()) {
-          bufferingReporter.refreshQueue();
-          state = SyncPlayViewState(room: room, busy: state.busy);
+          _bufferingReporter?.refreshQueue();
+          _prebuffer?.refresh();
+          if (_homeJoinAttempt != null &&
+              state.room.queue?.current?.playlistItemId !=
+                  room.queue?.current?.playlistItemId) {
+            _readyHomeJoin = null;
+            _preparingPlayback = true;
+          }
+          if (!room.isJoined &&
+              const {
+                SyncPlayStatus.idle,
+                SyncPlayStatus.unknown,
+                SyncPlayStatus.disconnected
+              }.contains(room.status)) {
+            _readyHomeJoin = null;
+            if (state.room.group != null) _preparingPlayback = false;
+          }
+          if (room.failure != null) _preparingPlayback = false;
+          state = _view(room: room, busy: state.busy);
         }
       });
       _connectionSubscription = transport.connections.listen((connected) {
         if (current()) controller.setConnected(connected);
       });
-      _playerSubscription = wrapper.stateStream.listen((snapshot) {
-        if (!current() || !controller.state.isJoined) {
-          return;
-        }
-        bufferingReporter.update(snapshot.buffering);
-      });
+      if (!_homeMode) {
+        _bindPlayer(controller: controller, player: player, current: current);
+      }
       await transport.connect();
       if (!current()) return false;
       controller.setConnected(transport.connected);
       return transport.connected;
     } catch (_) {
       if (constructedTransport == null) {
-        // Constructor validation may fail before transport owns the client.
         try {
           api.client.httpClient.close();
         } catch (_) {}
@@ -276,21 +404,76 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
     }
   }
 
+  void _bindPlayer(
+      {required SyncPlayController controller,
+      required SyncPlayPlayerAdapter player,
+      required bool Function() current}) {
+    if (_wrapper != null) return;
+    final wrapper = ref.read(videoPlayerProvider);
+    _wrapper = wrapper;
+    wrapper.syncPlayCommands = this;
+    final bufferingReporter = SyncPlayBufferingReporter(
+      isCurrent: current,
+      isBuffering: () => player.isBuffering,
+      queueKey: () {
+        final room = controller.state;
+        final entry = room.queue?.current;
+        return room.isJoined && room.connected && entry != null
+            ? (room.group!.groupId, entry.playlistItemId)
+            : null;
+      },
+      report: (buffering) => unawaited(controller.reportBuffering(buffering)),
+    );
+    _bufferingReporter = bufferingReporter;
+    final prebuffer = SyncPlayPrebufferCoordinator(
+      isCurrent: () => current() && identical(_wrapper, wrapper),
+      isActive: () {
+        final room = controller.state;
+        final entry = room.queue?.current;
+        return room.isJoined &&
+            room.connected &&
+            !controller.isLoading &&
+            room.failure?.code != SyncPlayFailureCode.player &&
+            entry != null &&
+            player.mediaId == entry.mediaId &&
+            player.playlistItemId == entry.playlistItemId;
+      },
+      generation: () => (controller.mediaBufferEpoch, wrapper),
+      readSample: wrapper.readSyncPlayBufferSample,
+      verifiedForwardBudget: wrapper.configureSyncPlayBufferBudget,
+      config: _prebufferConfig,
+      onDecision: (_) {
+        if (current() && identical(_wrapper, wrapper)) {
+          unawaited(controller.notifyMediaReadinessChanged());
+        }
+      },
+    );
+    _prebuffer = prebuffer;
+    prebuffer.refresh();
+    _playerSubscription = wrapper.stateStream.listen((snapshot) {
+      if (!current() || !controller.state.isJoined) {
+        return;
+      }
+      bufferingReporter.update(snapshot.buffering);
+      prebuffer.refresh();
+    });
+  }
+
   Future<void> _run(Future<void> Function() operation) async {
     if (_disposed || state.busy) return;
     final operationId = ++_uiOperation;
-    state = SyncPlayViewState(room: state.room, busy: true);
+    state = _view(room: state.room, busy: true);
     try {
       await operation();
     } catch (_) {
       if (!_disposed && operationId == _uiOperation) {
-        state = SyncPlayViewState(
+        state = _view(
             room: state.room,
             failure: const SyncPlayFailure(SyncPlayFailureCode.server));
       }
     } finally {
       if (!_disposed && operationId == _uiOperation) {
-        state = SyncPlayViewState(room: state.room, failure: state.failure);
+        state = _view(room: state.room, failure: state.failure);
       }
     }
   }
@@ -316,7 +499,9 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
       });
 
   Future<void> joinRoom(String code) => _run(() async {
-        if (!canJoin || !supported || !await _ensureSession()) return;
+        if (!canJoin || !(_homeMode || supported) || !await _ensureSession()) {
+          return;
+        }
         await _controller!.joinRoom(code);
       });
 
@@ -331,7 +516,7 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
       });
 
   Future<void> reconnect() => _run(() async {
-        if (!supported || !canJoin) return;
+        if (!(_homeMode || supported) || !canJoin) return;
         final transport = _transport;
         final controller = _controller;
         if (transport == null || controller == null) return;
@@ -363,7 +548,7 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
     final controller = _controller;
     if (controller == null) return;
     final operationId = ++_uiOperation;
-    state = SyncPlayViewState(room: controller.state, busy: true);
+    state = _view(room: controller.state, busy: true);
     try {
       await controller.leaveRoom();
       if (identical(controller, _controller) &&
@@ -372,12 +557,16 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
       }
     } finally {
       if (!_disposed && operationId == _uiOperation) {
-        state = SyncPlayViewState(room: controller.state);
+        state = _view(room: controller.state);
       }
     }
   }
 
   void _detach() {
+    _homeJoinAttempt = null;
+    _readyHomeJoin = null;
+    _homeMode = false;
+    _preparingPlayback = false;
     ++_generation; // Revoke stale callbacks before the first asynchronous cleanup.
     _player?.cancelPendingActions();
     _player = null;
@@ -388,6 +577,8 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
     _transport = null;
     _bufferingReporter?.dispose();
     _bufferingReporter = null;
+    _prebuffer?.dispose();
+    _prebuffer = null;
     unawaited(_stateSubscription?.cancel());
     unawaited(_connectionSubscription?.cancel());
     unawaited(_playerSubscription?.cancel());

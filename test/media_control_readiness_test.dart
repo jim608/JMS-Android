@@ -44,7 +44,7 @@ class _InitializingWrapper extends MediaControlsWrapper {
   @override
   bool get hasPlayer => false;
   @override
-  Future<void> init() => ready;
+  Future<void> init({PlayerOptions? overridePlayer}) => ready;
   @override
   Future<void> stop({bool preserveSleepTimer = false}) async {}
   @override

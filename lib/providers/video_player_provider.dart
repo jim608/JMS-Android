@@ -32,6 +32,7 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
 
   List<StreamSubscription> subscriptions = [];
   Future<void> _initialization = Future<void>.value();
+  bool _usingSyncPlayPlayer = false;
 
   late final mediaState = ref.read(mediaPlaybackProvider.notifier);
 
@@ -40,6 +41,44 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
   Future<bool> waitUntilReady() async {
     await _initialization;
     return mounted && state.hasPlayer;
+  }
+
+  /// A room may supply the first video, even when normal playback uses Native.
+  /// Keep the user's saved preference intact and serialize renderer changes.
+  Future<bool> prepareSyncPlayPlayback({required bool Function() isCurrent}) {
+    final task = _initialization.then((_) async {
+      bool current() => mounted && isCurrent();
+      if (!current()) return false;
+      if (state.supportsSyncPlay) return true;
+      _usingSyncPlayPlayer = true;
+      try {
+        await _initialize(overridePlayer: PlayerOptions.libMPV, isCurrent: current);
+        return current() && state.supportsSyncPlay;
+      } catch (_) {
+        return false;
+      }
+    });
+    _initialization = task.then<void>((_) {}, onError: (Object error, StackTrace stack) {});
+    return task;
+  }
+
+  Future<bool> _restoreConfiguredPlayer({bool Function()? isCurrent}) {
+    final task = _initialization.then((_) async {
+      bool current() => mounted && (isCurrent?.call() ?? true);
+      if (!current()) return false;
+      if (!_usingSyncPlayPlayer) return true;
+      try {
+        final configuredPlayer = ref.read(videoPlayerSettingsProvider).wantedPlayer;
+        if (state.backend != configuredPlayer) await _initialize(isCurrent: current);
+        if (!current()) return false;
+        _usingSyncPlayPlayer = false;
+        return state.hasPlayer;
+      } catch (_) {
+        return false;
+      }
+    });
+    _initialization = task.then<void>((_) {}, onError: (Object error, StackTrace stack) {});
+    return task;
   }
 
   ProviderSubscription<VideoPlayerSettingsModel>? settingsChanged;
@@ -56,24 +95,31 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
   }
 
   Future<void> init() {
-    final task = _initialization.then((_) => _initialize());
+    final task = _initialization.then((_) async {
+      await _initialize();
+      if (mounted) _usingSyncPlayPlayer = false;
+    });
     _initialization = task.then<void>((_) {}, onError: (Object error, StackTrace stack) {});
     return task;
   }
 
-  Future<void> _initialize() async {
-    if (!mounted) return;
+  Future<void> _initialize({PlayerOptions? overridePlayer, bool Function()? isCurrent}) async {
+    bool current() => mounted && (isCurrent?.call() ?? true);
+    if (!current()) return;
     final player = state;
     settingsChanged?.close();
     for (final subscription in subscriptions) {
       await subscription.cancel();
     }
     subscriptions.clear();
+    if (!current()) return;
     await player.stop();
-    if (!mounted) return;
+    if (!current()) return;
     await player.dispose();
-    if (!mounted) return;
-    await player.init();
+    if (!current()) return;
+    await player.init(overridePlayer: overridePlayer);
+    // A cancelled request may finish a renderer already being initialized.
+    // Keep its local state subscriptions usable for the next explicit request.
     if (!mounted) return;
 
     settingsChanged = ref.listen(
@@ -165,6 +211,10 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
     bool current() => mounted && (isCurrent?.call() ?? true);
     await _initialization;
     if (!current()) return false;
+    if (_usingSyncPlayPlayer && !model.serverManagedQueue) {
+      if (!await _restoreConfiguredPlayer(isCurrent: current)) return false;
+      if (!current()) return false;
+    }
     if (!state.hasPlayer) {
       mediaState.update((value) => value.copyWith(errorPlaying: true, buffering: false, playing: false));
       return false;
@@ -224,6 +274,12 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
     int currentIndex,
     Duration startPosition,
   ) async {
+    await _initialization;
+    if (!mounted) return false;
+    if (_usingSyncPlayPlayer && !model.serverManagedQueue) {
+      if (!await _restoreConfiguredPlayer()) return false;
+    }
+    if (!mounted || !state.hasPlayer) return false;
     final currentPlayerState = ref.read(mediaPlaybackProvider).state;
     final keepFullScreenLayout = currentPlayerState == VideoPlayerState.fullScreen;
     final playbackSettings = ref.read(mediaPlaybackProvider);
