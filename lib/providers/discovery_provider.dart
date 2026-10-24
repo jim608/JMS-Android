@@ -15,6 +15,16 @@ part 'discovery_provider.mapper.dart';
 
 @riverpod
 class ServerDiscovery extends _$ServerDiscovery {
+  ServerDiscovery({
+    Future<RawDatagramSocket> Function()? bindSocket,
+    Future<LocalNetworkPermissionStatus> Function()? checkPermission,
+  }) : _bindSocket =
+           bindSocket ??
+           (() => RawDatagramSocket.bind(InternetAddress.anyIPv4, 0)),
+       _checkPermission = checkPermission ?? checkLocalNetworkPermission;
+
+  final Future<RawDatagramSocket> Function() _bindSocket;
+  final Future<LocalNetworkPermissionStatus> Function() _checkPermission;
   final String discoveryMessage = 'Who is JellyfinServer?';
   final int discoveryPort = 7359;
   final int maxServerCount = 25;
@@ -23,67 +33,78 @@ class ServerDiscovery extends _$ServerDiscovery {
 
   @override
   Stream<List<DiscoveryInfo>> build() async* {
-    final List<DiscoveryInfo> discoveredServers = [];
-    final StreamController<List<DiscoveryInfo>> controller = StreamController<List<DiscoveryInfo>>();
+    final discoveredServers = <DiscoveryInfo>[];
+    final controller = StreamController<List<DiscoveryInfo>>();
+    RawDatagramSocket? socket;
+    StreamSubscription<RawSocketEvent>? subscription;
+    Timer? timer;
+    var closed = false;
 
-    if (await checkLocalNetworkPermission() == LocalNetworkPermissionStatus.denied) {
-      throw LocalNetworkPermissionDeniedException();
+    void finish({bool emitEmpty = false}) {
+      if (closed) return;
+      closed = true;
+      timer?.cancel();
+      if (emitEmpty && discoveredServers.isEmpty) controller.add([]);
+      unawaited(subscription?.cancel());
+      socket?.close();
+      unawaited(controller.close());
     }
 
-    // Bind the socket and start listening
-    final RawDatagramSocket socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
-    socket.broadcastEnabled = true;
-
-    // Send the broadcast message
-    socket.send(
-      utf8.encode(discoveryMessage),
-      InternetAddress('255.255.255.255'), // Broadcast address
-      discoveryPort,
-    );
-
-    // log('Discovery message sent. Waiting for response...');
-
-    // Set a timer to close the socket after the timeout
-    Timer timer = Timer(timeOut, () {
-      // log('Timeout reached, closing socket.');
-      if (discoveredServers.isEmpty) {
-        controller.add([]);
+    // Disposal can happen while permission or socket binding is still pending.
+    ref.onDispose(finish);
+    try {
+      final permission = await _checkPermission();
+      if (closed) return;
+      if (permission == LocalNetworkPermissionStatus.denied) {
+        throw LocalNetworkPermissionDeniedException();
       }
-      socket.close();
-      controller.close(); // Close the stream controller when done
-    });
 
-    socket.listen((RawSocketEvent event) {
-      if (event == RawSocketEvent.read) {
-        Datagram? dg = socket.receive();
-        if (dg != null) {
-          // Decode the response
-          String response = utf8.decode(dg.data);
-          Map<String, dynamic> jsonResponse = jsonDecode(response);
-
-          final discovery = DiscoveryInfo.fromMap(jsonResponse);
-
-          discoveredServers.add(discovery);
-          controller.add(List<DiscoveryInfo>.from(discoveredServers)); // Emit the updated list
-
-          if (discoveredServers.length >= maxServerCount) {
-            log('Max servers found, closing socket.');
-            timer.cancel();
-            socket.close();
-            controller.close(); // Close the stream controller
-          }
+      try {
+        final boundSocket = await _bindSocket();
+        if (closed) {
+          boundSocket.close();
+          return;
         }
+        socket = boundSocket;
+        boundSocket.broadcastEnabled = true;
+        subscription = boundSocket.listen(
+          (event) {
+            if (closed || event != RawSocketEvent.read) return;
+            final datagram = boundSocket.receive();
+            if (datagram == null) return;
+            final response = utf8.decode(datagram.data);
+            final jsonResponse = jsonDecode(response) as Map<String, dynamic>;
+            discoveredServers.add(DiscoveryInfo.fromMap(jsonResponse));
+            controller.add(List<DiscoveryInfo>.from(discoveredServers));
+            if (discoveredServers.length >= maxServerCount) {
+              log('Max servers found, closing socket.');
+              finish();
+            }
+          },
+          onError: (Object error, StackTrace stackTrace) {
+            if (closed) return;
+            if (error is! SocketException) {
+              controller.addError(error, stackTrace);
+            }
+            finish(emitEmpty: error is SocketException);
+          },
+          onDone: () => finish(emitEmpty: true),
+        );
+
+        boundSocket.send(
+          utf8.encode(discoveryMessage),
+          InternetAddress('255.255.255.255'),
+          discoveryPort,
+        );
+        timer = Timer(timeOut, () => finish(emitEmpty: true));
+      } on SocketException {
+        // An unavailable local network is an empty discovery, not a startup error.
+        finish(emitEmpty: true);
       }
-    });
-
-    yield* controller.stream;
-
-    // Handle disposal when the provider is no longer needed
-    ref.onDispose(() {
-      timer.cancel();
-      socket.close();
-      controller.close();
-    });
+      yield* controller.stream;
+    } finally {
+      finish();
+    }
   }
 }
 
@@ -105,8 +126,10 @@ class DiscoveryInfo with DiscoveryInfoMappable {
     required this.endPointAddress,
   });
 
-  factory DiscoveryInfo.fromMap(Map<String, dynamic> map) => DiscoveryInfoMapper.fromMap(map);
-  factory DiscoveryInfo.fromJson(String json) => DiscoveryInfoMapper.fromJson(json);
+  factory DiscoveryInfo.fromMap(Map<String, dynamic> map) =>
+      DiscoveryInfoMapper.fromMap(map);
+  factory DiscoveryInfo.fromJson(String json) =>
+      DiscoveryInfoMapper.fromJson(json);
 
   @override
   bool operator ==(Object other) {

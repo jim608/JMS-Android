@@ -30,7 +30,12 @@ enum ConnectionState {
 
 final offlineStateProvider = Provider<bool>((ref) {
   final isLoggedIn = ref.watch(userProvider.select((value) => value != null));
-  return ref.watch(connectivityStatusProvider.select((value) => value == ConnectionState.offline)) && isLoggedIn;
+  return ref.watch(
+        connectivityStatusProvider.select(
+          (value) => value == ConnectionState.offline,
+        ),
+      ) &&
+      isLoggedIn;
 });
 
 @Riverpod(keepAlive: true)
@@ -38,25 +43,47 @@ class ConnectivityStatus extends _$ConnectivityStatus {
   Timer? _debounceTimer;
   int _probeId = 0;
   Completer<void>? _probeCompleter;
+  bool _active = true;
+  final _pendingConnectivityChecks = <void Function()>{};
 
   @override
   ConnectionState build() {
-    ref.listen(
-      userProvider.select((value) => value?.credentials.url),
-      (previous, next) {
-        if (previous != next) {
-          checkConnectivity(immediate: true);
-        }
-      },
-    );
-
-    final subscription = Connectivity().onConnectivityChanged.listen((results) {
-      _handleHardwareChange(results);
+    ref.listen(userProvider.select((value) => value?.credentials.url), (
+      previous,
+      next,
+    ) {
+      if (previous != next) {
+        checkConnectivity(immediate: true);
+      }
     });
 
+    _active = true;
+    StreamSubscription<List<ConnectivityResult>>? subscription;
+    void unavailable(Object error, StackTrace stack) {
+      // Linux connectivity backends can fail in their asynchronous onListen
+      // callback before forwarding an error through the stream itself.
+      scheduleMicrotask(() {
+        if (_active) {
+          _handleHardwareChange(const [
+            ConnectivityResult.none,
+          ], immediate: true);
+        }
+      });
+    }
+
+    runZonedGuarded(() {
+      subscription = Connectivity().onConnectivityChanged.listen((results) {
+        if (_active) _handleHardwareChange(results);
+      }, onError: unavailable);
+    }, unavailable);
+
     ref.onDispose(() {
+      _active = false;
+      for (final finish in _pendingConnectivityChecks.toList()) {
+        finish();
+      }
       _debounceTimer?.cancel();
-      subscription.cancel();
+      subscription?.cancel();
       _probeId++;
       _resolveProbe();
     });
@@ -66,14 +93,62 @@ class ConnectivityStatus extends _$ConnectivityStatus {
     return ConnectionState.mobile;
   }
 
-  Future<void> checkConnectivity({bool immediate = false}) async {
-    final results = await Connectivity().checkConnectivity();
-    _handleHardwareChange(results, immediate: immediate);
+  Future<void> checkConnectivity({bool immediate = false}) {
+    if (!_active) return Future<void>.value();
+    // Some Linux plugin initialization errors are detached from its returned
+    // Future. Keep that work in a guarded zone and complete in the caller's zone.
+    final done = Completer<void>();
+    var finished = false;
+    Timer? watchdog;
+    void finish() {
+      if (finished) return;
+      finished = true;
+      watchdog?.cancel();
+      watchdog = null;
+      _pendingConnectivityChecks.remove(finish);
+      if (!done.isCompleted) done.complete();
+    }
+
+    void unavailable(Object error, StackTrace stack) {
+      if (finished) return;
+      finish();
+      scheduleMicrotask(() {
+        if (_active) {
+          _handleHardwareChange(const [
+            ConnectivityResult.none,
+          ], immediate: true);
+        }
+      });
+    }
+
+    _pendingConnectivityChecks.add(finish);
+    watchdog = Timer(const Duration(seconds: 3), () {
+      unavailable(
+        TimeoutException('Connectivity backend unavailable'),
+        StackTrace.empty,
+      );
+    });
+    runZonedGuarded(() async {
+      try {
+        final results = await Connectivity().checkConnectivity();
+        if (!finished && _active) {
+          _handleHardwareChange(results, immediate: immediate);
+        }
+      } catch (error, stack) {
+        unavailable(error, stack);
+      } finally {
+        finish();
+      }
+    }, unavailable);
+    return done.future;
   }
 
   Future<void> waitForProbe() async => _probeCompleter?.future;
 
-  void _handleHardwareChange(List<ConnectivityResult> results, {bool immediate = false}) {
+  void _handleHardwareChange(
+    List<ConnectivityResult> results, {
+    bool immediate = false,
+  }) {
     final hardwareState = _parseHardwareState(results);
 
     if (hardwareState == ConnectionState.offline) {
@@ -102,7 +177,10 @@ class ConnectivityStatus extends _$ConnectivityStatus {
     }
   }
 
-  Future<void> _probeReachability(int id, ConnectionState candidateState) async {
+  Future<void> _probeReachability(
+    int id,
+    ConnectionState candidateState,
+  ) async {
     try {
       final user = ref.read(userProvider);
       if (user == null) return;
@@ -111,7 +189,9 @@ class ConnectivityStatus extends _$ConnectivityStatus {
 
       final remoteUrl = user.credentials.url;
       if (remoteUrl.isNotEmpty) {
-        final checkServer = await fetchSystemInfoDynamic(normalizeUrl(remoteUrl));
+        final checkServer = await fetchSystemInfoDynamic(
+          normalizeUrl(remoteUrl),
+        );
 
         if (_probeId != id) return;
 
@@ -144,9 +224,13 @@ class ConnectivityStatus extends _$ConnectivityStatus {
 
   ConnectionState _parseHardwareState(List<ConnectivityResult> results) {
     if (results.contains(ConnectivityResult.vpn)) return ConnectionState.vpn;
-    if (results.contains(ConnectivityResult.ethernet)) return ConnectionState.ethernet;
+    if (results.contains(ConnectivityResult.ethernet)) {
+      return ConnectionState.ethernet;
+    }
     if (results.contains(ConnectivityResult.wifi)) return ConnectionState.wifi;
-    if (results.contains(ConnectivityResult.mobile)) return ConnectionState.mobile;
+    if (results.contains(ConnectivityResult.mobile)) {
+      return ConnectionState.mobile;
+    }
     return ConnectionState.offline;
   }
 }
@@ -154,7 +238,10 @@ class ConnectivityStatus extends _$ConnectivityStatus {
 Future<PublicSystemInfo?> fetchSystemInfoDynamic(String baseUrl) async {
   if (baseUrl.isEmpty) return null;
   try {
-    final uri = buildServerUriFromBase(baseUrl, pathSegments: const ['System', 'Info', 'Public']);
+    final uri = buildServerUriFromBase(
+      baseUrl,
+      pathSegments: const ['System', 'Info', 'Public'],
+    );
     if (uri == null) return null;
 
     final response = await http.get(uri).timeout(const Duration(seconds: 2));

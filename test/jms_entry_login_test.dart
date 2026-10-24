@@ -9,6 +9,7 @@ import 'package:fladder/models/credentials_model.dart';
 import 'package:fladder/models/login_screen_model.dart';
 import 'package:fladder/providers/api_provider.dart';
 import 'package:fladder/providers/auth_provider.dart';
+import 'package:fladder/providers/connectivity_provider.dart';
 import 'package:fladder/providers/discovery_provider.dart';
 import 'package:fladder/providers/image_provider.dart';
 import 'package:fladder/providers/jms_entry_provider.dart';
@@ -214,6 +215,9 @@ class _Fixture {
     );
     entrySettings = settings ?? JmsEntrySettings(preferences);
     container = ProviderContainer(overrides: [
+      // Login fixtures model network responses themselves; do not start the
+      // host connectivity plugin/watchdog in this externally owned container.
+      offlineStateProvider.overrideWithValue(false),
       sharedPreferencesProvider.overrideWithValue(preferences),
       sharedUtilityProvider.overrideWithValue(accounts),
       imageUtilityProvider.overrideWithValue(_Images()),
