@@ -27,6 +27,14 @@ export XDG_CONFIG_HOME="$HOME/.config"
 export XDG_DATA_HOME="$HOME/.local/share"
 export XDG_CACHE_HOME="$HOME/.cache"
 export XDG_STATE_HOME="$HOME/.local/state"
+# Establish the disposable account's runtime before GLib, D-Bus or portals start.
+unset DBUS_SESSION_BUS_ADDRESS DBUS_SESSION_BUS_PID DBUS_STARTER_ADDRESS DBUS_STARTER_BUS_TYPE
+unset WAYLAND_DISPLAY SESSION_MANAGER
+XDG_RUNTIME_DIR=$(mktemp -d /tmp/jms-flatpak-runtime.XXXXXX)
+export XDG_RUNTIME_DIR
+chmod 700 "$XDG_RUNTIME_DIR"
+guard runtime-owner test "$(stat -c %u "$XDG_RUNTIME_DIR")" = "$(id -u)"
+guard runtime-mode test "$(stat -c %a "$XDG_RUNTIME_DIR")" = 700
 if flatpak --user info "$app" >/dev/null 2>&1 || test -e "$HOME/.var/app/$app"; then
   echo 'Fresh-install validation requires a new isolated account' >&2; exit 1
 fi
@@ -50,12 +58,11 @@ if filesystems & {'home', 'host', 'host-os', 'host-etc', 'host-root', '/'} or so
     raise SystemExit('Overbroad Flatpak permissions')
 PY
 export JMS_FLATPAK_DEPLOYMENT="$deployment"
-dbus-run-session -- xvfb-run -a bash -euo pipefail <<'TEST_SESSION'
+# Start X first so D-Bus-activated GTK portals inherit its display and authority.
+xvfb-run -a dbus-run-session -- bash -euo pipefail <<'TEST_SESSION'
 set -E
 trap 'printf "Flatpak sandbox validation failed at line %s\n" "$LINENO" >&2' ERR
-export XDG_RUNTIME_DIR
-XDG_RUNTIME_DIR=$(mktemp -d /tmp/jms-flatpak-runtime.XXXXXX)
-chmod 700 "$XDG_RUNTIME_DIR"
+dbus-update-activation-environment DISPLAY XAUTHORITY XDG_RUNTIME_DIR XDG_CONFIG_HOME XDG_DATA_HOME XDG_CACHE_HOME XDG_STATE_HOME
 trap 'flatpak kill com.jim608.jms 2>/dev/null || true; pulseaudio --kill 2>/dev/null || true; pkill -u "$(id -u)" -x gnome-keyring-d 2>/dev/null || true' EXIT
 printf '%s' fixture-keyring-passphrase | gnome-keyring-daemon --unlock --components=secrets >/dev/null
 pulseaudio --start --exit-idle-time=-1
