@@ -102,6 +102,7 @@ class ConnectivityStatus extends _$ConnectivityStatus {
     // Future. Keep that work in a guarded zone and complete in the caller's zone.
     final done = Completer<void>();
     var finished = false;
+    var backendFailureQueued = false;
     Timer? watchdog;
     void finish() {
       if (finished) return;
@@ -113,11 +114,14 @@ class ConnectivityStatus extends _$ConnectivityStatus {
     }
 
     void unavailable(Object error, StackTrace stack) {
-      if (finished) return;
-      finish();
+      if (finished || backendFailureQueued) return;
+      backendFailureQueued = true;
       scheduleMicrotask(() {
-        if (_active) {
-          _handleBackendUnavailable();
+        if (finished) return;
+        try {
+          if (_active) _handleBackendUnavailable();
+        } finally {
+          finish();
         }
       });
     }
@@ -138,7 +142,7 @@ class ConnectivityStatus extends _$ConnectivityStatus {
       } catch (error, stack) {
         unavailable(error, stack);
       } finally {
-        finish();
+        if (!backendFailureQueued) finish();
       }
     }, unavailable);
     return done.future;

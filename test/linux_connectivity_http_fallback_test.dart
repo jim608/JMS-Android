@@ -290,4 +290,56 @@ void main() {
           container.read(connectivityStatusProvider), ConnectionState.offline);
     });
   });
+
+  test('direct retry waits for HTTP before returning to the live detail route',
+      () async {
+    var recovering = false;
+    var detailCalls = 0;
+    final held = Completer<http.Response>();
+    Future<http.Response> handler(http.Request request) async {
+      if (request.url.path.endsWith('/System/Info/Public')) {
+        if (!recovering) return http.Response('synthetic offline', 503);
+        return held.future;
+      }
+      if (request.url.path.endsWith('/Items/fixture-item')) {
+        detailCalls++;
+        return http.Response(jsonEncode({'Id': 'fixture-item'}), 200,
+            headers: {'content-type': 'application/json'});
+      }
+      fail('Unexpected synthetic request path');
+    }
+
+    await withFixture(ProbeBackend(), handler, (container) async {
+      await waitForProbe(container);
+      expect(container.read(offlineStateProvider), isTrue);
+      recovering = true;
+      final completion = Timer(const Duration(milliseconds: 20), () {
+        if (!held.isCompleted) held.complete(healthy());
+      });
+      try {
+        final notifier = container.read(connectivityStatusProvider.notifier);
+        // No pumping between these awaits: checkConnectivity must publish the
+        // pending probe before completing its caller-zone Future.
+        await notifier.checkConnectivity(immediate: true);
+        await notifier.waitForProbe();
+        expect(container.read(offlineStateProvider), isFalse);
+        final api = JellyfinOpenApi.create(
+            baseUrl: Uri.parse(fixtureUrl), httpClient: MockClient(handler));
+        final detailProvider = Provider((ref) => LiveDetailService(ref, api));
+        try {
+          final response = await container
+              .read(detailProvider)
+              .usersUserIdItemsItemIdGetBaseItem(itemId: 'fixture-item');
+          expect(response.body?.id, 'fixture-item');
+          expect(detailCalls, 1);
+        } finally {
+          api.client.dispose();
+        }
+      } finally {
+        completion.cancel();
+        if (!held.isCompleted) held.complete(http.Response('cleanup', 503));
+        await pumpEvents();
+      }
+    });
+  });
 }
