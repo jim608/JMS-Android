@@ -570,7 +570,12 @@ def validate_flatpak_inventory(directory, record):
             'payloadSha256': files[flatpak['payload']]['sha256'],
             'provenanceSha256': provenance}})
     if not privacy.get('complete') or not privacy.get('accepted'):
-        raise ReleaseError('Flatpak release asset privacy review required')
+        error = ReleaseError('Flatpak release asset privacy review required')
+        # The scanner reports only paths, rule labels, hashes and completeness,
+        # never matched values. Preserve it for the local caller without
+        # changing rejection, printing it or adding it to public release assets.
+        error.privacy_report = privacy
+        raise error
     with zipfile.ZipFile(directory / flatpak['source']) as archive:
         version = re.search(rb'^version:\s*(\S+)', archive.read('JMS/pubspec.yaml'), re.M)
         if not version or version[1].decode() != record['versionName'] + '+' + str(record['versionCode']):
