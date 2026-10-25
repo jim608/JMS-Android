@@ -43,6 +43,7 @@ import 'package:fladder/util/duration_extensions.dart';
 import 'package:fladder/util/input_handler.dart';
 import 'package:fladder/util/list_padding.dart';
 import 'package:fladder/util/localization_helper.dart';
+import 'package:fladder/util/local_subtitle_selection.dart';
 import 'package:fladder/util/string_extensions.dart';
 import 'package:fladder/widgets/full_screen_helpers/full_screen_wrapper.dart';
 import 'package:fladder/wrappers/pip_manager.dart';
@@ -1048,14 +1049,21 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
   void _setSubtitleTrack(SubStreamModel subModel, PlaybackModel? playbackModel, dynamic player) async {
     if (playbackModel == null) return;
     final previousSecondary = player.secondarySubtitleState.value.selected;
-    final newModel = await playbackModel.setSubtitle(subModel, player);
+    final newModel = await trySelectLocalSubtitle(
+      model: playbackModel,
+      track: subModel,
+      player: player,
+      isCurrent: () => mounted && identical(ref.read(playBackModel), playbackModel) &&
+          identical(ref.read(videoPlayerProvider), player),
+      onUnavailable: (_) => ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          SnackBar(content: Text(context.localized.jmsSecondaryUnavailable))),
+    );
+    if (newModel == null) return;
     if (mounted && previousSecondary != null && player.secondarySubtitleState.value.selected == null) {
       showSecondarySubtitleNotice(context, player.secondarySubtitleState.value);
     }
     ref.read(playBackModel.notifier).update((state) => newModel);
-    if (newModel != null) {
-      await ref.read(playbackModelHelper).shouldReload(newModel);
-    }
+    await ref.read(playbackModelHelper).shouldReload(newModel);
   }
 
   bool _onKey(VideoHotKeys value) {

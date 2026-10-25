@@ -8,6 +8,7 @@ import 'package:fladder/models/items/media_streams_model.dart';
 import 'package:fladder/models/playback/playback_model.dart';
 import 'package:fladder/models/settings/subtitle_settings_model.dart';
 import 'package:fladder/models/settings/video_player_settings.dart';
+import 'package:fladder/services/playback_diagnostics.dart';
 import 'package:fladder/wrappers/players/player_states.dart';
 import 'package:fladder/util/dual_subtitle.dart';
 import 'package:fladder/util/subtitle_offset.dart';
@@ -16,6 +17,8 @@ const libassFallbackFont = "assets/subtitle_fonts/NotoSansCJKtc-Regular.otf";
 const libassFallbackFontName = "Noto Sans CJK TC";
 
 abstract class BasePlayer {
+  PlaybackAttemptRef? diagnosticAttempt;
+
   SubtitleOffsetController? get subtitleOffsets => null;
   final ValueNotifier<SecondarySubtitleState> secondarySubtitles =
       ValueNotifier(const SecondarySubtitleState(issue: SecondarySubtitleIssue.unsupportedBackend));

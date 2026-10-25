@@ -15,9 +15,18 @@ VideoControllerConfiguration mpvVideoConfiguration({
   bool web = kIsWeb,
 }) {
   final windows = mpvUsesWindowsSoftwareTexture(platform: platform, web: web);
+  final linux =
+      !web && (platform ?? defaultTargetPlatform) == TargetPlatform.linux;
   return VideoControllerConfiguration(
     enableHardwareAcceleration: windows ? false : hardwareAcceleration,
-    hwdec: windows ? (hardwareAcceleration ? 'auto-copy' : 'no') : null,
+    // The native controller defaults a null hwdec to auto, independently of
+    // enableHardwareAcceleration. Linux's disabled preference must disable
+    // decoding as well as selecting a software texture.
+    hwdec: windows
+        ? (hardwareAcceleration ? 'auto-copy' : 'no')
+        : linux && !hardwareAcceleration
+            ? 'no'
+            : null,
   );
 }
 

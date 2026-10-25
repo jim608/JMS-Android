@@ -13,10 +13,22 @@ extension PlaylistModelPlayback on PlaylistModel? {
     final playlist = this;
     if (playlist == null) return;
 
-    await ref.read(videoPlayerProvider.notifier).init();
+    final diagnostics = PlaybackDiagnostics.instance;
+    final attempt = diagnostics.startAttempt();
+    try {
+      await ref.read(videoPlayerProvider.notifier).init();
+    } catch (error) {
+      diagnostics.record(attempt, PlaybackStage.playerInit,
+          event: PlaybackEvent.failed,
+          errorClass: error.runtimeType.toString(),
+          detail: 'playlist_renderer');
+      _showPlaybackError(context);
+      return;
+    }
 
     final op = CancelableOperation.fromFuture(Future(() async {
-      final previewItems = await _fetchPlaylistItems(playlist.id, ref, maxItems: 50);
+      final previewItems =
+          await _fetchPlaylistItems(playlist.id, ref, maxItems: 50);
       final previewClassification = _classifyPlaylistItems(previewItems);
 
       if (!previewClassification.hasAny) return null;
@@ -53,9 +65,16 @@ extension PlaylistModelPlayback on PlaylistModel? {
               context,
               initialQueue.firstOrNull,
               libraryQueue: initialQueue,
+              diagnosticAttempt: attempt,
               queueSource: queueSource,
             );
-        return (classification: null, model: model, queue: initialQueue, isAudio: true, photos: <PhotoModel>[]);
+        return (
+          classification: null,
+          model: model,
+          queue: initialQueue,
+          isAudio: true,
+          photos: <PhotoModel>[]
+        );
       }
 
       final fullItems = await _fetchPlaylistItems(playlist.id, ref);
@@ -67,26 +86,41 @@ extension PlaylistModelPlayback on PlaylistModel? {
               context,
               full.playable.firstOrNull,
               libraryQueue: full.playable,
+              diagnosticAttempt: attempt,
             );
-        return (classification: null, model: model, queue: full.playable, isAudio: false, photos: <PhotoModel>[]);
+        return (
+          classification: null,
+          model: model,
+          queue: full.playable,
+          isAudio: false,
+          photos: <PhotoModel>[]
+        );
       }
 
-      return (classification: null, model: null, queue: <ItemBaseModel>[], isAudio: false, photos: full.gallery);
+      return (
+        classification: null,
+        model: null,
+        queue: <ItemBaseModel>[],
+        isAudio: false,
+        photos: full.gallery
+      );
     }));
 
-    _showLoadingIndicator(context, playlist, op);
+    showPlaybackLoadingIndicator(context, playlist, op);
 
     final result = await op.valueOrCancellation(null);
 
     if (!op.isCanceled) {
-      try {
-        Navigator.of(context, rootNavigator: true).pop();
-      } catch (_) {}
+      closePlaybackLoadingIndicator(op);
     }
 
     if (op.isCanceled || result == null) {
+      if (op.isCanceled) {
+        diagnostics.record(attempt, PlaybackStage.lifecycle,
+            cancelled: true, detail: 'loading_cancelled');
+      }
       if (!op.isCanceled && context.mounted) {
-        FladderSnack.show(context.localized.unableToPlayMedia, context: context);
+        _showPlaybackError(context, unableToPlay: true);
       }
       return;
     }
@@ -98,9 +132,15 @@ extension PlaylistModelPlayback on PlaylistModel? {
       await showLibraryPlayOptions(
         context,
         context.localized.libraryPlayItems,
-        playVideos: classification.hasPlayable ? () => _playPlaylistVideos(context, ref, playlist.id) : null,
-        playMusic: classification.hasMusic ? () => _playPlaylistMusic(context, ref, playlist.id) : null,
-        viewGallery: classification.hasGallery ? () => _playPlaylistGallery(context, ref, playlist.id) : null,
+        playVideos: classification.hasPlayable
+            ? () => _playPlaylistVideos(context, ref, playlist.id)
+            : null,
+        playMusic: classification.hasMusic
+            ? () => _playPlaylistMusic(context, ref, playlist.id)
+            : null,
+        viewGallery: classification.hasGallery
+            ? () => _playPlaylistGallery(context, ref, playlist.id)
+            : null,
       );
       return;
     }
@@ -112,7 +152,7 @@ extension PlaylistModelPlayback on PlaylistModel? {
     }
 
     if (result.model == null || result.queue.isEmpty) {
-      FladderSnack.show(context.localized.unableToPlayMedia, context: context);
+      _showPlaybackError(context, unableToPlay: true);
       return;
     }
 
@@ -120,20 +160,20 @@ extension PlaylistModelPlayback on PlaylistModel? {
     final queue = result.queue;
 
     if (result.isAudio) {
-      final currentIndex = queue.indexWhere((e) => e.id == model.item.id).clamp(0, queue.length - 1);
-      final actualStartPosition = startPosition ?? await model.startDuration() ?? Duration.zero;
-      await ref
-          .read(videoPlayerProvider.notifier)
-          .loadAudioPlaybackItem(model, queue, currentIndex, actualStartPosition);
+      final currentIndex = queue
+          .indexWhere((e) => e.id == model.item.id)
+          .clamp(0, queue.length - 1);
+      final actualStartPosition =
+          startPosition ?? await model.startDuration() ?? Duration.zero;
+      await ref.read(videoPlayerProvider.notifier).loadAudioPlaybackItem(
+          model, queue, currentIndex, actualStartPosition);
     } else {
-      final actualStartPosition = startPosition ?? await model.startDuration() ?? Duration.zero;
-      final loadedCorrectly = await ref.read(videoPlayerProvider.notifier).loadPlaybackItem(model, actualStartPosition);
-      if (!loadedCorrectly) {
-        if (context.mounted) FladderSnack.show(context.localized.errorOpeningMedia, context: context);
+      if (!await _openPlaylistVideo(context, ref, model, attempt,
+          startPosition: startPosition)) {
         return;
       }
-      await ref.read(videoPlayerProvider.notifier).openPlayer(context);
-      if (AdaptiveLayout.of(context).isDesktop && defaultTargetPlatform != TargetPlatform.macOS) {
+      if (AdaptiveLayout.of(context).isDesktop &&
+          defaultTargetPlatform != TargetPlatform.macOS) {
         fullScreenHelper.closeFullScreen(ref);
       }
       if (context.mounted) await context.refreshData();
@@ -141,7 +181,8 @@ extension PlaylistModelPlayback on PlaylistModel? {
   }
 }
 
-Future<void> _playPlaylistMusic(BuildContext context, WidgetRef ref, String playlistId) async {
+Future<void> _playPlaylistMusic(
+    BuildContext context, WidgetRef ref, String playlistId) async {
   await ref.read(videoPlayerProvider.notifier).init();
 
   final op = CancelableOperation.fromFuture(Future(() async {
@@ -166,14 +207,12 @@ Future<void> _playPlaylistMusic(BuildContext context, WidgetRef ref, String play
     return (model, initialQueue);
   }));
 
-  _showLoadingIndicator(context, null, op);
+  showPlaybackLoadingIndicator(context, null, op);
 
   final result = await op.valueOrCancellation(null);
 
   if (!op.isCanceled) {
-    try {
-      Navigator.of(context, rootNavigator: true).pop();
-    } catch (_) {}
+    closePlaybackLoadingIndicator(op);
   }
 
   if (op.isCanceled || result == null) {
@@ -184,13 +223,28 @@ Future<void> _playPlaylistMusic(BuildContext context, WidgetRef ref, String play
   }
 
   final (model, queue) = result;
-  final currentIndex = queue.indexWhere((e) => e.id == model.item.id).clamp(0, queue.length - 1);
+  final currentIndex =
+      queue.indexWhere((e) => e.id == model.item.id).clamp(0, queue.length - 1);
   final actualStartPosition = await model.startDuration() ?? Duration.zero;
-  await ref.read(videoPlayerProvider.notifier).loadAudioPlaybackItem(model, queue, currentIndex, actualStartPosition);
+  await ref
+      .read(videoPlayerProvider.notifier)
+      .loadAudioPlaybackItem(model, queue, currentIndex, actualStartPosition);
 }
 
-Future<void> _playPlaylistVideos(BuildContext context, WidgetRef ref, String playlistId) async {
-  await ref.read(videoPlayerProvider.notifier).init();
+Future<void> _playPlaylistVideos(
+    BuildContext context, WidgetRef ref, String playlistId) async {
+  final diagnostics = PlaybackDiagnostics.instance;
+  final attempt = diagnostics.startAttempt();
+  try {
+    await ref.read(videoPlayerProvider.notifier).init();
+  } catch (error) {
+    diagnostics.record(attempt, PlaybackStage.playerInit,
+        event: PlaybackEvent.failed,
+        errorClass: error.runtimeType.toString(),
+        detail: 'playlist_renderer');
+    _showPlaybackError(context);
+    return;
+  }
 
   final op = CancelableOperation.fromFuture(Future(() async {
     final items = await _fetchPlaylistItems(playlistId, ref);
@@ -200,56 +254,53 @@ Future<void> _playPlaylistVideos(BuildContext context, WidgetRef ref, String pla
           context,
           classified.playable.firstOrNull,
           libraryQueue: classified.playable,
+          diagnosticAttempt: attempt,
         );
     if (model == null) return null;
     return (model, classified.playable);
   }));
 
-  _showLoadingIndicator(context, null, op);
+  showPlaybackLoadingIndicator(context, null, op);
 
   final result = await op.valueOrCancellation(null);
 
   if (!op.isCanceled) {
-    try {
-      Navigator.of(context, rootNavigator: true).pop();
-    } catch (_) {}
+    closePlaybackLoadingIndicator(op);
   }
 
   if (op.isCanceled || result == null) {
+    if (op.isCanceled) {
+      diagnostics.record(attempt, PlaybackStage.lifecycle,
+          cancelled: true, detail: 'loading_cancelled');
+    }
     if (!op.isCanceled && context.mounted) {
-      FladderSnack.show(context.localized.unableToPlayMedia, context: context);
+      _showPlaybackError(context, unableToPlay: true);
     }
     return;
   }
 
   final (model, queue) = result;
-  final actualStartPosition = await model.startDuration() ?? Duration.zero;
-  final loadedCorrectly = await ref.read(videoPlayerProvider.notifier).loadPlaybackItem(model, actualStartPosition);
-  if (!loadedCorrectly) {
-    if (context.mounted) FladderSnack.show(context.localized.errorOpeningMedia, context: context);
-    return;
-  }
-  await ref.read(videoPlayerProvider.notifier).openPlayer(context);
-  if (AdaptiveLayout.of(context).isDesktop && defaultTargetPlatform != TargetPlatform.macOS) {
+  if (!await _openPlaylistVideo(context, ref, model, attempt)) return;
+  if (AdaptiveLayout.of(context).isDesktop &&
+      defaultTargetPlatform != TargetPlatform.macOS) {
     fullScreenHelper.closeFullScreen(ref);
   }
   if (context.mounted) await context.refreshData();
 }
 
-Future<void> _playPlaylistGallery(BuildContext context, WidgetRef ref, String playlistId) async {
+Future<void> _playPlaylistGallery(
+    BuildContext context, WidgetRef ref, String playlistId) async {
   final op = CancelableOperation.fromFuture(Future(() async {
     final items = await _fetchPlaylistItems(playlistId, ref);
     return _classifyPlaylistItems(items).gallery;
   }));
 
-  _showLoadingIndicator(context, null, op);
+  showPlaybackLoadingIndicator(context, null, op);
 
   final photos = await op.valueOrCancellation(null);
 
   if (!op.isCanceled) {
-    try {
-      Navigator.of(context, rootNavigator: true).pop();
-    } catch (_) {}
+    closePlaybackLoadingIndicator(op);
   }
 
   if (op.isCanceled || photos == null || photos.isEmpty) {
@@ -284,13 +335,19 @@ class _PlaylistClassification {
 
 _PlaylistClassification _classifyPlaylistItems(List<ItemBaseModel> items) {
   return _PlaylistClassification(
-    playable: items.where((item) => FladderItemType.playable.contains(item.type)).toList(),
-    music: items.where((item) => FladderItemType.musicPlayable.contains(item.type)).toList(),
+    playable: items
+        .where((item) => FladderItemType.playable.contains(item.type))
+        .toList(),
+    music: items
+        .where((item) => FladderItemType.musicPlayable.contains(item.type))
+        .toList(),
     gallery: items.whereType<PhotoModel>().toList(),
   );
 }
 
-Future<List<ItemBaseModel>> _fetchPlaylistItems(String playlistId, WidgetRef ref, {int? maxItems}) async {
+Future<List<ItemBaseModel>> _fetchPlaylistItems(
+    String playlistId, WidgetRef ref,
+    {int? maxItems}) async {
   const pageSize = 100;
   var startIndex = 0;
   final items = <ItemBaseModel>[];
@@ -300,7 +357,8 @@ Future<List<ItemBaseModel>> _fetchPlaylistItems(String playlistId, WidgetRef ref
     if (remaining <= 0) break;
 
     final requestLimit = min(pageSize, remaining);
-    final response = await ref.read(jellyApiProvider).playlistsPlaylistIdItemsGet(
+    final response =
+        await ref.read(jellyApiProvider).playlistsPlaylistIdItemsGet(
       playlistId: playlistId,
       startIndex: startIndex,
       limit: requestLimit,
@@ -333,4 +391,41 @@ Future<List<ItemBaseModel>> _fetchPlaylistItems(String playlistId, WidgetRef ref
   }
 
   return items;
+}
+
+Future<bool> _openPlaylistVideo(BuildContext context, WidgetRef ref,
+    PlaybackModel model, PlaybackAttemptRef attempt,
+    {Duration? startPosition}) async {
+  final diagnostics = PlaybackDiagnostics.instance;
+  var stage = PlaybackStage.resume;
+  var step = 'start_position';
+  try {
+    diagnostics.record(attempt, stage,
+        event: PlaybackEvent.started, detail: step);
+    final actualStartPosition =
+        startPosition ?? await model.startDuration() ?? Duration.zero;
+    diagnostics.record(attempt, stage,
+        event: PlaybackEvent.succeeded, detail: step);
+    stage = PlaybackStage.mediaOpen;
+    step = 'load_playback';
+    final loaded = await ref
+        .read(videoPlayerProvider.notifier)
+        .loadPlaybackItem(model, actualStartPosition,
+            diagnosticAttempt: attempt);
+    if (!loaded) {
+      _showPlaybackError(context);
+      return false;
+    }
+    stage = PlaybackStage.lifecycle;
+    step = 'open_player_route';
+    await ref.read(videoPlayerProvider.notifier).openPlayer(context);
+    return true;
+  } catch (error) {
+    diagnostics.record(attempt, stage,
+        event: PlaybackEvent.failed,
+        errorClass: error.runtimeType.toString(),
+        detail: step);
+    _showPlaybackError(context);
+    return false;
+  }
 }

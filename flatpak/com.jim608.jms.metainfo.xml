@@ -25,6 +25,12 @@
   </developer>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.11.1-jms.48" date="2026-10-25">
+      <description>
+        <p>Improves network playback startup and local SyncPlay subtitle selection.
+          Adds user-controlled playback diagnostics and stable dual-subtitle placement.</p>
+      </description>
+    </release>
     <release version="0.11.1-jms.47" date="2026-10-24">
       <description>
         <p>Updates the JMS interface, playback controls and desktop integration.</p>

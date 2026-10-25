@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 const _primaryKey = Key('primary-subtitle');
 const _secondaryKey = Key('secondary-subtitle');
-const _columnKey = Key('dual-subtitle-column');
+const _slotsKey = Key('dual-subtitle-slots');
 
 Future<void> _pumpSubtitles(
   WidgetTester tester, {
@@ -15,6 +15,7 @@ Future<void> _pumpSubtitles(
   double textScale = 1,
   double bottomOffset = 0.1,
   EdgeInsets padding = EdgeInsets.zero,
+  SubtitleSettingsModel settings = const SubtitleSettingsModel(fontSize: 72),
   VoidCallback? onTap,
 }) async {
   tester.view.devicePixelRatio = 1;
@@ -39,7 +40,7 @@ Future<void> _pumpSubtitles(
               DualSubtitleText(
                 primaryText: primary,
                 secondaryText: secondary,
-                settings: const SubtitleSettingsModel(fontSize: 72),
+                settings: settings,
                 padding: padding,
                 bottomOffset: bottomOffset,
               ),
@@ -65,16 +66,108 @@ void _expectOrderedAndVisible(WidgetTester tester, Size viewport) {
 }
 
 void main() {
-  testWidgets('primary appears above a smaller secondary in one bottom group',
+  testWidgets('secondary cue gaps and wrapping do not move the primary anchor',
+      (tester) async {
+    await _pumpSubtitles(tester,
+        primary: '我想看看這部電影。', secondary: 'この映画を見てみたい。');
+    final original = tester.getRect(find.byKey(_primaryKey));
+    await _pumpSubtitles(tester, primary: '我想看看這部電影。');
+    expect(tester.getRect(find.byKey(_primaryKey)), original);
+    await _pumpSubtitles(tester,
+        primary: '我想看看這部電影。',
+        secondary: 'この映画を見てみたい。\n少し長い日本語の字幕です。\n次の行も表示します。');
+    expect(tester.getRect(find.byKey(_primaryKey)), original);
+    await _pumpSubtitles(tester,
+        primary: '等一下，我們一起看。', secondary: 'この映画を見てみたい。');
+    expect(tester.getRect(find.byKey(_primaryKey)).bottom,
+        closeTo(original.bottom, 0.01));
+  });
+
+  testWidgets(
+      'primary gaps and multiline cues do not move the secondary anchor',
+      (tester) async {
+    await _pumpSubtitles(tester,
+        primary: 'First segment', secondary: 'Continuous Japanese cue');
+    final original = tester.getRect(find.byKey(_secondaryKey));
+    await _pumpSubtitles(tester, secondary: 'Continuous Japanese cue');
+    expect(tester.getRect(find.byKey(_secondaryKey)), original);
+    await _pumpSubtitles(tester,
+        primary: 'First line\nSecond line\nThird line',
+        secondary: 'Continuous Japanese cue');
+    expect(tester.getRect(find.byKey(_secondaryKey)), original);
+    await _pumpSubtitles(tester,
+        primary: List.filled(80, 'A long primary cue').join(' '),
+        secondary: 'Continuous Japanese cue');
+    expect(tester.getRect(find.byKey(_secondaryKey)), original);
+  });
+
+  testWidgets('long secondary cues cannot shrink the primary text',
+      (tester) async {
+    const viewport = Size(640, 360);
+    await _pumpSubtitles(tester,
+        viewport: viewport, primary: 'Primary', secondary: 'Secondary');
+    final original = tester.getRect(find.byKey(_primaryKey));
+    await _pumpSubtitles(tester,
+        viewport: viewport,
+        primary: 'Primary',
+        secondary: List.filled(80, 'Very long secondary cue').join(' '));
+    expect(tester.getRect(find.byKey(_primaryKey)), original);
+    _expectOrderedAndVisible(tester, viewport);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('large accessibility text and raised subtitles remain bounded',
+      (tester) async {
+    const viewport = Size(320, 180);
+    await _pumpSubtitles(tester,
+        viewport: viewport,
+        primary: 'Primary line one\nPrimary line two\nPrimary line three',
+        secondary: 'Secondary line one\nSecondary line two',
+        textScale: 3,
+        bottomOffset: 0.85);
+    _expectOrderedAndVisible(tester, viewport);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('configured cue backgrounds hug the text within fixed slots',
+      (tester) async {
+    await _pumpSubtitles(tester,
+        primary: 'Primary',
+        secondary: 'Secondary',
+        settings: const SubtitleSettingsModel(
+            fontSize: 72, backGroundColor: Colors.black));
+    final backgrounds = find.byWidgetPredicate((widget) =>
+        widget is Container &&
+        widget.decoration is BoxDecoration &&
+        (widget.decoration as BoxDecoration).color == Colors.black);
+    expect(backgrounds, findsNWidgets(2));
+    for (final element in backgrounds.evaluate()) {
+      final rect =
+          tester.getRect(find.byElementPredicate((value) => value == element));
+      expect(rect.width, lessThan(1280 / 2));
+      expect(rect.center.dx, closeTo(1280 / 2, 0.1));
+    }
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('primary appears above a smaller secondary in independent slots',
       (tester) async {
     await _pumpSubtitles(tester, primary: 'Primary', secondary: 'Secondary');
-    expect(find.byKey(_columnKey), findsOneWidget);
+    expect(find.byKey(_slotsKey), findsOneWidget);
     final primary = tester.widget<Text>(find.byKey(_primaryKey));
     final secondary = tester.widget<Text>(find.byKey(_secondaryKey));
     expect(primary.data, 'Primary');
     expect(secondary.data, 'Secondary');
     expect(secondary.style!.fontSize!,
-        closeTo(primary.style!.fontSize! * 0.75, 0.01));
+        closeTo(primary.style!.fontSize! * 0.60, 0.01));
+    final primaryOutline = tester
+        .widgetList<Text>(find.text('Primary'))
+        .firstWhere((text) => text.style!.foreground != null);
+    final secondaryOutline = tester
+        .widgetList<Text>(find.text('Secondary'))
+        .firstWhere((text) => text.style!.foreground != null);
+    expect(secondaryOutline.style!.foreground!.strokeWidth,
+        closeTo(primaryOutline.style!.foreground!.strokeWidth * 0.60, 0.01));
     _expectOrderedAndVisible(tester, const Size(1280, 720));
     expect(tester.takeException(), isNull);
   });
@@ -163,7 +256,7 @@ void main() {
     expect(nextPrimary.top, lessThan(firstPrimary.top));
     expect(firstPrimary.top - nextPrimary.top,
         closeTo(firstSecondary.top - nextSecondary.top, 0.1));
-    final group = tester.getRect(find.byKey(_columnKey));
+    final group = tester.getRect(find.byKey(_slotsKey));
     expect(group.left, greaterThanOrEqualTo(padding.left));
     expect(group.right, lessThanOrEqualTo(1280 - padding.right));
     _expectOrderedAndVisible(tester, const Size(1280, 720));

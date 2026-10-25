@@ -2,13 +2,13 @@ import 'package:fladder/util/brand.dart';
 
 import 'dart:async';
 import 'dart:developer';
+import 'dart:io' show Platform;
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import 'package:async/async.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,10 +19,10 @@ import 'package:fladder/models/item_base_model.dart';
 import 'package:fladder/models/items/audio_model.dart';
 import 'package:fladder/models/items/media_streams_model.dart';
 import 'package:fladder/models/playback/playback_model.dart';
-import 'package:fladder/models/playback/transcode_playback_model.dart';
 import 'package:fladder/models/settings/subtitle_settings_model.dart';
 import 'package:fladder/models/settings/video_player_settings.dart';
 import 'package:fladder/providers/settings/subtitle_settings_provider.dart';
+import 'package:fladder/services/playback_diagnostics.dart';
 import 'package:fladder/screens/video_player/video_player.dart' as video_screen;
 import 'package:fladder/util/subtitle_position_calculator.dart';
 import 'package:fladder/util/mpv_subtitle_route.dart';
@@ -32,6 +32,8 @@ import 'package:fladder/util/web_subtitle_timing.dart';
 import 'package:fladder/widgets/dual_subtitle_text.dart';
 import 'package:fladder/util/mpv_subtitle_selection.dart';
 import 'package:fladder/util/mpv_video_configuration.dart';
+import 'package:fladder/util/mpv_native_diagnostics.dart';
+import 'package:fladder/util/mpv_pending_load_monitor.dart';
 import 'package:fladder/util/mpv_render_capabilities.dart';
 import 'package:fladder/util/mpv_hdr_tonemap.dart';
 import 'package:fladder/services/syncplay/syncplay_prebuffer.dart';
@@ -60,6 +62,114 @@ class LibMPV extends BasePlayer {
   MpvSyncPlayBufferProbe? _syncPlayBufferProbe;
   mpv.Player? _syncPlayBufferPlayer;
   int _syncPlaySeekEpoch = 0;
+  bool _softwareDecodeFallback = false;
+  PlaybackAttemptRef? _activeDiagnosticAttempt;
+  PlaybackSourceKind _diagnosticSourceKind = PlaybackSourceKind.unknown;
+  bool _diagnosticOpening = false;
+  final Set<String> _nativeDiagnosticFailures = {};
+  MpvPlaybackTransitions _diagnosticTransitions = MpvPlaybackTransitions();
+
+  void _recordPlaybackTransition(mpv.Player player) {
+    if (player != _player || _activeDiagnosticAttempt == null) return;
+    final transition = _diagnosticTransitions.sample(
+      playing: player.state.playing,
+      buffering: _hdrPreparing || player.state.buffering,
+      buffer: player.state.buffer,
+      position: player.state.position,
+    );
+    if (transition == null) return;
+    _recordDiagnostic(
+      _activeDiagnosticAttempt,
+      PlaybackStage.buffering,
+      detail: transition,
+    );
+  }
+
+  void _recordDiagnostic(
+    PlaybackAttemptRef? attempt,
+    PlaybackStage stage, {
+    PlaybackEvent event = PlaybackEvent.note,
+    String? errorClass,
+    int? httpStatus,
+    bool timedOut = false,
+    bool cancelled = false,
+    String? hwdecActual,
+    PlaybackSourceKind? sourceKind,
+    String? detail,
+  }) {
+    if (attempt == null) return;
+    PlaybackDiagnostics.instance.record(
+      attempt,
+      stage,
+      event: event,
+      backend: kIsWeb ? PlaybackBackend.webVideo : PlaybackBackend.mediaKit,
+      errorClass: errorClass,
+      httpStatus: httpStatus,
+      timedOut: timedOut,
+      cancelled: cancelled,
+      sourceKind: sourceKind ?? _diagnosticSourceKind,
+      hardwareRequested: _settings.hardwareAccel,
+      hwdecActual: hwdecActual,
+      softwareFallback: _softwareDecodeFallback,
+      rendererKind: switch (_renderCapabilities.apiType) {
+        'sw' => PlaybackRendererKind.software,
+        'opengl' => PlaybackRendererKind.gpu,
+        _ => PlaybackRendererKind.unknown,
+      },
+      detail: detail,
+    );
+  }
+
+  void _recordNativeFailure(
+    mpv.Player player,
+    String message, {
+    String prefix = '',
+  }) {
+    if (player != _player) return;
+    final failure = MpvNativeFailure.classify(message, prefix: prefix);
+    final source = safeMpvNativeSource(prefix);
+    final key = '${failure.errorClass}:${failure.httpStatus}:$source';
+    if (_nativeDiagnosticFailures.length >= 8 ||
+        !_nativeDiagnosticFailures.add(key)) {
+      return;
+    }
+    _recordDiagnostic(
+      _activeDiagnosticAttempt ?? diagnosticAttempt,
+      _diagnosticOpening || _loadReadiness != null
+          ? PlaybackStage.mediaOpen
+          : PlaybackStage.lifecycle,
+      event: PlaybackEvent.failed,
+      errorClass: failure.errorClass,
+      httpStatus: failure.httpStatus,
+      timedOut: failure.timedOut,
+      cancelled: failure.cancelled,
+      detail: 'native source: $source',
+    );
+  }
+
+  Future<void> _recordDecodeStatus(
+    mpv.Player player,
+    int generation,
+    PlaybackAttemptRef? attempt,
+  ) async {
+    try {
+      final properties = await Future.wait([
+        _readProperty(player, 'hwdec-current'),
+        _readProperty(player, 'video-format'),
+        _readProperty(player, 'audio-codec-name'),
+      ]).timeout(const Duration(seconds: 2));
+      if (player != _player || generation != _mediaLoadGeneration) return;
+      _recordDiagnostic(
+        attempt,
+        PlaybackStage.mediaOpen,
+        hwdecActual: safeMpvHwdec(properties[0]),
+        detail: 'video_codec=${safeMpvCodec(properties[1])};'
+            'audio_codec=${safeMpvCodec(properties[2])}',
+      );
+    } catch (_) {
+      // Diagnostic property queries must never delay or change playback.
+    }
+  }
 
   MpvSyncPlayBufferProbe _nativeSyncPlayProbe(mpv.Player player) {
     if (_syncPlayBufferPlayer != player) {
@@ -180,7 +290,7 @@ class LibMPV extends BasePlayer {
   bool _replayGainFallbackLogged = false;
   VideoPlayerSettingsModel _settings = VideoPlayerSettingsModel();
 
-  RestartableTimer? _retryTimer;
+  MpvPendingLoadMonitor? _retryTimer;
   DateTime _firstLoadAttempt = DateTime.now();
   final Duration _maxRetryDuration = const Duration(minutes: 1);
   final Duration _currentRetryDuration = const Duration(seconds: 5);
@@ -213,8 +323,41 @@ class LibMPV extends BasePlayer {
   @override
   Future<void> init(VideoPlayerSettingsModel settings) async {
     _settings = settings;
+    _recordDiagnostic(
+      diagnosticAttempt,
+      PlaybackStage.playerInit,
+      event: PlaybackEvent.started,
+      detail: 'renderer initialization requested',
+      sourceKind: PlaybackSourceKind.unknown,
+    );
+    try {
+      await _initializePlayer(settings);
+      _recordDiagnostic(
+        diagnosticAttempt,
+        PlaybackStage.playerInit,
+        event: PlaybackEvent.succeeded,
+        detail: 'render_api=${_renderCapabilities.apiType};'
+            'software_fallback=$_softwareDecodeFallback',
+      );
+    } catch (error) {
+      _recordDiagnostic(
+        diagnosticAttempt,
+        PlaybackStage.playerInit,
+        event: PlaybackEvent.failed,
+        errorClass: safeMpvErrorClass(error),
+        timedOut: error is TimeoutException,
+        detail: 'media kit initialization failed',
+      );
+      rethrow;
+    }
+  }
+
+  Future<void> _initializePlayer(VideoPlayerSettingsModel settings) async {
+    _settings = settings;
     await dispose();
     _ambientFrameSource = Object();
+    _softwareDecodeFallback = false;
+    _nativeDiagnosticFailures.clear();
 
     mpv.MediaKit.ensureInitialized();
 
@@ -273,6 +416,25 @@ class LibMPV extends BasePlayer {
 
     if (_player?.platform is mpv.NativePlayer) {
       final nativePlayer = _player!.platform as dynamic;
+      if (useLinuxFlatpakSoftwareDecodeFallback(
+        linux: !kIsWeb && defaultTargetPlatform == TargetPlatform.linux,
+        flatpak: !kIsWeb &&
+            defaultTargetPlatform == TargetPlatform.linux &&
+            (Platform.environment['FLATPAK_ID']?.isNotEmpty ?? false),
+        hardwareRequested: settings.hardwareAccel,
+        softwareRenderConfirmed: _renderCapabilities.softwareSdr,
+      )) {
+        // The native plugin already tried GL and selected its SW texture.
+        // Keep decoding on that compatible per-instance path before open.
+        await nativePlayer.setProperty('hwdec', 'no');
+        _softwareDecodeFallback = true;
+        _recordDiagnostic(
+          diagnosticAttempt,
+          PlaybackStage.playerInit,
+          detail:
+              'Linux Flatpak software texture confirmed; decoder fallback requested',
+        );
+      }
       await nativePlayer.setProperty('force-seekable', 'yes');
       await nativePlayer.setProperty('gapless-audio', 'yes');
       await nativePlayer.setProperty('cache', 'yes');
@@ -318,6 +480,14 @@ class LibMPV extends BasePlayer {
 
   @override
   Future<void> dispose() async {
+    _recordDiagnostic(
+      _activeDiagnosticAttempt,
+      PlaybackStage.lifecycle,
+      detail: 'media kit player disposed',
+    );
+    _activeDiagnosticAttempt = null;
+    _diagnosticSourceKind = PlaybackSourceKind.unknown;
+    _diagnosticOpening = false;
     _syncPlayBufferProbe?.dispose();
     _syncPlayBufferProbe = null;
     _syncPlayBufferPlayer = null;
@@ -410,6 +580,14 @@ class LibMPV extends BasePlayer {
 
   void _setupPlayerStreams(mpv.Player player) {
     _playerStreamSubs.addAll([
+      player.stream.error.listen(
+        (message) => _recordNativeFailure(player, message),
+      ),
+      player.stream.log.listen((entry) {
+        if (entry.level == 'error' || entry.level == 'fatal') {
+          _recordNativeFailure(player, entry.text, prefix: entry.prefix);
+        }
+      }),
       player.stream.subtitle.listen((slots) {
         if (!kIsWeb && player == _player && _subtitleTextReady) {
           _subtitleTexts.value = SubtitleTextPair.fromSlots(
@@ -419,24 +597,33 @@ class LibMPV extends BasePlayer {
         }
       }),
       player.stream.playing.listen((value) {
+        _recordPlaybackTransition(player);
         if (_hdrPreparing) return;
         setState(lastState.update(playing: value));
       }),
-      player.stream.buffering.listen((value) =>
-          setState(lastState.update(buffering: _hdrPreparing || value))),
-      player.stream.position
-          .listen((value) => setState(lastState.update(position: value))),
-      player.stream.duration
-          .listen((value) => setState(lastState.update(duration: value))),
+      player.stream.buffering.listen((value) {
+        _recordPlaybackTransition(player);
+        setState(lastState.update(buffering: _hdrPreparing || value));
+      }),
+      player.stream.position.listen(
+        (value) => setState(lastState.update(position: value)),
+      ),
+      player.stream.duration.listen(
+        (value) => setState(lastState.update(duration: value)),
+      ),
       player.stream.volume.listen((value) {
         setState(lastState.update(volume: value));
       }),
-      player.stream.rate
-          .listen((value) => setState(lastState.update(rate: value))),
-      player.stream.buffer
-          .listen((value) => setState(lastState.update(buffer: value))),
-      player.stream.completed
-          .listen((value) => setState(lastState.update(completed: value))),
+      player.stream.rate.listen(
+        (value) => setState(lastState.update(rate: value)),
+      ),
+      player.stream.buffer.listen((value) {
+        _recordPlaybackTransition(player);
+        setState(lastState.update(buffer: value));
+      }),
+      player.stream.completed.listen(
+        (value) => setState(lastState.update(completed: value)),
+      ),
     ]);
   }
 
@@ -558,8 +745,86 @@ class LibMPV extends BasePlayer {
   }
 
   @override
-  Future<void> loadVideo(String url, bool play,
-      {Duration startPosition = Duration.zero}) async {
+  Future<void> loadVideo(
+    String url,
+    bool play, {
+    Duration startPosition = Duration.zero,
+  }) async {
+    final attempt = diagnosticAttempt;
+    _activeDiagnosticAttempt = attempt;
+    final scheme = Uri.tryParse(url)?.scheme.toLowerCase();
+    _diagnosticSourceKind = switch (scheme) {
+      'http' || 'https' => PlaybackSourceKind.networkStream,
+      'file' || '' => PlaybackSourceKind.localFile,
+      _ => PlaybackSourceKind.unknown,
+    };
+    final sourceKind = _diagnosticSourceKind;
+    _diagnosticOpening = true;
+    _nativeDiagnosticFailures.clear();
+    _diagnosticTransitions = MpvPlaybackTransitions();
+    final player = _player;
+    final generation = _mediaLoadGeneration + 1;
+    _recordDiagnostic(
+      attempt,
+      PlaybackStage.mediaOpen,
+      event: PlaybackEvent.started,
+      detail: 'media kit open requested',
+      sourceKind: sourceKind,
+    );
+    try {
+      await _loadVideo(url, play, startPosition: startPosition);
+      if (generation != _mediaLoadGeneration || player != _player) {
+        _recordDiagnostic(
+          attempt,
+          PlaybackStage.mediaOpen,
+          cancelled: true,
+          detail: 'media kit open superseded',
+          sourceKind: sourceKind,
+        );
+        return;
+      }
+      _recordDiagnostic(
+        attempt,
+        PlaybackStage.mediaOpen,
+        event: PlaybackEvent.succeeded,
+        detail: 'open command completed; frame not yet confirmed',
+        sourceKind: sourceKind,
+      );
+      if (player != null) {
+        unawaited(_recordDecodeStatus(player, generation, attempt));
+        // The pinned plugin's first-frame future can complete for its initial
+        // 1x1 placeholder. It does not prove this media was presented.
+        _recordDiagnostic(
+          attempt,
+          PlaybackStage.firstFrame,
+          detail: 'media presentation unconfirmed',
+        );
+      }
+    } catch (error) {
+      final cancelled = generation != _mediaLoadGeneration || player != _player;
+      _recordDiagnostic(
+        attempt,
+        PlaybackStage.mediaOpen,
+        event: cancelled ? PlaybackEvent.note : PlaybackEvent.failed,
+        errorClass: safeMpvErrorClass(error),
+        timedOut: error is TimeoutException,
+        cancelled: cancelled,
+        detail: 'media kit open failed',
+        sourceKind: sourceKind,
+      );
+      rethrow;
+    } finally {
+      if (generation == _mediaLoadGeneration && player == _player) {
+        _diagnosticOpening = false;
+      }
+    }
+  }
+
+  Future<void> _loadVideo(
+    String url,
+    bool play, {
+    Duration startPosition = Duration.zero,
+  }) async {
     final generation = ++_mediaLoadGeneration;
     final player = _player;
     final source = _nextHdrSource;
@@ -606,36 +871,53 @@ class LibMPV extends BasePlayer {
     _retryTimer?.cancel();
     _retryTimer = null;
 
-    _retryTimer = RestartableTimer(
-      _currentRetryDuration,
-      () async {
-        if (generation != _mediaLoadGeneration || player != _player) return;
-        await Future.delayed(const Duration(milliseconds: 150));
-        if (generation != _mediaLoadGeneration || player != _player) return;
-        if (DateTime.now().isAfter(_firstLoadAttempt.add(_maxRetryDuration))) {
-          log("Max retry duration reached, stopping retries.");
-          _retryTimer?.cancel();
-          _retryTimer = null;
-        } else {
-          log("Retrying to load media");
-          await setStartPosition(startPosition);
-          if (generation != _mediaLoadGeneration || player != _player) return;
-          if (player != null) {
-            final preparation =
-                _openWithVideoColor(player, url, play, source, generation);
-            _hdrPreparation = preparation;
-            try {
-              await preparation;
-            } catch (error) {
-              log('HDR-aware media retry failed: $error');
-              _retryTimer?.cancel();
-              return;
-            }
-          }
-          _retryTimer?.reset();
+    void stopPendingLoad(Object error) {
+      if (generation != _mediaLoadGeneration || player != _player) return;
+      _recordDiagnostic(
+        _activeDiagnosticAttempt,
+        PlaybackStage.mediaOpen,
+        event: PlaybackEvent.failed,
+        errorClass: safeMpvErrorClass(error),
+        timedOut: error is TimeoutException,
+        detail: 'media readiness budget ended',
+      );
+      _loadReadiness?.cancel();
+      _loadReadiness = null;
+      _retryTimer?.cancel();
+      _retryTimer = null;
+      // Release the completion without letting timeout trigger the backup seek.
+      if (identical(_loadCompleter, completion)) _loadCompleter = null;
+      if (!completion.isCompleted) completion.complete();
+    }
+
+    _retryTimer = MpvPendingLoadMonitor(
+      networkStream: _diagnosticSourceKind == PlaybackSourceKind.networkStream,
+      interval: _currentRetryDuration,
+      budget: _maxRetryDuration - DateTime.now().difference(_firstLoadAttempt),
+      isCurrent: () => generation == _mediaLoadGeneration && player == _player,
+      retryLocal: () async {
+        await setStartPosition(startPosition);
+        if (generation != _mediaLoadGeneration ||
+            player != _player ||
+            !identical(_loadCompleter, completion) ||
+            completion.isCompleted) {
+          return;
+        }
+        if (player != null) {
+          final preparation = _openWithVideoColor(
+            player,
+            url,
+            play,
+            source,
+            generation,
+          );
+          _hdrPreparation = preparation;
+          await preparation;
         }
       },
-    );
+      onTimeout: () => stopPendingLoad(TimeoutException('Media readiness')),
+      onFailure: stopPendingLoad,
+    )..start();
 
     // Wait for the player to be ready
     if (!completion.isCompleted && player != null) {
@@ -649,21 +931,29 @@ class LibMPV extends BasePlayer {
       readiness.observe([player.stream.buffering, player.stream.duration]);
     }
 
-    completion.future.then(
-      (value) async {
-        if (generation != _mediaLoadGeneration || player != _player) return;
-        // Backup seek in case property didn't work
-        if (startPosition != Duration.zero &&
-            (_player?.state.position.inSeconds ?? 0) <
-                startPosition.inSeconds - 5) {
-          await _player?.seek(startPosition);
-        }
-      },
+    completion.future.then((value) async {
+      if (generation != _mediaLoadGeneration ||
+          player != _player ||
+          !identical(_loadCompleter, completion)) {
+        return;
+      }
+      // Backup seek in case property didn't work
+      if (startPosition != Duration.zero &&
+          (_player?.state.position.inSeconds ?? 0) <
+              startPosition.inSeconds - 5) {
+        await _player?.seek(startPosition);
+      }
+    });
+    return setState(
+      lastState.update(
+        playing: hdrGated ? player?.state.playing : null,
+        buffering: mpvInitialBuffering(
+          readinessCompleted: completion.isCompleted,
+          hdrGated: hdrGated,
+          backendBuffering: player?.state.buffering ?? true,
+        ),
+      ),
     );
-    return setState(lastState.update(
-      playing: hdrGated ? player?.state.playing : null,
-      buffering: hdrGated ? (player?.state.buffering ?? true) : true,
-    ));
   }
 
   Future<void> _openWithVideoColor(mpv.Player player, String url, bool play,
@@ -793,6 +1083,22 @@ class LibMPV extends BasePlayer {
       return;
     }
     completion.complete();
+    _loadReadiness = null;
+    _recordDiagnostic(
+      _activeDiagnosticAttempt,
+      PlaybackStage.mediaOpen,
+      detail: 'duration readiness confirmed',
+    );
+    final player = _player;
+    if (player != null) {
+      unawaited(
+        _recordDecodeStatus(
+          player,
+          _mediaLoadGeneration,
+          _activeDiagnosticAttempt,
+        ),
+      );
+    }
     _retryTimer?.cancel();
     _retryTimer = null;
   }
@@ -1009,7 +1315,7 @@ class LibMPV extends BasePlayer {
             (wantedSubtitle.isExternal || wantedSubtitle.supportsExternalStream)
         : useExternalSubtitleSource(
             isExternal: wantedSubtitle.isExternal,
-            transcoded: playbackModel is TranscodePlaybackModel,
+            transcoded: playbackModel.isServerTranscoded,
             supportsExternalStream: wantedSubtitle.supportsExternalStream,
             codec: wantedSubtitle.codec,
             url: wantedSubtitle.url,
@@ -1201,7 +1507,7 @@ class LibMPV extends BasePlayer {
       }
       String? id;
       final external = model.isExternal ||
-          (playbackModel is TranscodePlaybackModel &&
+          (playbackModel.isServerTranscoded &&
               model.supportsExternalStream &&
               model.url?.isNotEmpty == true);
       if (external) {
@@ -1339,8 +1645,16 @@ class LibMPV extends BasePlayer {
     final player = _player;
     if (player == null) return {'backend': 'MPV (not initialized)'};
     final values = <String, String>{
-      'backend': kIsWeb ? 'media_kit web' : 'media_kit / libmpv'
+      'backend': kIsWeb ? 'media_kit web' : 'media_kit / libmpv',
     };
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.linux) {
+      values['Linux acceleration (saved)'] = '${_settings.hardwareAccel}';
+      values['Linux decoder (requested)'] =
+          !_settings.hardwareAccel || _softwareDecodeFallback ? 'no' : 'auto';
+      values['Linux software decoder fallback'] = _softwareDecodeFallback
+          ? 'confirmed software texture in Flatpak'
+          : 'not applied';
+    }
     for (final name in [
       'mpv-version',
       'libass-version',

@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'dart:math' show Random, min;
 
 import 'package:flutter/foundation.dart';
@@ -31,6 +30,8 @@ import 'package:fladder/routes/auto_router.gr.dart';
 import 'package:fladder/screens/book_viewer/book_viewer_screen.dart';
 import 'package:fladder/screens/library_search/widgets/library_play_options_.dart';
 import 'package:fladder/screens/shared/fladder_notification_overlay.dart';
+import 'package:fladder/screens/shared/playback_diagnostics_dialog.dart';
+import 'package:fladder/services/playback_diagnostics.dart';
 import 'package:fladder/theme.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
 import 'package:fladder/util/fladder_image.dart';
@@ -46,11 +47,14 @@ extension BookBaseModelExtension on BookModel? {
     BuildContext context,
     WidgetRef ref, {
     int? currentPage,
-    AutoDisposeStateNotifierProvider<BookDetailsProviderNotifier, BookProviderModel>? provider,
+    AutoDisposeStateNotifierProvider<BookDetailsProviderNotifier,
+            BookProviderModel>?
+        provider,
     BuildContext? parentContext,
   }) async {
     if (kIsWeb) {
-      FladderSnack.show(context.localized.unableToPlayBooksOnWeb, context: context);
+      FladderSnack.show(context.localized.unableToPlayBooksOnWeb,
+          context: context);
       return;
     }
     if (this == null) {
@@ -60,7 +64,9 @@ extension BookBaseModelExtension on BookModel? {
 
     if (newProvider == null) {
       newProvider = bookDetailsProvider(this?.id ?? "");
-      await ref.watch(bookDetailsProvider(this?.id ?? "").notifier).fetchDetails(this!);
+      await ref
+          .watch(bookDetailsProvider(this?.id ?? "").notifier)
+          .fetchDetails(this!);
     }
 
     ref.read(bookViewerProvider.notifier).fetchBook(this);
@@ -81,7 +87,9 @@ extension PhotoAlbumExtension on PhotoAlbumModel? {
     BuildContext context,
     WidgetRef ref, {
     int? currentPage,
-    AutoDisposeStateNotifierProvider<BookDetailsProviderNotifier, BookProviderModel>? provider,
+    AutoDisposeStateNotifierProvider<BookDetailsProviderNotifier,
+            BookProviderModel>?
+        provider,
     BuildContext? parentContext,
   }) async {
     final albumModel = this;
@@ -90,31 +98,27 @@ extension PhotoAlbumExtension on PhotoAlbumModel? {
     final api = ref.read(jellyApiProvider);
     final op = CancelableOperation.fromFuture(api.itemsGet(
         parentId: albumModel.id,
-        includeItemTypes: FladderItemType.galleryItem.map((e) => e.dtoKind).expand((e) => e).toList(),
+        includeItemTypes: FladderItemType.galleryItem
+            .map((e) => e.dtoKind)
+            .expand((e) => e)
+            .toList(),
         recursive: true));
 
-    _showLoadingIndicator(context, albumModel, op);
+    showPlaybackLoadingIndicator(context, albumModel, op);
 
     final getChildItems = await op.valueOrCancellation(null);
     if (op.isCanceled || getChildItems == null) {
       if (!op.isCanceled) {
-        try {
-          Navigator.of(context, rootNavigator: true).pop();
-        } catch (e) {
-          log('Error closing loading dialog: $e');
-        }
-        FladderSnack.show(context.localized.unableToPlayMedia, context: context);
+        closePlaybackLoadingIndicator(op);
+        FladderSnack.show(context.localized.unableToPlayMedia,
+            context: context);
       }
       return;
     }
 
     final photos = getChildItems.body?.items.whereType<PhotoModel>() ?? [];
 
-    try {
-      Navigator.of(context, rootNavigator: true).pop();
-    } catch (e) {
-      log('Error closing loading dialog: $e');
-    }
+    closePlaybackLoadingIndicator(op);
 
     if (photos.isEmpty) {
       return;
@@ -136,31 +140,31 @@ extension ChannelModelExtension on ChannelModel? {
     BuildContext context,
     WidgetRef ref, {
     int? currentPage,
-    AutoDisposeStateNotifierProvider<BookDetailsProviderNotifier, BookProviderModel>? provider,
+    AutoDisposeStateNotifierProvider<BookDetailsProviderNotifier,
+            BookProviderModel>?
+        provider,
     BuildContext? parentContext,
   }) async {
     if (this == null) return;
 
-    final op = CancelableOperation.fromFuture(ref.read(playbackModelHelper).createPlaybackModel(
-          context,
-          this,
-          forcedPlaybackType: PlaybackType.tv,
-          showPlaybackOptions: false,
-          startPosition: Duration.zero,
-        ));
+    final op = CancelableOperation.fromFuture(
+        ref.read(playbackModelHelper).createPlaybackModel(
+              context,
+              this,
+              forcedPlaybackType: PlaybackType.tv,
+              showPlaybackOptions: false,
+              startPosition: Duration.zero,
+            ));
 
-    _showLoadingIndicator(context, this!, op);
+    showPlaybackLoadingIndicator(context, this!, op);
 
     final model = await op.valueOrCancellation(null);
 
     if (op.isCanceled || model == null) {
       if (!op.isCanceled) {
-        try {
-          Navigator.of(context, rootNavigator: true).pop();
-        } catch (e) {
-          log('Error closing loading dialog: $e');
-        }
-        FladderSnack.show(context.localized.unableToPlayMedia, context: context);
+        closePlaybackLoadingIndicator(op);
+        FladderSnack.show(context.localized.unableToPlayMedia,
+            context: context);
       }
       return;
     }
@@ -197,24 +201,29 @@ extension AudioModelAudioPlayback on AudioModel? {
       return;
     }
 
-    final currentIndex = queue.indexWhere((element) => element.id == audio.id).clamp(0, queue.length - 1);
-    final op = CancelableOperation.fromFuture(ref.read(playbackModelHelper).createPlaybackModel(
-          context,
-          audio,
-          libraryQueue: queue,
-          showPlaybackOptions: showPlaybackOption,
-          startPosition: startPosition,
-        ));
+    final currentIndex = queue
+        .indexWhere((element) => element.id == audio.id)
+        .clamp(0, queue.length - 1);
+    final op = CancelableOperation.fromFuture(
+        ref.read(playbackModelHelper).createPlaybackModel(
+              context,
+              audio,
+              libraryQueue: queue,
+              showPlaybackOptions: showPlaybackOption,
+              startPosition: startPosition,
+            ));
 
     final model = await op.valueOrCancellation(null);
     if (op.isCanceled || model == null) {
       if (!op.isCanceled && !showPlaybackOption) {
-        FladderSnack.show(context.localized.unableToPlayMedia, context: context);
+        FladderSnack.show(context.localized.unableToPlayMedia,
+            context: context);
       }
       return;
     }
 
-    final actualStartPosition = startPosition ?? await model.startDuration() ?? Duration.zero;
+    final actualStartPosition =
+        startPosition ?? await model.startDuration() ?? Duration.zero;
 
     await ref.read(videoPlayerProvider.notifier).loadAudioPlaybackItem(
           model,
@@ -241,25 +250,30 @@ extension PlayQueueSource on PlaybackQueueSource? {
       return;
     }
 
-    final op = CancelableOperation.fromFuture(ref.read(playbackModelHelper).createPlaybackModel(
-          context,
-          queue.firstOrNull,
-          libraryQueue: queue,
-          queueSource: queueSource,
-          showPlaybackOptions: showPlaybackOption,
-          startPosition: startPosition,
-        ));
+    final op = CancelableOperation.fromFuture(
+        ref.read(playbackModelHelper).createPlaybackModel(
+              context,
+              queue.firstOrNull,
+              libraryQueue: queue,
+              queueSource: queueSource,
+              showPlaybackOptions: showPlaybackOption,
+              startPosition: startPosition,
+            ));
 
     final model = await op.valueOrCancellation(null);
     if (op.isCanceled || model == null) {
       if (!op.isCanceled && !showPlaybackOption) {
-        FladderSnack.show(context.localized.unableToPlayMedia, context: context);
+        FladderSnack.show(context.localized.unableToPlayMedia,
+            context: context);
       }
       return;
     }
 
-    final currentIndex = queue.indexWhere((element) => element.id == model.item.id).clamp(0, queue.length - 1);
-    final actualStartPosition = startPosition ?? await model.startDuration() ?? Duration.zero;
+    final currentIndex = queue
+        .indexWhere((element) => element.id == model.item.id)
+        .clamp(0, queue.length - 1);
+    final actualStartPosition =
+        startPosition ?? await model.startDuration() ?? Duration.zero;
 
     await ref.read(videoPlayerProvider.notifier).loadAudioPlaybackItem(
           model,
@@ -283,10 +297,13 @@ extension ArtistModelLatestTracksPlayback on ArtistModel? {
     if (artist == null) return;
 
     if (shuffleEnabled != null) {
-      ref.read(mediaPlaybackProvider.notifier).update((s) => s.copyWith(shuffleEnabled: shuffleEnabled));
+      ref
+          .read(mediaPlaybackProvider.notifier)
+          .update((s) => s.copyWith(shuffleEnabled: shuffleEnabled));
     }
 
-    final queueSource = ArtistCatalogQueueSource(artistId: artist.id, limit: 300);
+    final queueSource =
+        ArtistCatalogQueueSource(artistId: artist.id, limit: 300);
     final queue = await queueSource.fetchQueue(ref.read);
 
     if (queue.isEmpty) {
@@ -295,30 +312,36 @@ extension ArtistModelLatestTracksPlayback on ArtistModel? {
     }
 
     final selectedItem = startTrack != null
-        ? queue.firstWhereOrNull((element) => element.id == startTrack.id) ?? queue.first
+        ? queue.firstWhereOrNull((element) => element.id == startTrack.id) ??
+            queue.first
         : (shuffleEnabled == true && queue.length > 1)
             ? queue[Random().nextInt(queue.length)]
             : queue.first;
-    final currentIndex = queue.indexWhere((element) => element.id == selectedItem.id).clamp(0, queue.length - 1);
+    final currentIndex = queue
+        .indexWhere((element) => element.id == selectedItem.id)
+        .clamp(0, queue.length - 1);
 
-    final op = CancelableOperation.fromFuture(ref.read(playbackModelHelper).createPlaybackModel(
-          context,
-          selectedItem,
-          libraryQueue: queue,
-          queueSource: queueSource,
-          showPlaybackOptions: showPlaybackOption,
-          startPosition: startPosition,
-        ));
+    final op = CancelableOperation.fromFuture(
+        ref.read(playbackModelHelper).createPlaybackModel(
+              context,
+              selectedItem,
+              libraryQueue: queue,
+              queueSource: queueSource,
+              showPlaybackOptions: showPlaybackOption,
+              startPosition: startPosition,
+            ));
 
     final model = await op.valueOrCancellation(null);
     if (op.isCanceled || model == null) {
       if (!op.isCanceled && !showPlaybackOption) {
-        FladderSnack.show(context.localized.unableToPlayMedia, context: context);
+        FladderSnack.show(context.localized.unableToPlayMedia,
+            context: context);
       }
       return;
     }
 
-    final actualStartPosition = startPosition ?? await model.startDuration() ?? Duration.zero;
+    final actualStartPosition =
+        startPosition ?? await model.startDuration() ?? Duration.zero;
 
     await ref.read(videoPlayerProvider.notifier).loadAudioPlaybackItem(
           model,
@@ -340,23 +363,26 @@ extension AudioModelListPlayback on List<AudioModel> {
 
     final queue = cast<ItemBaseModel>().toList();
 
-    final op = CancelableOperation.fromFuture(ref.read(playbackModelHelper).createPlaybackModel(
-          context,
-          queue.first,
-          libraryQueue: queue,
-          showPlaybackOptions: showPlaybackOption,
-          startPosition: startPosition,
-        ));
+    final op = CancelableOperation.fromFuture(
+        ref.read(playbackModelHelper).createPlaybackModel(
+              context,
+              queue.first,
+              libraryQueue: queue,
+              showPlaybackOptions: showPlaybackOption,
+              startPosition: startPosition,
+            ));
 
     final model = await op.valueOrCancellation(null);
     if (op.isCanceled || model == null) {
       if (!op.isCanceled && !showPlaybackOption) {
-        FladderSnack.show(context.localized.unableToPlayMedia, context: context);
+        FladderSnack.show(context.localized.unableToPlayMedia,
+            context: context);
       }
       return;
     }
 
-    final actualStartPosition = startPosition ?? await model.startDuration() ?? Duration.zero;
+    final actualStartPosition =
+        startPosition ?? await model.startDuration() ?? Duration.zero;
 
     await ref.read(videoPlayerProvider.notifier).loadAudioPlaybackItem(
           model,
@@ -383,24 +409,29 @@ extension AlbumModelInstantMixPlayback on AlbumModel? {
       return;
     }
 
-    final op = CancelableOperation.fromFuture(ref.read(playbackModelHelper).createPlaybackModel(
-          context,
-          queue.first,
-          libraryQueue: queue,
-          showPlaybackOptions: showPlaybackOption,
-          startPosition: startPosition,
-        ));
+    final op = CancelableOperation.fromFuture(
+        ref.read(playbackModelHelper).createPlaybackModel(
+              context,
+              queue.first,
+              libraryQueue: queue,
+              showPlaybackOptions: showPlaybackOption,
+              startPosition: startPosition,
+            ));
 
     final model = await op.valueOrCancellation(null);
     if (op.isCanceled || model == null) {
       if (!op.isCanceled && !showPlaybackOption) {
-        FladderSnack.show(context.localized.unableToPlayMedia, context: context);
+        FladderSnack.show(context.localized.unableToPlayMedia,
+            context: context);
       }
       return;
     }
 
-    final currentIndex = queue.indexWhere((element) => element.id == model.item.id).clamp(0, queue.length - 1);
-    final actualStartPosition = startPosition ?? await model.startDuration() ?? Duration.zero;
+    final currentIndex = queue
+        .indexWhere((element) => element.id == model.item.id)
+        .clamp(0, queue.length - 1);
+    final actualStartPosition =
+        startPosition ?? await model.startDuration() ?? Duration.zero;
 
     await ref.read(videoPlayerProvider.notifier).loadAudioPlaybackItem(
           model,
@@ -440,7 +471,8 @@ extension AlbumModelInstantMixPlayback on AlbumModel? {
 
     await ref.read(videoPlayerProvider.notifier).addToTemporaryQueue(queue);
     if (context.mounted) {
-      FladderSnack.show(context.localized.addedToQueue(queue.length), context: context);
+      FladderSnack.show(context.localized.addedToQueue(queue.length),
+          context: context);
     }
   }
 }
@@ -500,7 +532,8 @@ extension ArtistModelAddToQueue on ArtistModel? {
     final artist = this;
     if (artist == null) return;
 
-    final queueSource = ArtistCatalogQueueSource(artistId: artist.id, limit: 300);
+    final queueSource =
+        ArtistCatalogQueueSource(artistId: artist.id, limit: 300);
     final queue = await queueSource.fetchQueue(ref.read);
 
     if (queue.isEmpty) {
@@ -510,19 +543,25 @@ extension ArtistModelAddToQueue on ArtistModel? {
 
     await ref.read(videoPlayerProvider.notifier).addToTemporaryQueue(queue);
     if (context.mounted) {
-      FladderSnack.show(context.localized.addedToQueue(queue.length), context: context);
+      FladderSnack.show(context.localized.addedToQueue(queue.length),
+          context: context);
     }
   }
 }
 
-Future<List<ItemBaseModel>> _fetchAlbumQueue(AlbumModel album, WidgetRef ref) async {
+Future<List<ItemBaseModel>> _fetchAlbumQueue(
+    AlbumModel album, WidgetRef ref) async {
   final response = await ref.read(jellyApiProvider).itemsGet(
         parentId: album.id,
         includeItemTypes: [BaseItemKind.audio],
         enableUserData: true,
         enableImages: true,
         imageTypeLimit: 1,
-        fields: [ItemFields.primaryimageaspectratio, ItemFields.mediasources, ItemFields.mediastreams],
+        fields: [
+          ItemFields.primaryimageaspectratio,
+          ItemFields.mediasources,
+          ItemFields.mediastreams
+        ],
         sortBy: [ItemSortBy.sortname, ItemSortBy.parentindexnumber],
         sortOrder: [SortOrder.ascending],
         limit: 200,
@@ -532,7 +571,8 @@ Future<List<ItemBaseModel>> _fetchAlbumQueue(AlbumModel album, WidgetRef ref) as
   return tracks;
 }
 
-Future<List<ItemBaseModel>> _fetchAudioTrackQueue(AudioModel audio, WidgetRef ref) async {
+Future<List<ItemBaseModel>> _fetchAudioTrackQueue(
+    AudioModel audio, WidgetRef ref) async {
   final albumId = audio.albumId ?? audio.parentId;
   if (albumId == null || albumId.isEmpty) {
     return [audio];
@@ -544,7 +584,11 @@ Future<List<ItemBaseModel>> _fetchAudioTrackQueue(AudioModel audio, WidgetRef re
         enableUserData: true,
         enableImages: true,
         imageTypeLimit: 1,
-        fields: [ItemFields.primaryimageaspectratio, ItemFields.mediasources, ItemFields.mediastreams],
+        fields: [
+          ItemFields.primaryimageaspectratio,
+          ItemFields.mediasources,
+          ItemFields.mediastreams
+        ],
         sortBy: [ItemSortBy.sortname, ItemSortBy.parentindexnumber],
         sortOrder: [SortOrder.ascending],
         limit: 200,
@@ -571,14 +615,15 @@ Future<void> _playInstantMix(
     return;
   }
 
-  final op = CancelableOperation.fromFuture(ref.read(playbackModelHelper).createPlaybackModel(
-        context,
-        queue.first,
-        libraryQueue: queue,
-        queueSource: queueSource,
-        showPlaybackOptions: showPlaybackOption,
-        startPosition: startPosition,
-      ));
+  final op = CancelableOperation.fromFuture(
+      ref.read(playbackModelHelper).createPlaybackModel(
+            context,
+            queue.first,
+            libraryQueue: queue,
+            queueSource: queueSource,
+            showPlaybackOptions: showPlaybackOption,
+            startPosition: startPosition,
+          ));
 
   final model = await op.valueOrCancellation(null);
   if (op.isCanceled || model == null) {
@@ -588,8 +633,11 @@ Future<void> _playInstantMix(
     return;
   }
 
-  final currentIndex = queue.indexWhere((element) => element.id == model.item.id).clamp(0, queue.length - 1);
-  final actualStartPosition = startPosition ?? await model.startDuration() ?? Duration.zero;
+  final currentIndex = queue
+      .indexWhere((element) => element.id == model.item.id)
+      .clamp(0, queue.length - 1);
+  final actualStartPosition =
+      startPosition ?? await model.startDuration() ?? Duration.zero;
 
   await ref.read(videoPlayerProvider.notifier).loadAudioPlaybackItem(
         model,
@@ -619,7 +667,9 @@ extension ItemBaseModelExtensions on ItemBaseModel? {
           ),
         BookModel book => book.play(context, ref),
         ChannelModel channel => channel.play(context, ref),
-        _ => _default(context, this, ref, startPosition: startPosition, showPlaybackOption: showPlaybackOption),
+        _ => _default(context, this, ref,
+            startPosition: startPosition,
+            showPlaybackOption: showPlaybackOption),
       };
 
   Future<void> _default(
@@ -631,79 +681,91 @@ extension ItemBaseModelExtensions on ItemBaseModel? {
   }) async {
     if (itemModel == null) return;
 
-    final op = CancelableOperation.fromFuture(ref.read(playbackModelHelper).createPlaybackModel(
-          context,
-          itemModel,
-          showPlaybackOptions: showPlaybackOption,
-          startPosition: startPosition,
-        ));
+    final attempt = PlaybackDiagnostics.instance.startAttempt();
+    final op = CancelableOperation.fromFuture(
+        ref.read(playbackModelHelper).createPlaybackModel(
+              context,
+              itemModel,
+              showPlaybackOptions: showPlaybackOption,
+              startPosition: startPosition,
+              diagnosticAttempt: attempt,
+            ));
 
-    _showLoadingIndicator(context, itemModel, op);
+    showPlaybackLoadingIndicator(context, itemModel, op);
 
     final model = await op.valueOrCancellation(null);
     if (op.isCanceled || model == null) {
+      if (op.isCanceled) {
+        PlaybackDiagnostics.instance.record(attempt, PlaybackStage.lifecycle,
+            cancelled: true, detail: 'loading_cancelled');
+      }
       if (!op.isCanceled) {
-        try {
-          Navigator.of(context, rootNavigator: true).pop();
-        } catch (e) {
-          log('Error closing loading dialog: $e');
-        }
+        closePlaybackLoadingIndicator(op);
         if (!showPlaybackOption) {
-          FladderSnack.show(context.localized.unableToPlayMedia, context: context);
+          _showPlaybackError(context, unableToPlay: true);
         }
       }
       return;
     }
 
-    final actualStartPosition = startPosition ?? await model.startDuration() ?? Duration.zero;
-
-    await _playVideo(context, startPosition: actualStartPosition, current: model, ref: ref, cancelOperation: op);
+    await _playVideo(context,
+        startPosition: startPosition,
+        current: model,
+        ref: ref,
+        cancelOperation: op,
+        diagnosticAttempt: attempt);
   }
 }
 
 extension ItemBaseModelsBooleans on List<ItemBaseModel> {
-  Future<void> playLibraryItems(BuildContext context, WidgetRef ref, {bool shuffle = false}) async {
+  Future<void> playLibraryItems(BuildContext context, WidgetRef ref,
+      {bool shuffle = false}) async {
     if (isEmpty) return;
 
     final op = CancelableOperation.fromFuture(Future(() async {
-      List<List<ItemBaseModel>> newList = await Future.wait(map((element) async {
+      List<List<ItemBaseModel>> newList =
+          await Future.wait(map((element) async {
         switch (element.type) {
           case FladderItemType.series:
-            return await ref.read(jellyApiProvider).fetchEpisodeFromShow(seriesId: element.id);
+            return await ref
+                .read(jellyApiProvider)
+                .fetchEpisodeFromShow(seriesId: element.id);
           default:
             return [element];
         }
       }));
 
-      var expandedList =
-          newList.expand((element) => element).toList().where((element) => element.playAble).toList().uniqueBy(
-                (value) => value.id,
-              );
+      var expandedList = newList
+          .expand((element) => element)
+          .toList()
+          .where((element) => element.playAble)
+          .toList()
+          .uniqueBy(
+            (value) => value.id,
+          );
 
       if (shuffle) {
         expandedList.shuffle();
       }
 
-      PlaybackModel? model = await ref.read(playbackModelHelper).createPlaybackModel(
-            context,
-            expandedList.firstOrNull,
-            libraryQueue: expandedList,
-          );
+      PlaybackModel? model =
+          await ref.read(playbackModelHelper).createPlaybackModel(
+                context,
+                expandedList.firstOrNull,
+                libraryQueue: expandedList,
+              );
 
       return (model, expandedList);
     }));
 
-    _showLoadingIndicator(context, null, op);
+    showPlaybackLoadingIndicator(context, null, op);
 
     final result = await op.valueOrCancellation(null);
     if (op.isCanceled || result == null) {
       if (!op.isCanceled) {
-        try {
-          Navigator.of(context, rootNavigator: true).pop();
-        } catch (e) {
-          log('Error closing loading dialog: $e');
-        }
-        FladderSnack.show(context.localized.unableToPlayMedia, context: context);
+        closePlaybackLoadingIndicator(op);
+        FladderSnack.show(context.localized.unableToPlayMedia,
+            context: context);
       }
       return;
     }
@@ -712,14 +774,16 @@ extension ItemBaseModelsBooleans on List<ItemBaseModel> {
     final List<ItemBaseModel> expandedList = result.$2;
 
     if (context.mounted) {
-      await _playVideo(context, ref: ref, queue: expandedList, current: model, cancelOperation: op);
+      await _playVideo(context,
+          ref: ref, queue: expandedList, current: model, cancelOperation: op);
       if (context.mounted) {
         RefreshState.maybeOf(context)?.refresh();
       }
     }
   }
 
-  Future<void> playMusicItems(BuildContext context, WidgetRef ref, {bool shuffle = false}) async {
+  Future<void> playMusicItems(BuildContext context, WidgetRef ref,
+      {bool shuffle = false}) async {
     if (isEmpty) return;
 
     final op = CancelableOperation.fromFuture(Future(() async {
@@ -730,16 +794,22 @@ extension ItemBaseModelsBooleans on List<ItemBaseModel> {
           case AlbumModel album:
             return await _fetchAlbumQueue(album, ref);
           case ArtistModel artist:
-            return await ArtistCatalogQueueSource(artistId: artist.id, limit: 300).fetchQueue(ref.read);
+            return await ArtistCatalogQueueSource(
+                    artistId: artist.id, limit: 300)
+                .fetchQueue(ref.read);
           default:
             return const <ItemBaseModel>[];
         }
       }));
 
-      final expandedList =
-          newList.expand((element) => element).whereType<AudioModel>().cast<ItemBaseModel>().toList().uniqueBy(
-                (value) => value.id,
-              );
+      final expandedList = newList
+          .expand((element) => element)
+          .whereType<AudioModel>()
+          .cast<ItemBaseModel>()
+          .toList()
+          .uniqueBy(
+            (value) => value.id,
+          );
 
       if (shuffle) {
         expandedList.shuffle();
@@ -754,17 +824,14 @@ extension ItemBaseModelsBooleans on List<ItemBaseModel> {
       return (model, expandedList);
     }));
 
-    _showLoadingIndicator(context, null, op);
+    showPlaybackLoadingIndicator(context, null, op);
 
     final result = await op.valueOrCancellation(null);
     if (op.isCanceled || result == null) {
       if (!op.isCanceled) {
-        try {
-          Navigator.of(context, rootNavigator: true).pop();
-        } catch (e) {
-          log('Error closing loading dialog: $e');
-        }
-        FladderSnack.show(context.localized.unableToPlayMedia, context: context);
+        closePlaybackLoadingIndicator(op);
+        FladderSnack.show(context.localized.unableToPlayMedia,
+            context: context);
       }
       return;
     }
@@ -773,22 +840,17 @@ extension ItemBaseModelsBooleans on List<ItemBaseModel> {
     final List<ItemBaseModel> expandedList = result.$2;
 
     if (model == null || expandedList.isEmpty) {
-      try {
-        Navigator.of(context, rootNavigator: true).pop();
-      } catch (e) {
-        log('Error closing loading dialog: $e');
-      }
+      closePlaybackLoadingIndicator(op);
       FladderSnack.show(context.localized.unableToPlayMedia, context: context);
       return;
     }
 
-    final currentIndex =
-        expandedList.indexWhere((element) => element.id == model.item.id).clamp(0, expandedList.length - 1);
+    final currentIndex = expandedList
+        .indexWhere((element) => element.id == model.item.id)
+        .clamp(0, expandedList.length - 1);
     final actualStartPosition = await model.startDuration() ?? Duration.zero;
 
-    try {
-      Navigator.of(context, rootNavigator: true).pop();
-    } catch (_) {}
+    closePlaybackLoadingIndicator(op);
 
     await ref.read(videoPlayerProvider.notifier).loadAudioPlaybackItem(
           model,
@@ -803,13 +865,38 @@ extension ItemBaseModelsBooleans on List<ItemBaseModel> {
   }
 }
 
-Future<void> _showLoadingIndicator(BuildContext context, ItemBaseModel? item, CancelableOperation op) async {
-  return showDialog(
+final _playbackLoadingRoutes = Expando<DialogRoute<void>>();
+
+@visibleForTesting
+Future<void> showPlaybackLoadingIndicator(
+    BuildContext context, ItemBaseModel? item, CancelableOperation op) async {
+  if (!context.mounted) return;
+  final navigator = Navigator.of(context, rootNavigator: true);
+  final route = DialogRoute<void>(
     barrierDismissible: false,
-    useRootNavigator: true,
     context: context,
+    themes: InheritedTheme.capture(from: context, to: navigator.context),
     builder: (context) => _LoadIndicatorCancelable(op: op, item: item),
   );
+  _playbackLoadingRoutes[op] = route;
+  try {
+    await navigator.push(route);
+  } finally {
+    if (identical(_playbackLoadingRoutes[op], route)) {
+      _playbackLoadingRoutes[op] = null;
+    }
+  }
+}
+
+@visibleForTesting
+void closePlaybackLoadingIndicator(CancelableOperation? op) {
+  if (op == null) return;
+  final route = _playbackLoadingRoutes[op];
+  _playbackLoadingRoutes[op] = null;
+  // A diagnostic dialog may be on top. Remove only this operation's loader.
+  if (route != null) {
+    route.navigator?.removeRoute(route);
+  }
 }
 
 class _LoadIndicatorCancelable extends StatelessWidget {
@@ -854,11 +941,15 @@ class _LoadIndicatorCancelable extends StatelessWidget {
                               child: Container(
                                 decoration: BoxDecoration(
                                   borderRadius: radius,
-                                  color: Theme.of(context).colorScheme.surfaceContainer,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .surfaceContainer,
                                 ),
                                 foregroundDecoration: BoxDecoration(
                                   borderRadius: radius,
-                                  border: Border.all(width: 1, color: Colors.white.withAlpha(45)),
+                                  border: Border.all(
+                                      width: 1,
+                                      color: Colors.white.withAlpha(45)),
                                 ),
                                 clipBehavior: Clip.hardEdge,
                                 child: FladderImage(
@@ -892,6 +983,18 @@ class _LoadIndicatorCancelable extends StatelessWidget {
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                         ],
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            minimumSize: const Size(48, 48),
+                            visualDensity: VisualDensity.standard,
+                          ),
+                          onPressed: () {
+                            if (context.mounted) {
+                              showPlaybackDiagnostics(context);
+                            }
+                          },
+                          child: Text(context.localized.jmsPlaybackDiagnostics),
+                        ),
                       ],
                     ),
                   ),
@@ -905,7 +1008,7 @@ class _LoadIndicatorCancelable extends StatelessWidget {
                   try {
                     op.cancel();
                   } catch (_) {}
-                  Navigator.of(context, rootNavigator: true).pop();
+                  closePlaybackLoadingIndicator(op);
                 },
                 icon: const Icon(IconsaxPlusLinear.close_square),
               ),
@@ -916,6 +1019,18 @@ class _LoadIndicatorCancelable extends StatelessWidget {
   }
 }
 
+void _showPlaybackError(BuildContext context, {bool unableToPlay = false}) {
+  if (!context.mounted) return;
+  final message = unableToPlay
+      ? context.localized.unableToPlayMedia
+      : context.localized.errorOpeningMedia;
+  FladderSnack.show(message,
+      context: context, actionLabel: context.localized.jmsPlaybackDiagnostics,
+      onActionPressed: () {
+    if (context.mounted) showPlaybackDiagnostics(context);
+  });
+}
+
 Future<void> _playVideo(
   BuildContext context, {
   required PlaybackModel? current,
@@ -924,55 +1039,88 @@ Future<void> _playVideo(
   required WidgetRef ref,
   VoidCallback? onPlayerExit,
   CancelableOperation? cancelOperation,
+  PlaybackAttemptRef? diagnosticAttempt,
 }) async {
+  final diagnostics = PlaybackDiagnostics.instance;
+  final attempt = diagnosticAttempt ?? diagnostics.startAttempt();
+  void closeLoading() {
+    if (!context.mounted) return;
+    closePlaybackLoadingIndicator(cancelOperation);
+  }
+
+  bool cancelled() {
+    if (!(cancelOperation?.isCanceled ?? false)) return false;
+    diagnostics.record(attempt, PlaybackStage.lifecycle,
+        cancelled: true, detail: 'loading_cancelled');
+    return true;
+  }
+
   if (current == null) {
-    if (context.mounted) {
-      try {
-        Navigator.of(context, rootNavigator: true).pop();
-      } catch (e) {
-        log('Error closing loading dialog: $e');
-      }
-      FladderSnack.show(context.localized.unableToPlayMedia, context: context);
-    }
+    diagnostics.record(attempt, PlaybackStage.streamSelection,
+        event: PlaybackEvent.failed, detail: 'missing_playback_model');
+    closeLoading();
+    _showPlaybackError(context, unableToPlay: true);
     return;
   }
 
-  if (cancelOperation?.isCanceled ?? false) return;
+  if (cancelled()) return;
+  var stage = PlaybackStage.resume;
+  var step = 'start_position';
+  try {
+    diagnostics.record(attempt, stage,
+        event: PlaybackEvent.started, detail: step);
+    final actualStartPosition =
+        startPosition ?? await current.startDuration() ?? Duration.zero;
+    diagnostics.record(attempt, stage,
+        event: PlaybackEvent.succeeded, detail: step);
+    if (cancelled()) return;
+    stage = PlaybackStage.mediaOpen;
+    step = 'load_playback';
+    final loadedCorrectly =
+        await ref.read(videoPlayerProvider.notifier).loadPlaybackItem(
+              current,
+              actualStartPosition,
+              diagnosticAttempt: attempt,
+            );
 
-  final actualStartPosition = startPosition ?? await current.startDuration() ?? Duration.zero;
-
-  final loadedCorrectly = await ref.read(videoPlayerProvider.notifier).loadPlaybackItem(
-        current,
-        actualStartPosition,
-      );
-
-  if (!loadedCorrectly) {
-    if (context.mounted) {
-      try {
-        Navigator.of(context, rootNavigator: true).pop();
-      } catch (e) {
-        log('Error closing loading dialog: $e');
-      }
-      FladderSnack.show(context.localized.errorOpeningMedia, context: context);
+    if (!loadedCorrectly) {
+      if (cancelled()) return;
+      closeLoading();
+      _showPlaybackError(context);
+      return;
     }
+  } catch (error) {
+    diagnostics.record(attempt, stage,
+        event: PlaybackEvent.failed,
+        errorClass: error.runtimeType.toString(),
+        detail: step);
+    if (cancelled()) return;
+    closeLoading();
+    _showPlaybackError(context);
     return;
   }
 
-  if (cancelOperation?.isCanceled ?? false) return;
+  if (cancelled()) return;
+  closeLoading();
+  if (cancelled()) return;
 
   try {
-    Navigator.of(context, rootNavigator: true).pop();
-  } catch (_) {}
-
-  if (cancelOperation?.isCanceled ?? false) return;
-
-  await ref.read(videoPlayerProvider.notifier).openPlayer(context);
-  if (AdaptiveLayout.of(context).isDesktop && defaultTargetPlatform != TargetPlatform.macOS) {
+    await ref.read(videoPlayerProvider.notifier).openPlayer(context);
+  } catch (error) {
+    diagnostics.record(attempt, PlaybackStage.lifecycle,
+        event: PlaybackEvent.failed,
+        errorClass: error.runtimeType.toString(),
+        detail: 'open_player_route');
+    _showPlaybackError(context);
+    return;
+  }
+  if (AdaptiveLayout.of(context).isDesktop &&
+      defaultTargetPlatform != TargetPlatform.macOS) {
     fullScreenHelper.closeFullScreen(ref);
   }
 
   if (context.mounted) {
-    if (cancelOperation?.isCanceled ?? false) return;
+    if (cancelled()) return;
     await context.refreshData();
   }
 

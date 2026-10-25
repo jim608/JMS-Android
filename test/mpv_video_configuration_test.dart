@@ -3,61 +3,107 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('Windows preserves hardware decoding with a compatible software texture',
-      () {
-    final configuration = mpvVideoConfiguration(
-        hardwareAcceleration: true, platform: TargetPlatform.windows);
-    expect(configuration.hwdec, 'auto-copy');
-    expect(configuration.enableHardwareAcceleration, isFalse);
-    expect(configuration.vo, isNull);
-  });
+  test(
+    'Windows preserves hardware decoding with a compatible software texture',
+    () {
+      final configuration = mpvVideoConfiguration(
+        hardwareAcceleration: true,
+        platform: TargetPlatform.windows,
+      );
+      expect(configuration.hwdec, 'auto-copy');
+      expect(configuration.enableHardwareAcceleration, isFalse);
+      expect(configuration.vo, isNull);
+    },
+  );
 
-  test('Windows disabled preference disables decoder and renderer acceleration',
-      () {
-    final configuration = mpvVideoConfiguration(
-        hardwareAcceleration: false, platform: TargetPlatform.windows);
-    expect(configuration.hwdec, 'no');
-    expect(configuration.enableHardwareAcceleration, isFalse);
-  });
+  test(
+    'Windows disabled preference disables decoder and renderer acceleration',
+    () {
+      final configuration = mpvVideoConfiguration(
+        hardwareAcceleration: false,
+        platform: TargetPlatform.windows,
+      );
+      expect(configuration.hwdec, 'no');
+      expect(configuration.enableHardwareAcceleration, isFalse);
+    },
+  );
+
+  test(
+    'Linux disabled preference disables decoder and renderer acceleration',
+    () {
+      final configuration = mpvVideoConfiguration(
+        hardwareAcceleration: false,
+        platform: TargetPlatform.linux,
+      );
+      expect(configuration.hwdec, 'no');
+      expect(configuration.enableHardwareAcceleration, isFalse);
+      final enabled = mpvVideoConfiguration(
+        hardwareAcceleration: true,
+        platform: TargetPlatform.linux,
+      );
+      expect(enabled.hwdec, isNull);
+      expect(enabled.enableHardwareAcceleration, isTrue);
+    },
+  );
 
   test('other platforms preserve their existing controller defaults', () {
-    for (final platform in TargetPlatform.values
-        .where((value) => value != TargetPlatform.windows)) {
+    for (final platform in TargetPlatform.values.where(
+      (value) =>
+          value != TargetPlatform.windows && value != TargetPlatform.linux,
+    )) {
       for (final acceleration in [false, true]) {
         final configuration = mpvVideoConfiguration(
-            hardwareAcceleration: acceleration, platform: platform);
+          hardwareAcceleration: acceleration,
+          platform: platform,
+        );
         expect(configuration.hwdec, isNull, reason: platform.name);
         expect(configuration.enableHardwareAcceleration, acceleration);
         expect(configuration.vo, isNull);
       }
     }
     final browser = mpvVideoConfiguration(
-        hardwareAcceleration: true,
-        platform: TargetPlatform.windows,
-        web: true);
+      hardwareAcceleration: true,
+      platform: TargetPlatform.windows,
+      web: true,
+    );
     expect(browser.hwdec, isNull);
   });
 
   test(
-      'diagnostics distinguish hardware copyback, software fallback and pending playback',
-      () {
-    Map<String, String> diagnostics(String current) =>
+    'diagnostics distinguish hardware copyback, software fallback and pending playback',
+    () {
+      Map<String, String> diagnostics(String current) =>
+          windowsMpvDecodeDiagnostics(
+            hardwareAcceleration: true,
+            currentDecoder: current,
+          );
+      expect(
+        diagnostics('d3d11va-copy')['Windows decoder fallback'],
+        'hardware active (d3d11va-copy)',
+      );
+      expect(
+        diagnostics('d3d11va-copy')['Windows renderer (requested)'],
+        'software texture / libmpv (Windows compatibility)',
+      );
+      expect(
+        diagnostics('d3d11va-copy')['Windows renderer output limit'],
+        '1920x1080 (pinned software texture renderer)',
+      );
+      expect(
+        diagnostics('no')['Windows decoder fallback'],
+        'software active after auto-copy request',
+      );
+      expect(
+        diagnostics('unknown')['Windows decoder fallback'],
+        'not determined',
+      );
+      expect(
         windowsMpvDecodeDiagnostics(
-            hardwareAcceleration: true, currentDecoder: current);
-    expect(diagnostics('d3d11va-copy')['Windows decoder fallback'],
-        'hardware active (d3d11va-copy)');
-    expect(diagnostics('d3d11va-copy')['Windows renderer (requested)'],
-        'software texture / libmpv (Windows compatibility)');
-    expect(diagnostics('d3d11va-copy')['Windows renderer output limit'],
-        '1920x1080 (pinned software texture renderer)');
-    expect(diagnostics('no')['Windows decoder fallback'],
-        'software active after auto-copy request');
-    expect(
-        diagnostics('unknown')['Windows decoder fallback'], 'not determined');
-    expect(
-        windowsMpvDecodeDiagnostics(
-            hardwareAcceleration: false,
-            currentDecoder: 'no')['Windows decoder fallback'],
-        'software requested');
-  });
+          hardwareAcceleration: false,
+          currentDecoder: 'no',
+        )['Windows decoder fallback'],
+        'software requested',
+      );
+    },
+  );
 }

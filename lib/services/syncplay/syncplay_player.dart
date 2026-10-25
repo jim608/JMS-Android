@@ -272,7 +272,7 @@ Future<SyncPlayPlaybackModel> createSyncPlayPlaybackModel({
             ? _capturedUri(account, source.transcodingUrl!)
             : null;
     if (uri == null) throw const SyncPlayFailure(SyncPlayFailureCode.player);
-    final streams = _capturedStreams(source, account);
+    final streams = _capturedStreams(source, account, transcoded: !direct);
     check();
     return SyncPlayPlaybackModel(
         item: ItemBaseModel.fromBaseDto(dto, ref),
@@ -310,8 +310,8 @@ Uri? _capturedUri(AccountModel account, String relativeUrl) {
   return uri.replace(queryParameters: query);
 }
 
-MediaStreamsModel _capturedStreams(
-    MediaSourceInfo source, AccountModel account) {
+MediaStreamsModel _capturedStreams(MediaSourceInfo source, AccountModel account,
+    {bool transcoded = false}) {
   final streams = source.mediaStreams ?? const <MediaStream>[];
   return MediaStreamsModel(
       defaultAudioStreamIndex: source.defaultAudioStreamIndex,
@@ -345,13 +345,27 @@ MediaStreamsModel _capturedStreams(
                   codec: s.codec ?? '',
                   index: s.index ?? -1,
                   isDefault: s.isDefault ?? false,
-                  isExternal: s.isExternal ?? false,
+                  isExternal: s.isExternal == true ||
+                      (transcoded &&
+                          s.deliveryMethod ==
+                              SubtitleDeliveryMethod.$external &&
+                          delivery != null),
                   supportsExternalStream: s.supportsExternalStream ?? false,
                   url: delivery == null
                       ? null
                       : _capturedUri(account, delivery)?.toString());
             }).toList())
       ]);
+}
+
+enum SyncPlayTrackSelectionFailureReason { requiresServerReload, unavailable }
+
+/// A local track choice must never silently replace a room playback session.
+class SyncPlayTrackSelectionFailure implements Exception {
+  const SyncPlayTrackSelectionFailure(this.reason);
+  final SyncPlayTrackSelectionFailureReason reason;
+  @override
+  String toString() => 'SyncPlayTrackSelectionFailure: ${reason.name}';
 }
 
 /// Session reporting remains bound to the account which joined the room.
@@ -479,8 +493,46 @@ class SyncPlayPlaybackModel extends PlaybackModel {
   Future<PlaybackModel> setSubtitle(
       SubStreamModel? model, MediaControlsWrapper player) async {
     if (!isCurrent()) return this;
+    final wanted = model ?? defaultSubStream;
+    if (isServerTranscoded) {
+      final source = playbackInfo?.mediaSources?.firstWhereOrNull((source) =>
+              source.id == mediaStreams?.currentVersionStream?.id) ??
+          playbackInfo?.mediaSources?.firstOrNull;
+      final sourceStreams = source?.mediaStreams ?? const <MediaStream>[];
+      final burnedIn = sourceStreams.firstWhereOrNull((stream) =>
+          stream.type == MediaStreamType.subtitle &&
+          stream.index == source?.defaultSubtitleStreamIndex &&
+          stream.deliveryMethod == SubtitleDeliveryMethod.encode);
+      // Burned-in pixels cannot be changed by selecting a local decoder track.
+      // Preserve the current stream, including initialization of that track.
+      if (burnedIn != null) {
+        if (wanted?.index == burnedIn.index) return this;
+        throw const SyncPlayTrackSelectionFailure(
+            SyncPlayTrackSelectionFailureReason.requiresServerReload);
+      }
+      final delivery = sourceStreams
+          .firstWhereOrNull((stream) => stream.index == wanted?.index)
+          ?.deliveryMethod;
+      if (wanted != null && wanted.index >= 0) {
+        if (delivery == SubtitleDeliveryMethod.encode) {
+          throw const SyncPlayTrackSelectionFailure(
+              SyncPlayTrackSelectionFailureReason.requiresServerReload);
+        }
+        if (delivery == SubtitleDeliveryMethod.drop ||
+            delivery == SubtitleDeliveryMethod.hls) {
+          if (model == null) return this;
+          throw const SyncPlayTrackSelectionFailure(
+              SyncPlayTrackSelectionFailureReason.unavailable);
+        }
+      }
+    }
     final index = await player.setSubtitleTrack(model, this);
     if (!isCurrent()) return this;
+    if (wanted != null && wanted.index >= 0 && index != wanted.index) {
+      if (model == null) return this;
+      throw const SyncPlayTrackSelectionFailure(
+          SyncPlayTrackSelectionFailureReason.unavailable);
+    }
     return _copy(streams: mediaStreams?.copyWith(defaultSubStreamIndex: index));
   }
 

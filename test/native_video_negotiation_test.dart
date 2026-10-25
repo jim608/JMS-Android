@@ -18,6 +18,7 @@ import 'package:fladder/profiles/default_profile.dart';
 import 'package:fladder/providers/settings/video_player_settings_provider.dart';
 import 'package:fladder/providers/sync_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
+import 'package:fladder/services/playback_diagnostics.dart';
 import 'package:fladder/wrappers/media_control_wrapper.dart';
 
 class _Ref extends Fake implements Ref {
@@ -56,6 +57,9 @@ class _TvModel extends Fake implements TvPlaybackModel {
   final bool native;
 
   @override
+  bool get serverManagedQueue => false;
+
+  @override
   bool get isNativePlayerBackend => native;
 
   @override
@@ -75,6 +79,7 @@ class _RejectedTvRequest extends PlaybackModelHelper {
     bool showPlaybackOptions = false,
     PlaybackType? forcedPlaybackType,
     Duration? startPosition,
+    PlaybackAttemptRef? diagnosticAttempt,
   }) async =>
       null;
 }

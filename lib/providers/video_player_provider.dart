@@ -13,13 +13,16 @@ import 'package:fladder/models/playback/playback_queue_state.dart';
 import 'package:fladder/models/settings/video_player_settings.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
 import 'package:fladder/providers/settings/video_player_settings_provider.dart';
+import 'package:fladder/services/playback_diagnostics.dart';
 import 'package:fladder/wrappers/media_control_wrapper.dart';
 
-final mediaPlaybackProvider = StateProvider<MediaPlaybackModel>((ref) => MediaPlaybackModel());
+final mediaPlaybackProvider =
+    StateProvider<MediaPlaybackModel>((ref) => MediaPlaybackModel());
 
 final playBackModel = StateProvider<PlaybackModel?>((ref) => null);
 
-final videoPlayerProvider = StateNotifierProvider<VideoPlayerNotifier, MediaControlsWrapper>((ref) {
+final videoPlayerProvider =
+    StateNotifierProvider<VideoPlayerNotifier, MediaControlsWrapper>((ref) {
   final videoPlayer = VideoPlayerNotifier(ref);
   videoPlayer.init();
   return videoPlayer;
@@ -33,6 +36,13 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
   List<StreamSubscription> subscriptions = [];
   Future<void> _initialization = Future<void>.value();
   bool _usingSyncPlayPlayer = false;
+  String? _initializationErrorClass;
+  bool _initializationTimedOut = false;
+
+  void _rememberInitializationError(Object error) {
+    _initializationErrorClass = error.runtimeType.toString();
+    _initializationTimedOut = error is TimeoutException;
+  }
 
   late final mediaState = ref.read(mediaPlaybackProvider.notifier);
 
@@ -52,13 +62,16 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
       if (state.supportsSyncPlay) return true;
       _usingSyncPlayPlayer = true;
       try {
-        await _initialize(overridePlayer: PlayerOptions.libMPV, isCurrent: current);
+        await _initialize(
+            overridePlayer: PlayerOptions.libMPV, isCurrent: current);
         return current() && state.supportsSyncPlay;
-      } catch (_) {
+      } catch (error) {
+        _rememberInitializationError(error);
         return false;
       }
     });
-    _initialization = task.then<void>((_) {}, onError: (Object error, StackTrace stack) {});
+    _initialization =
+        task.then<void>((_) {}, onError: (Object error, StackTrace stack) {});
     return task;
   }
 
@@ -68,16 +81,21 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
       if (!current()) return false;
       if (!_usingSyncPlayPlayer) return true;
       try {
-        final configuredPlayer = ref.read(videoPlayerSettingsProvider).wantedPlayer;
-        if (state.backend != configuredPlayer) await _initialize(isCurrent: current);
+        final configuredPlayer =
+            ref.read(videoPlayerSettingsProvider).wantedPlayer;
+        if (state.backend != configuredPlayer) {
+          await _initialize(isCurrent: current);
+        }
         if (!current()) return false;
         _usingSyncPlayPlayer = false;
         return state.hasPlayer;
-      } catch (_) {
+      } catch (error) {
+        _rememberInitializationError(error);
         return false;
       }
     });
-    _initialization = task.then<void>((_) {}, onError: (Object error, StackTrace stack) {});
+    _initialization =
+        task.then<void>((_) {}, onError: (Object error, StackTrace stack) {});
     return task;
   }
 
@@ -97,15 +115,23 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
   Future<void> init() {
     final task = _initialization.then((_) async {
       await _initialize();
+      _initializationErrorClass = null;
+      _initializationTimedOut = false;
       if (mounted) _usingSyncPlayPlayer = false;
     });
-    _initialization = task.then<void>((_) {}, onError: (Object error, StackTrace stack) {});
+    _initialization =
+        task.then<void>((_) {}, onError: (Object error, StackTrace stack) {
+      _rememberInitializationError(error);
+    });
     return task;
   }
 
-  Future<void> _initialize({PlayerOptions? overridePlayer, bool Function()? isCurrent}) async {
+  Future<void> _initialize(
+      {PlayerOptions? overridePlayer, bool Function()? isCurrent}) async {
     bool current() => mounted && (isCurrent?.call() ?? true);
     if (!current()) return;
+    _initializationErrorClass = null;
+    _initializationTimedOut = false;
     final player = state;
     settingsChanged?.close();
     for (final subscription in subscriptions) {
@@ -146,8 +172,8 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
     subscriptions.add(subscription);
   }
 
-  Future<void> updateBuffering(bool event) async =>
-      mediaState.update((state) => state.buffering == event ? state : state.copyWith(buffering: event));
+  Future<void> updateBuffering(bool event) async => mediaState.update((state) =>
+      state.buffering == event ? state : state.copyWith(buffering: event));
 
   Future<void> updateBuffer(Duration buffer) async {
     mediaState.update(
@@ -176,7 +202,9 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
     mediaState.update(
       (state) => state.copyWith(playing: event),
     );
-    ref.read(playBackModel)?.updatePlaybackPosition(currentState.position, event, ref);
+    ref
+        .read(playBackModel)
+        ?.updatePlaybackPosition(currentState.position, event, ref);
   }
 
   Future<void> updatePosition(Duration event) async {
@@ -198,7 +226,9 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
             position: event,
             lastPosition: position,
           ));
-      ref.read(playBackModel)?.updatePlaybackPosition(position, playbackState.playing, ref);
+      ref
+          .read(playBackModel)
+          ?.updatePlaybackPosition(position, playbackState.playing, ref);
     } else {
       mediaState.update((value) => value.copyWith(
             position: event,
@@ -207,65 +237,140 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
   }
 
   Future<bool> loadPlaybackItem(PlaybackModel model, Duration startPosition,
-      {bool playWhenReady = true, bool Function()? isCurrent}) async {
+      {bool playWhenReady = true,
+      bool Function()? isCurrent,
+      PlaybackAttemptRef? diagnosticAttempt}) async {
+    final diagnostics = PlaybackDiagnostics.instance;
+    final attempt = diagnosticAttempt ?? diagnostics.startAttempt();
+    state.attachPlaybackAttempt(attempt);
+    diagnostics.record(attempt, PlaybackStage.syncPlay,
+        detail: 'active=${state.syncPlayActive}');
     bool current() => mounted && (isCurrent?.call() ?? true);
-    await _initialization;
-    if (!current()) return false;
-    if (_usingSyncPlayPlayer && !model.serverManagedQueue) {
-      if (!await _restoreConfiguredPlayer(isCurrent: current)) return false;
-      if (!current()) return false;
-    }
-    if (!state.hasPlayer) {
-      mediaState.update((value) => value.copyWith(errorPlaying: true, buffering: false, playing: false));
+    bool stillCurrent() {
+      if (current()) return true;
+      diagnostics.record(attempt, PlaybackStage.lifecycle,
+          cancelled: true, detail: 'request_invalidated');
       return false;
     }
-    final previousModel = ref.read(playBackModel);
-    await state.stop(preserveSleepTimer: true);
-    previousModel?.dispose();
-    if (!current()) return false;
-    ref.read(playbackRateProvider.notifier).state = 1.0;
 
-    final useMinimizedPlayer =
-        model.item.type == FladderItemType.audio || model.mediaStreams?.videoStreams.isEmpty == true;
+    var stage = PlaybackStage.playerInit;
+    var step = 'wait_for_renderer';
+    diagnostics.record(attempt, stage,
+        event: PlaybackEvent.started, detail: step);
+    try {
+      await _initialization;
+      if (!stillCurrent()) return false;
+      if (_usingSyncPlayPlayer && !model.serverManagedQueue) {
+        step = 'restore_renderer';
+        final restored = await _restoreConfiguredPlayer(isCurrent: current);
+        if (!stillCurrent()) return false;
+        if (!restored) {
+          diagnostics.record(attempt, stage,
+              event: PlaybackEvent.failed,
+              errorClass: _initializationErrorClass,
+              timedOut: _initializationTimedOut,
+              detail: step);
+          return false;
+        }
+        if (!stillCurrent()) return false;
+      }
+      if (!state.hasPlayer) {
+        diagnostics.record(attempt, stage,
+            event: PlaybackEvent.failed,
+            errorClass: _initializationErrorClass,
+            timedOut: _initializationTimedOut,
+            detail: 'renderer_unavailable');
+        mediaState.update((value) => value.copyWith(
+            errorPlaying: true, buffering: false, playing: false));
+        return false;
+      }
+      diagnostics.record(attempt, stage,
+          event: PlaybackEvent.succeeded, detail: 'renderer_ready');
+      stage = PlaybackStage.lifecycle;
+      step = 'stop_previous';
+      final previousModel = ref.read(playBackModel);
+      await state.stop(preserveSleepTimer: true);
+      previousModel?.dispose();
+      if (!stillCurrent()) return false;
+      ref.read(playbackRateProvider.notifier).state = 1.0;
 
-    mediaState.update((state) => state.copyWith(
-          state: useMinimizedPlayer ? VideoPlayerState.minimized : VideoPlayerState.fullScreen,
-          fullScreen: !useMinimizedPlayer,
-          buffering: true,
-          errorPlaying: false,
-          skippedSegments: {},
-        ));
+      final useMinimizedPlayer = model.item.type == FladderItemType.audio ||
+          model.mediaStreams?.videoStreams.isEmpty == true;
 
-    final media = model.media;
-    PlaybackModel? newPlaybackModel = model;
-    final effectiveStartPosition = await model.resolvedStartPosition(startPosition);
-    if (!current()) return false;
-
-    if (media != null) {
-      ref.read(playBackModel.notifier).update((state) => newPlaybackModel);
-      await state.loadVideo(model, effectiveStartPosition, playWhenReady, isCurrent: current);
-      if (!current()) return false;
-      await state.setVolume(ref.read(videoPlayerSettingsProvider).volume);
-      if (!current()) return false;
-
-      await state.setAudioTrack(null, model);
-      if (!current()) return false;
-      await state.setSubtitleTrack(null, model);
-      if (!current()) return false;
-
-      ref.read(mediaPlaybackProvider.notifier).update((state) => state.copyWith(
-            state: useMinimizedPlayer ? VideoPlayerState.minimized : VideoPlayerState.fullScreen,
+      mediaState.update((state) => state.copyWith(
+            state: useMinimizedPlayer
+                ? VideoPlayerState.minimized
+                : VideoPlayerState.fullScreen,
+            fullScreen: !useMinimizedPlayer,
             buffering: true,
             errorPlaying: false,
             skippedSegments: {},
           ));
 
-      if (playWhenReady) await state.play(userInitiated: false);
-      return current();
-    }
+      final media = model.media;
+      PlaybackModel? newPlaybackModel = model;
+      stage = PlaybackStage.resume;
+      step = 'resolve_start_position';
+      diagnostics.record(attempt, stage,
+          event: PlaybackEvent.started, detail: step);
+      final effectiveStartPosition =
+          await model.resolvedStartPosition(startPosition);
+      if (!stillCurrent()) return false;
+      diagnostics.record(attempt, stage,
+          event: PlaybackEvent.succeeded, detail: step);
 
-    mediaState.update((state) => state.copyWith(errorPlaying: true));
-    return false;
+      if (media != null) {
+        ref.read(playBackModel.notifier).update((state) => newPlaybackModel);
+        stage = PlaybackStage.mediaOpen;
+        step = 'open_request';
+        diagnostics.record(attempt, stage,
+            event: PlaybackEvent.started, detail: step);
+        await state.loadVideo(model, effectiveStartPosition, playWhenReady,
+            isCurrent: current);
+        if (!stillCurrent()) return false;
+        // Accepted by the backend; this is not evidence of a decoded frame.
+        diagnostics.record(attempt, stage,
+            event: PlaybackEvent.succeeded, detail: 'open_request_returned');
+        step = 'volume_setup';
+        await state.setVolume(ref.read(videoPlayerSettingsProvider).volume);
+        if (!stillCurrent()) return false;
+
+        step = 'audio_track_setup';
+        await state.setAudioTrack(null, model);
+        if (!stillCurrent()) return false;
+        step = 'subtitle_track_setup';
+        await state.setSubtitleTrack(null, model);
+        if (!stillCurrent()) return false;
+
+        ref
+            .read(mediaPlaybackProvider.notifier)
+            .update((state) => state.copyWith(
+                  state: useMinimizedPlayer
+                      ? VideoPlayerState.minimized
+                      : VideoPlayerState.fullScreen,
+                  buffering: true,
+                  errorPlaying: false,
+                  skippedSegments: {},
+                ));
+
+        stage = PlaybackStage.lifecycle;
+        step = 'start_requested';
+        if (playWhenReady) await state.play(userInitiated: false);
+        return stillCurrent();
+      }
+
+      diagnostics.record(attempt, PlaybackStage.streamSelection,
+          event: PlaybackEvent.failed, detail: 'missing_media');
+      mediaState.update((state) => state.copyWith(errorPlaying: true));
+      return false;
+    } catch (error) {
+      diagnostics.record(attempt, stage,
+          event: PlaybackEvent.failed,
+          errorClass: error.runtimeType.toString(),
+          timedOut: error is TimeoutException,
+          detail: step);
+      rethrow;
+    }
   }
 
   Future<bool> loadAudioPlaybackItem(
@@ -281,7 +386,8 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
     }
     if (!mounted || !state.hasPlayer) return false;
     final currentPlayerState = ref.read(mediaPlaybackProvider).state;
-    final keepFullScreenLayout = currentPlayerState == VideoPlayerState.fullScreen;
+    final keepFullScreenLayout =
+        currentPlayerState == VideoPlayerState.fullScreen;
     final playbackSettings = ref.read(mediaPlaybackProvider);
 
     final initializedQueueState = PlaybackQueueState.fromQueue(
@@ -291,13 +397,16 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
       repeatMode: playbackSettings.repeatMode,
     );
     final queuedModel = model.updatePlaybackQueue(initializedQueueState);
-    final effectiveStartPosition = await queuedModel.resolvedStartPosition(startPosition);
+    final effectiveStartPosition =
+        await queuedModel.resolvedStartPosition(startPosition);
 
     ref.read(playBackModel.notifier).update((state) => queuedModel);
     ref.read(playbackRateProvider.notifier).state = 1.0;
 
     mediaState.update((state) => state.copyWith(
-          state: keepFullScreenLayout ? VideoPlayerState.fullScreen : VideoPlayerState.minimized,
+          state: keepFullScreenLayout
+              ? VideoPlayerState.fullScreen
+              : VideoPlayerState.minimized,
           fullScreen: keepFullScreenLayout,
           buffering: true,
           errorPlaying: false,
@@ -305,7 +414,8 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
           duration: queuedModel.item.overview.runTime ?? Duration.zero,
         ));
 
-    await state.loadAudioQueue(queue, currentIndex, effectiveStartPosition, true);
+    await state.loadAudioQueue(
+        queue, currentIndex, effectiveStartPosition, true);
     await state.setVolume(ref.read(videoPlayerSettingsProvider).volume);
 
     mediaState.update((state) => state.copyWith(
@@ -349,7 +459,8 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
     await state.jumpToQueueItem(item);
   }
 
-  Future<void> openPlayer(BuildContext context) async => state.openPlayer(context);
+  Future<void> openPlayer(BuildContext context) async =>
+      state.openPlayer(context);
 
   Future<bool> takeScreenshot() async {
     final syncPath = ref.read(clientSettingsProvider).syncPath;

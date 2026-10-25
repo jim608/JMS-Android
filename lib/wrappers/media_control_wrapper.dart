@@ -32,11 +32,13 @@ import 'package:fladder/providers/settings/subtitle_settings_provider.dart';
 import 'package:fladder/providers/settings/video_player_settings_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
 import 'package:fladder/providers/window_title_provider.dart';
+import 'package:fladder/services/playback_diagnostics.dart';
 import 'package:fladder/services/syncplay/syncplay_player_commands.dart';
 import 'package:fladder/services/syncplay/syncplay_prebuffer.dart';
 import 'package:fladder/util/syncplay_buffer_probe.dart';
 import 'package:fladder/src/video_player_helper.g.dart' hide PlaybackState;
 import 'package:fladder/util/localization_helper.dart';
+import 'package:fladder/util/local_subtitle_selection.dart';
 import 'package:fladder/util/dual_subtitle.dart';
 import 'package:fladder/util/subtitle_offset.dart';
 import 'package:fladder/wrappers/players/base_player.dart';
@@ -55,6 +57,15 @@ class MediaControlsWrapper extends BaseAudioHandler
   MediaControlsWrapper({required this.ref});
 
   BasePlayer? _player;
+  BasePlayer? _initializingDiagnosticPlayer;
+  PlaybackAttemptRef? _diagnosticAttempt;
+
+  void attachPlaybackAttempt(PlaybackAttemptRef attempt) {
+    _diagnosticAttempt = attempt;
+    _player?.diagnosticAttempt = attempt;
+    _initializingDiagnosticPlayer?.diagnosticAttempt = attempt;
+  }
+
   PlaybackModel? _resourceOwningPlaybackModel;
   int _setupGeneration = 0;
   String _initializationFailure = '';
@@ -107,8 +118,13 @@ class MediaControlsWrapper extends BaseAudioHandler
     // Unsupported engines expose no measured buffer contract. Copying their
     // current scalar playback state permits only the labelled unknown fallback.
     final state = player?.lastState;
-    return state == null ? unknownSyncPlayBufferSample() : SyncPlayBufferSample(
-      position: state.position, buffering: state.buffering, duration: state.duration, observedAt: DateTime.now());
+    return state == null
+        ? unknownSyncPlayBufferSample()
+        : SyncPlayBufferSample(
+            position: state.position,
+            buffering: state.buffering,
+            duration: state.duration,
+            observedAt: DateTime.now());
   }
 
   Widget? subtitleWidget(bool showOverlay, {GlobalKey? controlsKey}) =>
@@ -215,6 +231,10 @@ class MediaControlsWrapper extends BaseAudioHandler
     final oldPlayer = _player;
     _player = null;
     _initializationFailure = '';
+    _initializingDiagnosticPlayer = newPlayer;
+    if (_diagnosticAttempt case final attempt?) {
+      newPlayer.diagnosticAttempt = attempt;
+    }
     try {
       await _playerStateSubscription?.cancel();
       _playerStateSubscription = null;
@@ -250,6 +270,10 @@ class MediaControlsWrapper extends BaseAudioHandler
         }
       }
       rethrow;
+    } finally {
+      if (identical(_initializingDiagnosticPlayer, newPlayer)) {
+        _initializingDiagnosticPlayer = null;
+      }
     }
   }
 
@@ -932,14 +956,26 @@ class MediaControlsWrapper extends BaseAudioHandler
   @override
   void swapSubtitleTrack(int value) async {
     final playbackModel = ref.read(playBackModel);
-    final newModel = await playbackModel?.setSubtitle(
-        playbackModel.subStreams
-            ?.firstWhere((element) => element.index == value),
-        this);
+    if (playbackModel == null) return;
+    final newModel = await trySelectLocalSubtitle(
+      model: playbackModel,
+      track: playbackModel.subStreams
+          ?.firstWhere((element) => element.index == value),
+      player: this,
+      isCurrent: () => !_stateController.isClosed &&
+          identical(ref.read(playBackModel), playbackModel) &&
+          identical(ref.read(videoPlayerProvider), this),
+      onUnavailable: (_) {
+        final context = ref.read(localizationContextProvider);
+        if (context != null && context.mounted) {
+          ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+              SnackBar(content: Text(context.localized.jmsSecondaryUnavailable)));
+        }
+      },
+    );
+    if (newModel == null) return;
     ref.read(playBackModel.notifier).update((state) => newModel);
-    if (newModel != null) {
-      await ref.read(playbackModelHelper).shouldReload(newModel);
-    }
+    await ref.read(playbackModelHelper).shouldReload(newModel);
   }
 
   @override

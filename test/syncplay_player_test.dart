@@ -308,6 +308,44 @@ SyncPlayPlaybackModel _model(_Api api,
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(() => RustLib.initMock(api: _SmtcApi()));
+
+  for (final transcoded in [false, true]) {
+  test('room external plain delivery preserves direct SID ordering ($transcoded)', () async {
+    final container = ProviderContainer(overrides: [
+      videoProfileProvider.overrideWith((_) => const DeviceProfile())
+    ]);
+    addTearDown(container.dispose);
+    final refProvider = Provider<Ref>((ref) => ref);
+    final api = _Api();
+    api.itemReady.complete(response(dto));
+    api.infoReady.complete(response(PlaybackInfoResponse(mediaSources: [
+      MediaSourceInfo(
+          id: mediaId,
+          supportsDirectPlay: !transcoded,
+          supportsTranscoding: transcoded,
+          transcodingUrl: 'Videos/test/master.m3u8',
+          mediaStreams: [
+            const MediaStream(
+                type: MediaStreamType.subtitle,
+                index: 2,
+                codec: 'srt',
+                isExternal: false,
+                deliveryMethod: SubtitleDeliveryMethod.$external,
+                deliveryUrl: 'Videos/test/Subtitles/2/Stream.srt',
+                supportsExternalStream: true)
+          ])
+    ])));
+    final model = await createSyncPlayPlaybackModel(
+        ref: container.read(refProvider), api: api, account: account,
+        queueItem: entry, position: Duration.zero, isCurrent: () => true);
+    final track = model.subStreams.singleWhere((track) => track.index == 2);
+    expect(model.isServerTranscoded, transcoded);
+    expect(track.isExternal, transcoded);
+    expect(Uri.parse(track.url!).origin, 'https://media.example.invalid');
+    expect(Uri.parse(track.url!).path, '/jf/Videos/test/Subtitles/2/Stream.srt');
+    model.dispose();
+  });
+  }
   tearDownAll(RustLib.dispose);
 
   test(

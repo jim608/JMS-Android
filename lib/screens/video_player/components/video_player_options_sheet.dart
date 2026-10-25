@@ -33,6 +33,7 @@ import 'package:fladder/util/dual_subtitle.dart';
 import 'package:fladder/util/device_orientation_extension.dart';
 import 'package:fladder/util/list_padding.dart';
 import 'package:fladder/util/localization_helper.dart';
+import 'package:fladder/util/local_subtitle_selection.dart';
 import 'package:fladder/util/map_bool_helper.dart';
 import 'package:fladder/util/refresh_state.dart';
 import 'package:fladder/util/string_extensions.dart';
@@ -470,16 +471,23 @@ Future<void> showSubSelection(BuildContext context) {
                         : null,
                     onTap: () async {
                       final previousSecondary = player.secondarySubtitleState.value.selected;
-                      final newModel = await playbackModel.setSubtitle(subModel, player);
+                      final newModel = await trySelectLocalSubtitle(
+                        model: playbackModel,
+                        track: subModel,
+                        player: player,
+                        isCurrent: () => context.mounted && identical(ref.read(playBackModel), playbackModel) &&
+                            identical(ref.read(videoPlayerProvider), player),
+                        onUnavailable: (_) => ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+                            SnackBar(content: Text(context.localized.jmsSecondaryUnavailable))),
+                      );
+                      if (newModel == null) return;
                       if (context.mounted &&
                           previousSecondary != null &&
                           player.secondarySubtitleState.value.selected == null) {
                         showSecondarySubtitleNotice(context, player.secondarySubtitleState.value);
                       }
                       ref.read(playBackModel.notifier).update((state) => newModel);
-                      if (newModel != null) {
-                        await ref.read(playbackModelHelper).shouldReload(newModel);
-                      }
+                      await ref.read(playbackModelHelper).shouldReload(newModel);
                     },
                   );
                 },

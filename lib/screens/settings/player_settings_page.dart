@@ -22,6 +22,7 @@ import 'package:fladder/screens/settings/widgets/settings_message_box.dart';
 import 'package:fladder/screens/settings/widgets/subtitle_editor.dart';
 import 'package:fladder/screens/shared/animated_fade_size.dart';
 import 'package:fladder/screens/shared/input_fields.dart';
+import 'package:fladder/screens/shared/playback_diagnostics_dialog.dart';
 import 'package:fladder/screens/video_player/components/video_player_options_sheet.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
 import 'package:fladder/util/bitrate_helper.dart';
@@ -55,6 +56,11 @@ class _PlayerSettingsPageState extends ConsumerState<PlayerSettingsPage> {
     return SettingsScaffold(
       label: context.localized.settingsPlayerTitle,
       items: [
+        SettingsListTile(
+          label: Text(context.localized.jmsPlaybackDiagnostics),
+          trailing: const Icon(Icons.troubleshoot_outlined),
+          onTap: () => showPlaybackDiagnostics(context),
+        ),
         ...settingsListGroup(
           context,
           SettingsLabelDivider(label: context.localized.video(1)),

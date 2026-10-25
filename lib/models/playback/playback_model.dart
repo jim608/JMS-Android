@@ -1,5 +1,6 @@
-import 'dart:developer';
+import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide ConnectionState;
 
 import 'package:background_downloader/background_downloader.dart';
@@ -38,6 +39,7 @@ import 'package:fladder/providers/settings/video_player_settings_provider.dart';
 import 'package:fladder/providers/sync_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
+import 'package:fladder/services/playback_diagnostics.dart';
 import 'package:fladder/util/bitrate_helper.dart';
 import 'package:fladder/util/duration_extensions.dart';
 import 'package:fladder/util/localization_helper.dart';
@@ -63,6 +65,84 @@ bool nativeTvServerAllowsDirectPlayback({
     !liveTv ||
     source.supportsDirectPlay == true ||
     source.supportsDirectStream == true;
+
+/// At most one unfinished request per optional endpoint. A UI timeout does not
+/// claim to cancel the shared HTTP client; later attempts skip a still-busy slot.
+class PlaybackOptionalMetadataLoader {
+  bool _pending = false;
+
+  Future<T?> load<T>(
+    Future<T?> Function() request, {
+    required PlaybackAttemptRef attempt,
+    required String step,
+    required Duration budget,
+    int? Function(T value)? statusCode,
+    bool Function(T value)? accept,
+  }) async {
+    final diagnostics = PlaybackDiagnostics.instance;
+    if (_pending) {
+      diagnostics.record(attempt, PlaybackStage.streamSelection,
+          detail: '$step busy skipped');
+      return null;
+    }
+    _pending = true;
+    diagnostics.record(attempt, PlaybackStage.streamSelection,
+        event: PlaybackEvent.started, detail: step);
+    final actual = Future<T?>.sync(request).then<T?>((value) {
+      _pending = false;
+      return value;
+    }, onError: (Object error, StackTrace stack) {
+      _pending = false;
+      Error.throwWithStackTrace(error, stack);
+    });
+    try {
+      final value = await actual.timeout(budget);
+      if (value == null || !(accept?.call(value) ?? true)) {
+        diagnostics.record(attempt, PlaybackStage.streamSelection,
+            event: PlaybackEvent.note,
+            httpStatus: value == null ? null : statusCode?.call(value),
+            detail: '$step unavailable');
+        return null;
+      }
+      diagnostics.record(attempt, PlaybackStage.streamSelection,
+          event: PlaybackEvent.succeeded,
+          httpStatus: statusCode?.call(value),
+          detail: step);
+      return value;
+    } catch (error) {
+      diagnostics.record(attempt, PlaybackStage.streamSelection,
+          event: PlaybackEvent.note,
+          timedOut: error is TimeoutException,
+          errorClass: error.runtimeType.toString(),
+          detail: '$step optional');
+      return null;
+    }
+  }
+}
+
+/// Extract only server-defined enum reasons; never return URL or arbitrary text.
+String playbackTranscodeReasonSummary(String? transcodingUrl) {
+  if (transcodingUrl == null) return 'not provided';
+  if (transcodingUrl.length > 8192) return 'unavailable';
+  try {
+    final query = Uri.tryParse(transcodingUrl)?.queryParameters;
+    final raw = query?.entries
+        .firstWhereOrNull(
+            (entry) => entry.key.toLowerCase() == 'transcodereasons')
+        ?.value;
+    if (raw == null || raw.isEmpty) return 'not provided';
+    final values = raw.split(',').take(12).map((part) {
+      final reason = TranscodeReason.values.firstWhereOrNull(
+          (reason) => reason.value?.toLowerCase() == part.trim().toLowerCase());
+      return reason?.value?.replaceAllMapped(RegExp(r'([a-z])([A-Z])'),
+              (match) => '${match[1]} ${match[2]}') ??
+          'unknown';
+    }).toSet();
+    return values.join(', ');
+  } on FormatException {
+    return 'unavailable';
+  }
+}
 
 extension PlaybackModelExtension on PlaybackModel? {
   SubStreamModel? get defaultSubStream {
@@ -191,6 +271,9 @@ class PlaybackModelHelper {
   const PlaybackModelHelper({required this.ref});
 
   final Ref ref;
+  static final _segmentsLoader = PlaybackOptionalMetadataLoader();
+  static final _trickPlayLoader = PlaybackOptionalMetadataLoader();
+  static const _optionalMetadataBudget = Duration(seconds: 3);
 
   JellyService get api => ref.read(jellyApiProvider);
 
@@ -312,11 +395,26 @@ class PlaybackModelHelper {
     bool showPlaybackOptions = false,
     PlaybackType? forcedPlaybackType,
     Duration? startPosition,
+    PlaybackAttemptRef? diagnosticAttempt,
   }) async {
+    final diagnostics = PlaybackDiagnostics.instance;
+    final attempt = diagnosticAttempt ?? diagnostics.startAttempt();
+    var stage = PlaybackStage.itemDetails;
+    var step = 'queue_selection';
+    diagnostics.record(attempt, stage,
+        event: PlaybackEvent.started, detail: step);
     try {
-      if (item == null) return null;
+      if (item == null) {
+        diagnostics.record(attempt, stage,
+            event: PlaybackEvent.failed, detail: 'missing_item');
+        return null;
+      }
       final userId = ref.read(userProvider)?.id;
-      if (userId?.isEmpty == true) return null;
+      if (userId?.isEmpty == true) {
+        diagnostics.record(attempt, stage,
+            event: PlaybackEvent.failed, detail: 'missing_user');
+        return null;
+      }
 
       final queue = oldModel?.queue ?? libraryQueue ?? await collectQueue(item);
       final effectiveQueueSource = oldModel?.queueSource ?? queueSource;
@@ -328,16 +426,33 @@ class PlaybackModelHelper {
         _ => item,
       };
 
-      if (firstItemToPlay == null) return null;
+      if (firstItemToPlay == null) {
+        diagnostics.record(attempt, stage,
+            event: PlaybackEvent.failed, detail: 'empty_queue');
+        return null;
+      }
 
+      step = 'item_request';
+      diagnostics.record(attempt, stage,
+          event: PlaybackEvent.started, detail: step);
       final fullItemResponse =
           await api.usersUserIdItemsItemIdGet(itemId: firstItemToPlay.id);
 
       final fullItem = fullItemResponse.body;
 
       if (fullItem == null) {
+        diagnostics.record(attempt, stage,
+            event: PlaybackEvent.failed,
+            httpStatus: fullItemResponse.statusCode,
+            detail: 'empty_item_response');
         return null;
       }
+      diagnostics.record(attempt, stage,
+          event: PlaybackEvent.succeeded,
+          httpStatus: fullItemResponse.statusCode,
+          detail: step);
+      stage = PlaybackStage.streamSelection;
+      step = 'offline_lookup';
 
       SyncedItem? syncedItem =
           await ref.read(syncProvider.notifier).getSyncedItem(fullItem.id);
@@ -366,17 +481,29 @@ class PlaybackModelHelper {
         );
 
         if (offlinePlayback != null) {
+          diagnostics.record(attempt, stage,
+              event: PlaybackEvent.succeeded,
+              detail: 'offline',
+              sourceKind: PlaybackSourceKind.localFile);
           return offlinePlayback;
         }
       }
 
-      Future<PlaybackModel?> getOfflineModel() => _createOfflinePlaybackModel(
-            fullItem,
-            item.streamModel,
-            syncedItem,
-            oldModel: oldModel,
-            queueSource: effectiveQueueSource,
-          );
+      Future<PlaybackModel?> getOfflineModel() async {
+        final model = await _createOfflinePlaybackModel(
+          fullItem,
+          item.streamModel,
+          syncedItem,
+          oldModel: oldModel,
+          queueSource: effectiveQueueSource,
+        );
+        diagnostics.record(attempt, PlaybackStage.streamSelection,
+            event:
+                model == null ? PlaybackEvent.failed : PlaybackEvent.succeeded,
+            detail: model == null ? 'offline_unavailable' : 'offline',
+            sourceKind: PlaybackSourceKind.localFile);
+        return model;
+      }
 
       Future<PlaybackModel?> getServerModel(PlaybackType type) =>
           _createServerPlaybackModel(
@@ -387,6 +514,7 @@ class PlaybackModelHelper {
             libraryQueue: queue,
             queueSource: effectiveQueueSource,
             startPosition: actualStartPosition,
+            diagnosticAttempt: attempt,
           );
 
       if (((showPlaybackOptions || firstItemIsSynced) && !isOffline) &&
@@ -396,15 +524,18 @@ class PlaybackModelHelper {
           options: options,
         );
 
-        if (!context.mounted) return null;
+        if (!context.mounted || playbackType == null) {
+          diagnostics.record(attempt, PlaybackStage.lifecycle,
+              cancelled: true, detail: 'selection_cancelled');
+          return null;
+        }
 
         return switch (playbackType) {
           PlaybackType.directStream ||
           PlaybackType.transcode ||
           PlaybackType.tv =>
-            await getServerModel(playbackType!),
+            await getServerModel(playbackType),
           PlaybackType.offline => await getOfflineModel(),
-          null => null,
         };
       }
 
@@ -414,8 +545,12 @@ class PlaybackModelHelper {
 
       return await getServerModel(PlaybackType.directStream) ??
           await getOfflineModel();
-    } catch (e) {
-      log("Error creating playback model: ${e.toString()}");
+    } catch (error) {
+      diagnostics.record(attempt, stage,
+          event: PlaybackEvent.failed,
+          errorClass: error.runtimeType.toString(),
+          timedOut: error is TimeoutException,
+          detail: step);
       return null;
     }
   }
@@ -428,10 +563,21 @@ class PlaybackModelHelper {
     required List<ItemBaseModel> libraryQueue,
     PlaybackQueueSource? queueSource,
     Duration? startPosition,
+    required PlaybackAttemptRef diagnosticAttempt,
   }) async {
+    final diagnostics = PlaybackDiagnostics.instance;
+    final attempt = diagnosticAttempt;
+    var stage = PlaybackStage.playbackInfo;
+    var step = 'playback_info_request';
+    diagnostics.record(attempt, stage,
+        event: PlaybackEvent.started, detail: step);
     try {
       final userId = ref.read(userProvider)?.id;
-      if (userId?.isEmpty == true) return null;
+      if (userId?.isEmpty == true) {
+        diagnostics.record(attempt, stage,
+            event: PlaybackEvent.failed, detail: 'missing_user');
+        return null;
+      }
 
       final newStreamModel = streamModel ?? item.streamModel;
       final videoPlayerSettings = ref.read(videoPlayerSettingsProvider);
@@ -469,6 +615,19 @@ class PlaybackModelHelper {
       final isExternalSub =
           newStreamModel?.currentSubStream?.isExternal == true;
 
+      final requestedBitrate =
+          qualityOptions.enabledFirst.keys.firstOrNull?.bitRate;
+      final profileKind = type == PlaybackType.tv && !isNativePlayer
+          ? 'tv_unspecified'
+          : kIsWeb
+              ? 'web'
+              : isNativePlayer
+                  ? 'native_sdr'
+                  : 'default_av';
+      diagnostics.record(attempt, stage,
+          detail:
+              'profile=$profileKind pref=${videoPlayerSettings.wantedPlayer.name} '
+              'direct_req=${type != PlaybackType.transcode} bitrate=${requestedBitrate ?? 0}');
       final Response<PlaybackInfoResponse> response =
           await api.itemsItemIdPlaybackInfoPost(
         itemId: item.id,
@@ -487,8 +646,7 @@ class PlaybackModelHelper {
           enableDirectPlay: type != PlaybackType.transcode,
           enableDirectStream: type != PlaybackType.transcode,
           alwaysBurnInSubtitleWhenTranscoding: isNativePlayer && isExternalSub,
-          maxStreamingBitrate:
-              qualityOptions.enabledFirst.keys.firstOrNull?.bitRate,
+          maxStreamingBitrate: requestedBitrate,
           mediaSourceId: newStreamModel?.currentVersionStream?.id,
         ),
       );
@@ -496,23 +654,44 @@ class PlaybackModelHelper {
       PlaybackInfoResponse? playbackInfo = response.body;
 
       if (playbackInfo == null) {
+        diagnostics.record(attempt, stage,
+            event: PlaybackEvent.failed,
+            httpStatus: response.statusCode,
+            detail: 'empty_playback_info');
         return null;
       }
+      diagnostics.record(attempt, stage,
+          event: PlaybackEvent.succeeded,
+          httpStatus: response.statusCode,
+          detail: step);
+      stage = PlaybackStage.streamSelection;
+      step = 'media_source';
+      diagnostics.record(attempt, stage,
+          event: PlaybackEvent.started, detail: step);
 
       final mediaSource =
           playbackInfo.mediaSources?[newStreamModel?.versionStreamIndex ?? 0];
 
       if (mediaSource == null) {
+        diagnostics.record(attempt, stage,
+            event: PlaybackEvent.failed, detail: 'missing_media_source');
         return null;
       }
 
+      diagnostics.record(attempt, stage,
+          detail: 'direct_play=${mediaSource.supportsDirectPlay == true} '
+              'direct_stream=${mediaSource.supportsDirectStream == true} '
+              'transcode=${mediaSource.supportsTranscoding == true}');
+      diagnostics.record(attempt, stage,
+          detail:
+              'transcode reasons: ${playbackTranscodeReasonSummary(mediaSource.transcodingUrl)}');
       if (!nativeTvServerAllowsDirectPlayback(
         nativePlayer: isNativePlayer,
         liveTv: type == PlaybackType.tv,
         source: mediaSource,
       )) {
-        log('Native TV direct playback was not allowed by the server; '
-            'refusing an unverified live TV transcode path.');
+        diagnostics.record(attempt, stage,
+            event: PlaybackEvent.failed, detail: 'native_tv_server_policy');
         return null;
       }
 
@@ -523,13 +702,39 @@ class PlaybackModelHelper {
         defaultSubStreamIndex: subStreamIndex,
       );
 
-      final mediaSegments = await api.mediaSegmentsGet(id: item.id);
+      // Chapters/preview thumbnails are nullable and must not indefinitely
+      // delay the already-authorized main stream. Both share one short budget.
+      step = 'optional_metadata';
+      final metadataClock = Stopwatch()..start();
+      Duration remaining() {
+        final value = _optionalMetadataBudget - metadataClock.elapsed;
+        return value.isNegative ? Duration.zero : value;
+      }
 
-      final trickPlayResp = await api.getTrickPlay(item: item, ref: ref);
+      final segmentsFuture = _segmentsLoader.load<Response<MediaSegmentsModel>>(
+        () => api.mediaSegmentsGet(id: item.id),
+        attempt: attempt,
+        step: 'media_segments',
+        budget: remaining(),
+        statusCode: (response) => response.statusCode,
+        accept: (response) => response.isSuccessful,
+      );
+      final trickPlayFuture = _trickPlayLoader.load<Response<TrickPlayModel>>(
+        () => api.getTrickPlay(item: item, ref: ref),
+        attempt: attempt,
+        step: 'trick_play',
+        budget: remaining(),
+        statusCode: (response) => response.statusCode,
+        accept: (response) => response.isSuccessful,
+      );
+      final mediaSegments = await segmentsFuture;
+      final trickPlayResp = await trickPlayFuture;
+      metadataClock.stop();
 
       final trickPlay = trickPlayResp?.body;
       final chapters = item.overview.chapters ?? [];
 
+      step = 'stream_url';
       final mediaPath = isValidVideoUrl(mediaSource.path ?? "");
 
       if (type == PlaybackType.tv && mediaPath != null) {
@@ -543,6 +748,10 @@ class PlaybackModelHelper {
           playbackInfo: playbackInfo,
           media: Media(url: mediaPath),
         );
+        diagnostics.record(attempt, stage,
+            event: PlaybackEvent.succeeded,
+            detail: 'live_direct',
+            sourceKind: PlaybackSourceKind.networkStream);
         return tvModel;
       }
 
@@ -568,6 +777,10 @@ class PlaybackModelHelper {
           queryParameters: directOptions,
         );
 
+        diagnostics.record(attempt, stage,
+            event: PlaybackEvent.succeeded,
+            detail: 'direct_stream',
+            sourceKind: PlaybackSourceKind.networkStream);
         return DirectPlaybackModel(
           item: item,
           queue: libraryQueue,
@@ -583,6 +796,10 @@ class PlaybackModelHelper {
         );
       } else if ((mediaSource.supportsTranscoding ?? false) &&
           mediaSource.transcodingUrl != null) {
+        diagnostics.record(attempt, stage,
+            event: PlaybackEvent.succeeded,
+            detail: 'transcode',
+            sourceKind: PlaybackSourceKind.networkStream);
         return TranscodePlaybackModel(
           item: item,
           queue: libraryQueue,
@@ -599,9 +816,15 @@ class PlaybackModelHelper {
           bitRateOptions: qualityOptions,
         );
       }
+      diagnostics.record(attempt, stage,
+          event: PlaybackEvent.failed, detail: 'no_compatible_stream');
       return null;
-    } catch (e) {
-      log(e.toString());
+    } catch (error) {
+      diagnostics.record(attempt, stage,
+          event: PlaybackEvent.failed,
+          errorClass: error.runtimeType.toString(),
+          timedOut: error is TimeoutException,
+          detail: step);
       return null;
     }
   }
@@ -658,6 +881,11 @@ class PlaybackModelHelper {
         playbackModel.isNativePlayerBackend) {
       return;
     }
+
+    // Room track choices are applied locally by SyncPlayPlaybackModel. Generic
+    // VOD renegotiation replaces that model and releases the room-owned player
+    // session even when only the local subtitle/audio selection changed.
+    if (playbackModel.serverManagedQueue) return;
 
     final item = playbackModel.item;
 
