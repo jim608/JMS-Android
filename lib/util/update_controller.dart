@@ -7,12 +7,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fladder/util/update_checker.dart';
 import 'package:fladder/util/jms_test_profile_policy.dart';
+import 'package:fladder/util/flatpak_update_capability.dart';
 
 enum UpdatePackageChannel { official, community, unknown }
 
 abstract class UpdateBridge {
   bool get isDesktop => false;
   bool get flatpakManaged => false;
+  FlatpakUpdateCapability? get flatpakUpdateCapability =>
+      flatpakManaged ? const FlatpakUpdateCapability() : null;
   bool get supportsBackgroundDownload => false;
   void Function(double progress)? onProgress;
   Future<UpdateDevice> device();
