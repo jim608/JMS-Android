@@ -18,6 +18,7 @@ import 'package:fladder/models/settings/video_player_settings.dart';
 import 'package:fladder/models/settings/subtitle_settings_model.dart';
 import 'package:fladder/profiles/default_profile.dart';
 import 'package:fladder/providers/settings/video_player_settings_provider.dart';
+import 'package:fladder/providers/image_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
 import 'package:fladder/services/syncplay/syncplay_clock.dart';
 import 'package:fladder/services/syncplay/syncplay_controller.dart';
@@ -31,6 +32,17 @@ import 'package:fladder/wrappers/players/base_player.dart';
 import 'syncplay_controller_test.dart' as protocol;
 
 class _Smtc extends Fake implements SmtcInternal {}
+
+class _Images extends Fake implements ImageNotifier {
+  @override
+  dynamic noSuchMethod(Invocation invocation) {
+    if (invocation.memberName == #getItemsImageUrl ||
+        invocation.memberName == #getItemsOrigImageUrl) {
+      return 'https://images.example.invalid/synthetic';
+    }
+    return super.noSuchMethod(invocation);
+  }
+}
 
 class _SmtcApi extends Fake implements RustLibApi {
   @override
@@ -195,9 +207,14 @@ class _Wrapper extends MediaControlsWrapper {
   final events = <String>[];
   Completer<void>? seekReady, loadReady;
   bool holdBufferingOnSeek = false;
+  Duration? coarseLoadLanding, coarseSeekLanding;
+  bool loadedBuffering = false;
+  Duration loadedDuration = const Duration(minutes: 2);
   bool? loadedPlaying;
   @override
   bool get hasPlayer => true;
+  @override
+  bool get supportsSyncPlay => true;
   @override
   PlayerState get lastState => raw;
   @override
@@ -218,7 +235,7 @@ class _Wrapper extends MediaControlsWrapper {
   Future<void> seekFromSyncPlay(Duration position) async {
     events.add('remote-seek');
     await seekReady?.future;
-    raw.position = position;
+    raw.position = coarseSeekLanding ?? position;
     if (holdBufferingOnSeek) raw.buffering = true;
   }
 
@@ -233,8 +250,9 @@ class _Wrapper extends MediaControlsWrapper {
     loadedPlaying = play;
     events.add('load');
     await loadReady?.future;
-    raw.position = startPosition;
-    raw.buffering = false;
+    raw.position = coarseLoadLanding ?? startPosition;
+    raw.duration = loadedDuration;
+    raw.buffering = loadedBuffering;
   }
 
   @override
@@ -309,42 +327,213 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(() => RustLib.initMock(api: _SmtcApi()));
 
-  for (final transcoded in [false, true]) {
-  test('room external plain delivery preserves direct SID ordering ($transcoded)', () async {
-    final container = ProviderContainer(overrides: [
-      videoProfileProvider.overrideWith((_) => const DeviceProfile())
-    ]);
-    addTearDown(container.dispose);
-    final refProvider = Provider<Ref>((ref) => ref);
+  ({_Wrapper wrapper, SyncPlayPlayerAdapter adapter}) realLoadFixture() {
+    final ref = _Ref();
+    final wrapper = _Wrapper(ref);
+    final media = StateController(MediaPlaybackModel());
+    final playback = StateController<PlaybackModel?>(null);
+    ref.values.addAll({
+      mediaPlaybackProvider.notifier: media,
+      mediaPlaybackProvider: media.state,
+      playBackModel: null,
+      playBackModel.notifier: playback,
+      playbackRateProvider.notifier: StateController(1.0),
+      videoPlayerSettingsProvider: VideoPlayerSettingsModel(),
+      videoProfileProvider: const DeviceProfile(),
+      imageUtilityProvider: _Images(),
+      videoPlayerProvider: wrapper,
+      videoPlayerProvider.notifier: _Notifier(ref, wrapper),
+    });
     final api = _Api();
     api.itemReady.complete(response(dto));
     api.infoReady.complete(response(PlaybackInfoResponse(mediaSources: [
-      MediaSourceInfo(
-          id: mediaId,
-          supportsDirectPlay: !transcoded,
-          supportsTranscoding: transcoded,
-          transcodingUrl: 'Videos/test/master.m3u8',
-          mediaStreams: [
-            const MediaStream(
-                type: MediaStreamType.subtitle,
-                index: 2,
-                codec: 'srt',
-                isExternal: false,
-                deliveryMethod: SubtitleDeliveryMethod.$external,
-                deliveryUrl: 'Videos/test/Subtitles/2/Stream.srt',
-                supportsExternalStream: true)
-          ])
+      MediaSourceInfo(id: mediaId, supportsDirectPlay: true, mediaStreams: [])
     ])));
-    final model = await createSyncPlayPlaybackModel(
-        ref: container.read(refProvider), api: api, account: account,
-        queueItem: entry, position: Duration.zero, isCurrent: () => true);
-    final track = model.subStreams.singleWhere((track) => track.index == 2);
-    expect(model.isServerTranscoded, transcoded);
-    expect(track.isExternal, transcoded);
-    expect(Uri.parse(track.url!).origin, 'https://media.example.invalid');
-    expect(Uri.parse(track.url!).path, '/jf/Videos/test/Subtitles/2/Stream.srt');
-    model.dispose();
+    final adapter = SyncPlayPlayerAdapter(
+        ref: ref, account: account, api: api, isCurrent: () => true);
+    addTearDown(() async {
+      adapter.cancelPendingActions();
+      await wrapper.snapshots.close();
+    });
+    return (wrapper: wrapper, adapter: adapter);
+  }
+
+  const alignmentLoad = SyncPlayPlayerAction(
+      type: SyncPlayPlayerActionType.load,
+      position: Duration(seconds: 8),
+      queueItem: entry);
+
+  test('initial load alignment corrects a settled coarse load exactly once',
+      () async {
+    final fixture = realLoadFixture();
+    fixture.wrapper.coarseLoadLanding = const Duration(seconds: 6);
+    await fixture.adapter.applyRemote(alignmentLoad);
+    expect(fixture.wrapper.loadedPlaying, false);
+    expect(fixture.wrapper.events.where((e) => e == 'load'), hasLength(1));
+    expect(
+        fixture.wrapper.events.where((e) => e == 'remote-seek'), hasLength(1));
+    expect(fixture.wrapper.events, isNot(contains('remote-play')));
+    expect(fixture.wrapper.raw.position, alignmentLoad.position);
+    expect(fixture.adapter.mediaId, mediaId);
   });
+
+  test('initial load alignment waits buffering before and after its one seek',
+      () async {
+    final fixture = realLoadFixture();
+    fixture.wrapper
+      ..coarseLoadLanding = const Duration(seconds: 6)
+      ..loadedBuffering = true
+      ..holdBufferingOnSeek = true;
+    var completed = false;
+    final loading = fixture.adapter.applyRemote(alignmentLoad)
+      ..then((_) => completed = true);
+    await Future<void>.delayed(Duration.zero);
+    expect(fixture.wrapper.events, isNot(contains('remote-seek')));
+    expect(completed, false);
+    fixture.wrapper.raw.buffering = false;
+    fixture.wrapper.snapshots.add(fixture.wrapper.raw);
+    await Future<void>.delayed(Duration.zero);
+    expect(
+        fixture.wrapper.events.where((e) => e == 'remote-seek'), hasLength(1));
+    expect(fixture.wrapper.raw.buffering, true);
+    expect(completed, false);
+    expect(fixture.adapter.mediaId, isNull);
+    fixture.wrapper.raw.buffering = false;
+    fixture.wrapper.snapshots.add(fixture.wrapper.raw);
+    await loading;
+    expect(fixture.adapter.mediaId, mediaId);
+  });
+
+  test('initial load alignment never seeks an already aligned load', () async {
+    final fixture = realLoadFixture();
+    await fixture.adapter.applyRemote(alignmentLoad);
+    expect(fixture.wrapper.events, isNot(contains('remote-seek')));
+    expect(fixture.adapter.mediaId, mediaId);
+  });
+
+  test('initial load alignment waits for a prepared duration before correcting',
+      () async {
+    final fixture = realLoadFixture();
+    fixture.wrapper
+      ..coarseLoadLanding = const Duration(seconds: 6)
+      ..loadedDuration = Duration.zero;
+    final loading = fixture.adapter.applyRemote(alignmentLoad);
+    await Future<void>.delayed(Duration.zero);
+    expect(fixture.wrapper.events, isNot(contains('remote-seek')));
+    expect(fixture.adapter.mediaId, isNull);
+    fixture.wrapper.raw.duration = const Duration(minutes: 2);
+    fixture.wrapper.snapshots.add(fixture.wrapper.raw);
+    await loading;
+    expect(
+        fixture.wrapper.events.where((e) => e == 'remote-seek'), hasLength(1));
+  });
+
+  test(
+      'initial load alignment cancelled before readiness never sends late seek',
+      () async {
+    final fixture = realLoadFixture();
+    fixture.wrapper
+      ..coarseLoadLanding = const Duration(seconds: 6)
+      ..loadedBuffering = true;
+    final loading = fixture.adapter.applyRemote(alignmentLoad);
+    await Future<void>.delayed(Duration.zero);
+    fixture.adapter.cancelPendingActions();
+    await loading;
+    fixture.wrapper.raw.buffering = false;
+    fixture.wrapper.snapshots.add(fixture.wrapper.raw);
+    await Future<void>.delayed(Duration.zero);
+    expect(fixture.wrapper.events, isNot(contains('remote-seek')));
+    expect(fixture.wrapper.events, isNot(contains('remote-play')));
+    expect(fixture.adapter.mediaId, isNull);
+  });
+
+  test(
+      'initial load alignment cancellation retires a pending seek without Ready',
+      () async {
+    final fixture = realLoadFixture();
+    final seek = Completer<void>();
+    fixture.wrapper
+      ..coarseLoadLanding = const Duration(seconds: 6)
+      ..seekReady = seek;
+    final loading = fixture.adapter.applyRemote(alignmentLoad);
+    await Future<void>.delayed(Duration.zero);
+    expect(
+        fixture.wrapper.events.where((e) => e == 'remote-seek'), hasLength(1));
+    fixture.adapter.cancelPendingActions();
+    await loading;
+    seek.complete();
+    await Future<void>.delayed(Duration.zero);
+    expect(
+        fixture.wrapper.events.where((e) => e == 'remote-seek'), hasLength(1));
+    expect(fixture.wrapper.events, isNot(contains('remote-play')));
+    expect(fixture.adapter.mediaId, isNull);
+  });
+
+  test('initial load alignment does not loop when the one seek stays coarse',
+      () async {
+    final fixture = realLoadFixture();
+    fixture.wrapper
+      ..coarseLoadLanding = const Duration(seconds: 6)
+      ..coarseSeekLanding = const Duration(seconds: 6);
+    var completed = false;
+    final loading = fixture.adapter.applyRemote(alignmentLoad)
+      ..then((_) => completed = true);
+    await Future<void>.delayed(Duration.zero);
+    for (var i = 0; i < 3; i++) {
+      fixture.wrapper.snapshots.add(fixture.wrapper.raw);
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(
+        fixture.wrapper.events.where((e) => e == 'remote-seek'), hasLength(1));
+    expect(completed, false);
+    expect(fixture.adapter.mediaId, isNull);
+    fixture.adapter.cancelPendingActions();
+    await loading;
+  });
+
+  for (final transcoded in [false, true]) {
+    test(
+        'room external plain delivery preserves direct SID ordering ($transcoded)',
+        () async {
+      final container = ProviderContainer(overrides: [
+        videoProfileProvider.overrideWith((_) => const DeviceProfile())
+      ]);
+      addTearDown(container.dispose);
+      final refProvider = Provider<Ref>((ref) => ref);
+      final api = _Api();
+      api.itemReady.complete(response(dto));
+      api.infoReady.complete(response(PlaybackInfoResponse(mediaSources: [
+        MediaSourceInfo(
+            id: mediaId,
+            supportsDirectPlay: !transcoded,
+            supportsTranscoding: transcoded,
+            transcodingUrl: 'Videos/test/master.m3u8',
+            mediaStreams: [
+              const MediaStream(
+                  type: MediaStreamType.subtitle,
+                  index: 2,
+                  codec: 'srt',
+                  isExternal: false,
+                  deliveryMethod: SubtitleDeliveryMethod.$external,
+                  deliveryUrl: 'Videos/test/Subtitles/2/Stream.srt',
+                  supportsExternalStream: true)
+            ])
+      ])));
+      final model = await createSyncPlayPlaybackModel(
+          ref: container.read(refProvider),
+          api: api,
+          account: account,
+          queueItem: entry,
+          position: Duration.zero,
+          isCurrent: () => true);
+      final track = model.subStreams.singleWhere((track) => track.index == 2);
+      expect(model.isServerTranscoded, transcoded);
+      expect(track.isExternal, transcoded);
+      expect(Uri.parse(track.url!).origin, 'https://media.example.invalid');
+      expect(
+          Uri.parse(track.url!).path, '/jf/Videos/test/Subtitles/2/Stream.srt');
+      model.dispose();
+    });
   }
   tearDownAll(RustLib.dispose);
 

@@ -72,6 +72,7 @@ class SyncPlayPlayerAdapter implements SyncPlayPlayerPort {
   // Jellyfin's Ready position tolerance is 500ms. Avoid manufacturing a seek
   // (and HTML waiting/canplay pulse) for an already aligned Pause/Unpause.
   static const _alignmentTolerance = Duration(milliseconds: 500);
+  static const _maximumInitialAlignment = Duration(seconds: 5);
   int _beginAction() {
     _actionCancelled.complete();
     _actionCancelled = Completer<void>();
@@ -83,13 +84,42 @@ class SyncPlayPlayerAdapter implements SyncPlayPlayerPort {
   }
 
   Future<void> _waitForReady(Duration target, bool Function() current) async {
-    bool ready() {
+    return _waitForState(() {
       final state = _player.lastState;
       return state != null &&
           !state.buffering &&
           (state.position - target).abs() <= _alignmentTolerance;
-    }
+    }, current);
+  }
 
+  Future<void> _alignLoadedMedia(
+      Duration target, bool Function() current) async {
+    // A returned open request is not yet a ready decoded stream. Only correct
+    // a current, non-buffering load with real duration (or already aligned).
+    await _waitForState(() {
+      final state = _player.lastState;
+      return state != null &&
+          !state.buffering &&
+          (state.duration > Duration.zero ||
+              (state.position - target).abs() <= _alignmentTolerance);
+    }, current);
+    if (!current()) return;
+    final position = _player.lastState?.position;
+    if (position == null) return;
+    final difference = (position - target).abs();
+    if (difference <= _alignmentTolerance ||
+        difference > _maximumInitialAlignment) return;
+    final cancelled = _actionCancelled.future;
+    // Exactly one correction, inside the controller's existing load budget.
+    // Cancel releases this wait; it cannot revoke a native seek already sent.
+    await Future.any([
+      Future<void>.sync(() => _player.seekFromSyncPlay(target)),
+      cancelled,
+    ]);
+  }
+
+  Future<void> _waitForState(
+      bool Function() ready, bool Function() current) async {
     if (!current() || ready()) return;
     final settled = Completer<void>();
     final cancelled = _actionCancelled.future;
@@ -162,6 +192,8 @@ class SyncPlayPlayerAdapter implements SyncPlayPlayerPort {
             playWhenReady: false, isCurrent: current);
         if (!current()) return;
         if (!loaded) throw const SyncPlayFailure(SyncPlayFailureCode.player);
+        await _alignLoadedMedia(action.position, current);
+        if (!current()) return;
         await _waitForReady(action.position, current);
         if (!current()) return;
         _mediaId = entry.mediaId;

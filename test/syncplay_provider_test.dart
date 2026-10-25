@@ -52,6 +52,9 @@ class _Server {
   String? name;
   Map<String, dynamic>? queue;
   bool leaveFails = false;
+  bool leftBeforeLeaveResponse = false;
+  Completer<void>? leaveGate;
+  final leaveStarted = Completer<void>();
   int closedSockets = 0;
   String policyAccess = 'CreateAndJoinGroups';
   int policyStatus = 200;
@@ -167,10 +170,13 @@ class _Server {
           if (queue != null) emit('PlayQueue', queue);
           await _reply(request, null, 204);
         case 'Leave':
+          if (leftBeforeLeaveResponse) emit('GroupLeft', _group);
+          if (!leaveStarted.isCompleted) leaveStarted.complete();
+          await leaveGate?.future;
           if (leaveFails) {
             await _reply(request, {'error': 'synthetic failure'}, 503);
           } else {
-            emit('GroupLeft', _group);
+            if (!leftBeforeLeaveResponse) emit('GroupLeft', _group);
             await _reply(request, null, 204);
           }
         case 'GetUtcTime':
@@ -332,7 +338,8 @@ class _Video extends VideoPlayerNotifier {
   Future<bool> waitUntilReady() async => true;
   @override
   Future<bool> loadPlaybackItem(PlaybackModel model, Duration startPosition,
-      {bool playWhenReady = true, bool Function()? isCurrent,
+      {bool playWhenReady = true,
+      bool Function()? isCurrent,
       PlaybackAttemptRef? diagnosticAttempt}) async {
     if (isCurrent != null && !isCurrent()) return false;
     loaded.add(model);
@@ -833,7 +840,7 @@ void main() {
   }, timeout: const Timeout(Duration(seconds: 10)));
 
   test(
-      'failed Leave retains unknown membership and reconnect reuses a functional adapter',
+      'failed Leave releases local controls and reconnect confirms Leave without Join',
       () async {
     final server = _Server();
     await server.start();
@@ -849,18 +856,68 @@ void main() {
     server.leaveFails = true;
     await scope.notifier.leaveRoom();
     expect(scope.state.room.status, SyncPlayStatus.unknown);
-    expect(scope.notifier.active, true);
+    expect(scope.notifier.active, false);
+    expect(scope.state.leavePending, true);
     expect(scope.wrapper.syncPlayCommands, same(scope.notifier));
+    // Leaving must remain available even if the failed player has lost its model.
+    scope.container.read(playBackModel.notifier).state = null;
+    final joins = server.requests.where((item) => item == 'Join').length;
     await scope.notifier.reconnect();
-    await _until(() => scope.state.room.canControl, 'same adapter reconnected');
-    server.unpause();
-    await _until(() => scope.wrapper.plays == 1,
-        'reconnected adapter applies remote Unpause');
-    expect(scope.wrapper.raw.position,
-        greaterThanOrEqualTo(const Duration(seconds: 3)));
+    expect(scope.state.room.status, SyncPlayStatus.unknown);
+    expect(scope.notifier.active, false);
+    expect(server.requests.where((item) => item == 'Join'), hasLength(joins));
+    expect(server.requests.where((item) => item == 'Leave'), hasLength(2));
     expect(server.requests.where((item) => item == 'New'), hasLength(1));
     server.leaveFails = false;
+    await scope.notifier.reconnect();
+    expect(scope.state.room.status, SyncPlayStatus.idle);
+    expect(scope.state.leavePending, false);
+    expect(scope.wrapper.syncPlayCommands, isNull);
+  }, timeout: const Timeout(Duration(seconds: 10)));
+
+  test('Leave or Stop without a session does not suppress a new explicit room',
+      () async {
+    final server = _Server();
+    await server.start();
+    final scope = _Scope(server, preferences);
+    addTearDown(() async {
+      scope.dispose();
+      await server.close();
+    });
+    await scope.notifier.stop();
     await scope.notifier.leaveRoom();
+    expect(scope.notifier.active, false);
+    await scope.notifier.createRoom();
+    await _until(() => scope.state.room.canControl, 'new explicit room');
+    expect(scope.notifier.active, true);
+  }, timeout: const Timeout(Duration(seconds: 10)));
+
+  test('Leave GroupLeft before HTTP response never recaptures local controls',
+      () async {
+    final server = _Server();
+    await server.start();
+    final scope = _Scope(server, preferences);
+    final gate = Completer<void>();
+    addTearDown(() async {
+      if (!gate.isCompleted) gate.complete();
+      scope.dispose();
+      await server.close();
+    });
+    await scope.notifier.createRoom();
+    await _until(
+        () => scope.video.loaded.length == 1 && scope.state.room.canControl,
+        'initial adapter load');
+    server.leftBeforeLeaveResponse = true;
+    server.leaveGate = gate;
+    final leaving = scope.notifier.leaveRoom();
+    await server.leaveStarted.future;
+    await _until(() => scope.state.room.status == SyncPlayStatus.idle,
+        'authoritative GroupLeft');
+    expect(scope.state.busy, true);
+    expect(scope.notifier.active, false);
+    expect(scope.wrapper.syncPlayCommands?.active, false);
+    gate.complete();
+    await leaving;
     expect(scope.wrapper.syncPlayCommands, isNull);
   }, timeout: const Timeout(Duration(seconds: 10)));
 

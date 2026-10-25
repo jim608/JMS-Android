@@ -40,6 +40,7 @@ class SyncPlayViewState {
     this.prebuffer,
     this.recoveryActive = false,
     this.recoveryExhausted = false,
+    this.leavePending = false,
   });
   final SyncPlayControllerState room;
   final bool busy;
@@ -49,6 +50,7 @@ class SyncPlayViewState {
   final SyncPlayPrebufferDecision? prebuffer;
   final bool recoveryActive;
   final bool recoveryExhausted;
+  final bool leavePending;
 }
 
 /// Explicitly opened by the room dialog. No socket, room, or sharing at startup.
@@ -95,6 +97,7 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
   int? _readyHomeJoin;
   bool _homeMode = false;
   bool _preparingPlayback = false;
+  bool _localLeaveIntent = false;
 
   SyncPlayViewState _view(
           {SyncPlayControllerState? room,
@@ -108,7 +111,8 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
           readyHomeJoin: _readyHomeJoin,
           prebuffer: _prebuffer?.decision,
           recoveryActive: _recovery?.active ?? false,
-          recoveryExhausted: _recovery?.exhausted ?? false);
+          recoveryExhausted: _recovery?.exhausted ?? false,
+          leavePending: _controller?.leaveRequested ?? false);
 
   /// Home joining is independent of the currently selected media/backend.
   /// The captured room item is authorized before preparing a built-in player.
@@ -268,6 +272,8 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
   bool get active =>
       !_disposed &&
       _controller != null &&
+      !_localLeaveIntent &&
+      !_controller!.leaveRequested &&
       (state.busy ||
           !const {SyncPlayStatus.idle, SyncPlayStatus.disposed}
               .contains(_controller!.state.status));
@@ -275,6 +281,11 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
   Future<bool> _ensureSession() async {
     if (_disposed || !(_homeMode ? canJoinFromHome : supported && canJoin)) {
       return false;
+    }
+    if (_controller == null ||
+        (_controller!.state.status == SyncPlayStatus.idle &&
+            !_controller!.leaveRequested)) {
+      _localLeaveIntent = false;
     }
     if (_transport != null) return _transport!.connected;
     final account = ref.read(userProvider);
@@ -548,6 +559,7 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
       });
 
   Future<void> leaveRoom() => _run(() async {
+        _localLeaveIntent = true;
         _recovery?.cancel();
         _player?.cancelPendingActions();
         final controller = _controller;
@@ -559,10 +571,22 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
       });
 
   Future<void> reconnect() => _run(() async {
-        if (!(_homeMode || supported) || !canJoin) return;
         final transport = _transport;
         final controller = _controller;
         if (transport == null || controller == null) return;
+        if (controller.leaveRequested) {
+          _localLeaveIntent = true;
+          _recovery?.cancel();
+          if (!transport.connected) await transport.reconnect();
+          if (!identical(controller, _controller)) return;
+          await controller.leaveRoom();
+          if (identical(controller, _controller) &&
+              controller.state.status == SyncPlayStatus.idle) {
+            _detach();
+          }
+          return;
+        }
+        if (!(_homeMode || supported) || !canJoin) return;
         _recovery?.manualRetry();
         await transport.reconnect();
         await controller.reconnect();
@@ -586,6 +610,7 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
   @override
   Future<void> stop() async {
     if (_disposed) return;
+    _localLeaveIntent = true;
     _recovery?.cancel();
     // Stop is allowed during New/Join. Revoke in-flight player loads before
     // waiting for a server acknowledgement, so closing cannot reopen playback.
@@ -608,6 +633,7 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
   }
 
   void _detach() {
+    _localLeaveIntent = false;
     _recovery?.dispose();
     _recovery = null;
     _lifecycle?.dispose();

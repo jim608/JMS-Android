@@ -103,6 +103,10 @@ class SyncPlayController {
   int _clockSerial = 0;
   final Set<void Function()> _pendingCalls = {};
   Future<SyncPlayFailure?>? _membershipRest;
+  Future<SyncPlayFailure?>? _leaveRest;
+  Future<void>? _leaveFlight;
+  bool _leaveRequested = false;
+  bool get leaveRequested => _leaveRequested;
   Duration? _lastDrift;
   DateTime? _driftObservedAt;
   Duration? _lastCorrection;
@@ -627,13 +631,27 @@ class SyncPlayController {
     unawaited(synchronizeClock());
   }
 
-  Future<void> leaveRoom() async {
-    if (_disposed ||
-        !_connected ||
-        _status == SyncPlayStatus.idle ||
-        _status == SyncPlayStatus.leaving) {
-      return;
+  Future<void> leaveRoom() {
+    if (_disposed || _status == SyncPlayStatus.idle) {
+      return Future<void>.value();
     }
+    _leaveRequested = true;
+    final existing = _leaveFlight;
+    if (existing != null) return existing;
+    final result = Completer<void>();
+    final task = result.future;
+    _leaveFlight = task;
+    unawaited(_finishLeave().then<void>((_) {
+      if (identical(_leaveFlight, task)) _leaveFlight = null;
+      result.complete();
+    }, onError: (Object error, StackTrace stack) {
+      if (identical(_leaveFlight, task)) _leaveFlight = null;
+      result.completeError(error, stack);
+    }));
+    return task;
+  }
+
+  Future<void> _finishLeave() async {
     final source = _sourceEpoch;
     final op = ++_operation;
     final pending = _membershipRest;
@@ -652,6 +670,9 @@ class SyncPlayController {
     _clockRequestEpoch = null;
     _emit();
     try {
+      if (!_connected) {
+        throw const SyncPlayFailure(SyncPlayFailureCode.disconnected);
+      }
       await _settleIgnoreMutation();
       if (!_current(source, op)) return;
       if (pending != null) {
@@ -666,7 +687,36 @@ class SyncPlayController {
         _clearMembership();
         return;
       }
-      await _bounded(_api.leaveGroup());
+      var rest = _leaveRest;
+      if (rest == null) {
+        final result = Completer<void>();
+        rest = result.future.then<SyncPlayFailure?>((_) => null,
+            onError: (Object error, StackTrace _) => _safeFailure(error));
+        _leaveRest = rest;
+        final request = rest;
+        // A timeout retires this await, not the real Leave request. Keep the
+        // intent and settle a late acknowledgement without ever issuing Join.
+        unawaited(request.then<void>((failure) {
+          if (!_current(source) ||
+              !_leaveRequested ||
+              !identical(_leaveRest, request)) {
+            return;
+          }
+          if (failure == null) {
+            _clearMembership();
+          } else {
+            _leaveRest =
+                null; // The actual request ended; explicit retry may act.
+            _failure = failure;
+            _status = SyncPlayStatus.unknown;
+            _emit();
+          }
+        }));
+        Future<void>.sync(_api.leaveGroup)
+            .then(result.complete, onError: result.completeError);
+      }
+      final outcome = await _bounded(rest);
+      if (outcome != null) throw outcome;
       if (_current(source, op)) _clearMembership();
     } catch (error) {
       if (_current(source, op)) {
@@ -690,6 +740,9 @@ class SyncPlayController {
     _expectedGroupId = null;
     _expectedGroupName = null;
     _membershipRest = null;
+    _leaveRest = null;
+    _leaveFlight = null;
+    _leaveRequested = false;
     _ignoreWaitRest = null;
     _bufferPostRest = null;
     _ignoreWaitUncertain = false;
@@ -724,6 +777,10 @@ class SyncPlayController {
   /// Rejoin the last exact group after reconnect; never issues New automatically.
   Future<void> reconnect(
       {bool automatic = false, bool Function()? isRecoveryCurrent}) async {
+    if (_leaveRequested) {
+      if (!automatic) await leaveRoom();
+      return;
+    }
     if (automatic &&
         (_group == null ||
             const {

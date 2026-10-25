@@ -58,6 +58,9 @@ void main() {
     await tester.tap(find.text('Join room'));
     await tester.pump();
     expect(codes, ['123456']);
+    expect(find.textContaining('not a password'), findsNothing);
+    await tester.tap(find.byTooltip('Room information'));
+    await tester.pumpAndSettle();
     expect(find.textContaining('not a password'), findsOneWidget);
   });
 

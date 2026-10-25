@@ -348,7 +348,6 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
                   state: useMinimizedPlayer
                       ? VideoPlayerState.minimized
                       : VideoPlayerState.fullScreen,
-                  buffering: true,
                   errorPlaying: false,
                   skippedSegments: {},
                 ));
