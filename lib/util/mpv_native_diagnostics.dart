@@ -1,3 +1,5 @@
+import 'package:fladder/services/playback_diagnostics.dart';
+
 /// Pure policy: only a positively confirmed native software texture permits
 /// this per-player override. Unknown capabilities and unrelated media errors
 /// never disable acceleration. The saved preference is left intact.
@@ -199,4 +201,27 @@ String safeMpvErrorClass(Object error) {
   }.contains(type)
       ? type
       : 'PlayerException';
+}
+/// Classify an address without retaining any address content. Uri treats an
+/// absolute Windows drive prefix as a scheme, so recognize that path first.
+PlaybackSourceKind classifyMpvDiagnosticSource(String address) {
+  if (RegExp(r'^[A-Za-z]:[\\/]').hasMatch(address)) {
+    return PlaybackSourceKind.localFile;
+  }
+  return switch (Uri.tryParse(address)?.scheme.toLowerCase()) {
+    'http' || 'https' => PlaybackSourceKind.networkStream,
+    'file' || '' => PlaybackSourceKind.localFile,
+    _ => PlaybackSourceKind.unknown,
+  };
+}
+
+/// A request is not evidence that decoding actually fell back. In particular,
+/// auto and auto-copy are requested policies, not resolved decoder backends.
+bool? actualMpvSoftwareDecodeFallback({
+  required bool hardwareRequested,
+  String? currentDecoder,
+}) {
+  final actual = safeMpvHwdec(currentDecoder ?? '');
+  if (const {'unknown', 'auto', 'auto-copy'}.contains(actual)) return null;
+  return hardwareRequested && actual == 'no';
 }

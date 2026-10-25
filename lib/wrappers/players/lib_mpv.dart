@@ -110,7 +110,10 @@ class LibMPV extends BasePlayer {
       sourceKind: sourceKind ?? _diagnosticSourceKind,
       hardwareRequested: _settings.hardwareAccel,
       hwdecActual: hwdecActual,
-      softwareFallback: _softwareDecodeFallback,
+      softwareFallback: actualMpvSoftwareDecodeFallback(
+        hardwareRequested: _settings.hardwareAccel,
+        currentDecoder: hwdecActual,
+      ),
       rendererKind: switch (_renderCapabilities.apiType) {
         'sw' => PlaybackRendererKind.software,
         'opengl' => PlaybackRendererKind.gpu,
@@ -337,7 +340,7 @@ class LibMPV extends BasePlayer {
         PlaybackStage.playerInit,
         event: PlaybackEvent.succeeded,
         detail: 'render_api=${_renderCapabilities.apiType};'
-            'software_fallback=$_softwareDecodeFallback',
+            'software_override_requested=$_softwareDecodeFallback',
       );
     } catch (error) {
       _recordDiagnostic(
@@ -752,12 +755,7 @@ class LibMPV extends BasePlayer {
   }) async {
     final attempt = diagnosticAttempt;
     _activeDiagnosticAttempt = attempt;
-    final scheme = Uri.tryParse(url)?.scheme.toLowerCase();
-    _diagnosticSourceKind = switch (scheme) {
-      'http' || 'https' => PlaybackSourceKind.networkStream,
-      'file' || '' => PlaybackSourceKind.localFile,
-      _ => PlaybackSourceKind.unknown,
-    };
+    _diagnosticSourceKind = classifyMpvDiagnosticSource(url);
     final sourceKind = _diagnosticSourceKind;
     _diagnosticOpening = true;
     _nativeDiagnosticFailures.clear();
