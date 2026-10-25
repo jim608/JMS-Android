@@ -166,6 +166,8 @@ extension PlaybackModelExtension on PlaybackModel? {
         TranscodePlaybackModel _ => PlaybackType.transcode.name(context),
         OfflinePlaybackModel _ => PlaybackType.offline.name(context),
         TvPlaybackModel _ => PlaybackType.tv.name(context),
+        PlaybackModel model when model.playbackType != null =>
+          model.playbackType!.name(context),
         _ => context.localized.unknown,
       };
 }
@@ -174,6 +176,9 @@ class PlaybackModel {
   /// Group playback keeps queue progression on the server.
   bool get serverManagedQueue => false;
   bool get ownsPlaybackResources => false;
+
+  /// Captured delivery type remains available after room membership ends.
+  PlaybackType? get playbackType => null;
 
   /// Describes the selected output, independently of the playback session type.
   /// Original source HDR labels do not classify a server-transcoded stream.

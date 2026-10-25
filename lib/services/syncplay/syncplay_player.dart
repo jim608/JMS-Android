@@ -11,6 +11,7 @@ import 'package:fladder/models/items/item_shared_models.dart';
 import 'package:fladder/models/items/media_streams_model.dart';
 import 'package:fladder/models/playback/playback_model.dart';
 import 'package:fladder/models/playback/playback_queue_state.dart';
+import 'package:fladder/models/video_stream_model.dart';
 import 'package:fladder/profiles/default_profile.dart';
 import 'package:fladder/providers/api_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
@@ -108,7 +109,9 @@ class SyncPlayPlayerAdapter implements SyncPlayPlayerPort {
     if (position == null) return;
     final difference = (position - target).abs();
     if (difference <= _alignmentTolerance ||
-        difference > _maximumInitialAlignment) return;
+        difference > _maximumInitialAlignment) {
+      return;
+    }
     final cancelled = _actionCancelled.future;
     // Exactly one correction, inside the controller's existing load budget.
     // Cancel releases this wait; it cannot revoke a native seek already sent.
@@ -424,6 +427,9 @@ class SyncPlayPlaybackModel extends PlaybackModel {
   final PlayMethod playMethod;
   @override
   bool get isServerTranscoded => playMethod == PlayMethod.transcode;
+  @override
+  PlaybackType get playbackType =>
+      isServerTranscoded ? PlaybackType.transcode : PlaybackType.directStream;
   final SyncPlayPlaybackApiOwner _apiOwner;
   final bool Function()? isActuallyPlaying;
   bool get _available => !_apiOwner.closed && isCurrent();

@@ -321,6 +321,13 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
 
       if (media != null) {
         ref.read(playBackModel.notifier).update((state) => newPlaybackModel);
+        // Stop cleared the previous UI position. A paused open has no playing
+        // position ticks to restore it, so publish this load's resolved resume
+        // point once before opening; later seeks and lifecycle changes win.
+        mediaState.update((value) => value.copyWith(
+              position: effectiveStartPosition,
+              lastPosition: effectiveStartPosition,
+            ));
         stage = PlaybackStage.mediaOpen;
         step = 'open_request';
         diagnostics.record(attempt, stage,

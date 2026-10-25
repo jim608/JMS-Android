@@ -7,6 +7,8 @@ import 'package:fladder/models/playback/transcode_playback_model.dart';
 import 'package:fladder/services/syncplay/syncplay_models.dart';
 import 'package:fladder/services/syncplay/syncplay_player.dart';
 import 'package:fladder/util/mpv_hdr_tonemap.dart';
+import 'package:fladder/l10n/generated/app_localizations.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _UnusedApi extends Fake implements JellyfinOpenApi {}
@@ -76,5 +78,29 @@ void main() {
         expect(source.skipReason, isNull);
       }
     });
+    if (entry.key.startsWith('SyncPlay')) {
+      testWidgets('${entry.key} shows its known playback source label',
+          (tester) async {
+        final (model, transcoded) = entry.value;
+        late String expected;
+        await tester.pumpWidget(MaterialApp(
+          locale: const Locale('en'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Builder(builder: (context) {
+            final baseline = transcoded
+                ? TranscodePlaybackModel(
+                    item: item, media: media, playbackInfo: null)
+                : DirectPlaybackModel(item: item, media: media);
+            expected = baseline.label(context)!;
+            return Text(model.label(context)!);
+          }),
+        ));
+        await tester.pumpAndSettle();
+        expect(expected, isNot('Unknown'));
+        expect(find.text(expected), findsOneWidget);
+        expect(find.text('Unknown'), findsNothing);
+      });
+    }
   }
 }

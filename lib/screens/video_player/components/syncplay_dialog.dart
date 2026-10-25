@@ -720,8 +720,8 @@ class SyncPlayStrings {
           ? '等待確認房間狀態；人數為最近取得的房間資料。'
           : 'Room confirmation is pending; the participant count is from the last room snapshot.',
       SyncPlayMembershipFreshness.stale => zh
-          ? '房間確認已過期；人數為上次資料，請重新連線確認。'
-          : 'Room confirmation is out of date; the participant count is from the last snapshot. Reconnect to check.',
+          ? '房間狀態待確認；人數為上次資料，仍可立即離開。'
+          : 'Room status needs confirmation; the participant count is from the last snapshot. You can leave immediately.',
       SyncPlayMembershipFreshness.uncertain => uncertain,
       SyncPlayMembershipFreshness.confirmed =>
         room.canControl ? connected : synchronizing,

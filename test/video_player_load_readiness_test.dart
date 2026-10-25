@@ -42,6 +42,7 @@ class _Wrapper extends MediaControlsWrapper {
   // A previous video's last snapshot must never make the new open ready.
   final previousSnapshot = PlayerState(buffering: false, playing: true);
   Future<void> Function()? duringLoad;
+  Future<void> Function()? duringStop;
   Future<void> Function()? duringSubtitleSetup;
   bool? requestedPlay;
   int playCalls = 0;
@@ -54,7 +55,8 @@ class _Wrapper extends MediaControlsWrapper {
   @override
   Future<void> init({PlayerOptions? overridePlayer}) async {}
   @override
-  Future<void> stop({bool preserveSleepTimer = false}) async {}
+  Future<void> stop({bool preserveSleepTimer = false}) async =>
+      await duringStop?.call();
   @override
   Future<void> dispose() async {}
   @override
@@ -158,16 +160,48 @@ void main() {
   });
 
   test('paused room load can finish ready without starting playback', () async {
-    wrapper.duringLoad = () async => wrapper.emit(buffering: false);
+    container.read(mediaPlaybackProvider.notifier).update((value) =>
+        value.copyWith(position: const Duration(minutes: 9, seconds: 29)));
+    wrapper.duringStop = () async => container
+        .read(mediaPlaybackProvider.notifier)
+        .update(
+            (value) => value.copyWith(position: Duration.zero, playing: false));
+    wrapper.duringLoad = () async => wrapper.snapshots.add(PlayerState(
+        position: const Duration(minutes: 9, seconds: 29),
+        playing: false,
+        buffering: false));
     expect(
-        await notifier.loadPlaybackItem(
-            _Playback(serverManagedQueue: true), const Duration(seconds: 7),
+        await notifier.loadPlaybackItem(_Playback(serverManagedQueue: true),
+            const Duration(minutes: 9, seconds: 29),
             playWhenReady: false),
         isTrue);
     expect(container.read(mediaPlaybackProvider).buffering, isFalse);
     expect(wrapper.requestedPlay, isFalse);
     expect(wrapper.playCalls, 0);
     expect(container.read(mediaPlaybackProvider).playing, isFalse);
+    expect(container.read(mediaPlaybackProvider).position,
+        const Duration(minutes: 9, seconds: 29));
+    expect(container.read(mediaPlaybackProvider).lastPosition,
+        const Duration(minutes: 9, seconds: 29));
+  });
+
+  test('paused room load cannot overwrite a newer seek during track setup',
+      () async {
+    wrapper.duringLoad = () async => wrapper.emit(buffering: false);
+    wrapper.duringSubtitleSetup = () async => container
+        .read(mediaPlaybackProvider.notifier)
+        .update((value) => value.copyWith(
+            position: const Duration(minutes: 12),
+            lastPosition: const Duration(minutes: 12)));
+    expect(
+        await notifier.loadPlaybackItem(_Playback(serverManagedQueue: true),
+            const Duration(minutes: 9, seconds: 29),
+            playWhenReady: false),
+        isTrue);
+    expect(container.read(mediaPlaybackProvider).position,
+        const Duration(minutes: 12));
+    expect(container.read(mediaPlaybackProvider).playing, isFalse);
+    expect(wrapper.playCalls, 0);
   });
 
   test('latest fresh buffering event remains authoritative', () async {
@@ -183,6 +217,8 @@ void main() {
     var current = true;
     wrapper.duringLoad = () async {
       wrapper.emit(buffering: false);
+      container.read(mediaPlaybackProvider.notifier).update(
+          (value) => value.copyWith(position: const Duration(seconds: 42)));
       current = false;
     };
     expect(
@@ -190,5 +226,7 @@ void main() {
             isCurrent: () => current),
         isFalse);
     expect(wrapper.playCalls, 0);
+    expect(container.read(mediaPlaybackProvider).position,
+        const Duration(seconds: 42));
   });
 }
