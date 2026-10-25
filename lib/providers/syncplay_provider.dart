@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fladder/jellyfin/jellyfin_open_api.enums.swagger.dart';
@@ -10,6 +11,7 @@ import 'package:fladder/profiles/default_profile.dart';
 import 'package:fladder/models/playback/offline_playback_model.dart';
 import 'package:fladder/models/playback/tv_playback_model.dart';
 import 'package:fladder/providers/api_provider.dart';
+import 'package:fladder/providers/connectivity_provider.dart' as connectivity;
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
 import 'package:fladder/services/syncplay/syncplay_controller.dart';
@@ -20,6 +22,7 @@ import 'package:fladder/services/syncplay/syncplay_player_commands.dart';
 import 'package:fladder/services/syncplay/syncplay_prebuffer.dart';
 import 'package:fladder/services/syncplay/syncplay_prebuffer_coordinator.dart';
 import 'package:fladder/services/syncplay/syncplay_transport.dart';
+import 'package:fladder/services/syncplay/syncplay_recovery.dart';
 import 'package:fladder/wrappers/media_control_wrapper.dart';
 
 final syncPlayProvider =
@@ -35,6 +38,8 @@ class SyncPlayViewState {
     this.preparingPlayback = false,
     this.readyHomeJoin,
     this.prebuffer,
+    this.recoveryActive = false,
+    this.recoveryExhausted = false,
   });
   final SyncPlayControllerState room;
   final bool busy;
@@ -42,6 +47,8 @@ class SyncPlayViewState {
   final bool preparingPlayback;
   final int? readyHomeJoin;
   final SyncPlayPrebufferDecision? prebuffer;
+  final bool recoveryActive;
+  final bool recoveryExhausted;
 }
 
 /// Explicitly opened by the room dialog. No socket, room, or sharing at startup.
@@ -64,6 +71,9 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
 
   final Ref ref;
   ProviderSubscription<AccountModel?>? _accountSubscription;
+  ProviderSubscription<connectivity.ConnectionState>? _connectivitySubscription;
+  AppLifecycleListener? _lifecycle;
+  SyncPlayRecovery? _recovery;
   SyncPlayTransport? _transport;
   SyncPlayController? _controller;
   SyncPlayPlayerAdapter? _player;
@@ -96,7 +106,9 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
           failure: failure,
           preparingPlayback: _preparingPlayback,
           readyHomeJoin: _readyHomeJoin,
-          prebuffer: _prebuffer?.decision);
+          prebuffer: _prebuffer?.decision,
+          recoveryActive: _recovery?.active ?? false,
+          recoveryExhausted: _recovery?.exhausted ?? false);
 
   /// Home joining is independent of the currently selected media/backend.
   /// The captured room item is authorized before preparing a built-in player.
@@ -351,6 +363,35 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
       );
       _controller = controller;
       controller.setConnected(false);
+      _recovery = SyncPlayRecovery(
+        readState: () => controller.state,
+        isCurrent: current,
+        reconnectTransport: transport.reconnect,
+        rejoinKnownGroup: (isRecoveryCurrent) => controller.reconnect(
+            automatic: true, isRecoveryCurrent: isRecoveryCurrent),
+        revalidate: () async {
+          await controller.refreshMembership();
+          if (current() && controller.state.isJoined) {
+            await controller.synchronizeClock();
+          }
+        },
+        onChanged: () {
+          if (current()) {
+            state = _view(room: controller.state, busy: state.busy);
+          }
+        },
+      );
+      _lifecycle = AppLifecycleListener(onResume: () => _recovery?.wake());
+      _connectivitySubscription = ref.listen(
+        connectivity.connectivityStatusProvider,
+        (previous, next) {
+          if (current() &&
+              previous == connectivity.ConnectionState.offline &&
+              next != connectivity.ConnectionState.offline) {
+            _recovery?.wake();
+          }
+        },
+      );
       _stateSubscription = controller.states.listen((room) {
         if (current()) {
           _bufferingReporter?.refreshQueue();
@@ -372,6 +413,7 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
           }
           if (room.failure != null) _preparingPlayback = false;
           state = _view(room: room, busy: state.busy);
+          _recovery?.observe(room);
         }
       });
       _connectionSubscription = transport.connections.listen((connected) {
@@ -506,6 +548,7 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
       });
 
   Future<void> leaveRoom() => _run(() async {
+        _recovery?.cancel();
         _player?.cancelPendingActions();
         final controller = _controller;
         await controller?.leaveRoom();
@@ -520,6 +563,7 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
         final transport = _transport;
         final controller = _controller;
         if (transport == null || controller == null) return;
+        _recovery?.manualRetry();
         await transport.reconnect();
         await controller.reconnect();
       });
@@ -542,6 +586,7 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
   @override
   Future<void> stop() async {
     if (_disposed) return;
+    _recovery?.cancel();
     // Stop is allowed during New/Join. Revoke in-flight player loads before
     // waiting for a server acknowledgement, so closing cannot reopen playback.
     _player?.cancelPendingActions();
@@ -563,6 +608,12 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
   }
 
   void _detach() {
+    _recovery?.dispose();
+    _recovery = null;
+    _lifecycle?.dispose();
+    _lifecycle = null;
+    _connectivitySubscription?.close();
+    _connectivitySubscription = null;
     _homeJoinAttempt = null;
     _readyHomeJoin = null;
     _homeMode = false;

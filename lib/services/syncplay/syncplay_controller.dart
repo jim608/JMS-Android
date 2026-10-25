@@ -83,6 +83,8 @@ class SyncPlayController {
   int _remoteDepth = 0;
   int _commandSerial = 0;
   int _participantRefresh = 0;
+  Future<void>? _participantRefreshFlight;
+  Future<List<SyncPlayGroup>>? _participantRequest;
   String? _expectedGroupId;
   String? _expectedGroupName;
   bool _awaitingConfirmation = false;
@@ -91,6 +93,7 @@ class SyncPlayController {
   final Map<String, DateTime> _commandIds = {};
   String? _lastCommandFingerprint;
   Completer<SyncPlayGroup>? _confirmation;
+  bool Function()? _automaticRecoveryCurrent;
   SyncPlayCommand? _deferredCommand;
   SyncPlayCancellation? _scheduledCommand;
   SyncPlayCancellation? _clockPoll;
@@ -502,7 +505,9 @@ class SyncPlayController {
     return 'JMS-$code';
   }
 
-  int _begin(SyncPlayStatus status, String name, {String? groupId}) {
+  int _begin(SyncPlayStatus status, String name,
+      {String? groupId, bool preserveQueue = false}) {
+    _automaticRecoveryCurrent = null;
     _operation++;
     _status = status;
     _failure = null;
@@ -514,7 +519,7 @@ class SyncPlayController {
     // now rather than allowing an unhandled asynchronous error while awaiting it.
     unawaited(_confirmation!.future.then<void>((_) {}, onError: (Object _) {}));
     _invalidatePlayback();
-    _queue = null;
+    if (!preserveQueue) _queue = null;
     _joinedAt = null;
     _emit();
     return _operation;
@@ -603,6 +608,7 @@ class SyncPlayController {
   void _confirmGroup(SyncPlayGroup group) {
     final id = syncPlayId(group.groupId);
     if (!_awaitingConfirmation ||
+        _automaticRecoveryCurrent?.call() == false ||
         group.groupName != _expectedGroupName ||
         (_expectedGroupId != null && id != _expectedGroupId)) {
       return;
@@ -615,6 +621,7 @@ class SyncPlayController {
     _status = SyncPlayStatus.joined;
     _failure = null;
     _awaitingConfirmation = false;
+    if (_playerMatchesQueue()) _needsReady = true;
     if (!(_confirmation?.isCompleted ?? true)) _confirmation!.complete(group);
     _emit();
     unawaited(synchronizeClock());
@@ -715,7 +722,18 @@ class SyncPlayController {
   }
 
   /// Rejoin the last exact group after reconnect; never issues New automatically.
-  Future<void> reconnect() async {
+  Future<void> reconnect(
+      {bool automatic = false, bool Function()? isRecoveryCurrent}) async {
+    if (automatic &&
+        (_group == null ||
+            const {
+              SyncPlayFailureCode.denied,
+              SyncPlayFailureCode.noGroup,
+              SyncPlayFailureCode.protocol,
+              SyncPlayFailureCode.unsupported
+            }.contains(_failure?.code))) {
+      return;
+    }
     if (!_canBegin(reconnect: true) ||
         (_status != SyncPlayStatus.disconnected &&
             _status != SyncPlayStatus.unknown)) {
@@ -726,26 +744,47 @@ class SyncPlayController {
     if (name == null) return;
     final source = _sourceEpoch;
     final pending = _membershipRest;
-    final op = _begin(SyncPlayStatus.joining, name, groupId: id);
+    final op = _begin(SyncPlayStatus.joining, name,
+        groupId: id, preserveQueue: _group != null && _playerMatchesQueue());
+    _automaticRecoveryCurrent = automatic ? isRecoveryCurrent : null;
+    bool current() =>
+        _current(source, op) &&
+        (!automatic || isRecoveryCurrent?.call() != false);
     try {
       var previousRequestAmbiguous = false;
       await _settleIgnoreMutation();
-      if (!_current(source, op)) return;
+      if (!current()) return;
       if (pending != null) {
         // A list can be empty while the previous New/Join is still being
         // processed. Settle that exact request before treating absence as
         // conclusive, otherwise another New could create a duplicate room.
         final outcome = await _bounded(pending);
-        if (!_current(source, op)) return;
+        if (!current()) return;
         previousRequestAmbiguous = outcome != null &&
             outcome.code != SyncPlayFailureCode.denied &&
             outcome.code != SyncPlayFailureCode.noGroup;
+        // A timed-out transport result does not prove whether Join happened.
+        // Automatic recovery never repeats that uncertain mutation.
+        if (automatic && outcome != null) throw outcome;
+      }
+      if (automatic) {
+        // Visibility only confirms that this exact retained target is still
+        // available. Membership still requires the subsequent GroupJoined.
+        final matches = (await _bounded(_api.listGroups()))
+            .where((group) => group.groupId == id && group.groupName == name)
+            .toList();
+        if (!current()) return;
+        if (matches.length != 1) {
+          throw SyncPlayFailure(matches.isEmpty
+              ? SyncPlayFailureCode.noGroup
+              : SyncPlayFailureCode.ambiguousCode);
+        }
       }
       if (_expectedGroupId == null) {
         final matches = (await _bounded(_api.listGroups()))
             .where((group) => group.groupName == name)
             .toList();
-        if (!_current(source, op)) return;
+        if (!current()) return;
         if (matches.length != 1) {
           throw SyncPlayFailure(matches.isEmpty
               ? previousRequestAmbiguous
@@ -758,12 +797,37 @@ class SyncPlayController {
       _awaitingConfirmation = true;
       await _bounded(
           _membershipRequest(() => _api.joinGroup(_expectedGroupId!)));
-      if (_current(source, op) && !state.isJoined) {
+      if (current() && !state.isJoined) {
         await _bounded(_confirmation!.future);
       }
     } catch (error) {
       if (_current(source, op) && !state.isJoined) {
-        _operationFailed(error, true);
+        if (automatic) {
+          // Keep the last-known room for explicit recovery. Neither absence
+          // from List nor an ambiguous request authorizes leaving/recreating it.
+          if (!const {SyncPlayFailureCode.denied, SyncPlayFailureCode.noGroup}
+              .contains(_failure?.code)) {
+            _failure = _safeFailure(error);
+          }
+          _status = SyncPlayStatus.unknown;
+          _awaitingConfirmation = false;
+          _emit();
+        } else {
+          _operationFailed(error, true);
+        }
+      }
+    } finally {
+      if (automatic &&
+          _current(source, op) &&
+          !current() &&
+          _status == SyncPlayStatus.joining) {
+        _awaitingConfirmation = false;
+        _status = SyncPlayStatus.unknown;
+        _failure = const SyncPlayFailure(SyncPlayFailureCode.timeoutUnknown);
+        _emit();
+      }
+      if (identical(_automaticRecoveryCurrent, isRecoveryCurrent)) {
+        _automaticRecoveryCurrent = null;
       }
     }
   }
@@ -775,6 +839,9 @@ class SyncPlayController {
     SyncPlayPlayerPort? player,
   }) async {
     if (_disposed) return;
+    _participantRequest = null;
+    _participantRefreshFlight = null;
+    _automaticRecoveryCurrent = null;
     _sourceEpoch++;
     _operation++;
     _invalidatePlayback();
@@ -1139,7 +1206,7 @@ class SyncPlayController {
               if (update['Data'] is! String) {
                 throw const FormatException('Invalid participant');
               }
-              unawaited(_refreshParticipants());
+              unawaited(refreshMembership());
             case 'NotInGroup':
             case 'GroupDoesNotExist':
             case 'CreateGroupDenied':
@@ -1171,7 +1238,18 @@ class SyncPlayController {
     }
   }
 
-  Future<void> refreshMembership() => _refreshParticipants();
+  Future<void> refreshMembership() {
+    final pending = _participantRefreshFlight;
+    if (pending != null) return pending;
+    final task = _refreshParticipants();
+    _participantRefreshFlight = task;
+    unawaited(task.whenComplete(() {
+      if (identical(_participantRefreshFlight, task)) {
+        _participantRefreshFlight = null;
+      }
+    }));
+    return task;
+  }
 
   Future<void> _refreshParticipants() async {
     if (!state.isJoined || !_connected) return;
@@ -1179,7 +1257,18 @@ class SyncPlayController {
     final refresh = ++_participantRefresh;
     final groupId = _group!.groupId;
     try {
-      final groups = await _bounded(_api.listGroups());
+      var request = _participantRequest;
+      if (request == null) {
+        request = Future<List<SyncPlayGroup>>.sync(_api.listGroups);
+        _participantRequest = request;
+        final owned = request;
+        unawaited(request.then<void>((_) {
+          if (identical(_participantRequest, owned)) _participantRequest = null;
+        }, onError: (Object _, StackTrace __) {
+          if (identical(_participantRequest, owned)) _participantRequest = null;
+        }));
+      }
+      final groups = await _bounded(request);
       if (!_current(source, op) ||
           refresh != _participantRefresh ||
           !state.isJoined ||
@@ -1191,16 +1280,12 @@ class SyncPlayController {
       if (matches.length == 1 &&
           matches.single.groupName == _group!.groupName) {
         _group = matches.single;
-        _membershipCheckedAt = clock.now;
-        _membershipUncertain = false;
+        // List is access-scoped visibility, not proof of session membership.
         _emit();
       } else {
         // This credential-scoped list did not confirm membership. Preserve the
         // last-known room for explicit recovery, never claim global deletion.
-        _membershipCheckedAt = clock.now;
         _membershipUncertain = true;
-        _status = SyncPlayStatus.unknown;
-        _invalidatePlayback();
         _emit();
       }
     } catch (error) {

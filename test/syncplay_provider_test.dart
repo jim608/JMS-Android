@@ -18,6 +18,7 @@ import 'package:fladder/providers/syncplay_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
 import 'package:fladder/services/syncplay/syncplay_models.dart';
+import 'package:fladder/services/playback_diagnostics.dart';
 import 'package:fladder/services/syncplay/syncplay_prebuffer.dart';
 import 'package:fladder/util/application_info.dart';
 import 'package:fladder/util/sleep_timer.dart';
@@ -331,7 +332,8 @@ class _Video extends VideoPlayerNotifier {
   Future<bool> waitUntilReady() async => true;
   @override
   Future<bool> loadPlaybackItem(PlaybackModel model, Duration startPosition,
-      {bool playWhenReady = true, bool Function()? isCurrent}) async {
+      {bool playWhenReady = true, bool Function()? isCurrent,
+      PlaybackAttemptRef? diagnosticAttempt}) async {
     if (isCurrent != null && !isCurrent()) return false;
     loaded.add(model);
     final wrapper = state as _Wrapper;
@@ -413,7 +415,15 @@ Future<void> _until(bool Function() condition, String label) async {
   }
 }
 
+// These protocol fixtures intentionally use an in-process loopback HTTP server.
+// The standard widget binding's HTTP-400 substitute would bypass that fixture.
+class _LoopbackFixtureBinding extends AutomatedTestWidgetsFlutterBinding {
+  @override
+  bool get overrideHttpClient => false;
+}
+
 void main() {
+  _LoopbackFixtureBinding();
   late SharedPreferences preferences;
   setUp(() async {
     SharedPreferences.setMockInitialValues({});

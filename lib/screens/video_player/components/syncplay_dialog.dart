@@ -19,21 +19,22 @@ class SyncPlayKeyGuard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Focus(
-        canRequestFocus: false,
-        skipTraversal: true,
-        onKeyEvent: (_, event) => event is KeyRepeatEvent &&
-                const <LogicalKeyboardKey>[
-                  LogicalKeyboardKey.gameButtonA,
-                  LogicalKeyboardKey.gameButtonB,
-                  LogicalKeyboardKey.select,
-                  LogicalKeyboardKey.enter,
-                  LogicalKeyboardKey.space,
-                  LogicalKeyboardKey.escape,
-                ].contains(event.logicalKey)
-            ? KeyEventResult.handled
-            : KeyEventResult.ignored,
-        child: child,
-      );
+    canRequestFocus: false,
+    skipTraversal: true,
+    onKeyEvent: (_, event) =>
+        event is KeyRepeatEvent &&
+            const <LogicalKeyboardKey>[
+              LogicalKeyboardKey.gameButtonA,
+              LogicalKeyboardKey.gameButtonB,
+              LogicalKeyboardKey.select,
+              LogicalKeyboardKey.enter,
+              LogicalKeyboardKey.space,
+              LogicalKeyboardKey.escape,
+            ].contains(event.logicalKey)
+        ? KeyEventResult.handled
+        : KeyEventResult.ignored,
+    child: child,
+  );
 }
 
 class SyncPlayButton extends ConsumerWidget {
@@ -49,7 +50,9 @@ class SyncPlayButton extends ConsumerWidget {
       icon: const Icon(Icons.group_outlined),
       selectedIcon: const Icon(Icons.group),
       onPressed: () => showDialog<void>(
-          context: context, builder: (_) => const SyncPlayDialog()),
+        context: context,
+        builder: (_) => const SyncPlayDialog(),
+      ),
     );
   }
 }
@@ -168,41 +171,44 @@ class _SyncPlayDialogState extends ConsumerState<SyncPlayDialog> {
       _ready(state.readyHomeJoin);
     }
     return SyncPlayKeyGuard(
-        child: PopScope(
-      canPop: _allowPop || _homeTicket == null,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) unawaited(_close());
-      },
-      child: ControllerNavigation(
-        onBack: () => unawaited(_close()),
-        child: SyncPlayRoomPanel(
-          state: state,
-          supported: widget.joinFromHome || _notifier.supported,
-          canJoin: !_opening &&
-              (widget.joinFromHome
-                  ? _notifier.canJoinFromHome
-                  : _notifier.canJoin),
-          canCreate: !widget.joinFromHome && !_opening && _notifier.canCreate,
-          checkingPermission: _opening || _notifier.permissionChecking,
-          permissionKnown: !_opening && _notifier.permissionKnown,
-          signedIn: account != null &&
-              account.credentials.token.isNotEmpty &&
-              account.credentials.deviceId.isNotEmpty,
-          joinFromHome: widget.joinFromHome,
-          closing: _closing,
-          transitioning: _startingJoin,
-          createRoom: _notifier.createRoom,
-          joinRoom: _join,
-          leaveRoom: _leave,
-          reconnect: _reconnect,
-          refreshPermission: _refreshPermission,
-          retry: widget.joinFromHome && _lastCode != null
-              ? () => _join(_lastCode!)
-              : null,
-          close: _close,
+      child: PopScope(
+        canPop: _allowPop || _homeTicket == null,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) unawaited(_close());
+        },
+        child: ControllerNavigation(
+          onBack: () => unawaited(_close()),
+          child: SyncPlayRoomPanel(
+            state: state,
+            supported: widget.joinFromHome || _notifier.supported,
+            canJoin:
+                !_opening &&
+                (widget.joinFromHome
+                    ? _notifier.canJoinFromHome
+                    : _notifier.canJoin),
+            canCreate: !widget.joinFromHome && !_opening && _notifier.canCreate,
+            checkingPermission: _opening || _notifier.permissionChecking,
+            permissionKnown: !_opening && _notifier.permissionKnown,
+            signedIn:
+                account != null &&
+                account.credentials.token.isNotEmpty &&
+                account.credentials.deviceId.isNotEmpty,
+            joinFromHome: widget.joinFromHome,
+            closing: _closing,
+            transitioning: _startingJoin,
+            createRoom: _notifier.createRoom,
+            joinRoom: _join,
+            leaveRoom: _leave,
+            reconnect: _reconnect,
+            refreshPermission: _refreshPermission,
+            retry: widget.joinFromHome && _lastCode != null
+                ? () => _join(_lastCode!)
+                : null,
+            close: _close,
+          ),
         ),
       ),
-    ));
+    );
   }
 }
 
@@ -266,7 +272,9 @@ class _SyncPlayRoomPanelState extends State<SyncPlayRoomPanel> {
   Widget build(BuildContext context) {
     final s = SyncPlayStrings.of(context);
     final room = widget.state.room;
-    final pending = widget.closing ||
+    final recoveryActive = widget.state.recoveryActive;
+    final pending =
+        widget.closing ||
         widget.transitioning ||
         widget.checkingPermission ||
         widget.state.preparingPlayback ||
@@ -276,7 +284,8 @@ class _SyncPlayRoomPanelState extends State<SyncPlayRoomPanel> {
           SyncPlayStatus.joining,
           SyncPlayStatus.leaving,
         }.contains(room.status);
-    final actionPending = widget.state.busy ||
+    final actionPending =
+        widget.state.busy ||
         widget.state.preparingPlayback ||
         widget.transitioning;
     if (actionPending != _actionPending) {
@@ -289,154 +298,194 @@ class _SyncPlayRoomPanelState extends State<SyncPlayRoomPanel> {
     }
     final uncertain = const {
       SyncPlayStatus.unknown,
-      SyncPlayStatus.disconnected
+      SyncPlayStatus.disconnected,
     }.contains(room.status);
-    final available = widget.signedIn &&
+    final available =
+        widget.signedIn &&
         widget.supported &&
         widget.permissionKnown &&
         widget.canJoin &&
         !pending;
     final failure = widget.state.failure ?? room.failure;
+    final temporaryFailure = const {
+      SyncPlayFailureCode.timeoutUnknown,
+      SyncPlayFailureCode.disconnected,
+      SyncPlayFailureCode.clock,
+      SyncPlayFailureCode.server,
+    }.contains(failure?.code);
+    final canCancelRecovery =
+        recoveryActive &&
+        !widget.closing &&
+        !widget.transitioning &&
+        !widget.checkingPermission &&
+        !widget.state.busy &&
+        !widget.state.preparingPlayback &&
+        room.status != SyncPlayStatus.leaving;
     return AlertDialog(
       title: Text(s.title),
       content: SizedBox(
         width: 420,
         child: SingleChildScrollView(
           child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(s.explanation),
-                const SizedBox(height: 16),
-                if (!widget.signedIn) Text(s.signIn),
-                if (!widget.supported) Text(s.unsupported),
-                if (widget.signedIn &&
-                    !widget.checkingPermission &&
-                    widget.permissionKnown &&
-                    !widget.canJoin)
-                  Text(s.noPermission),
-                if (widget.signedIn &&
-                    !widget.checkingPermission &&
-                    !widget.permissionKnown) ...[
-                  Text(s.permissionUnknown),
-                  if (widget.refreshPermission != null)
-                    OutlinedButton(
-                        onPressed: widget.refreshPermission,
-                        child: Text(s.retryPermission)),
-                ],
-                if (pending) ...[
-                  const LinearProgressIndicator(),
-                  const SizedBox(height: 12),
-                  Text(widget.state.preparingPlayback
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(s.explanation),
+              const SizedBox(height: 16),
+              if (!widget.signedIn) Text(s.signIn),
+              if (!widget.supported) Text(s.unsupported),
+              if (widget.signedIn &&
+                  !widget.checkingPermission &&
+                  widget.permissionKnown &&
+                  !widget.canJoin)
+                Text(s.noPermission),
+              if (widget.signedIn &&
+                  !widget.checkingPermission &&
+                  !widget.permissionKnown) ...[
+                Text(s.permissionUnknown),
+                if (widget.refreshPermission != null)
+                  OutlinedButton(
+                    onPressed: widget.refreshPermission,
+                    child: Text(s.retryPermission),
+                  ),
+              ],
+              if (pending) ...[
+                const LinearProgressIndicator(),
+                const SizedBox(height: 12),
+                Text(
+                  recoveryActive
+                      ? s.recovering
+                      : widget.state.preparingPlayback
                       ? s.loadingVideo
                       : widget.closing
-                          ? s.cancelling
-                          : s.waiting),
-                ],
-                if (room.group != null) ...[
-                  Text(s.roomCode,
-                      style: Theme.of(context).textTheme.labelLarge),
-                  Row(children: [
+                      ? s.cancelling
+                      : s.waiting,
+                ),
+              ],
+              if (room.group != null) ...[
+                Text(s.roomCode, style: Theme.of(context).textTheme.labelLarge),
+                Row(
+                  children: [
                     Expanded(
-                        child: SelectableText(
-                            room.group!.code ?? room.group!.groupName,
-                            style: Theme.of(context).textTheme.headlineMedium)),
+                      child: SelectableText(
+                        room.group!.code ?? room.group!.groupName,
+                        style: Theme.of(context).textTheme.headlineMedium,
+                      ),
+                    ),
                     if (room.group!.code != null)
                       IconButton(
                         tooltip: s.copyCode,
                         icon: const Icon(Icons.copy),
                         onPressed: () => Clipboard.setData(
-                            ClipboardData(text: room.group!.code!)),
+                          ClipboardData(text: room.group!.code!),
+                        ),
                       ),
-                  ]),
-                  Text(s.members(room.group!.participants.length)),
-                  const SizedBox(height: 12),
-                  if (!uncertain) Text(s.roomConfirmation(room)),
-                  const SizedBox(height: 8),
-                  SyncPlayLocalBufferPanel(
-                      room: room, prebuffer: widget.state.prebuffer),
-                  SyncPlayDiagnosticsPanel(diagnostics: room.diagnostics),
-                  const SizedBox(height: 12),
-                ],
-                if (failure != null) ...[
-                  Text(s.failure(failure.code),
-                      style: TextStyle(
-                          color: Theme.of(context).colorScheme.error)),
-                  const SizedBox(height: 12),
-                  if (!pending && !uncertain && widget.retry != null)
-                    OutlinedButton(
-                        onPressed: widget.retry, child: Text(s.retry)),
-                ],
-                if (uncertain) ...[
-                  Text(s.uncertain),
-                  const SizedBox(height: 8),
-                  OutlinedButton(
-                      onPressed: available ? widget.reconnect : null,
-                      child: Text(s.reconnect)),
-                ],
-                if (room.group == null && !uncertain) ...[
-                  if (!widget.joinFromHome)
-                    FilledButton.icon(
-                      onPressed: available && widget.canCreate
-                          ? widget.createRoom
-                          : null,
-                      icon: const Icon(Icons.group_add_outlined),
-                      label: Text(s.create),
-                    ),
-                  if (widget.joinFromHome)
-                    Text(s.createFromVideo)
-                  else if (widget.canJoin && !widget.canCreate)
-                    Text(s.joinOnly),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _code,
-                    enabled: available,
-                    autofocus: widget.joinFromHome,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    keyboardType: TextInputType.number,
-                    textInputAction: TextInputAction.done,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(6)
-                    ],
-                    decoration: InputDecoration(
-                        labelText: s.roomCode,
-                        hintText: '123456',
-                        border: const OutlineInputBorder()),
-                    onChanged: (_) => setState(() {}),
-                    onSubmitted: (_) {
-                      if (available && _code.text.length == 6) {
-                        widget.joinRoom(_code.text);
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  OutlinedButton(
-                    onPressed: available && _code.text.length == 6
-                        ? () => widget.joinRoom(_code.text)
-                        : null,
-                    child: Text(s.join),
-                  ),
-                ],
+                  ],
+                ),
+                Text(s.members(room.group!.participants.length)),
                 const SizedBox(height: 12),
-                Text(s.codeNotice,
-                    style: Theme.of(context).textTheme.bodySmall),
-              ]),
+                if (!uncertain) Text(s.roomConfirmation(room)),
+                const SizedBox(height: 8),
+                SyncPlayLocalBufferPanel(
+                  room: room,
+                  prebuffer: widget.state.prebuffer,
+                ),
+                SyncPlayDiagnosticsPanel(diagnostics: room.diagnostics),
+                const SizedBox(height: 12),
+              ],
+              if (failure != null && !(recoveryActive && temporaryFailure)) ...[
+                Text(
+                  s.failure(failure.code),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+                const SizedBox(height: 12),
+                if (!pending && !uncertain && widget.retry != null)
+                  OutlinedButton(onPressed: widget.retry, child: Text(s.retry)),
+              ],
+              if (uncertain) ...[
+                Semantics(
+                  liveRegion: true,
+                  child: Text(
+                    recoveryActive
+                        ? s.recovering
+                        : widget.state.recoveryExhausted
+                        ? s.recoveryPaused
+                        : s.uncertain,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton(
+                  onPressed: available && !recoveryActive
+                      ? widget.reconnect
+                      : null,
+                  child: Text(s.reconnect),
+                ),
+              ],
+              if (room.group == null && !uncertain) ...[
+                if (!widget.joinFromHome)
+                  FilledButton.icon(
+                    onPressed: available && widget.canCreate
+                        ? widget.createRoom
+                        : null,
+                    icon: const Icon(Icons.group_add_outlined),
+                    label: Text(s.create),
+                  ),
+                if (widget.joinFromHome)
+                  Text(s.createFromVideo)
+                else if (widget.canJoin && !widget.canCreate)
+                  Text(s.joinOnly),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _code,
+                  enabled: available,
+                  autofocus: widget.joinFromHome,
+                  autocorrect: false,
+                  enableSuggestions: false,
+                  keyboardType: TextInputType.number,
+                  textInputAction: TextInputAction.done,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(6),
+                  ],
+                  decoration: InputDecoration(
+                    labelText: s.roomCode,
+                    hintText: '123456',
+                    border: const OutlineInputBorder(),
+                  ),
+                  onChanged: (_) => setState(() {}),
+                  onSubmitted: (_) {
+                    if (available && _code.text.length == 6) {
+                      widget.joinRoom(_code.text);
+                    }
+                  },
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton(
+                  onPressed: available && _code.text.length == 6
+                      ? () => widget.joinRoom(_code.text)
+                      : null,
+                  child: Text(s.join),
+                ),
+              ],
+              const SizedBox(height: 12),
+              Text(s.codeNotice, style: Theme.of(context).textTheme.bodySmall),
+            ],
+          ),
         ),
       ),
       actions: [
         if (room.group != null || uncertain)
           TextButton(
-            onPressed: pending ? null : widget.leaveRoom,
+            onPressed: pending && !canCancelRecovery ? null : widget.leaveRoom,
             child: Text(s.leave),
           ),
         TextButton(
-            focusNode: _cancelFocus,
-            onPressed: widget.closing
-                ? null
-                : widget.close ?? () async => Navigator.of(context).pop(),
-            child: Text(widget.joinFromHome && pending ? s.cancel : s.close)),
+          focusNode: _cancelFocus,
+          onPressed: widget.closing
+              ? null
+              : widget.close ?? () async => Navigator.of(context).pop(),
+          child: Text(widget.joinFromHome && pending ? s.cancel : s.close),
+        ),
       ],
     );
   }
@@ -444,8 +493,11 @@ class _SyncPlayRoomPanelState extends State<SyncPlayRoomPanel> {
 
 /// Local measurements only: no participant names or estimates about peers.
 class SyncPlayLocalBufferPanel extends StatelessWidget {
-  const SyncPlayLocalBufferPanel(
-      {super.key, required this.room, this.prebuffer});
+  const SyncPlayLocalBufferPanel({
+    super.key,
+    required this.room,
+    this.prebuffer,
+  });
   final SyncPlayControllerState room;
   final SyncPlayPrebufferDecision? prebuffer;
 
@@ -454,19 +506,24 @@ class SyncPlayLocalBufferPanel extends StatelessWidget {
     final s = SyncPlayStrings.of(context);
     // A current unknown/stale decision must not resurrect an older number.
     final ahead = prebuffer != null ? prebuffer!.ahead : room.bufferedAhead;
-    final target =
-        prebuffer != null ? prebuffer!.target : room.targetBufferedAhead;
+    final target = prebuffer != null
+        ? prebuffer!.target
+        : room.targetBufferedAhead;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Semantics(
           liveRegion: true,
-          child: Text(s.localPlaybackStatus(room, prebuffer),
-              key: const ValueKey('syncplay-local-status')),
+          child: Text(
+            s.localPlaybackStatus(room, prebuffer),
+            key: const ValueKey('syncplay-local-status'),
+          ),
         ),
-        Text(s.localBuffer(ahead, target),
-            key: const ValueKey('syncplay-local-buffer'),
-            style: Theme.of(context).textTheme.bodySmall),
+        Text(
+          s.localBuffer(ahead, target),
+          key: const ValueKey('syncplay-local-buffer'),
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
         if (prebuffer?.byteBudgetLimited == true)
           Text(s.bufferBudget, style: Theme.of(context).textTheme.bodySmall),
       ],
@@ -495,19 +552,25 @@ class SyncPlayDiagnosticsPanel extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                  '${s.networkRoundTrip}: ${ms(diagnostics.networkRoundTrip)}'),
+                '${s.networkRoundTrip}: ${ms(diagnostics.networkRoundTrip)}',
+              ),
               Text(
-                  '${s.clockOffset}: ${ms(diagnostics.clockOffset, signed: true)}'),
+                '${s.clockOffset}: ${ms(diagnostics.clockOffset, signed: true)}',
+              ),
               Text('${s.clockAge}: ${ms(diagnostics.clockSampleAge)}'),
               Text(
-                  '${s.playbackDrift}: ${ms(diagnostics.playbackDrift, signed: true)}'),
+                '${s.playbackDrift}: ${ms(diagnostics.playbackDrift, signed: true)}',
+              ),
               Text('${s.driftAge}: ${ms(diagnostics.driftSampleAge)}'),
               Text('${s.corrections}: ${diagnostics.correctionCount}'),
               Text(
-                  '${s.lastCorrection}: ${ms(diagnostics.lastCorrection, signed: true)}'),
+                '${s.lastCorrection}: ${ms(diagnostics.lastCorrection, signed: true)}',
+              ),
               const SizedBox(height: 8),
-              Text(s.diagnosticsNotice,
-                  style: Theme.of(context).textTheme.bodySmall),
+              Text(
+                s.diagnosticsNotice,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ],
           ),
         ),
@@ -564,12 +627,14 @@ class SyncPlayStrings {
           : 'Room membership is unconfirmed. Reconnect to check.';
     }
     return switch (room.membershipFreshness) {
-      SyncPlayMembershipFreshness.unverified => zh
-          ? '等待確認房間狀態；人數為最近取得的房間資料。'
-          : 'Room confirmation is pending; the participant count is from the last room snapshot.',
-      SyncPlayMembershipFreshness.stale => zh
-          ? '房間確認已過期；人數為上次資料，請重新連線確認。'
-          : 'Room confirmation is out of date; the participant count is from the last snapshot. Reconnect to check.',
+      SyncPlayMembershipFreshness.unverified =>
+        zh
+            ? '等待確認房間狀態；人數為最近取得的房間資料。'
+            : 'Room confirmation is pending; the participant count is from the last room snapshot.',
+      SyncPlayMembershipFreshness.stale =>
+        zh
+            ? '房間確認已過期；人數為上次資料，請重新連線確認。'
+            : 'Room confirmation is out of date; the participant count is from the last snapshot. Reconnect to check.',
       SyncPlayMembershipFreshness.uncertain => uncertain,
       SyncPlayMembershipFreshness.confirmed =>
         room.canControl ? connected : synchronizing,
@@ -589,7 +654,9 @@ class SyncPlayStrings {
       zh ? '已依本機快取預算調整目標。' : 'Target adjusted to the local cache budget.';
 
   String localPlaybackStatus(
-      SyncPlayControllerState room, SyncPlayPrebufferDecision? prebuffer) {
+    SyncPlayControllerState room,
+    SyncPlayPrebufferDecision? prebuffer,
+  ) {
     switch (room.waitParticipation) {
       case SyncPlayWaitParticipation.ignoring:
         return zh
@@ -617,12 +684,14 @@ class SyncPlayStrings {
         break;
     }
     return switch (prebuffer?.status) {
-      SyncPlayPrebufferStatus.fallbackReady => zh
-          ? '本機可跟隨播放；緩衝量仍未知。'
-          : 'This player can follow playback; the buffer amount is still unknown.',
-      SyncPlayPrebufferStatus.stale => zh
-          ? '本機緩衝樣本已過期，等待重新量測…'
-          : 'Local buffer sample is out of date; waiting for a new measurement…',
+      SyncPlayPrebufferStatus.fallbackReady =>
+        zh
+            ? '本機可跟隨播放；緩衝量仍未知。'
+            : 'This player can follow playback; the buffer amount is still unknown.',
+      SyncPlayPrebufferStatus.stale =>
+        zh
+            ? '本機緩衝樣本已過期，等待重新量測…'
+            : 'Local buffer sample is out of date; waiting for a new measurement…',
       SyncPlayPrebufferStatus.preparing ||
       SyncPlayPrebufferStatus.playerWaiting =>
         zh ? '本機播放器準備中…' : 'Preparing this player…',
@@ -630,24 +699,26 @@ class SyncPlayStrings {
         zh ? '本機預緩衝中…' : 'Prebuffering on this player…',
       SyncPlayPrebufferStatus.unknown =>
         zh ? '尚未取得本機緩衝量測…' : 'Local buffer measurements are not available yet…',
-      SyncPlayPrebufferStatus.timedOut => zh
-          ? '本機等待已達上限，正在確認後續同步…'
-          : 'Local waiting reached its limit; checking how to continue…',
+      SyncPlayPrebufferStatus.timedOut =>
+        zh
+            ? '本機等待已達上限，正在確認後續同步…'
+            : 'Local waiting reached its limit; checking how to continue…',
       SyncPlayPrebufferStatus.ready =>
         zh ? '本機可跟隨播放。' : 'This player can follow playback.',
-      null => room.mediaReady == true
-          ? (zh ? '本機可跟隨播放。' : 'This player can follow playback.')
-          : room.mediaReady == false
-              ? (zh ? '等待本機播放器就緒…' : 'Waiting for this player to be ready…')
-              : (zh
+      null =>
+        room.mediaReady == true
+            ? (zh ? '本機可跟隨播放。' : 'This player can follow playback.')
+            : room.mediaReady == false
+            ? (zh ? '等待本機播放器就緒…' : 'Waiting for this player to be ready…')
+            : (zh
                   ? '尚未取得本機緩衝狀態…'
                   : 'Local buffer status is not available yet…'),
     };
   }
 
-  String get uncertain => zh
-      ? '目前無法確認房間狀態。請重新連線確認，避免重複建立房間。'
-      : 'Room state is unconfirmed. Reconnect to check before creating another room.';
+  String get uncertain => zh ? '房間狀態尚未確認。' : 'Room state is unconfirmed.';
+  String get recovering => zh ? '正在重新確認房間…' : 'Checking room connection…';
+  String get recoveryPaused => zh ? '自動重連已暫停。' : 'Automatic reconnect paused.';
   String get reconnect => zh ? '重新連線並確認' : 'Reconnect and check';
   String get create => zh ? '以目前影片建立房間' : 'Create room with this video';
   String get join => zh ? '加入房間' : 'Join room';
@@ -672,30 +743,37 @@ class SyncPlayStrings {
       ? '房間碼用來尋找房間，不是密碼。同一伺服器有權限的使用者仍可能從其他客戶端看到房間；每人只能播放自己帳號有權限的影片。'
       : 'The code locates a room; it is not a password. Other authorized users on the server may see the room in other clients. Each participant needs their own permission to play the video.';
   String failure(SyncPlayFailureCode code) => switch (code) {
-        SyncPlayFailureCode.invalidCode =>
-          zh ? '請輸入 6 位數字房間碼。' : 'Enter a six-digit room code.',
-        SyncPlayFailureCode.noGroup => zh
-            ? '找不到這個房間，請確認房間碼與 Jellyfin 伺服器。'
-            : 'Room not found. Check the code and Jellyfin server.',
-        SyncPlayFailureCode.ambiguousCode => zh
-            ? '房間碼重複，請房間建立者更換房間碼。'
-            : 'Multiple rooms use this code. Ask the creator to choose another code.',
-        SyncPlayFailureCode.denied => zh
-            ? '伺服器拒絕此操作，請確認帳號及影片權限。'
-            : 'The server denied the action. Check account and media permissions.',
-        SyncPlayFailureCode.timeoutUnknown => zh
-            ? '伺服器確認逾時，請重新連線確認房間狀態。'
-            : 'Confirmation timed out. Reconnect to check the room state.',
-        SyncPlayFailureCode.disconnected =>
-          zh ? '連線已中斷，請重新連線。' : 'Connection lost. Please reconnect.',
-        SyncPlayFailureCode.clock => zh
-            ? '尚未完成時間同步，請稍候或重新連線。'
-            : 'Clock synchronization is incomplete. Wait or reconnect.',
-        SyncPlayFailureCode.player => zh
-            ? '無法載入房間影片，請確認觀看權限與播放器。'
-            : 'Unable to load the room video. Check media permission and the player.',
-        _ => zh
-            ? '無法完成操作，請確認房間狀態後再試。'
-            : 'Unable to complete the action. Check the room state before trying again.',
-      };
+    SyncPlayFailureCode.invalidCode =>
+      zh ? '請輸入 6 位數字房間碼。' : 'Enter a six-digit room code.',
+    SyncPlayFailureCode.noGroup =>
+      zh
+          ? '找不到這個房間，請確認房間碼與 Jellyfin 伺服器。'
+          : 'Room not found. Check the code and Jellyfin server.',
+    SyncPlayFailureCode.ambiguousCode =>
+      zh
+          ? '房間碼重複，請房間建立者更換房間碼。'
+          : 'Multiple rooms use this code. Ask the creator to choose another code.',
+    SyncPlayFailureCode.denied =>
+      zh
+          ? '伺服器拒絕此操作，請確認帳號及影片權限。'
+          : 'The server denied the action. Check account and media permissions.',
+    SyncPlayFailureCode.timeoutUnknown =>
+      zh
+          ? '伺服器確認逾時，請重新連線確認房間狀態。'
+          : 'Confirmation timed out. Reconnect to check the room state.',
+    SyncPlayFailureCode.disconnected =>
+      zh ? '連線已中斷，請重新連線。' : 'Connection lost. Please reconnect.',
+    SyncPlayFailureCode.clock =>
+      zh
+          ? '尚未完成時間同步，請稍候或重新連線。'
+          : 'Clock synchronization is incomplete. Wait or reconnect.',
+    SyncPlayFailureCode.player =>
+      zh
+          ? '無法載入房間影片，請確認觀看權限與播放器。'
+          : 'Unable to load the room video. Check media permission and the player.',
+    _ =>
+      zh
+          ? '無法完成操作，請確認房間狀態後再試。'
+          : 'Unable to complete the action. Check the room state before trying again.',
+  };
 }
