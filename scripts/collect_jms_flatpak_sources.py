@@ -2,12 +2,18 @@
 import argparse
 import hashlib
 import io
+import errno
+import http.client
 import json
 import re
 import shutil
 import subprocess
 import tarfile
 import tempfile
+import time
+import socket
+import ssl
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -25,20 +31,69 @@ def git(*args, cwd=ROOT):
     return subprocess.check_output(['git', *args], cwd=cwd)
 
 
+def _transient_download_error(error):
+    if isinstance(error, urllib.error.HTTPError):
+        return error.code in {408, 429, 500, 502, 503, 504}
+    if isinstance(error, urllib.error.URLError):
+        error = error.reason
+    if isinstance(error, ssl.SSLError):
+        return False  # Never retry certificate/verification or TLS policy errors.
+    if isinstance(error, socket.gaierror):
+        return error.errno == socket.EAI_AGAIN
+    return isinstance(error, (TimeoutError, ConnectionError, http.client.IncompleteRead)) or (
+        isinstance(error, OSError) and error.errno in {
+            errno.ETIMEDOUT, errno.ECONNRESET, errno.ECONNABORTED,
+            errno.EHOSTUNREACH, errno.ENETUNREACH,
+        })
+
+
 def download(url, destination, expected, limit=256 * 1024 * 1024):
     if not url.startswith('https://') or not re.fullmatch('[a-f0-9]{64}', expected):
         raise ValueError('Pinned HTTPS source archive required')
-    with urllib.request.urlopen(url, timeout=60) as response, destination.open('wb') as stream:
-        count = 0
-        digest = hashlib.sha256()
-        while block := response.read(1024 * 1024):
-            count += len(block)
-            if count > limit:
-                raise ValueError('Source archive exceeds bounded download size')
-            digest.update(block)
-            stream.write(block)
-    if digest.hexdigest() != expected:
-        raise ValueError('Source archive SHA256 differs')
+    if not isinstance(limit, int) or isinstance(limit, bool) or limit <= 0:
+        raise ValueError('Positive bounded source size required')
+    # Retry only transient connect/read failures, at most three times, against
+    # the identical pinned URL. Each attempt starts with an empty private file.
+    for attempt in range(3):
+        with tempfile.TemporaryDirectory(prefix='.jms-source-download-', dir=destination.parent) as temporary:
+            partial = Path(temporary) / 'archive.partial'
+            try:
+                response = urllib.request.urlopen(url, timeout=60)
+            except Exception as error:
+                if attempt == 2 or not _transient_download_error(error):
+                    raise
+            else:
+                retry = False
+                with response:
+                    final_url = response.geturl()
+                    if not isinstance(final_url, str) or not final_url.startswith('https://'):
+                        raise ValueError('Source archive response left pinned HTTPS transport')
+                    with partial.open('wb') as stream:
+                        count = 0
+                        digest = hashlib.sha256()
+                        while True:
+                            try:
+                                block = response.read(1024 * 1024)
+                            except Exception as error:
+                                if attempt == 2 or not _transient_download_error(error):
+                                    raise
+                                retry = True
+                                break
+                            if not block:
+                                break
+                            count += len(block)
+                            if count > limit:
+                                raise ValueError('Source archive exceeds bounded download size')
+                            digest.update(block)
+                            stream.write(block)
+                if not retry:
+                    # Integrity and local file failures are never retried.
+                    if digest.hexdigest() != expected:
+                        raise ValueError('Source archive SHA256 differs')
+                    partial.replace(destination)
+                    return
+        # Discard the partial before waiting. Fixed delays total only 3 seconds.
+        time.sleep(attempt + 1)
 
 
 def export_git(repository, commit, archive, prefix, depth=0):
