@@ -317,19 +317,20 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
     final isolateControlSession = !kIsWeb &&
         ref.read(applicationInfoProvider).platform == TargetPlatform.windows;
     var controlHeaders = playbackHeaders;
+    var controlDeviceId = account.credentials.deviceId;
     if (isolateControlSession) {
       final random = Random.secure();
       final nonce = List.generate(
               16, (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'))
           .join();
-      // Jellyfin keys sessions by Client + DeviceId. Capture a distinct control
-      // session so an unknown old Leave cannot remove a later explicit room.
-      // Playback, saved credentials, DeviceId and the installed identity stay
-      // on their original session; closing control cannot stop a solo stream.
+      // Older room sockets resolve Client from the authentication token and
+      // DeviceId from the query. Omit Client on control REST too, so both paths
+      // share that token client and one fresh control-only DeviceId. An old
+      // Leave cannot address a replacement room or the saved playback session.
+      controlDeviceId = 'jms-syncplay-$nonce';
       controlHeaders = Map<String, String>.unmodifiable(account.credentials
           .header(ref,
-              clientName:
-                  '${ref.read(applicationInfoProvider).name} SyncPlay $nonce'));
+              deviceIdOverride: controlDeviceId, includeClient: false));
     }
     final api = createJellyfinApiForAccount(
         ref, account.credentials.url, controlHeaders,
@@ -340,7 +341,7 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
         api: api,
         baseUri: Uri.parse(account.credentials.url),
         token: account.credentials.token,
-        deviceId: account.credentials.deviceId,
+        deviceId: controlDeviceId,
         socketHeaders: isolateControlSession ? controlHeaders : null,
         isCurrent: current,
       );

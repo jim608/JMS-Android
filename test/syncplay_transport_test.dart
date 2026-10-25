@@ -373,7 +373,7 @@ void main() {
     });
     await fixture.transport.connect();
     expect((await fixture.transport.listGroups()).single.code, '012345');
-    expect((await fixture.transport.newGroup('JMS-012345')).groupId, groupId);
+    expect((await fixture.transport.newGroup('JMS-012345'))?.groupId, groupId);
     await fixture.transport.joinGroup(groupId);
     final clock = await fixture.transport.getServerTime();
     expect(clock.requestReceptionTime, DateTime.parse(now));

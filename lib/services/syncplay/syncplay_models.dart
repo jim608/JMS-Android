@@ -281,7 +281,7 @@ class SyncPlayRequest {
 
 abstract interface class SyncPlayApiPort {
   Future<List<SyncPlayGroup>> listGroups();
-  Future<SyncPlayGroup> newGroup(String groupName);
+  Future<SyncPlayGroup?> newGroup(String groupName);
   Future<void> joinGroup(String groupId);
   Future<void> leaveGroup();
   Future<void> sendRequest(SyncPlayRequest request);

@@ -30,7 +30,8 @@ abstract class CredentialsModel with _$CredentialsModel {
   factory CredentialsModel.createNewCredentials() =>
       CredentialsModel.internal(deviceId: Xid().toString());
 
-  Map<String, String> header(Ref ref, {String? clientName}) {
+  Map<String, String> header(Ref ref,
+      {String? deviceIdOverride, bool includeClient = true}) {
     final application = ref.read(applicationInfoProvider);
     final leanbackMode = ref.read(argumentsStateProvider).leanBackMode;
     final os = switch (application.platform) {
@@ -43,9 +44,10 @@ abstract class CredentialsModel with _$CredentialsModel {
           ? application.platform.name.capitalize()
           : "${application.platform.name.capitalize()} Web",
     };
+    final client = includeClient ? ', Client="${application.name}"' : '';
     final headers = {
       'authorization':
-          'MediaBrowser Token="$token", Client="${clientName ?? application.name}", Device="$os", DeviceId="$deviceId", Version="${application.version}"'
+          'MediaBrowser Token="$token"$client, Device="$os", DeviceId="${deviceIdOverride ?? deviceId}", Version="${application.version}"'
     };
     return headers;
   }

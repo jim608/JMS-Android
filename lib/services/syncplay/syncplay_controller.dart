@@ -546,6 +546,12 @@ class SyncPlayController {
       final group =
           await _bounded(_membershipRequest(() => _api.newGroup(name)));
       if (!_current(source, op) || state.isJoined) return;
+      if (group == null) {
+        // Legacy New returns only HTTP 204. Keep waiting for the matching
+        // authenticated GroupJoined; never infer a room from the request/code.
+        await _bounded(_confirmation!.future);
+        return;
+      }
       if (group.groupName != name) {
         throw const FormatException('Unexpected room');
       }

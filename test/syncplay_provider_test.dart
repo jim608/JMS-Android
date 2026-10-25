@@ -34,6 +34,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 const _group = '11111111111111111111111111111111';
 const _media = '22222222222222222222222222222222';
 const _queueEntry = '33333333333333333333333333333333';
+const _legacyTokenClient = 'JMS-legacy-token-client';
+typedef _SessionKey = ({String client, String deviceId});
 const _item = jellyfin.BaseItemDto(
     id: _media,
     name: 'Provider lifecycle fixture',
@@ -49,13 +51,23 @@ class _Server {
   final requests = <String>[];
   // Keep only the fields that define the synthetic server session. Never
   // retain a complete Authorization header or websocket URL in test evidence.
-  final identities = <({String endpoint, String? client, String? deviceId})>[];
+  final identities = <({
+    String endpoint,
+    String? client,
+    String? deviceId,
+    String? queryDeviceId,
+    _SessionKey session,
+  })>[];
+  final memberships = <_SessionKey, String>{};
+  final completedLeaves = <_SessionKey>[];
+  final _socketSessions = <WebSocket, _SessionKey>{};
   final newStarted = Completer<void>();
   final socketStarted = Completer<void>();
   Completer<void>? newGate;
   Completer<void>? upgradeGate;
   String? name;
   Map<String, dynamic>? queue;
+  bool legacyNewNoContent = false;
   bool leaveFails = false;
   bool leftBeforeLeaveResponse = false;
   Completer<void>? leaveGate;
@@ -87,9 +99,10 @@ class _Server {
     _subscription = _server.listen((request) => unawaited(_handle(request)));
   }
 
-  void emit(String type, Object? data) {
-    for (final socket
-        in sockets.where((socket) => socket.readyState == WebSocket.open)) {
+  void emit(String type, Object? data, {_SessionKey? session}) {
+    for (final socket in sockets.where((socket) =>
+        socket.readyState == WebSocket.open &&
+        (session == null || _socketSessions[socket] == session))) {
       socket.add(jsonEncode({
         'MessageType': 'SyncPlayGroupUpdate',
         'Data': {'GroupId': _group, 'Type': type, 'Data': data},
@@ -133,16 +146,31 @@ class _Server {
           request.headers.value(HttpHeaders.authorizationHeader) ?? '';
       String? field(String name) =>
           RegExp('$name="([^"]*)"').firstMatch(authorization)?.group(1);
+      final queryDeviceId = request.uri.queryParameters['deviceId'];
+      // Jellyfin's older websocket resolver ignores header Client and takes
+      // the token AppName plus query DeviceId. REST falls back to that AppName
+      // only when Client is absent. Use a different token name deliberately.
+      final session = (
+        client: endpoint == 'socket'
+            ? _legacyTokenClient
+            : field('Client') ?? _legacyTokenClient,
+        deviceId: endpoint == 'socket'
+            ? queryDeviceId ?? ''
+            : field('DeviceId') ?? '',
+      );
       identities.add((
         endpoint: endpoint,
         client: field('Client'),
-        deviceId: field('DeviceId') ?? request.uri.queryParameters['deviceId'],
+        deviceId: field('DeviceId') ?? queryDeviceId,
+        queryDeviceId: queryDeviceId,
+        session: session,
       ));
       if (request.uri.path.endsWith('/socket')) {
         if (!socketStarted.isCompleted) socketStarted.complete();
         await upgradeGate?.future;
         final socket = await WebSocketTransformer.upgrade(request);
         sockets.add(socket);
+        _socketSessions[socket] = session;
         socket.listen((_) {}, onDone: () => closedSockets++);
         return;
       }
@@ -172,25 +200,38 @@ class _Server {
           await _reply(request, name == null ? [] : [group]);
         case 'New':
           name = body['GroupName'] as String;
+          memberships[session] = name!;
           if (!newStarted.isCompleted) newStarted.complete();
           await newGate?.future;
           requests.add('New-completed');
-          emit('GroupJoined', group);
-          await _reply(request, group);
+          if (legacyNewNoContent) {
+            emit('GroupJoined', group, session: session);
+            await _reply(request, null, 204);
+          } else {
+            emit('GroupJoined', group);
+            await _reply(request, group);
+          }
         case 'Join':
+          if (name != null) memberships[session] = name!;
           if (!joinStarted.isCompleted) joinStarted.complete();
           await joinGate?.future;
           emit('GroupJoined', group);
           if (queue != null) emit('PlayQueue', queue);
           await _reply(request, null, 204);
         case 'Leave':
-          if (leftBeforeLeaveResponse) emit('GroupLeft', _group);
+          if (leftBeforeLeaveResponse) {
+            emit('GroupLeft', _group, session: session);
+          }
           if (!leaveStarted.isCompleted) leaveStarted.complete();
           await leaveGate?.future;
           if (leaveFails) {
             await _reply(request, {'error': 'synthetic failure'}, 503);
           } else {
-            if (!leftBeforeLeaveResponse) emit('GroupLeft', _group);
+            memberships.remove(session);
+            completedLeaves.add(session);
+            if (!leftBeforeLeaveResponse) {
+              emit('GroupLeft', _group, session: session);
+            }
             await _reply(request, null, 204);
           }
         case 'GetUtcTime':
@@ -932,48 +973,57 @@ void main() {
   }, timeout: const Timeout(Duration(seconds: 10)));
 
   test(
-      'Windows control Client isolates replacement rooms while playback and Android retain the original identity',
+      'Windows control DeviceId matches legacy REST and socket sessions and isolates late Leave',
       () async {
     for (final platform in [TargetPlatform.windows, TargetPlatform.android]) {
-      final server = _Server();
+      final server = _Server()
+        ..legacyNewNoContent = platform == TargetPlatform.windows;
       await server.start();
       final scope = _Scope(server, preferences, platform: platform);
       final originalCredentials = scope.account.credentials;
       final savedCredentials = jsonEncode(originalCredentials.toJson());
+      final windows = platform == TargetPlatform.windows;
+      final oldLeaveGate = Completer<void>();
       try {
         await scope.notifier.createRoom();
         await _until(
             () => scope.video.loaded.length == 1 && scope.state.room.canControl,
             'first control session ready');
-        final firstClient = server.identities
-            .firstWhere((identity) => identity.endpoint == 'New')
-            .client;
-        if (platform == TargetPlatform.windows) {
-          expect(firstClient, startsWith('JMS-test SyncPlay '));
-          expect(firstClient, isNot('JMS-test'));
-        } else {
-          expect(firstClient, 'JMS-test');
-        }
+        final first = server.identities
+            .firstWhere((identity) => identity.endpoint == 'New');
+        final firstSocket = server.identities
+            .singleWhere((identity) => identity.endpoint == 'socket');
+        expect(first.client, windows ? isNull : 'JMS-test');
+        expect(firstSocket.client, isNull);
         expect(
-            server.identities
-                .singleWhere((identity) => identity.endpoint == 'socket')
-                .client,
-            platform == TargetPlatform.windows ? firstClient : isNull);
-
-        server.leaveFails = true;
+            first.deviceId,
+            windows
+                ? isNot(originalCredentials.deviceId)
+                : originalCredentials.deviceId);
+        expect(firstSocket.queryDeviceId, first.deviceId);
+        if (windows) {
+          expect(firstSocket.deviceId, first.deviceId);
+          expect(first.session, firstSocket.session,
+              reason:
+                  'legacy REST and websocket must address the same session');
+          expect(first.session.client, _legacyTokenClient);
+          server.leaveGate = oldLeaveGate;
+        } else {
+          server.leaveFails = true;
+        }
         await scope.notifier.leaveRoom();
         await _until(() => scope.notifier.backgroundLeaveResult != null,
-            'first failed Leave retired');
+            'first failed Leave retired',
+            timeout: Duration(seconds: windows ? 11 : 3));
         expect(scope.notifier.backgroundLeaveResult?.status,
             SyncPlayStatus.unknown);
         expect(scope.state.room.status, SyncPlayStatus.idle);
         expect(scope.state.leavePending, false);
         await _until(() => server.closedSockets == 1, 'old socket closed');
-        expect(
-            server.identities
-                .singleWhere((identity) => identity.endpoint == 'Leave')
-                .client,
-            firstClient);
+        final firstLeave = server.identities
+            .singleWhere((identity) => identity.endpoint == 'Leave');
+        expect(firstLeave.session, first.session);
+        expect(firstLeave.client, first.client);
 
         // The old Leave result may still be unknown, but a new explicit room
         // must capture a different Windows session rather than reuse its key.
@@ -982,23 +1032,37 @@ void main() {
         await _until(
             () => scope.video.loaded.length == 2 && scope.state.room.canControl,
             'replacement control session ready');
-        final newClients = server.identities
+        final newSessions = server.identities
             .where((identity) => identity.endpoint == 'New')
-            .map((identity) => identity.client)
             .toList();
-        expect(newClients, hasLength(2));
-        final secondClient = newClients.last;
-        expect(
-            secondClient,
-            platform == TargetPlatform.windows
-                ? isNot(firstClient)
-                : 'JMS-test');
-        expect(
-            server.identities
-                .where((identity) => identity.endpoint == 'socket')
-                .last
-                .client,
-            platform == TargetPlatform.windows ? secondClient : isNull);
+        expect(newSessions, hasLength(2));
+        final second = newSessions.last;
+        final secondSocket = server.identities
+            .where((identity) => identity.endpoint == 'socket')
+            .last;
+        expect(second.client, windows ? isNull : 'JMS-test');
+        expect(secondSocket.client, isNull);
+        expect(secondSocket.queryDeviceId, second.deviceId);
+        if (windows) {
+          expect(second.session, secondSocket.session);
+          expect(second.deviceId, isNot(first.deviceId));
+          expect(second.deviceId, isNot(originalCredentials.deviceId));
+          expect(second.session.client, _legacyTokenClient);
+          expect(server.memberships[second.session], server.name);
+          // The original HTTP handler is still live after local cleanup. Its
+          // real late completion may remove only the captured old session.
+          oldLeaveGate.complete();
+          await _until(() => server.completedLeaves.contains(first.session),
+              'old Leave completed against its captured session');
+          expect(server.memberships.containsKey(first.session), isFalse);
+          expect(server.memberships[second.session], server.name);
+          expect(scope.state.room.isJoined, isTrue);
+          expect(scope.state.failure, isNull);
+          server.leaveGate = null;
+        } else {
+          expect(second.deviceId, originalCredentials.deviceId);
+          expect(second.session, first.session);
+        }
         await scope.notifier.leaveRoom();
         await _until(
             () => !scope.state.leavePending, 'replacement Leave ended');
@@ -1006,34 +1070,38 @@ void main() {
             server.identities
                 .where((identity) => identity.endpoint == 'Leave')
                 .last
-                .client,
-            secondClient);
+                .session,
+            second.session);
 
         for (final endpoint in [_media, 'PlaybackInfo']) {
           final playbackRequests = server.identities
               .where((identity) => identity.endpoint == endpoint);
           expect(playbackRequests, isNotEmpty);
           expect(
-              playbackRequests
-                  .every((identity) => identity.client == 'JMS-test'),
+              playbackRequests.every((identity) =>
+                  identity.client == 'JMS-test' &&
+                  identity.deviceId == originalCredentials.deviceId),
               isTrue,
               reason: 'playback keeps the saved account session');
         }
-        expect(
-            server.identities.every((identity) =>
-                identity.deviceId == originalCredentials.deviceId),
-            isTrue);
+        if (!windows) {
+          expect(
+              server.identities.every((identity) =>
+                  identity.deviceId == originalCredentials.deviceId),
+              isTrue);
+        }
         final retainedCredentials =
             scope.container.read(userProvider)!.credentials;
         expect(identical(retainedCredentials, originalCredentials), isTrue);
         expect(jsonEncode(retainedCredentials.toJson()) == savedCredentials,
             isTrue);
       } finally {
+        if (!oldLeaveGate.isCompleted) oldLeaveGate.complete();
         scope.dispose();
         await server.close();
       }
     }
-  }, timeout: const Timeout(Duration(seconds: 10)));
+  }, timeout: const Timeout(Duration(seconds: 20)));
 
   test('Leave GroupLeft before HTTP response never recaptures local controls',
       () async {

@@ -339,7 +339,7 @@ class SyncPlayTransport implements SyncPlayApiPort {
   }
 
   @override
-  Future<SyncPlayGroup> newGroup(String groupName) async {
+  Future<SyncPlayGroup?> newGroup(String groupName) async {
     if (!RegExp(r'^JMS-[0-9]{6}$').hasMatch(groupName)) {
       throw const SyncPlayFailure(SyncPlayFailureCode.invalidCode);
     }
@@ -349,6 +349,9 @@ class SyncPlayTransport implements SyncPlayApiPort {
       ambiguousMutation: true,
       requiresSocket: true,
     );
+    // Jellyfin <=10.10 acknowledges New with 204 and confirms the exact room
+    // through GroupJoined. An empty successful response is not membership.
+    if (response.statusCode == 204) return null;
     try {
       return SyncPlayGroup.fromJson(response.body!.toJson());
     } catch (_) {
