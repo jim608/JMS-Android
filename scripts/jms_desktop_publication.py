@@ -3,6 +3,8 @@ import configparser
 import json
 import io
 import hashlib
+import os
+import shutil
 import re
 import subprocess
 import tarfile
@@ -275,15 +277,32 @@ def flatpak_ci_artifact(github, run_id, name, head):
 
 def download_flatpak_ci_artifact(github, artifact, downloaded):
     prefix = 'repos/jim608/JMS-Android/actions/'
-    with downloaded.open('wb') as output:
-        try:
-            result = subprocess.run(['rtk', 'proxy', str(github.executable), 'api',
-                prefix + 'artifacts/' + str(artifact['id']) + '/zip'], cwd=ROOT,
-                env=github.environment, stdout=output, stderr=subprocess.PIPE, timeout=600)
-        except subprocess.TimeoutExpired as error:
-            raise ReleaseError('Flatpak CI artifact download timed out') from error
-    if result.returncode != 0:
-        raise ReleaseError('Flatpak CI artifact download failed')
+    # API identity, run/steps and member binding checks still run in the caller.
+    # The optional cache is untrusted: both it and the copied output must match
+    # the authenticated GitHub artifact digest/size. No cached verdict is used.
+    digest = artifact.get('digest', '')
+    if (not re.fullmatch(r'sha256:[a-f0-9]{64}', digest)
+            or type(artifact.get('size_in_bytes')) is not int
+            or not 0 < artifact['size_in_bytes'] <= MAX_CI_ARCHIVE_BYTES):
+        raise ReleaseError('Invalid Flatpak CI artifact metadata')
+    cache_root = os.environ.get('JMS_CI_ARTIFACT_CACHE')
+    cached = Path(cache_root) / (digest.removeprefix('sha256:') + '.zip') if cache_root else None
+    if cached is not None and (cached.exists() or cached.is_symlink()):
+        if (cached.is_symlink() or not cached.is_file()
+                or cached.stat().st_size != artifact['size_in_bytes']
+                or sha256(cached) != digest.removeprefix('sha256:')):
+            raise ReleaseError('Cached Flatpak CI archive differs from GitHub metadata')
+        shutil.copyfile(cached, downloaded)
+    else:
+        with downloaded.open('wb') as output:
+            try:
+                result = subprocess.run(['rtk', 'proxy', str(github.executable), 'api',
+                    prefix + 'artifacts/' + str(artifact['id']) + '/zip'], cwd=ROOT,
+                    env=github.environment, stdout=output, stderr=subprocess.PIPE, timeout=600)
+            except subprocess.TimeoutExpired as error:
+                raise ReleaseError('Flatpak CI artifact download timed out') from error
+        if result.returncode != 0:
+            raise ReleaseError('Flatpak CI artifact download failed')
     if (downloaded.stat().st_size != artifact['size_in_bytes']
             or downloaded.stat().st_size > MAX_CI_ARCHIVE_BYTES
             or sha256(downloaded) != artifact['digest'].removeprefix('sha256:')):
