@@ -98,6 +98,7 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
   bool _homeMode = false;
   bool _preparingPlayback = false;
   bool _localLeaveIntent = false;
+  Future<void>? _leaveSettlement;
 
   SyncPlayViewState _view(
           {SyncPlayControllerState? room,
@@ -151,6 +152,8 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
 
   int? beginHomeReconnect() {
     if (_disposed ||
+        _localLeaveIntent ||
+        (_controller?.leaveRequested ?? false) ||
         state.busy ||
         !canJoinFromHome ||
         !const {SyncPlayStatus.unknown, SyncPlayStatus.disconnected}
@@ -319,7 +322,7 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
         ref: ref,
         account: account,
         api: api,
-        isCurrent: current,
+        isCurrent: () => current() && !_localLeaveIntent,
         queue: () => current() ? _controller?.state.queue : null,
         createPlaybackApi: () => createJellyfinApiForAccount(
             ref, account.credentials.url, headers,
@@ -405,6 +408,22 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
       );
       _stateSubscription = controller.states.listen((room) {
         if (current()) {
+          if (_localLeaveIntent &&
+              !controller.leaveRequested &&
+              room.status == SyncPlayStatus.idle) {
+            state = _view(room: room);
+            // The controller stream is synchronous; disposal emits its final
+            // state, so release it after this notification has unwound.
+            scheduleMicrotask(() {
+              if (current() &&
+                  _localLeaveIntent &&
+                  !controller.leaveRequested &&
+                  controller.state.status == SyncPlayStatus.idle) {
+                _detach();
+              }
+            });
+            return;
+          }
           _bufferingReporter?.refreshQueue();
           _prebuffer?.refresh();
           if (_homeJoinAttempt != null &&
@@ -533,57 +552,110 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
 
   Future<void> createRoom() => _run(() async {
         if (!canCreate || !supported) return;
+        final operationId = _uiOperation;
         final itemId = ref.read(playBackModel)?.item.id;
         final position =
             ref.read(videoPlayerProvider).lastState?.position ?? Duration.zero;
         if (itemId == null || !await _ensureSession()) return;
+        if (_localLeaveIntent || operationId != _uiOperation) return;
         final controller = _controller!;
         final generation = _generation;
         final code = (100000 + Random.secure().nextInt(900000)).toString();
         await controller.createRoom(code);
         if (_disposed ||
+            _localLeaveIntent ||
+            operationId != _uiOperation ||
             generation != _generation ||
             !controller.state.isJoined) {
           return;
         }
         await controller.synchronizeClock();
-        if (_disposed || generation != _generation) return;
+        if (_disposed ||
+            _localLeaveIntent ||
+            operationId != _uiOperation ||
+            generation != _generation) {
+          return;
+        }
         await controller.setQueue([itemId], position: position);
       });
 
   Future<void> joinRoom(String code) => _run(() async {
+        final operationId = _uiOperation;
         if (!canJoin || !(_homeMode || supported) || !await _ensureSession()) {
           return;
         }
+        if (_localLeaveIntent || operationId != _uiOperation) return;
         await _controller!.joinRoom(code);
       });
 
-  Future<void> leaveRoom() => _run(() async {
-        _localLeaveIntent = true;
-        _recovery?.cancel();
-        _player?.cancelPendingActions();
-        final controller = _controller;
-        await controller?.leaveRoom();
-        if (identical(controller, _controller) &&
-            controller?.state.status == SyncPlayStatus.idle) {
+  /// Return solo control immediately. Server settlement has its own bounded
+  /// lifetime and must never keep the dialog or local player waiting.
+  Future<void> leaveRoom() async {
+    if (_disposed) return;
+    _releaseLocalSync();
+    final controller = _controller;
+    if (controller == null) {
+      _detach();
+      return;
+    }
+    unawaited(_settleLeave(controller));
+  }
+
+  Future<void> _settleLeave(SyncPlayController controller) {
+    final existing = _leaveSettlement;
+    if (existing != null) return existing;
+    late final Future<void> task;
+    task = () async {
+      try {
+        await controller.leaveRoom();
+        if (_disposed || !identical(controller, _controller)) return;
+        if (controller.state.status == SyncPlayStatus.idle) {
           _detach();
+        } else {
+          state = _view(room: controller.state);
         }
-      });
+      } finally {
+        if (identical(task, _leaveSettlement)) _leaveSettlement = null;
+      }
+    }();
+    _leaveSettlement = task;
+    return task;
+  }
+
+  void _releaseLocalSync() {
+    _localLeaveIntent = true;
+    ++_uiOperation; // Revoke New/Join continuations even while they are busy.
+    _homeJoinAttempt = null;
+    _readyHomeJoin = null;
+    _preparingPlayback = false;
+    _recovery?.cancel();
+    _player?.cancelPendingActions();
+    _bufferingReporter?.dispose();
+    _bufferingReporter = null;
+    _prebuffer?.dispose();
+    _prebuffer = null;
+    unawaited(_playerSubscription?.cancel());
+    _playerSubscription = null;
+    final wrapper = _wrapper;
+    _wrapper = null;
+    if (wrapper != null && identical(wrapper.syncPlayCommands, this)) {
+      wrapper.syncPlayCommands = null;
+    }
+    // Do not seek, reload, pause or play: preserve the current solo position
+    // and pause state, including a Pause pressed while room loading was busy.
+    state = _view(room: _controller?.state);
+  }
 
   Future<void> reconnect() => _run(() async {
         final transport = _transport;
         final controller = _controller;
         if (transport == null || controller == null) return;
-        if (controller.leaveRequested) {
-          _localLeaveIntent = true;
+        if (controller.leaveRequested || _localLeaveIntent) {
           _recovery?.cancel();
-          if (!transport.connected) await transport.reconnect();
+          // Leave uses authenticated HTTP and does not require reconnecting the
+          // room socket. A dead socket must not add another confirmation hoop.
           if (!identical(controller, _controller)) return;
-          await controller.leaveRoom();
-          if (identical(controller, _controller) &&
-              controller.state.status == SyncPlayStatus.idle) {
-            _detach();
-          }
+          await _settleLeave(controller);
           return;
         }
         if (!(_homeMode || supported) || !canJoin) return;
@@ -609,27 +681,7 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
 
   @override
   Future<void> stop() async {
-    if (_disposed) return;
-    _localLeaveIntent = true;
-    _recovery?.cancel();
-    // Stop is allowed during New/Join. Revoke in-flight player loads before
-    // waiting for a server acknowledgement, so closing cannot reopen playback.
-    _player?.cancelPendingActions();
-    final controller = _controller;
-    if (controller == null) return;
-    final operationId = ++_uiOperation;
-    state = _view(room: controller.state, busy: true);
-    try {
-      await controller.leaveRoom();
-      if (identical(controller, _controller) &&
-          controller.state.status == SyncPlayStatus.idle) {
-        _detach();
-      }
-    } finally {
-      if (!_disposed && operationId == _uiOperation) {
-        state = _view(room: controller.state);
-      }
-    }
+    await leaveRoom();
   }
 
   void _detach() {
@@ -651,6 +703,7 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
     final controller = _controller;
     final transport = _transport;
     _controller = null;
+    _leaveSettlement = null;
     _transport = null;
     _bufferingReporter?.dispose();
     _bufferingReporter = null;

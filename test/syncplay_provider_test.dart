@@ -538,7 +538,8 @@ void main() {
     final cancelled = scope.notifier.cancelHomeJoin(ticket);
     server.joinGate!.complete();
     await cancelled;
-    await _until(() => !scope.state.busy, 'join cleanup complete');
+    await _until(() => scope.state.room.status == SyncPlayStatus.idle,
+        'join cleanup complete');
     expect(server.requests.where((e) => e == 'Leave'), hasLength(1));
     expect(server.requests.where((e) => e == 'Ready'), isEmpty);
     expect(scope.container.exists(videoPlayerProvider), isFalse);
@@ -578,6 +579,8 @@ void main() {
     expect(server.requests.where((e) => e == 'PlaybackInfo'), isEmpty);
     expect(scope.notifier.beginHomeJoin('123456'), isNull);
     await scope.notifier.cancelHomeJoin(first);
+    await _until(() => scope.state.room.status == SyncPlayStatus.idle,
+        'explicit cleanup confirmed');
     server.itemStatus = 200;
     final second = scope.notifier.beginHomeJoin('123456')!;
     await _until(() => scope.state.readyHomeJoin == second, 'retry loaded');
@@ -634,6 +637,8 @@ void main() {
     final ticket = scope.notifier.beginHomeJoin('123456')!;
     await _until(() => scope.state.room.isJoined, 'joined empty room');
     await scope.notifier.cancelHomeJoin(ticket);
+    await _until(() => scope.state.room.status == SyncPlayStatus.unknown,
+        'failed background cleanup');
     expect(scope.state.room.status, SyncPlayStatus.unknown);
     expect(scope.notifier.beginHomeJoin('123456'), isNull);
     expect(scope.container.exists(videoPlayerProvider), isFalse);
@@ -659,9 +664,7 @@ void main() {
     expect(scope.state.readyHomeJoin, isNull);
   });
 
-  test(
-      'new reconnect ticket cannot revive a cancelled queued player preparation',
-      () async {
+  test('explicit cancel cannot be revived by a new reconnect ticket', () async {
     final server = _Server()
       ..name = 'JMS-123456'
       ..queue = homeQueue()
@@ -671,15 +674,18 @@ void main() {
     final first = scope.notifier.beginHomeJoin('123456')!;
     await _until(() => scope.video.prepares == 1, 'first preparation pending');
     await scope.notifier.cancelHomeJoin(first);
+    await _until(() => scope.state.room.status == SyncPlayStatus.unknown,
+        'failed background cleanup');
     expect(scope.state.room.status, SyncPlayStatus.unknown);
-    final second = scope.notifier.beginHomeReconnect()!;
-    await _until(() => scope.video.prepares == 2, 'new exact-room preparation');
+    expect(scope.notifier.beginHomeReconnect(), isNull);
     scope.video.prepareGate!.complete();
-    await _until(() => scope.state.readyHomeJoin == second, 'new ticket ready');
-    expect(scope.video.preparedCurrent, [false, true]);
-    expect(scope.video.loaded, hasLength(1));
+    await _until(() => scope.video.preparedCurrent.isNotEmpty,
+        'cancelled preparation returns');
+    expect(scope.video.preparedCurrent, [false]);
+    expect(scope.video.prepares, 1);
+    expect(scope.video.loaded, isEmpty);
     expect(scope.notifier.consumeHomeJoin(first), isFalse);
-    expect(scope.notifier.consumeHomeJoin(second), isTrue);
+    expect(scope.state.readyHomeJoin, isNull);
     server.leaveFails = false;
     await scope.notifier.stop();
   });
@@ -828,7 +834,7 @@ void main() {
     expect(server.requests.where((item) => item == 'Leave'), isEmpty);
     server.newGate!.complete();
     await Future.wait([creating, stopping]);
-    await _until(() => !scope.state.busy && !scope.notifier.active,
+    await _until(() => scope.state.room.status == SyncPlayStatus.idle,
         'stopped provider detaches');
     expect(server.requests.indexOf('New-completed'),
         lessThan(server.requests.indexOf('Leave')));
@@ -855,10 +861,14 @@ void main() {
         'initial real adapter load');
     server.leaveFails = true;
     await scope.notifier.leaveRoom();
+    expect(scope.state.busy, false);
+    expect(scope.wrapper.syncPlayCommands, isNull);
+    await _until(() => scope.state.room.status == SyncPlayStatus.unknown,
+        'failed background leave');
     expect(scope.state.room.status, SyncPlayStatus.unknown);
     expect(scope.notifier.active, false);
     expect(scope.state.leavePending, true);
-    expect(scope.wrapper.syncPlayCommands, same(scope.notifier));
+    expect(scope.wrapper.syncPlayCommands, isNull);
     // Leaving must remain available even if the failed player has lost its model.
     scope.container.read(playBackModel.notifier).state = null;
     final joins = server.requests.where((item) => item == 'Join').length;
@@ -913,13 +923,89 @@ void main() {
     await server.leaveStarted.future;
     await _until(() => scope.state.room.status == SyncPlayStatus.idle,
         'authoritative GroupLeft');
-    expect(scope.state.busy, true);
+    expect(scope.state.busy, false);
     expect(scope.notifier.active, false);
-    expect(scope.wrapper.syncPlayCommands?.active, false);
+    expect(scope.wrapper.syncPlayCommands, isNull);
     gate.complete();
     await leaving;
     expect(scope.wrapper.syncPlayCommands, isNull);
   }, timeout: const Timeout(Duration(seconds: 10)));
+
+  test(
+      'one Leave bypasses busy New and returns solo before any server response',
+      () async {
+    final server = _Server()..newGate = Completer<void>();
+    await server.start();
+    final scope = _Scope(server, preferences);
+    addTearDown(() async {
+      scope.dispose();
+      await server.close();
+    });
+    scope.wrapper.raw.position = const Duration(seconds: 37);
+    scope.wrapper.raw.playing = false;
+    final creating = scope.notifier.createRoom();
+    await server.newStarted.future;
+    expect(scope.state.busy, true);
+    final pauses = scope.wrapper.pauses;
+    await scope.notifier.leaveRoom();
+    expect(scope.notifier.active, false);
+    expect(scope.state.busy, false);
+    expect(scope.state.leavePending, true);
+    expect(scope.wrapper.syncPlayCommands, isNull);
+    expect(scope.wrapper.raw.position, const Duration(seconds: 37));
+    expect(scope.wrapper.raw.playing, false);
+    expect(scope.wrapper.pauses, pauses);
+    expect(server.requests.where((e) => e == 'Leave'), isEmpty);
+    await scope.notifier.createRoom();
+    expect(server.requests.where((e) => e == 'New'), hasLength(1));
+    server.newGate!.complete();
+    await creating;
+    await _until(() => scope.state.room.status == SyncPlayStatus.idle,
+        'late New cleaned without playback');
+    expect(server.requests.where((e) => e == 'Leave'), hasLength(1));
+    expect(server.requests.where((e) => e == 'SetNewQueue'), isEmpty);
+    expect(scope.video.loaded, isEmpty);
+  });
+
+  test('stalled Leave does not own local player or duplicate a manual retry',
+      () async {
+    final server = _Server();
+    await server.start();
+    final scope = _Scope(server, preferences);
+    final gate = Completer<void>();
+    addTearDown(() async {
+      if (!gate.isCompleted) gate.complete();
+      scope.dispose();
+      await server.close();
+    });
+    await scope.notifier.createRoom();
+    await _until(
+        () => scope.video.loaded.length == 1 && scope.state.room.canControl,
+        'initial adapter ready');
+    scope.wrapper.raw.position = const Duration(seconds: 24);
+    scope.wrapper.raw.playing = true;
+    server.leaveGate = gate;
+    await scope.notifier.leaveRoom();
+    await server.leaveStarted.future;
+    expect(scope.state.busy, false);
+    expect(scope.wrapper.syncPlayCommands, isNull);
+    expect(scope.wrapper.raw.playing, true);
+    expect(scope.wrapper.raw.position, const Duration(seconds: 24));
+    final retry = scope.notifier.reconnect();
+    final duplicate = scope.notifier.reconnect();
+    await duplicate;
+    expect(server.requests.where((e) => e == 'Leave'), hasLength(1));
+    server
+        .unpause(); // A late room command cannot seek or replay solo playback.
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    expect(scope.wrapper.raw.position, const Duration(seconds: 24));
+    gate.complete();
+    await retry;
+    await _until(
+        () => !scope.state.leavePending, 'late acknowledgement confirmed');
+    expect(scope.wrapper.syncPlayCommands, isNull);
+    expect(server.requests.where((e) => e == 'Join'), isEmpty);
+  });
 
   test('account switch during New revokes old UI, player and socket callbacks',
       () async {

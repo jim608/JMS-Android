@@ -171,7 +171,7 @@ void main() {
     var joins = 0;
     await panel(tester, join: (_) async => joins++);
     expect(find.text('Create room with this video'), findsNothing);
-    expect(find.textContaining('choose a video first'), findsOneWidget);
+    expect(find.textContaining('choose a video first'), findsNothing);
     expect(tester.widget<TextField>(find.byType(TextField)).enabled, isTrue);
     await tester.enterText(find.byType(TextField), '123456');
     await tester.pump();

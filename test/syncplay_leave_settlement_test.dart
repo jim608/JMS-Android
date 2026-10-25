@@ -50,6 +50,95 @@ void main() {
     await fixture.settle();
   }
 
+  for (final playing in [false, true]) {
+    test('leave immediately revokes sync while preserving playing=$playing',
+        () async {
+      await joined();
+      final group = controller.state.group!;
+      player.position = const Duration(seconds: 37);
+      player.isPlaying = playing;
+      final before = player.actions.length;
+      final cancellations = player.cancellations;
+      // Both a scheduled command and later websocket updates must lose control
+      // as soon as Leave is pressed, before the HTTP request can settle.
+      server.command(group, 'Unpause');
+      api.leaveGate = Completer<void>();
+      final leaving = controller.leaveRoom();
+      expect(controller.leaveRequested, isTrue);
+      expect(controller.state.canControl, isFalse);
+      expect(controller.state.status, SyncPlayStatus.leaving);
+      expect(player.cancellations, greaterThan(cancellations));
+      expect(player.position, const Duration(seconds: 37));
+      expect(player.isPlaying, playing);
+      server.confirm(api);
+      server.command(group, 'Pause', delay: Duration.zero);
+      await world.advance(const Duration(seconds: 11));
+      await leaving;
+      expect(player.actions.length, before);
+      expect(player.isPlaying, playing);
+      expect(controller.state.status, SyncPlayStatus.unknown);
+      expect(controller.state.canControl, isFalse);
+      api.leaveGate!.complete();
+      await fixture.settle();
+      expect(controller.state.status, SyncPlayStatus.idle);
+      expect(player.actions.length, before);
+      expect(player.isPlaying, playing);
+    });
+  }
+
+  test('leave has one total budget across pending New and Leave', () async {
+    api.confirmJoins = false;
+    api.newResult = Completer<SyncPlayGroup>();
+    final creating = controller.createRoom('001234');
+    await fixture.settle();
+    api.leaveGate = Completer<void>();
+    final leaving = controller.leaveRoom();
+    await world.advance(const Duration(seconds: 9));
+    expect(api.leaveRequests, 0);
+    api.newResult!.complete(server.groupFor(api)!);
+    await fixture.settle();
+    expect(api.leaveRequests, 1);
+    await world.advance(const Duration(seconds: 2));
+    await Future.wait([creating, leaving]);
+    expect(controller.state.status, SyncPlayStatus.unknown);
+    expect(controller.leaveRequested, isTrue);
+    expect(controller.state.canControl, isFalse);
+    server.confirm(api);
+    await fixture.settle();
+    expect(controller.state.status, SyncPlayStatus.unknown);
+    expect(server.newCalls, 1);
+    expect(server.joinCalls, 0);
+    api.leaveGate!.complete();
+    await fixture.settle();
+    expect(controller.state.status, SyncPlayStatus.idle);
+  });
+
+  test('manual retries of a still-live Leave stay bounded and single flight',
+      () async {
+    await joined();
+    api.leaveGate = Completer<void>();
+    final first = controller.leaveRoom();
+    await world.advance(const Duration(seconds: 11));
+    await first;
+    for (var retry = 0; retry < 2; retry++) {
+      final attempt = controller.leaveRoom();
+      expect(identical(attempt, controller.leaveRoom()), isTrue);
+      expect(controller.state.status, SyncPlayStatus.leaving);
+      await world.advance(const Duration(seconds: 11));
+      await attempt;
+      expect(controller.state.status, SyncPlayStatus.unknown);
+      expect(
+          controller.state.failure?.code, SyncPlayFailureCode.timeoutUnknown);
+      expect(controller.leaveRequested, isTrue);
+      expect(api.leaveRequests, 1);
+      expect(server.joinCalls, 0);
+    }
+    api.leaveGate!.complete();
+    await fixture.settle();
+    expect(controller.state.status, SyncPlayStatus.idle);
+    expect(controller.leaveRequested, isFalse);
+  });
+
   test('leave timeout then reconnect settles one Leave without any Join',
       () async {
     await joined();
@@ -101,20 +190,36 @@ void main() {
     expect(controller.state.status, SyncPlayStatus.idle);
   });
 
-  test('leave while disconnected retains intent and never automatic rejoins',
-      () async {
+  test('leave uses HTTP while the room socket is disconnected', () async {
     await joined();
     controller.setConnected(false);
     await controller.leaveRoom();
+    expect(api.leaveRequests, 1);
+    expect(controller.state.status, SyncPlayStatus.idle);
+    expect(controller.state.connected, isFalse);
+    expect(controller.leaveRequested, isFalse);
+    expect(server.joinCalls, 0);
+  });
+
+  test('failed offline Leave retries without reconnecting or automatic rejoin',
+      () async {
+    await joined();
+    controller.setConnected(false);
+    api.leaveError = const SyncPlayFailure(SyncPlayFailureCode.server);
+    await controller.leaveRoom();
     expect(controller.leaveRequested, isTrue);
     expect(controller.state.status, SyncPlayStatus.unknown);
+    await controller.reconnect(automatic: true);
+    expect(server.joinCalls, 0);
+    expect(api.leaveRequests, 1);
+    api.leaveError = null;
+    await controller.reconnect();
+    expect(api.leaveRequests, 2);
+    expect(controller.state.status, SyncPlayStatus.idle);
+    expect(controller.state.connected, isFalse);
     controller.setConnected(true);
     await controller.reconnect(automatic: true);
     expect(server.joinCalls, 0);
-    expect(api.leaveRequests, 0);
-    await controller.reconnect();
-    expect(api.leaveRequests, 1);
-    expect(controller.state.status, SyncPlayStatus.idle);
   });
 
   test('leave completed HTTP error allows explicit Leave retry but never Join',

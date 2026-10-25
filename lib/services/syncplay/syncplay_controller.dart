@@ -611,7 +611,8 @@ class SyncPlayController {
 
   void _confirmGroup(SyncPlayGroup group) {
     final id = syncPlayId(group.groupId);
-    if (!_awaitingConfirmation ||
+    if (_leaveRequested ||
+        !_awaitingConfirmation ||
         _automaticRecoveryCurrent?.call() == false ||
         group.groupName != _expectedGroupName ||
         (_expectedGroupId != null && id != _expectedGroupId)) {
@@ -670,54 +671,10 @@ class SyncPlayController {
     _clockRequestEpoch = null;
     _emit();
     try {
-      if (!_connected) {
-        throw const SyncPlayFailure(SyncPlayFailureCode.disconnected);
-      }
-      await _settleIgnoreMutation();
-      if (!_current(source, op)) return;
-      if (pending != null) {
-        final outcome = await _bounded(pending);
-        if (!_current(source, op)) return;
-        if (outcome != null &&
-            outcome.code != SyncPlayFailureCode.denied &&
-            outcome.code != SyncPlayFailureCode.noGroup) {
-          throw const SyncPlayFailure(SyncPlayFailureCode.timeoutUnknown);
-        }
-      } else if (_group == null) {
-        _clearMembership();
-        return;
-      }
-      var rest = _leaveRest;
-      if (rest == null) {
-        final result = Completer<void>();
-        rest = result.future.then<SyncPlayFailure?>((_) => null,
-            onError: (Object error, StackTrace _) => _safeFailure(error));
-        _leaveRest = rest;
-        final request = rest;
-        // A timeout retires this await, not the real Leave request. Keep the
-        // intent and settle a late acknowledgement without ever issuing Join.
-        unawaited(request.then<void>((failure) {
-          if (!_current(source) ||
-              !_leaveRequested ||
-              !identical(_leaveRest, request)) {
-            return;
-          }
-          if (failure == null) {
-            _clearMembership();
-          } else {
-            _leaveRest =
-                null; // The actual request ended; explicit retry may act.
-            _failure = failure;
-            _status = SyncPlayStatus.unknown;
-            _emit();
-          }
-        }));
-        Future<void>.sync(_api.leaveGroup)
-            .then(result.complete, onError: result.completeError);
-      }
-      final outcome = await _bounded(rest);
-      if (outcome != null) throw outcome;
-      if (_current(source, op)) _clearMembership();
+      // One budget covers prior mutations and Leave together. Sequential
+      // per-request timeouts must not keep the UI in a pending state for
+      // several budgets; the real request remains tracked for its late ACK.
+      await _bounded(_settleLeave(source, op, pending));
     } catch (error) {
       if (_current(source, op)) {
         _failure = _safeFailure(error);
@@ -725,6 +682,57 @@ class SyncPlayController {
         _emit();
       }
     }
+  }
+
+  Future<void> _settleLeave(
+      int source, int op, Future<SyncPlayFailure?>? pending) async {
+    // Leave is authenticated HTTP and does not require a live room socket.
+    // A lost websocket must not force the user through reconnect or rejoin.
+    await _settleIgnoreMutation();
+    if (!_current(source, op)) return;
+    if (pending != null) {
+      final outcome = await pending;
+      if (!_current(source, op)) return;
+      if (outcome != null &&
+          outcome.code != SyncPlayFailureCode.denied &&
+          outcome.code != SyncPlayFailureCode.noGroup) {
+        throw const SyncPlayFailure(SyncPlayFailureCode.timeoutUnknown);
+      }
+    } else if (_group == null) {
+      _clearMembership();
+      return;
+    }
+    var rest = _leaveRest;
+    if (rest == null) {
+      final result = Completer<void>();
+      rest = result.future.then<SyncPlayFailure?>((_) => null,
+          onError: (Object error, StackTrace _) => _safeFailure(error));
+      _leaveRest = rest;
+      final request = rest;
+      // A timeout retires this await, not the real Leave request. Keep the
+      // intent and settle a late acknowledgement without ever issuing Join.
+      unawaited(request.then<void>((failure) {
+        if (!_current(source) ||
+            !_leaveRequested ||
+            !identical(_leaveRest, request)) {
+          return;
+        }
+        if (failure == null) {
+          _clearMembership();
+        } else {
+          _leaveRest =
+              null; // The actual request ended; explicit retry may act.
+          _failure = failure;
+          _status = SyncPlayStatus.unknown;
+          _emit();
+        }
+      }));
+      Future<void>.sync(_api.leaveGroup)
+          .then(result.complete, onError: result.completeError);
+    }
+    final outcome = await rest;
+    if (outcome != null) throw outcome;
+    if (_current(source, op)) _clearMembership();
   }
 
   void _clearMembership() {
