@@ -144,6 +144,45 @@ class Fixture {
 }
 
 void main() {
+  test('native websocket sends the immutable captured authorization header',
+      () async {
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    final authorization = Completer<String?>();
+    final sockets = <WebSocket>[];
+    final requests = server.listen((request) async {
+      authorization
+          .complete(request.headers.value(HttpHeaders.authorizationHeader));
+      final socket = await WebSocketTransformer.upgrade(request);
+      sockets.add(socket);
+      socket.listen((_) {});
+    });
+    const expected =
+        'MediaBrowser Token="$capturedToken", Client="JMS synthetic-control-one", DeviceId="demo-device"';
+    final headers = {'authorization': expected};
+    final api = jellyfin.JellyfinOpenApi.create(
+      httpClient: MockClient((_) async => http.Response('', 204)),
+    );
+    final transport = SyncPlayTransport(
+      api: api,
+      baseUri: Uri.parse('http://127.0.0.1:${server.port}/demo'),
+      token: capturedToken,
+      deviceId: 'demo-device',
+      socketHeaders: headers,
+    );
+    addTearDown(() async {
+      await transport.close();
+      for (final socket in sockets) {
+        unawaited(socket.close());
+      }
+      await requests.cancel();
+      await server.close(force: true);
+    });
+    headers['authorization'] = 'synthetic-replacement-must-not-be-used';
+    await transport.connect();
+    expect(await authorization.future, expected);
+    expect(transport.connected, true);
+  });
+
   test('socket preserves a source base path and captures credentials',
       () async {
     final fixture =
@@ -523,6 +562,25 @@ void main() {
     await fixture.transport.close();
     expect(fixture.requests, isEmpty);
     expect(fixture.defaultSocket.closes, 1);
+  });
+
+  test('close reaches the socket even when stream cancellation stalls',
+      () async {
+    final socket = FakeSocket();
+    final cancelled = Completer<void>();
+    socket.incoming.onCancel = () => cancelled.future;
+    final fixture = Fixture(socket: socket);
+    addTearDown(() {
+      if (!cancelled.isCompleted) cancelled.complete();
+    });
+    await fixture.transport.connect();
+    final closing = fixture.transport.close();
+    await Future<void>.delayed(Duration.zero);
+    expect(socket.closes, 1);
+    expect(fixture.transport.connected, false);
+    await closing.timeout(const Duration(seconds: 3));
+    expect(socket.closes, 1);
+    expect(fixture.requests, isEmpty);
   });
 
   test('close invalidates a pending handshake even if it later succeeds',

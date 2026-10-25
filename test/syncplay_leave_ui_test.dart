@@ -43,24 +43,48 @@ class _LeaveRoom extends SyncPlayNotifier {
   }
   int confirmations = 0;
   int leaves = 0;
+  Future<void>? leaveCompletion;
+  bool throwAfterDetach = false;
+  bool allowJoin = false;
+  int homeCancels = 0;
   bool get pendingLeave => state.leavePending;
   void view(SyncPlayViewState value) => state = value;
   @override
   bool get supported => true;
   @override
-  Future<void> leaveRoom() async {
-    if (!mounted) return;
+  Future<void> leaveRoom() {
+    if (!mounted) return Future<void>.value();
     leaves++;
     state = const SyncPlayViewState(
       leavePending: true,
       room: SyncPlayControllerState(status: SyncPlayStatus.leaving),
     );
+    if (throwAfterDetach) {
+      throw StateError('Synthetic cleanup invocation failure');
+    }
+    return leaveCompletion ?? Future<void>.value();
   }
 
   @override
-  bool get canJoin => false;
+  bool get canJoin => allowJoin;
   @override
-  bool get canJoinFromHome => false;
+  bool get canJoinFromHome => allowJoin;
+  @override
+  int? beginHomeJoin(String code) {
+    state = const SyncPlayViewState(
+      busy: true,
+      preparingPlayback: true,
+      room: SyncPlayControllerState(status: SyncPlayStatus.joining),
+    );
+    return 1;
+  }
+
+  @override
+  Future<void> cancelHomeJoin(int ticket) {
+    homeCancels++;
+    return leaveRoom();
+  }
+
   @override
   bool get permissionKnown => true;
   @override
@@ -125,13 +149,14 @@ void main() {
   );
 
   Future<_LeaveRoom> openDialog(WidgetTester tester, SyncPlayViewState state,
-      {bool fromHome = true}) async {
+      {bool fromHome = true, bool allowJoin = false}) async {
     late _LeaveRoom room;
     await tester.pumpWidget(ProviderScope(
       overrides: [
         userProvider.overrideWith(_FixtureUser.new),
         syncPlayProvider.overrideWith((ref) {
           room = _LeaveRoom(ref);
+          room.allowJoin = allowJoin;
           room.view(state);
           return room;
         }),
@@ -156,76 +181,47 @@ void main() {
     return room;
   }
 
-  testWidgets('pending leave exposes settlement even without a playback model',
-      (tester) async {
-    var calls = 0;
-    await panel(tester, leavingUnknown,
-        supported: false, canJoin: false, confirm: () async => calls++);
-    expect(find.text('Playing solo'), findsOneWidget);
-    expect(find.text('Local sync is off. Server departure is unconfirmed.'),
-        findsOneWidget);
-    expect(find.text('Confirm leave'), findsNothing);
-    expect(find.text('Reconnect and check'), findsNothing);
-    expect(find.text('Create room with this video'), findsNothing);
-    expect(find.textContaining('Confirmation timed out'), findsNothing);
-    expect(find.textContaining('administrator'), findsNothing);
-    await tester.ensureVisible(find.text('Retry leave'));
-    await tester.tap(find.text('Retry leave'));
-    expect(calls, 1);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('pending leave coalesces clicks while settlement is running',
-      (tester) async {
-    await panel(
-        tester,
-        const SyncPlayViewState(
-          leavePending: true,
-          busy: true,
-          room: SyncPlayControllerState(status: SyncPlayStatus.leaving),
-        ));
-    expect(find.text('Retry leave'), findsNothing);
-    expect(
-        find.text('Notifying the server in the background…'), findsOneWidget);
-    expect(find.byType(LinearProgressIndicator), findsNothing);
-    expect(
-        tester
-            .widget<TextButton>(
-              find.widgetWithText(TextButton, 'Close'),
-            )
-            .onPressed,
-        isNotNull);
-    expect(find.text('Leave room'), findsNothing);
-  });
-
-  testWidgets(
-      'retry gives immediate feedback and coalesces without provider rebuild',
-      (tester) async {
-    var calls = 0;
-    final gate = Completer<void>();
-    await panel(tester, leavingUnknown, confirm: () async {
-      calls++;
-      await gate.future;
+  for (final status in [SyncPlayStatus.leaving, SyncPlayStatus.unknown]) {
+    testWidgets(
+        'background leave ${status.name} has no visible cleanup workflow',
+        (tester) async {
+      await panel(
+          tester,
+          SyncPlayViewState(
+            leavePending: true,
+            busy: true,
+            room: SyncPlayControllerState(
+              status: status,
+              group: joined.room.group,
+              failure:
+                  const SyncPlayFailure(SyncPlayFailureCode.timeoutUnknown),
+            ),
+          ));
+      expect(find.text('Retry leave'), findsNothing);
+      expect(find.text('Confirm leave'), findsNothing);
+      expect(find.textContaining('Server departure'), findsNothing);
+      expect(find.textContaining('Notifying the server'), findsNothing);
+      expect(find.text('Reconnect and check'), findsNothing);
+      expect(find.text('Reset'), findsNothing);
+      expect(find.text('Playing solo'), findsNothing);
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+      expect(tester.widget<TextField>(find.byType(TextField)).enabled, isFalse);
+      expect(
+          tester
+              .widget<TextButton>(find.widgetWithText(TextButton, 'Close'))
+              .onPressed,
+          isNotNull);
+      expect(tester.takeException(), isNull);
+      await panel(tester, const SyncPlayViewState());
+      expect(tester.widget<TextField>(find.byType(TextField)).enabled, isTrue);
+      expect(
+          tester
+              .widget<FilledButton>(
+                  find.byWidgetPredicate((w) => w is FilledButton))
+              .onPressed,
+          isNotNull);
     });
-    final press = tester
-        .widget<TextButton>(find.widgetWithText(TextButton, 'Retry leave'))
-        .onPressed!;
-    press();
-    press();
-    await tester.pump();
-    expect(calls, 1);
-    expect(
-        find.text('Notifying the server in the background…'), findsOneWidget);
-    expect(find.text('Retry leave'), findsNothing);
-    expect(
-        tester
-            .widget<TextButton>(find.widgetWithText(TextButton, 'Close'))
-            .onPressed,
-        isNotNull);
-    gate.complete();
-    await tester.pumpAndSettle();
-    expect(find.text('Retry leave'), findsOneWidget);
-  });
+  }
 
   testWidgets('local leave hides stale room members and advanced diagnostics',
       (tester) async {
@@ -238,11 +234,26 @@ void main() {
             group: joined.room.group,
           ),
         ));
-    expect(find.text('Playing solo'), findsOneWidget);
-    expect(find.text('123456'), findsNothing);
+    expect(find.text('Playing solo'), findsNothing);
+    expect(find.byType(SelectableText), findsNothing);
+    expect(tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        isEmpty);
     expect(find.text('1 participants'), findsNothing);
     expect(find.byType(SyncPlayLocalBufferPanel), findsNothing);
     expect(find.byType(SyncPlayDiagnosticsPanel), findsNothing);
+  });
+
+  testWidgets('local leave clears a previously typed room code',
+      (tester) async {
+    await panel(tester, const SyncPlayViewState());
+    await tester.enterText(find.byType(TextField), '654321');
+    await tester.pump();
+    await panel(tester, leavingUnknown);
+    expect(tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        isEmpty);
+    expect(find.text('654321'), findsNothing);
+    expect(find.byType(SelectableText), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets(
@@ -341,22 +352,37 @@ void main() {
     await tester.pump();
     expect(
         tester.widget<IconButton>(find.byType(IconButton)).isSelected, isFalse);
+    expect(
+        tester.widget<IconButton>(find.byType(IconButton)).onPressed, isNull);
+    room.view(const SyncPlayViewState());
+    await tester.pump();
+    expect(tester.widget<IconButton>(find.byType(IconButton)).onPressed,
+        isNotNull);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets(
-      'one leave action closes the dialog while server settlement continues',
-      (tester) async {
-    final room = await openDialog(tester, joined);
-    await tester.ensureVisible(find.text('Leave room'));
-    await tester.tap(find.text('Leave room'));
-    await tester.pumpAndSettle();
-    expect(room.leaves, 1);
-    expect(room.pendingLeave, isTrue);
-    expect(find.byType(SyncPlayDialog), findsNothing);
-    expect(find.text('Playing solo'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
+  for (final completion in ['pending', 'failed', 'throws']) {
+    testWidgets(
+        'one leave action dismisses immediately with $completion cleanup',
+        (tester) async {
+      final room = await openDialog(tester, joined);
+      final gate = Completer<void>();
+      room.leaveCompletion = gate.future;
+      room.throwAfterDetach = completion == 'throws';
+      await tester.ensureVisible(find.text('Leave room'));
+      await tester.tap(find.text('Leave room'));
+      await tester.pump();
+      expect(room.leaves, 1);
+      expect(room.pendingLeave, isTrue);
+      expect(find.byType(SyncPlayDialog), findsNothing);
+      expect(find.text('Playing solo'), findsOneWidget);
+      if (completion == 'failed') {
+        gate.completeError(StateError('Synthetic server cleanup failure'));
+        await tester.pump();
+      }
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   testWidgets('closing a joined dialog preserves room membership',
       (tester) async {
@@ -365,6 +391,23 @@ void main() {
     await tester.pumpAndSettle();
     expect(room.leaves, 0);
     expect(find.byType(SyncPlayDialog), findsNothing);
+  });
+
+  testWidgets('leaving an owned home join never waits for cancellation cleanup',
+      (tester) async {
+    final room =
+        await openDialog(tester, const SyncPlayViewState(), allowJoin: true);
+    await tester.enterText(find.byType(TextField), '123456');
+    await tester.pump();
+    await tester.tap(find.text('Join room'));
+    await tester.pump();
+    room.leaveCompletion = Completer<void>().future;
+    await tester.tap(find.text('Leave room'));
+    await tester.pump();
+    expect(room.homeCancels, 1);
+    expect(room.leaves, 1);
+    expect(find.byType(SyncPlayDialog), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 
   for (final phase in ['join', 'handshake']) {
@@ -422,24 +465,27 @@ void main() {
     expect(find.textContaining('Check media permission'), findsNothing);
   });
 
-  testWidgets('home dialog retries leave without opening a home join ticket',
+  testWidgets(
+      'reopening after leave never offers a confirmation or retry workflow',
       (tester) async {
-    late _LeaveRoom room;
-    await tester.pumpWidget(ProviderScope(
-        overrides: [
-          userProvider.overrideWith(_FixtureUser.new),
-          syncPlayProvider.overrideWith((ref) => room = _LeaveRoom(ref)),
-          videoPlayerProvider.overrideWith(
-              (_) => throw StateError('No player may be initialized')),
-        ],
-        child: const MaterialApp(
-          home: Scaffold(body: SyncPlayDialog(joinFromHome: true)),
-        )));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Retry leave'));
-    await tester.tap(find.text('Retry leave'));
+    final room = await openDialog(tester, joined);
+    room.leaveCompletion = Completer<void>().future;
+    await tester.tap(find.text('Leave room'));
     await tester.pump();
-    expect(room.confirmations, 1);
+    expect(find.byType(SyncPlayDialog), findsNothing);
+    await tester.tap(find.text('Open room'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(find.byType(SyncPlayDialog), findsOneWidget);
+    expect(find.text('Retry leave'), findsNothing);
+    expect(find.text('Confirm leave'), findsNothing);
+    expect(find.text('Reconnect and check'), findsNothing);
+    expect(find.text('Reset'), findsNothing);
+    expect(find.textContaining('Notifying the server'), findsNothing);
+    expect(find.textContaining('Server departure'), findsNothing);
+    expect(find.byType(SyncPlayLocalBufferPanel), findsNothing);
+    expect(find.byType(SyncPlayDiagnosticsPanel), findsNothing);
+    expect(room.confirmations, 0);
     expect(tester.takeException(), isNull);
   });
 

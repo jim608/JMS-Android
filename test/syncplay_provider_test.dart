@@ -12,11 +12,13 @@ import 'package:fladder/models/item_base_model.dart';
 import 'package:fladder/models/items/movie_model.dart';
 import 'package:fladder/models/playback/playback_model.dart';
 import 'package:fladder/profiles/default_profile.dart';
+import 'package:fladder/providers/connectivity_provider.dart' as connectivity;
 import 'package:fladder/providers/shared_provider.dart';
 import 'package:fladder/providers/sleep_timer_provider.dart';
 import 'package:fladder/providers/syncplay_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
+import 'package:fladder/screens/video_player/components/syncplay_dialog.dart';
 import 'package:fladder/services/syncplay/syncplay_models.dart';
 import 'package:fladder/services/playback_diagnostics.dart';
 import 'package:fladder/services/syncplay/syncplay_prebuffer.dart';
@@ -24,7 +26,7 @@ import 'package:fladder/util/application_info.dart';
 import 'package:fladder/util/sleep_timer.dart';
 import 'package:fladder/wrappers/media_control_wrapper.dart';
 import 'package:fladder/wrappers/players/player_states.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -45,6 +47,9 @@ class _Server {
   StreamSubscription<HttpRequest>? _subscription;
   final sockets = <WebSocket>[];
   final requests = <String>[];
+  // Keep only the fields that define the synthetic server session. Never
+  // retain a complete Authorization header or websocket URL in test evidence.
+  final identities = <({String endpoint, String? client, String? deviceId})>[];
   final newStarted = Completer<void>();
   final socketStarted = Completer<void>();
   Completer<void>? newGate;
@@ -123,6 +128,16 @@ class _Server {
 
   Future<void> _handle(HttpRequest request) async {
     try {
+      final endpoint = request.uri.path.split('/').last;
+      final authorization =
+          request.headers.value(HttpHeaders.authorizationHeader) ?? '';
+      String? field(String name) =>
+          RegExp('$name="([^"]*)"').firstMatch(authorization)?.group(1);
+      identities.add((
+        endpoint: endpoint,
+        client: field('Client'),
+        deviceId: field('DeviceId') ?? request.uri.queryParameters['deviceId'],
+      ));
       if (request.uri.path.endsWith('/socket')) {
         if (!socketStarted.isCompleted) socketStarted.complete();
         await upgradeGate?.future;
@@ -131,7 +146,6 @@ class _Server {
         socket.listen((_) {}, onDone: () => closedSockets++);
         return;
       }
-      final endpoint = request.uri.path.split('/').last;
       requests.add(endpoint);
       final text = await utf8.decoder.bind(request).join();
       final body =
@@ -249,6 +263,11 @@ class _User extends User {
   @override
   AccountModel? build() => account;
   void replace(AccountModel? next) => state = next;
+}
+
+class _FixtureConnectivity extends connectivity.ConnectivityStatus {
+  @override
+  connectivity.ConnectionState build() => connectivity.ConnectionState.ethernet;
 }
 
 class _InitialModel extends Fake implements PlaybackModel {
@@ -372,6 +391,8 @@ class _Scope {
     );
     container = ProviderContainer(overrides: [
       userProvider.overrideWith(() => _User(account)),
+      connectivity.connectivityStatusProvider
+          .overrideWith(_FixtureConnectivity.new),
       sharedPreferencesProvider.overrideWithValue(preferences),
       applicationInfoProvider.overrideWith((_) => ApplicationInfo(
           name: 'JMS-test',
@@ -414,10 +435,11 @@ class _Scope {
   }
 }
 
-Future<void> _until(bool Function() condition, String label) async {
+Future<void> _until(bool Function() condition, String label,
+    {Duration timeout = const Duration(seconds: 3)}) async {
   final clock = Stopwatch()..start();
   while (!condition()) {
-    if (clock.elapsed > const Duration(seconds: 3)) fail('Timed out: $label');
+    if (clock.elapsed > timeout) fail('Timed out: $label');
     await Future<void>.delayed(const Duration(milliseconds: 5));
   }
 }
@@ -628,7 +650,8 @@ void main() {
     expect(scope.container.exists(videoPlayerProvider), isFalse);
   });
 
-  test('failed cleanup blocks replacement room until membership is reconciled',
+  test(
+      'failed cleanup ends local workflow and retains only a diagnostic result',
       () async {
     final server = _Server()
       ..name = 'JMS-123456'
@@ -637,13 +660,17 @@ void main() {
     final ticket = scope.notifier.beginHomeJoin('123456')!;
     await _until(() => scope.state.room.isJoined, 'joined empty room');
     await scope.notifier.cancelHomeJoin(ticket);
-    await _until(() => scope.state.room.status == SyncPlayStatus.unknown,
+    await _until(() => scope.notifier.backgroundLeaveResult != null,
         'failed background cleanup');
-    expect(scope.state.room.status, SyncPlayStatus.unknown);
-    expect(scope.notifier.beginHomeJoin('123456'), isNull);
+    expect(
+        scope.notifier.backgroundLeaveResult?.status, SyncPlayStatus.unknown);
+    expect(scope.state.room.status, SyncPlayStatus.idle);
+    expect(scope.state.busy, false);
+    expect(scope.state.leavePending, false);
+    expect(scope.state.failure, isNull);
+    expect(scope.notifier.consumeHomeJoin(ticket), isFalse);
     expect(scope.container.exists(videoPlayerProvider), isFalse);
-    server.leaveFails = false;
-    await scope.notifier.stop();
+    await _until(() => server.closedSockets == 1, 'cleanup session closed');
   });
 
   test('home cancel during handshake cannot initialize or open playback later',
@@ -674,9 +701,12 @@ void main() {
     final first = scope.notifier.beginHomeJoin('123456')!;
     await _until(() => scope.video.prepares == 1, 'first preparation pending');
     await scope.notifier.cancelHomeJoin(first);
-    await _until(() => scope.state.room.status == SyncPlayStatus.unknown,
+    await _until(() => scope.notifier.backgroundLeaveResult != null,
         'failed background cleanup');
-    expect(scope.state.room.status, SyncPlayStatus.unknown);
+    expect(
+        scope.notifier.backgroundLeaveResult?.status, SyncPlayStatus.unknown);
+    expect(scope.state.room.status, SyncPlayStatus.idle);
+    expect(scope.state.leavePending, false);
     expect(scope.notifier.beginHomeReconnect(), isNull);
     scope.video.prepareGate!.complete();
     await _until(() => scope.video.preparedCurrent.isNotEmpty,
@@ -686,8 +716,8 @@ void main() {
     expect(scope.video.loaded, isEmpty);
     expect(scope.notifier.consumeHomeJoin(first), isFalse);
     expect(scope.state.readyHomeJoin, isNull);
-    server.leaveFails = false;
-    await scope.notifier.stop();
+    expect(
+        server.requests.where((request) => request == 'Leave'), hasLength(1));
   });
 
   test('ready home ticket is revoked when the host changes its queued item',
@@ -834,8 +864,7 @@ void main() {
     expect(server.requests.where((item) => item == 'Leave'), isEmpty);
     server.newGate!.complete();
     await Future.wait([creating, stopping]);
-    await _until(() => scope.state.room.status == SyncPlayStatus.idle,
-        'stopped provider detaches');
+    await _until(() => !scope.state.leavePending, 'stopped provider detaches');
     expect(server.requests.indexOf('New-completed'),
         lessThan(server.requests.indexOf('Leave')));
     expect(server.requests.where((item) => item == 'New'), hasLength(1));
@@ -846,7 +875,7 @@ void main() {
   }, timeout: const Timeout(Duration(seconds: 10)));
 
   test(
-      'failed Leave releases local controls and reconnect confirms Leave without Join',
+      'failed Leave ends the workflow without exposing a reconnect or retry step',
       () async {
     final server = _Server();
     await server.start();
@@ -863,25 +892,25 @@ void main() {
     await scope.notifier.leaveRoom();
     expect(scope.state.busy, false);
     expect(scope.wrapper.syncPlayCommands, isNull);
-    await _until(() => scope.state.room.status == SyncPlayStatus.unknown,
+    await _until(() => scope.notifier.backgroundLeaveResult != null,
         'failed background leave');
-    expect(scope.state.room.status, SyncPlayStatus.unknown);
-    expect(scope.notifier.active, false);
-    expect(scope.state.leavePending, true);
-    expect(scope.wrapper.syncPlayCommands, isNull);
-    // Leaving must remain available even if the failed player has lost its model.
-    scope.container.read(playBackModel.notifier).state = null;
-    final joins = server.requests.where((item) => item == 'Join').length;
-    await scope.notifier.reconnect();
-    expect(scope.state.room.status, SyncPlayStatus.unknown);
-    expect(scope.notifier.active, false);
-    expect(server.requests.where((item) => item == 'Join'), hasLength(joins));
-    expect(server.requests.where((item) => item == 'Leave'), hasLength(2));
-    expect(server.requests.where((item) => item == 'New'), hasLength(1));
-    server.leaveFails = false;
-    await scope.notifier.reconnect();
+    expect(
+        scope.notifier.backgroundLeaveResult?.status, SyncPlayStatus.unknown);
     expect(scope.state.room.status, SyncPlayStatus.idle);
+    expect(scope.state.room.group, isNull);
+    expect(scope.notifier.active, false);
     expect(scope.state.leavePending, false);
+    expect(scope.state.failure, isNull);
+    expect(scope.wrapper.syncPlayCommands, isNull);
+    await _until(
+        () => server.closedSockets == 1, 'failed Leave session closed');
+    server.emit('GroupJoined', server.group);
+    server.unpause();
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    expect(server.requests.where((item) => item == 'Join'), isEmpty);
+    expect(server.requests.where((item) => item == 'Leave'), hasLength(1));
+    expect(server.requests.where((item) => item == 'New'), hasLength(1));
+    expect(scope.state.room.status, SyncPlayStatus.idle);
     expect(scope.wrapper.syncPlayCommands, isNull);
   }, timeout: const Timeout(Duration(seconds: 10)));
 
@@ -900,6 +929,110 @@ void main() {
     await scope.notifier.createRoom();
     await _until(() => scope.state.room.canControl, 'new explicit room');
     expect(scope.notifier.active, true);
+  }, timeout: const Timeout(Duration(seconds: 10)));
+
+  test(
+      'Windows control Client isolates replacement rooms while playback and Android retain the original identity',
+      () async {
+    for (final platform in [TargetPlatform.windows, TargetPlatform.android]) {
+      final server = _Server();
+      await server.start();
+      final scope = _Scope(server, preferences, platform: platform);
+      final originalCredentials = scope.account.credentials;
+      final savedCredentials = jsonEncode(originalCredentials.toJson());
+      try {
+        await scope.notifier.createRoom();
+        await _until(
+            () => scope.video.loaded.length == 1 && scope.state.room.canControl,
+            'first control session ready');
+        final firstClient = server.identities
+            .firstWhere((identity) => identity.endpoint == 'New')
+            .client;
+        if (platform == TargetPlatform.windows) {
+          expect(firstClient, startsWith('JMS-test SyncPlay '));
+          expect(firstClient, isNot('JMS-test'));
+        } else {
+          expect(firstClient, 'JMS-test');
+        }
+        expect(
+            server.identities
+                .singleWhere((identity) => identity.endpoint == 'socket')
+                .client,
+            platform == TargetPlatform.windows ? firstClient : isNull);
+
+        server.leaveFails = true;
+        await scope.notifier.leaveRoom();
+        await _until(() => scope.notifier.backgroundLeaveResult != null,
+            'first failed Leave retired');
+        expect(scope.notifier.backgroundLeaveResult?.status,
+            SyncPlayStatus.unknown);
+        expect(scope.state.room.status, SyncPlayStatus.idle);
+        expect(scope.state.leavePending, false);
+        await _until(() => server.closedSockets == 1, 'old socket closed');
+        expect(
+            server.identities
+                .singleWhere((identity) => identity.endpoint == 'Leave')
+                .client,
+            firstClient);
+
+        // The old Leave result may still be unknown, but a new explicit room
+        // must capture a different Windows session rather than reuse its key.
+        server.leaveFails = false;
+        await scope.notifier.createRoom();
+        await _until(
+            () => scope.video.loaded.length == 2 && scope.state.room.canControl,
+            'replacement control session ready');
+        final newClients = server.identities
+            .where((identity) => identity.endpoint == 'New')
+            .map((identity) => identity.client)
+            .toList();
+        expect(newClients, hasLength(2));
+        final secondClient = newClients.last;
+        expect(
+            secondClient,
+            platform == TargetPlatform.windows
+                ? isNot(firstClient)
+                : 'JMS-test');
+        expect(
+            server.identities
+                .where((identity) => identity.endpoint == 'socket')
+                .last
+                .client,
+            platform == TargetPlatform.windows ? secondClient : isNull);
+        await scope.notifier.leaveRoom();
+        await _until(
+            () => !scope.state.leavePending, 'replacement Leave ended');
+        expect(
+            server.identities
+                .where((identity) => identity.endpoint == 'Leave')
+                .last
+                .client,
+            secondClient);
+
+        for (final endpoint in [_media, 'PlaybackInfo']) {
+          final playbackRequests = server.identities
+              .where((identity) => identity.endpoint == endpoint);
+          expect(playbackRequests, isNotEmpty);
+          expect(
+              playbackRequests
+                  .every((identity) => identity.client == 'JMS-test'),
+              isTrue,
+              reason: 'playback keeps the saved account session');
+        }
+        expect(
+            server.identities.every((identity) =>
+                identity.deviceId == originalCredentials.deviceId),
+            isTrue);
+        final retainedCredentials =
+            scope.container.read(userProvider)!.credentials;
+        expect(identical(retainedCredentials, originalCredentials), isTrue);
+        expect(jsonEncode(retainedCredentials.toJson()) == savedCredentials,
+            isTrue);
+      } finally {
+        scope.dispose();
+        await server.close();
+      }
+    }
   }, timeout: const Timeout(Duration(seconds: 10)));
 
   test('Leave GroupLeft before HTTP response never recaptures local controls',
@@ -921,13 +1054,14 @@ void main() {
     server.leaveGate = gate;
     final leaving = scope.notifier.leaveRoom();
     await server.leaveStarted.future;
-    await _until(() => scope.state.room.status == SyncPlayStatus.idle,
-        'authoritative GroupLeft');
+    expect(scope.state.room.status, SyncPlayStatus.idle);
     expect(scope.state.busy, false);
     expect(scope.notifier.active, false);
     expect(scope.wrapper.syncPlayCommands, isNull);
     gate.complete();
     await leaving;
+    await _until(() => !scope.state.leavePending, 'authoritative GroupLeft');
+    expect(scope.notifier.backgroundLeaveResult?.status, SyncPlayStatus.idle);
     expect(scope.wrapper.syncPlayCommands, isNull);
   }, timeout: const Timeout(Duration(seconds: 10)));
 
@@ -960,14 +1094,14 @@ void main() {
     expect(server.requests.where((e) => e == 'New'), hasLength(1));
     server.newGate!.complete();
     await creating;
-    await _until(() => scope.state.room.status == SyncPlayStatus.idle,
-        'late New cleaned without playback');
+    await _until(
+        () => !scope.state.leavePending, 'late New cleaned without playback');
     expect(server.requests.where((e) => e == 'Leave'), hasLength(1));
     expect(server.requests.where((e) => e == 'SetNewQueue'), isEmpty);
     expect(scope.video.loaded, isEmpty);
   });
 
-  test('stalled Leave does not own local player or duplicate a manual retry',
+  test('stalled Leave does not own local player or require another user action',
       () async {
     final server = _Server();
     await server.start();
@@ -991,21 +1125,176 @@ void main() {
     expect(scope.wrapper.syncPlayCommands, isNull);
     expect(scope.wrapper.raw.playing, true);
     expect(scope.wrapper.raw.position, const Duration(seconds: 24));
-    final retry = scope.notifier.reconnect();
-    final duplicate = scope.notifier.reconnect();
-    await duplicate;
     expect(server.requests.where((e) => e == 'Leave'), hasLength(1));
     server
         .unpause(); // A late room command cannot seek or replay solo playback.
     await Future<void>.delayed(const Duration(milliseconds: 20));
     expect(scope.wrapper.raw.position, const Duration(seconds: 24));
     gate.complete();
-    await retry;
     await _until(
         () => !scope.state.leavePending, 'late acknowledgement confirmed');
+    expect(scope.notifier.backgroundLeaveResult?.status, SyncPlayStatus.idle);
     expect(scope.wrapper.syncPlayCommands, isNull);
     expect(server.requests.where((e) => e == 'Join'), isEmpty);
   });
+
+  for (final initiallyPlaying in [false, true]) {
+    testWidgets(
+        'one real dialog Leave removes the barrier and returns clickable solo controls playing=$initiallyPlaying',
+        (tester) async {
+      final server = _Server();
+      final gate = Completer<void>();
+      late _Scope scope;
+      await tester.runAsync(() async {
+        await server.start();
+        scope = _Scope(server, preferences);
+        await scope.notifier.createRoom();
+        await _until(
+            () => scope.video.loaded.length == 1 && scope.state.room.canControl,
+            'real provider joined and loaded');
+      });
+      try {
+        scope.wrapper.raw.position = const Duration(seconds: 37);
+        scope.wrapper.raw.playing = initiallyPlaying;
+        server.leaveGate = gate;
+        final pauses = scope.wrapper.pauses;
+        final plays = scope.wrapper.plays;
+        final loads = scope.video.loaded.length;
+        final requestsBefore = server.requests.length;
+        await tester.pumpWidget(UncontrolledProviderScope(
+          container: scope.container,
+          child: MaterialApp(
+            home: Scaffold(
+              body: Column(
+                children: [
+                  const Text('Synthetic solo player'),
+                  const SyncPlayButton(),
+                  ElevatedButton(
+                    key: const ValueKey('main-player-pause'),
+                    onPressed: scope.wrapper.pause,
+                    child: const Text('Pause video'),
+                  ),
+                  ElevatedButton(
+                    key: const ValueKey('main-player-seek'),
+                    onPressed: () =>
+                        scope.wrapper.seek(const Duration(seconds: 42)),
+                    child: const Text('Seek to 42 seconds'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ));
+        // The root MaterialPageRoute has its own transparent barrier. Compare
+        // against that baseline so only the room route's blockers are counted.
+        final barriers = find.byWidgetPredicate((widget) =>
+            widget is ModalBarrier || widget is AnimatedModalBarrier);
+        final baselineBarriers = barriers.evaluate().length;
+        await tester.tap(find.byType(SyncPlayButton));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 30)));
+        await tester.pump();
+        expect(find.byType(SyncPlayDialog), findsOneWidget);
+        expect(barriers.evaluate().length, greaterThan(baselineBarriers));
+        await tester.ensureVisible(find.text('Leave room'));
+        final leaveClock = Stopwatch()..start();
+        // The real HTTP fixture must run outside the widget clock's fake I/O
+        // zone. UI dismissal is still checked after exactly one pumped frame.
+        await tester.runAsync(() => tester.tap(find.text('Leave room')));
+        await tester.pump();
+
+        // This checks the real Navigator route and hit testing, rather than
+        // treating a provider flag as evidence that the modal has gone away.
+        expect(find.byType(SyncPlayDialog), findsNothing);
+        expect(barriers.evaluate().length, baselineBarriers);
+        expect(find.text('Playing solo'), findsOneWidget);
+        expect(scope.wrapper.raw.position, const Duration(seconds: 37));
+        expect(scope.wrapper.raw.playing, initiallyPlaying);
+        expect(scope.wrapper.pauses, pauses);
+        expect(scope.wrapper.plays, plays);
+        expect(scope.state.room.status, SyncPlayStatus.idle);
+        expect(scope.state.busy, false);
+        expect(scope.state.leavePending, true);
+        await tester.runAsync(
+            () => _until(() => server.leaveStarted.isCompleted, 'Leave sent'));
+        expect(gate.isCompleted, false);
+
+        await tester.tap(find.byKey(const ValueKey('main-player-pause')));
+        await tester.pump();
+        expect(scope.wrapper.pauses, pauses + 1);
+        expect(scope.wrapper.raw.playing, false);
+        await tester.tap(find.byKey(const ValueKey('main-player-seek')));
+        await tester.pump();
+        expect(scope.wrapper.raw.position, const Duration(seconds: 42));
+
+        server.emit('GroupJoined', server.group);
+        server.emit('PlayQueue', {
+          ...server.queue!,
+          'LastUpdate': DateTime.now().toUtc().toIso8601String(),
+          'StartPositionTicks': 990000000,
+        });
+        server.unpause();
+        await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 80)));
+        await tester.pump();
+        expect(scope.wrapper.raw.position, const Duration(seconds: 42));
+        expect(scope.wrapper.raw.playing, false);
+        expect(scope.wrapper.plays, plays);
+        expect(scope.video.loaded.length, loads);
+        expect(
+            server.requests.skip(requestsBefore).where((endpoint) => const {
+                  'Pause',
+                  'Unpause',
+                  'Seek',
+                  'Join',
+                  'SetNewQueue'
+                }.contains(endpoint)),
+            isEmpty);
+
+        if (initiallyPlaying) {
+          // Exercise the real ten-second budget once; the paused variant
+          // instead checks the successful acknowledgement path.
+          await tester.runAsync(() => _until(
+              () => !scope.state.leavePending, 'bounded background leave',
+              timeout: const Duration(seconds: 11)));
+          expect(leaveClock.elapsed, lessThan(const Duration(seconds: 11)));
+          expect(scope.notifier.backgroundLeaveResult?.status,
+              SyncPlayStatus.unknown);
+          expect(scope.notifier.backgroundLeaveResult?.failure?.code,
+              SyncPlayFailureCode.timeoutUnknown);
+        } else {
+          gate.complete();
+          await tester.runAsync(() => _until(
+              () => !scope.state.leavePending, 'background leave confirmed'));
+          expect(scope.notifier.backgroundLeaveResult?.status,
+              SyncPlayStatus.idle);
+        }
+        await tester.pump();
+        expect(scope.state.leavePending, false);
+        expect(scope.state.room.status, SyncPlayStatus.idle);
+        expect(scope.state.failure, isNull);
+        expect(find.text('Retry leave'), findsNothing);
+        expect(find.text('Confirm leave'), findsNothing);
+        expect(find.byType(SyncPlayDialog), findsNothing);
+        await tester.runAsync(() =>
+            _until(() => server.closedSockets == 1, 'old session closed'));
+        expect(server.requests.where((endpoint) => endpoint == 'Leave'),
+            hasLength(1));
+        expect(scope.wrapper.raw.position, const Duration(seconds: 42));
+        expect(scope.wrapper.raw.playing, false);
+        expect(tester.takeException(), isNull);
+      } finally {
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.runAsync(() async {
+          if (!gate.isCompleted) gate.complete();
+          scope.dispose();
+          await server.close();
+        });
+      }
+    });
+  }
 
   test('account switch during New revokes old UI, player and socket callbacks',
       () async {

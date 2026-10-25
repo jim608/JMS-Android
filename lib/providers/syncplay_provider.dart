@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/widgets.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fladder/jellyfin/jellyfin_open_api.enums.swagger.dart';
@@ -24,6 +25,7 @@ import 'package:fladder/services/syncplay/syncplay_prebuffer_coordinator.dart';
 import 'package:fladder/services/syncplay/syncplay_transport.dart';
 import 'package:fladder/services/syncplay/syncplay_recovery.dart';
 import 'package:fladder/wrappers/media_control_wrapper.dart';
+import 'package:fladder/util/application_info.dart';
 
 final syncPlayProvider =
     StateNotifierProvider<SyncPlayNotifier, SyncPlayViewState>((ref) {
@@ -60,6 +62,7 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
   SyncPlayNotifier(this.ref) : super(const SyncPlayViewState()) {
     _accountSubscription = ref.listen(userProvider, (previous, next) {
       if (!_sameLogin(previous, next)) {
+        _backgroundLeaveResult = null;
         _permissionOperation++;
         _permissionChecking = false;
         _permissionFailed = false;
@@ -99,21 +102,28 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
   bool _preparingPlayback = false;
   bool _localLeaveIntent = false;
   Future<void>? _leaveSettlement;
+  SyncPlayControllerState? _backgroundLeaveResult;
+
+  /// Last remote cleanup result, retained for diagnostics only. Local playback
+  /// and normal room UI never wait for this result or present it as a workflow.
+  SyncPlayControllerState? get backgroundLeaveResult => _backgroundLeaveResult;
 
   SyncPlayViewState _view(
           {SyncPlayControllerState? room,
           bool busy = false,
           SyncPlayFailure? failure}) =>
       SyncPlayViewState(
-          room: room ?? state.room,
-          busy: busy,
-          failure: failure,
+          room: _localLeaveIntent
+              ? const SyncPlayControllerState(connected: false)
+              : room ?? state.room,
+          busy: !_localLeaveIntent && busy,
+          failure: _localLeaveIntent ? null : failure,
           preparingPlayback: _preparingPlayback,
           readyHomeJoin: _readyHomeJoin,
           prebuffer: _prebuffer?.decision,
           recoveryActive: _recovery?.active ?? false,
           recoveryExhausted: _recovery?.exhausted ?? false,
-          leavePending: _controller?.leaveRequested ?? false);
+          leavePending: _localLeaveIntent && _controller != null);
 
   /// Home joining is independent of the currently selected media/backend.
   /// The captured room item is authorized before preparing a built-in player.
@@ -302,10 +312,27 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
         !_disposed &&
         generation == _generation &&
         _sameLogin(account, ref.read(userProvider));
-    final headers =
+    final playbackHeaders =
         Map<String, String>.unmodifiable(account.credentials.header(ref));
+    final isolateControlSession = !kIsWeb &&
+        ref.read(applicationInfoProvider).platform == TargetPlatform.windows;
+    var controlHeaders = playbackHeaders;
+    if (isolateControlSession) {
+      final random = Random.secure();
+      final nonce = List.generate(
+              16, (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'))
+          .join();
+      // Jellyfin keys sessions by Client + DeviceId. Capture a distinct control
+      // session so an unknown old Leave cannot remove a later explicit room.
+      // Playback, saved credentials, DeviceId and the installed identity stay
+      // on their original session; closing control cannot stop a solo stream.
+      controlHeaders = Map<String, String>.unmodifiable(account.credentials
+          .header(ref,
+              clientName:
+                  '${ref.read(applicationInfoProvider).name} SyncPlay $nonce'));
+    }
     final api = createJellyfinApiForAccount(
-        ref, account.credentials.url, headers,
+        ref, account.credentials.url, controlHeaders,
         privateLink: true);
     SyncPlayTransport? constructedTransport;
     try {
@@ -314,6 +341,7 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
         baseUri: Uri.parse(account.credentials.url),
         token: account.credentials.token,
         deviceId: account.credentials.deviceId,
+        socketHeaders: isolateControlSession ? controlHeaders : null,
         isCurrent: current,
       );
       constructedTransport = transport;
@@ -325,7 +353,7 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
         isCurrent: () => current() && !_localLeaveIntent,
         queue: () => current() ? _controller?.state.queue : null,
         createPlaybackApi: () => createJellyfinApiForAccount(
-            ref, account.credentials.url, headers,
+            ref, account.credentials.url, playbackHeaders,
             privateLink: true),
         isPlaybackIdentityCurrent: () =>
             !_disposed && _sameLogin(account, ref.read(userProvider)),
@@ -411,6 +439,7 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
           if (_localLeaveIntent &&
               !controller.leaveRequested &&
               room.status == SyncPlayStatus.idle) {
+            _backgroundLeaveResult = room;
             state = _view(room: room);
             // The controller stream is synchronous; disposal emits its final
             // state, so release it after this notification has unwound.
@@ -609,12 +638,22 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
       try {
         await controller.leaveRoom();
         if (_disposed || !identical(controller, _controller)) return;
-        if (controller.state.status == SyncPlayStatus.idle) {
-          _detach();
-        } else {
-          state = _view(room: controller.state);
+        _backgroundLeaveResult = controller.state;
+      } catch (_) {
+        if (!_disposed && identical(controller, _controller)) {
+          _backgroundLeaveResult = const SyncPlayControllerState(
+            status: SyncPlayStatus.unknown,
+            failure: SyncPlayFailure(SyncPlayFailureCode.server),
+            connected: false,
+          );
         }
       } finally {
+        // End the old session after this one bounded attempt, including an
+        // unknown remote result. No retry panel, socket recovery, or stale
+        // callback may keep owning the player's solo controls afterward.
+        if (!_disposed && identical(controller, _controller)) {
+          _detach();
+        }
         if (identical(task, _leaveSettlement)) _leaveSettlement = null;
       }
     }();
@@ -624,6 +663,7 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
 
   void _releaseLocalSync() {
     _localLeaveIntent = true;
+    _backgroundLeaveResult = null;
     ++_uiOperation; // Revoke New/Join continuations even while they are busy.
     _homeJoinAttempt = null;
     _readyHomeJoin = null;

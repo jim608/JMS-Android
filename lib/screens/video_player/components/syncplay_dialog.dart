@@ -49,10 +49,12 @@ class SyncPlayButton extends ConsumerWidget {
       isSelected: !view.leavePending && room.group != null,
       icon: const Icon(Icons.group_outlined),
       selectedIcon: const Icon(Icons.group),
-      onPressed: () => showDialog<void>(
-        context: context,
-        builder: (_) => const SyncPlayDialog(),
-      ),
+      onPressed: view.leavePending
+          ? null
+          : () => showDialog<void>(
+                context: context,
+                builder: (_) => const SyncPlayDialog(),
+              ),
     );
   }
 }
@@ -109,37 +111,36 @@ class _SyncPlayDialogState extends ConsumerState<SyncPlayDialog> {
 
   Future<void> _leave() async {
     if (_closing) return;
-    setState(() => _closing = true);
     final ticket = _homeTicket;
-    if (ticket != null) {
-      await _notifier.cancelHomeJoin(ticket);
-    } else {
-      await _notifier.leaveRoom();
-    }
-    if (!mounted) return;
     final messenger = ScaffoldMessenger.maybeOf(context);
     final message = SyncPlayStrings.of(context).solo;
     setState(() {
+      _closing = true;
       _homeTicket = null;
       _allowPop = true;
     });
-    Navigator.of(context).pop();
+    _startLocalLeave(ticket);
+    final route = ModalRoute.of(context);
+    if (route != null) Navigator.of(context).removeRoute(route);
     messenger?.showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _startLocalLeave(int? ticket) {
+    try {
+      // The notifier releases local controls before returning its future.
+      // Server cleanup can finish after this dialog has gone away.
+      final completion = ticket == null
+          ? _notifier.leaveRoom()
+          : _notifier.cancelHomeJoin(ticket);
+      unawaited(
+          completion.then<void>((_) {}, onError: (Object _, StackTrace __) {}));
+    } catch (_) {
+      // Dismissing the room must not depend on asynchronous cleanup success.
+    }
   }
 
   Future<void> _reconnect() async {
     if (_closing || _startingJoin) return;
-    if (ref.read(syncPlayProvider).leavePending) {
-      final ticket = _homeTicket;
-      await _notifier.reconnect();
-      if (mounted && !_closing && ticket == _homeTicket) {
-        final state = ref.read(syncPlayProvider);
-        if (!state.leavePending && state.room.status == SyncPlayStatus.idle) {
-          setState(() => _homeTicket = null);
-        }
-      }
-      return;
-    }
     if (!widget.joinFromHome) return _notifier.reconnect();
     setState(() => _homeTicket = _notifier.beginHomeReconnect());
   }
@@ -299,6 +300,14 @@ class _SyncPlayRoomPanelState extends State<SyncPlayRoomPanel> {
   bool _dispatching = false;
   bool _leaving = false;
 
+  @override
+  void didUpdateWidget(covariant SyncPlayRoomPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.state.leavePending && !oldWidget.state.leavePending) {
+      _code.clear();
+    }
+  }
+
   Future<void> _runAction(Future<void> Function() action) async {
     if (_dispatching || _leaving || widget.closing) return;
     setState(() => _dispatching = true);
@@ -329,29 +338,25 @@ class _SyncPlayRoomPanelState extends State<SyncPlayRoomPanel> {
   @override
   Widget build(BuildContext context) {
     final s = SyncPlayStrings.of(context);
-    final room = widget.state.room;
     final leavePending = widget.state.leavePending;
-    final recoveryActive = widget.state.recoveryActive;
-    final settlingLeave = leavePending &&
-        (room.status == SyncPlayStatus.leaving ||
-            _dispatching ||
-            widget.state.busy);
+    final state = leavePending ? const SyncPlayViewState() : widget.state;
+    final room = state.room;
+    final recoveryActive = state.recoveryActive;
     final pending = widget.closing ||
         _leaving ||
         (!leavePending &&
             (_dispatching ||
                 widget.transitioning ||
                 widget.checkingPermission ||
-                widget.state.preparingPlayback ||
-                widget.state.busy ||
+                state.preparingPlayback ||
+                state.busy ||
                 const {
                   SyncPlayStatus.creating,
                   SyncPlayStatus.joining,
                   SyncPlayStatus.leaving,
                 }.contains(room.status)));
-    final actionPending = widget.state.busy ||
-        widget.state.preparingPlayback ||
-        widget.transitioning;
+    final actionPending =
+        state.busy || state.preparingPlayback || widget.transitioning;
     if (actionPending != _actionPending) {
       _actionPending = actionPending;
       if (actionPending) {
@@ -368,8 +373,9 @@ class _SyncPlayRoomPanelState extends State<SyncPlayRoomPanel> {
         widget.supported &&
         widget.permissionKnown &&
         widget.canJoin &&
-        !pending;
-    final failure = widget.state.failure ?? room.failure;
+        !pending &&
+        !leavePending;
+    final failure = state.failure ?? room.failure;
     final temporaryFailure = const {
       SyncPlayFailureCode.timeoutUnknown,
       SyncPlayFailureCode.disconnected,
@@ -437,7 +443,7 @@ class _SyncPlayRoomPanelState extends State<SyncPlayRoomPanel> {
                       ? s.cancelling
                       : recoveryActive
                           ? s.recovering
-                          : widget.state.preparingPlayback
+                          : state.preparingPlayback
                               ? s.loadingVideo
                               : s.waiting,
                 ),
@@ -468,7 +474,7 @@ class _SyncPlayRoomPanelState extends State<SyncPlayRoomPanel> {
                 const SizedBox(height: 8),
                 SyncPlayLocalBufferPanel(
                   room: room,
-                  prebuffer: widget.state.prebuffer,
+                  prebuffer: state.prebuffer,
                 ),
                 SyncPlayDiagnosticsPanel(diagnostics: room.diagnostics),
                 const SizedBox(height: 12),
@@ -484,26 +490,13 @@ class _SyncPlayRoomPanelState extends State<SyncPlayRoomPanel> {
                 if (!pending && !uncertain && widget.retry != null)
                   OutlinedButton(onPressed: widget.retry, child: Text(s.retry)),
               ],
-              if (leavePending) ...[
-                Semantics(liveRegion: true, child: Text(s.solo)),
-                const SizedBox(height: 8),
-                Text(
-                    settlingLeave ? s.serverLeavePending : s.serverLeaveFailed),
-                if (!settlingLeave)
-                  TextButton(
-                    onPressed:
-                        !widget.closing && !_dispatching && widget.signedIn
-                            ? () => _runAction(widget.reconnect)
-                            : null,
-                    child: Text(s.retryLeave),
-                  ),
-              ] else if (uncertain) ...[
+              if (uncertain) ...[
                 Semantics(
                   liveRegion: true,
                   child: Text(
                     recoveryActive
                         ? s.recovering
-                        : widget.state.recoveryExhausted
+                        : state.recoveryExhausted
                             ? s.recoveryPaused
                             : s.uncertain,
                   ),
@@ -516,7 +509,7 @@ class _SyncPlayRoomPanelState extends State<SyncPlayRoomPanel> {
                   child: Text(s.reconnect),
                 ),
               ],
-              if (room.group == null && !uncertain && !leavePending) ...[
+              if (room.group == null && !uncertain) ...[
                 if (!widget.joinFromHome)
                   FilledButton.icon(
                     onPressed: available && widget.canCreate
@@ -806,12 +799,6 @@ class SyncPlayStrings {
   String get recoveryPaused => zh ? '自動重連已暫停。' : 'Automatic reconnect paused.';
   String get reconnect => zh ? '重新連線' : 'Reconnect and check';
   String get solo => zh ? '已切回單獨播放' : 'Playing solo';
-  String get serverLeavePending =>
-      zh ? '正在背景通知伺服器離房…' : 'Notifying the server in the background…';
-  String get serverLeaveFailed => zh
-      ? '本機已停止同步；伺服器尚未確認離房。'
-      : 'Local sync is off. Server departure is unconfirmed.';
-  String get retryLeave => zh ? '重試通知離房' : 'Retry leave';
   String get roomInformation => zh ? '房間資訊' : 'Room information';
   String get create => zh ? '以目前影片建立房間' : 'Create room with this video';
   String get join => zh ? '加入房間' : 'Join room';

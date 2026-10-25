@@ -7,6 +7,8 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'syncplay_clock.dart';
 import 'syncplay_models.dart';
+import 'syncplay_socket_connector_stub.dart'
+    if (dart.library.io) 'syncplay_socket_connector_io.dart';
 
 /// Injectable socket boundary; neither socket URLs nor errors may be logged.
 abstract interface class SyncPlaySocket {
@@ -18,8 +20,14 @@ abstract interface class SyncPlaySocket {
 
 typedef SyncPlaySocketFactory = SyncPlaySocket Function(Uri uri);
 
+SyncPlaySocketFactory _capturedSocketFactory(Map<String, String>? headers) {
+  final captured = Map<String, String>.unmodifiable(headers ?? const {});
+  return (uri) => _ChannelSocket(uri, captured);
+}
+
 class _ChannelSocket implements SyncPlaySocket {
-  _ChannelSocket(Uri uri) : _channel = WebSocketChannel.connect(uri);
+  _ChannelSocket(Uri uri, Map<String, String> headers)
+      : _channel = connectSyncPlaySocket(uri, headers);
   final WebSocketChannel _channel;
   @override
   Future<void> get ready => _channel.ready;
@@ -48,6 +56,7 @@ class SyncPlayTransport implements SyncPlayApiPort {
     bool Function()? isCurrent,
     bool ownsApi = true,
     SyncPlaySocketFactory? socketFactory,
+    Map<String, String>? socketHeaders,
     SyncPlayScheduler scheduler = const SyncPlayTimerScheduler(),
     this.requestTimeout = const Duration(seconds: 15),
     this.connectTimeout = const Duration(seconds: 10),
@@ -56,7 +65,7 @@ class SyncPlayTransport implements SyncPlayApiPort {
         _isCurrent = isCurrent ?? _alwaysCurrent,
         _ownsApi = ownsApi,
         _scheduler = scheduler,
-        _socketFactory = socketFactory ?? _ChannelSocket.new;
+        _socketFactory = socketFactory ?? _capturedSocketFactory(socketHeaders);
 
   final jellyfin.JellyfinOpenApi _api;
   // This URL contains the token. Keep it private and out of all errors/logs.
@@ -409,16 +418,25 @@ class SyncPlayTransport implements SyncPlayApiPort {
     final socket = _socket;
     _subscription = null;
     _socket = null;
-    try {
-      await subscription?.cancel();
-    } catch (_) {
-      // Cleanup cannot expose a network error containing a credential URL.
+    Future<void> settle(Future<void> Function() cleanup) async {
+      try {
+        await cleanup().timeout(const Duration(seconds: 2));
+      } catch (_) {
+        // Cleanup cannot expose errors containing credential URLs, and must
+        // never retry closing a replacement session.
+      }
     }
-    try {
-      await socket?.close().timeout(const Duration(seconds: 2));
-    } catch (_) {
-      // The client has already detached; do not retry closing another session.
-    }
+
+    // Stream cancellation can itself wait on a failed connection. Initiate
+    // closing the captured socket now, independently of that cancellation.
+    await Future.wait([
+      settle(() async {
+        await subscription?.cancel();
+      }),
+      settle(() async {
+        await socket?.close();
+      }),
+    ]);
   }
 
   /// Idempotent; invalidates pending HTTP/handshake results before any await.
