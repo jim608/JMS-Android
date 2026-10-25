@@ -83,6 +83,12 @@ def inventory(deployment, bundle, output, commit, ostree_commit):
     members = {}
     for path in files:
         relative = path.relative_to(deployment).as_posix()
+        # Flatpak creates this deployment lock after install. It is never
+        # included in the payload archive or application OSTree commit.
+        if relative == 'files/.ref':
+            if not path.is_symlink() and (not path.is_file() or path.stat().st_size != 0):
+                raise ValueError('Unexpected nonempty Flatpak deployment lock')
+            continue
         if path.is_symlink():
             target = path.readlink()
             if target.is_absolute() or not path.resolve().is_relative_to(deployment.resolve()):

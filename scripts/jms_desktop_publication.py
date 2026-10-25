@@ -424,6 +424,17 @@ def verify_flatpak_ci(record, files):
     return digest.removeprefix('sha256:')
 
 
+
+def flatpak_application_members(expected, payload_names):
+    """Normalize only the historical empty deployment-lock inventory entry."""
+    if 'files/.ref' not in expected:
+        return expected
+    if (expected['files/.ref'] != hashlib.sha256(b'').hexdigest()
+            or 'files/.ref' in payload_names):
+        raise ReleaseError('Unexpected Flatpak deployment lock in application evidence')
+    return {name: digest for name, digest in expected.items() if name != 'files/.ref'}
+
+
 def verify_flatpak_payload(directory, record, files):
     flatpak = record['flatpak']
     receipt = json.loads((directory / flatpak['receipt']).read_text(encoding='utf-8'))
@@ -492,7 +503,7 @@ def verify_flatpak_payload(directory, record, files):
                     applications.append(record['buildId'].encode() in data)
             elif not member.isdir():
                 raise ReleaseError('Unsupported Flatpak deployment member type')
-    if actual != expected:
+    if actual != flatpak_application_members(expected, names):
         raise ReleaseError('Flatpak deployment member hashes differ from verified installation')
     for notice in FLATPAK_REQUIRED_LICENSES:
         name = 'files/share/licenses/' + notice
