@@ -1,3 +1,17 @@
+# JMS 0.11.1-jms.50
+
+## Fixed
+- Waits for the latest renderer initialization and prevents stale loads or routes from replacing newer requests.
+- Shares pending native stop operations while preserving cancellation and sleep timer intent.
+- Keeps unattributed native messages as diagnostic context instead of treating them as confirmed current-playback failures.
+
+## Known issues
+- SteamOS, physical controllers and GPU network playback still require device validation.
+- Cross-device synchronization and all hardware combinations have not been fully verified.
+
+## Update notes
+- Linux and Steam Deck share the signed update origin, with installation still confirmed by the system.
+
 # JMS 0.11.1-jms.49
 
 ## Added

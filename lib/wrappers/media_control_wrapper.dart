@@ -68,6 +68,11 @@ class MediaControlsWrapper extends BaseAudioHandler
 
   PlaybackModel? _resourceOwningPlaybackModel;
   int _setupGeneration = 0;
+  int _videoLoadGeneration = 0;
+  int _playbackStopEpoch = 0;
+  bool _internalPlaybackStop = false;
+
+  int get playbackStopEpoch => _playbackStopEpoch;
   String _initializationFailure = '';
   BasePlayer? _previousPlayer;
   final StreamController<PlayerState> _stateController =
@@ -150,6 +155,7 @@ class MediaControlsWrapper extends BaseAudioHandler
 
   bool initializedWrapper = false;
   bool _isStopped = false;
+  Future<void>? _pendingStop;
   bool _isNewPlayback = false;
   bool _isAudioQueueMode = false;
   bool _audioQueueTransitioning = false;
@@ -206,6 +212,7 @@ class MediaControlsWrapper extends BaseAudioHandler
     final ownedPlaybackModel = _resourceOwningPlaybackModel;
     _resourceOwningPlaybackModel = null;
     _setupGeneration++;
+    _videoLoadGeneration++;
     final player = _player;
     _player = null;
     try {
@@ -228,6 +235,7 @@ class MediaControlsWrapper extends BaseAudioHandler
 
   Future<void> setup(BasePlayer newPlayer) async {
     final generation = ++_setupGeneration;
+    _videoLoadGeneration++;
     final oldPlayer = _player;
     _player = null;
     _initializationFailure = '';
@@ -304,7 +312,7 @@ class MediaControlsWrapper extends BaseAudioHandler
     if (player == null) return;
 
     _playerStateSubscription = player.stateStream.listen((state) {
-      if (!_stateController.isClosed) {
+      if (identical(_player, player) && !_stateController.isClosed) {
         _stateController.add(state);
       }
     });
@@ -312,8 +320,10 @@ class MediaControlsWrapper extends BaseAudioHandler
 
   Future<void> loadVideo(PlaybackModel model, Duration startPosition, bool play,
       {bool Function()? isCurrent}) async {
-    bool current() => isCurrent?.call() ?? true;
-    if (!current()) return;
+    if (!(isCurrent?.call() ?? true)) return;
+    final generation = ++_videoLoadGeneration;
+    bool current() =>
+        generation == _videoLoadGeneration && (isCurrent?.call() ?? true);
     final player = _player;
     if (player == null) {
       _markPlayerFailure();
@@ -332,10 +342,19 @@ class MediaControlsWrapper extends BaseAudioHandler
             .sendPlaybackDataToNative(context, model, startPosition);
       }
       _isNewPlayback = play;
+      _isStopped = false;
       await player.loadVideo(model.media?.url ?? "",
           play && ref.read(sleepTimerProvider).allowsPlayback,
           startPosition: startPosition);
-      if (!current() || !identical(_player, player)) return;
+      if (!current() || !identical(_player, player)) {
+        // A cancelled open may have accepted play=true before returning. Stop
+        // only if no replacement load/renderer has taken ownership meanwhile.
+        if (generation == _videoLoadGeneration && identical(_player, player)) {
+          _isStopped = true;
+          await player.stop();
+        }
+        return;
+      }
       if (model.serverManagedQueue) {
         // Backend rate can survive stop/open. Reset it after loading, bypassing
         // the local speed control that is blocked while a room is active.
@@ -738,14 +757,48 @@ class MediaControlsWrapper extends BaseAudioHandler
 
   @override
   Future<void> stop({bool preserveSleepTimer = false}) async {
+    if (!_internalPlaybackStop) _playbackStopEpoch++;
     final commands = syncPlayCommands;
     if (!preserveSleepTimer && commands?.active == true) await commands!.stop();
     return _stopLocally(preserveSleepTimer: preserveSleepTimer);
   }
 
-  Future<void> stopFromSyncPlay() => _stopLocally(preserveSleepTimer: true);
+  /// This scoped flag covers only the synchronous call into stop(), never the
+  /// awaited operation. A concurrent user/room stop still revokes the request.
+  Future<void> stopBeforePlayback({bool preserveSleepTimer = true}) {
+    final previous = _internalPlaybackStop;
+    _internalPlaybackStop = true;
+    try {
+      return stop(preserveSleepTimer: preserveSleepTimer);
+    } finally {
+      _internalPlaybackStop = previous;
+    }
+  }
 
-  Future<void> _stopLocally({required bool preserveSleepTimer}) async {
+  Future<void> stopFromSyncPlay() {
+    _playbackStopEpoch++;
+    return _stopLocally(preserveSleepTimer: true);
+  }
+
+  Future<void> _stopLocally({required bool preserveSleepTimer}) {
+    final pending = _pendingStop;
+    if (pending != null) {
+      // Coalescing the backend operation must not discard a later caller's
+      // request to end the sleep-timer session.
+      if (!preserveSleepTimer) ref.read(sleepTimerProvider).endSession();
+      return pending;
+    }
+    late final Future<void> stopping;
+    stopping = _performLocalStop(preserveSleepTimer: preserveSleepTimer)
+        .whenComplete(() {
+      if (identical(_pendingStop, stopping)) _pendingStop = null;
+    });
+    _pendingStop = stopping;
+    return stopping;
+  }
+
+  Future<void> _performLocalStop({required bool preserveSleepTimer}) async {
+    final stopGeneration = ++_videoLoadGeneration;
     if (!preserveSleepTimer) ref.read(sleepTimerProvider).endSession();
     if (_isStopped) return;
     _isStopped = true;
@@ -774,7 +827,18 @@ class MediaControlsWrapper extends BaseAudioHandler
         .update((state) => state.copyWith(state: VideoPlayerState.disposed));
     unawaited(_applyWakelock(false));
 
-    _player?.stop();
+    final player = _player;
+    try {
+      await player?.stop();
+    } catch (_) {
+      // A failed native stop did not finish title/model/session cleanup.
+      // Keep it retryable, without changing a replacement player's state.
+      if (stopGeneration == _videoLoadGeneration &&
+          identical(_player, player)) {
+        _isStopped = false;
+      }
+      rethrow;
+    }
     ref.read(windowTitleProvider.notifier).setPlayTitle(null);
 
     final position = _player?.lastState.position;
@@ -962,14 +1026,15 @@ class MediaControlsWrapper extends BaseAudioHandler
       track: playbackModel.subStreams
           ?.firstWhere((element) => element.index == value),
       player: this,
-      isCurrent: () => !_stateController.isClosed &&
+      isCurrent: () =>
+          !_stateController.isClosed &&
           identical(ref.read(playBackModel), playbackModel) &&
           identical(ref.read(videoPlayerProvider), this),
       onUnavailable: (_) {
         final context = ref.read(localizationContextProvider);
         if (context != null && context.mounted) {
-          ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-              SnackBar(content: Text(context.localized.jmsSecondaryUnavailable)));
+          ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(
+              content: Text(context.localized.jmsSecondaryUnavailable)));
         }
       },
     );

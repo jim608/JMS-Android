@@ -128,7 +128,7 @@ class LibMPV extends BasePlayer {
     String message, {
     String prefix = '',
   }) {
-    if (player != _player) return;
+    if (player != _player || _activeDiagnosticAttempt == null) return;
     final failure = MpvNativeFailure.classify(message, prefix: prefix);
     final source = safeMpvNativeSource(prefix);
     final key = '${failure.errorClass}:${failure.httpStatus}:$source';
@@ -141,12 +141,15 @@ class LibMPV extends BasePlayer {
       _diagnosticOpening || _loadReadiness != null
           ? PlaybackStage.mediaOpen
           : PlaybackStage.lifecycle,
-      event: PlaybackEvent.failed,
+      // mpv's public log/error stream has no media generation identifier.
+      // A queued event can belong to the previous file on this same player.
+      // Record context, never claim that this event failed the current load.
+      event: PlaybackEvent.note,
       errorClass: failure.errorClass,
       httpStatus: failure.httpStatus,
       timedOut: failure.timedOut,
       cancelled: failure.cancelled,
-      detail: 'native source: $source',
+      detail: 'native source: $source; attribution=player_context_only',
     );
   }
 
@@ -601,31 +604,41 @@ class LibMPV extends BasePlayer {
       }),
       player.stream.playing.listen((value) {
         _recordPlaybackTransition(player);
-        if (_hdrPreparing) return;
+        if (player != _player || _hdrPreparing) return;
         setState(lastState.update(playing: value));
       }),
       player.stream.buffering.listen((value) {
         _recordPlaybackTransition(player);
-        setState(lastState.update(buffering: _hdrPreparing || value));
+        if (player == _player) {
+          setState(lastState.update(buffering: _hdrPreparing || value));
+        }
       }),
       player.stream.position.listen(
-        (value) => setState(lastState.update(position: value)),
+        (value) {
+          if (player == _player) setState(lastState.update(position: value));
+        },
       ),
       player.stream.duration.listen(
-        (value) => setState(lastState.update(duration: value)),
+        (value) {
+          if (player == _player) setState(lastState.update(duration: value));
+        },
       ),
       player.stream.volume.listen((value) {
-        setState(lastState.update(volume: value));
+        if (player == _player) setState(lastState.update(volume: value));
       }),
       player.stream.rate.listen(
-        (value) => setState(lastState.update(rate: value)),
+        (value) {
+          if (player == _player) setState(lastState.update(rate: value));
+        },
       ),
       player.stream.buffer.listen((value) {
         _recordPlaybackTransition(player);
-        setState(lastState.update(buffer: value));
+        if (player == _player) setState(lastState.update(buffer: value));
       }),
       player.stream.completed.listen(
-        (value) => setState(lastState.update(completed: value)),
+        (value) {
+          if (player == _player) setState(lastState.update(completed: value));
+        },
       ),
     ]);
   }
@@ -1744,6 +1757,8 @@ class LibMPV extends BasePlayer {
     _desiredPlaying = false;
     _loadReadiness?.cancel();
     _loadReadiness = null;
+    _activeDiagnosticAttempt = null;
+    _diagnosticOpening = false;
     final player = _player;
     final hdr = _hdrToneMapper;
     if (hdr != null) {

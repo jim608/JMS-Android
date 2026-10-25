@@ -1043,13 +1043,22 @@ Future<void> _playVideo(
 }) async {
   final diagnostics = PlaybackDiagnostics.instance;
   final attempt = diagnosticAttempt ?? diagnostics.startAttempt();
+  if (!context.mounted || (cancelOperation?.isCanceled ?? false)) {
+    closePlaybackLoadingIndicator(cancelOperation);
+    diagnostics.record(attempt, PlaybackStage.lifecycle,
+        cancelled: true, detail: 'loading_cancelled');
+    return;
+  }
+  final player = ref.read(videoPlayerProvider.notifier);
   void closeLoading() {
     if (!context.mounted) return;
     closePlaybackLoadingIndicator(cancelOperation);
   }
 
   bool cancelled() {
-    if (!(cancelOperation?.isCanceled ?? false)) return false;
+    if (context.mounted && !(cancelOperation?.isCanceled ?? false)) {
+      return false;
+    }
     diagnostics.record(attempt, PlaybackStage.lifecycle,
         cancelled: true, detail: 'loading_cancelled');
     return true;
@@ -1076,16 +1085,16 @@ Future<void> _playVideo(
     if (cancelled()) return;
     stage = PlaybackStage.mediaOpen;
     step = 'load_playback';
-    final loadedCorrectly =
-        await ref.read(videoPlayerProvider.notifier).loadPlaybackItem(
-              current,
-              actualStartPosition,
-              diagnosticAttempt: attempt,
-            );
+    final loadedCorrectly = await player.loadPlaybackItem(
+      current,
+      actualStartPosition,
+      diagnosticAttempt: attempt,
+      isCurrent: () => !cancelled(),
+    );
 
     if (!loadedCorrectly) {
-      if (cancelled()) return;
       closeLoading();
+      if (cancelled() || !player.isPlaybackAttemptCurrent(attempt)) return;
       _showPlaybackError(context);
       return;
     }
@@ -1100,12 +1109,18 @@ Future<void> _playVideo(
     return;
   }
 
-  if (cancelled()) return;
+  bool currentAttempt() =>
+      !cancelled() && player.isPlaybackAttemptCurrent(attempt);
+  if (!currentAttempt()) {
+    closeLoading();
+    return;
+  }
   closeLoading();
-  if (cancelled()) return;
+  if (!currentAttempt()) return;
 
   try {
-    await ref.read(videoPlayerProvider.notifier).openPlayer(context);
+    await player.openPlaybackAttempt(context, attempt,
+        isCurrent: currentAttempt);
   } catch (error) {
     diagnostics.record(attempt, PlaybackStage.lifecycle,
         event: PlaybackEvent.failed,
@@ -1114,6 +1129,7 @@ Future<void> _playVideo(
     _showPlaybackError(context);
     return;
   }
+  if (!currentAttempt()) return;
   if (AdaptiveLayout.of(context).isDesktop &&
       defaultTargetPlatform != TargetPlatform.macOS) {
     fullScreenHelper.closeFullScreen(ref);
