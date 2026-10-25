@@ -45,6 +45,7 @@ enum SyncPlayFailureCode {
   denied,
   server,
   timeoutUnknown,
+  creationUnconfirmed,
   disconnected,
   protocol,
   player,

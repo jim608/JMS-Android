@@ -3,6 +3,15 @@ import 'dart:async';
 import 'syncplay_clock.dart';
 import 'syncplay_models.dart';
 
+class _InitialQueueIntent {
+  _InitialQueueIntent(this.source, this.operation, {this.paused = true});
+  final int source;
+  final int operation;
+  bool paused;
+  bool settling = true;
+  bool uncertain = false;
+}
+
 /// A room code is an exact, publicly listable GroupName (`JMS-123456`), not a
 /// password or an access grant. Jellyfin authenticates each participant.
 ///
@@ -69,6 +78,7 @@ class SyncPlayController {
   bool _connected = true;
   bool _disposed = false;
   bool _loading = false;
+  _InitialQueueIntent? _initialQueueIntent;
   bool _needsReady = false;
   bool _buffering = false;
   bool? _lastReportedBuffering;
@@ -131,6 +141,15 @@ class SyncPlayController {
       SyncPlayWaitParticipation.following;
 
   bool get _adaptive => _mediaReadiness != null;
+  bool get _holdingInitialReady {
+    final intent = _initialQueueIntent;
+    return intent != null &&
+        _current(intent.source, intent.uncertain ? null : intent.operation);
+  }
+
+  bool get initialQueueUncertain =>
+      _holdingInitialReady && _initialQueueIntent!.uncertain;
+
   bool get _suppressBufferRequests => const {
         SyncPlayWaitParticipation.ignoring,
         SyncPlayWaitParticipation.ignored,
@@ -197,7 +216,7 @@ class SyncPlayController {
   }
 
   void _armSlowWait() {
-    if (!_adaptive || _disposed) return;
+    if (!_adaptive || _disposed || _holdingInitialReady) return;
     final awaitingPlayback = _loading ||
         _needsReady ||
         _buffering ||
@@ -232,6 +251,7 @@ class SyncPlayController {
 
   Future<void> _ignoreOwnWait() async {
     if (_disposed ||
+        _holdingInitialReady ||
         !_connected ||
         !state.isJoined ||
         _suppressBufferRequests ||
@@ -357,7 +377,9 @@ class SyncPlayController {
         queue: _queue,
         connected: _connected,
         clockSynchronized: clock.isSynchronized,
-        failure: _failure,
+        failure: initialQueueUncertain
+            ? const SyncPlayFailure(SyncPlayFailureCode.creationUnconfirmed)
+            : _failure,
         diagnostics: _diagnostics,
         waitParticipation: _waitParticipation,
         mediaReady: _mediaReadySample,
@@ -529,11 +551,14 @@ class SyncPlayController {
     return _operation;
   }
 
-  Future<void> createRoom(String code) async {
+  Future<void> createRoom(String code, {bool? startPaused}) async {
     final name = _roomName(code);
     if (name == null || !_canBegin()) return;
     final source = _sourceEpoch;
     final op = _begin(SyncPlayStatus.creating, name);
+    _initialQueueIntent = startPaused == null
+        ? null
+        : _InitialQueueIntent(source, op, paused: startPaused);
     var sent = false;
     try {
       final groups = await _bounded(_api.listGroups());
@@ -742,6 +767,7 @@ class SyncPlayController {
   }
 
   void _clearMembership() {
+    _initialQueueIntent = null;
     _invalidatePlayback();
     _clockPoll?.cancel();
     _clockPoll = null;
@@ -794,6 +820,9 @@ class SyncPlayController {
     if (_leaveRequested) {
       if (!automatic) await leaveRoom();
       return;
+    }
+    if (initialQueueUncertain) {
+      return; // Rejoining cannot order an unknown old Queue/Pause mutation.
     }
     if (automatic &&
         (_group == null ||
@@ -986,11 +1015,32 @@ class SyncPlayController {
   }
 
   Future<void> requestPause({bool userInitiated = false}) =>
-      _request(SyncPlayRequest(SyncPlayRequestType.pause),
-          userInitiated: userInitiated);
+      _requestPlaybackIntent(true, userInitiated);
   Future<void> requestUnpause({bool userInitiated = false}) =>
-      _request(SyncPlayRequest(SyncPlayRequestType.unpause),
-          userInitiated: userInitiated);
+      _requestPlaybackIntent(false, userInitiated);
+
+  Future<void> _requestPlaybackIntent(bool paused, bool userInitiated) async {
+    final intent = _initialQueueIntent;
+    if (userInitiated && intent != null && _holdingInitialReady) {
+      // A bounded timeout does not cancel the real HTTP mutation. Contradicting
+      // it could let a late Pause overwrite Play or restart the initial queue.
+      // Keep the safe error/paused state until Leave retires this membership.
+      if (intent.uncertain) return;
+      intent.paused = paused;
+      // Keep explicit changes ordered behind SetNewQueue and any already-sent
+      // Pause. Otherwise a late initial Pause could overwrite a newer Play.
+      if (!intent.settling) {
+        intent.settling = true;
+        await _settleInitialQueueIntent(intent);
+      }
+      return;
+    }
+    await _request(
+        SyncPlayRequest(
+            paused ? SyncPlayRequestType.pause : SyncPlayRequestType.unpause),
+        userInitiated: userInitiated);
+  }
+
   Future<void> requestSeek(Duration position,
       {bool userInitiated = false}) async {
     try {
@@ -1005,32 +1055,95 @@ class SyncPlayController {
   }
 
   Future<void> setQueue(List<String> mediaIds,
-      {int startIndex = 0, Duration position = Duration.zero}) async {
+      {int startIndex = 0,
+      Duration position = Duration.zero,
+      bool startPaused = false}) async {
     try {
       if (mediaIds.isEmpty || startIndex < 0 || startIndex >= mediaIds.length) {
         throw const FormatException('Invalid queue');
       }
       final ids = mediaIds.map(syncPlayId).toList();
-      await _request(
+      final existingIntent = _initialQueueIntent;
+      final intent = existingIntent != null && _holdingInitialReady
+          ? existingIntent
+          : startPaused
+              ? _InitialQueueIntent(_sourceEpoch, _operation)
+              : null;
+      _initialQueueIntent = intent;
+      final accepted = await _request(
           SyncPlayRequest(SyncPlayRequestType.setNewQueue, {
             'PlayingQueue': ids,
             'PlayingItemPosition': startIndex,
             'StartPositionTicks': syncPlayTicks(position),
           }),
-          requireClock: false);
+          requireClock: false,
+          userInitiated: intent != null);
+      if (intent != null) {
+        if (accepted && _current(intent.source, intent.operation)) {
+          // SetNewQueue makes Jellyfin's Waiting state resume by default.
+          // Preserve a paused creator before the first Ready can start it.
+          await _settleInitialQueueIntent(intent, acknowledgedPause: false);
+        } else {
+          _markInitialQueueUncertain(intent);
+          intent.settling = false;
+        }
+      }
     } on FormatException {
       _failure = const SyncPlayFailure(SyncPlayFailureCode.protocol);
       _emit();
     }
   }
 
-  Future<void> _request(SyncPlayRequest request,
+  Future<void> _settleInitialQueueIntent(_InitialQueueIntent intent,
+      {bool? acknowledgedPause}) async {
+    bool current() =>
+        identical(intent, _initialQueueIntent) &&
+        _current(intent.source, intent.operation) &&
+        state.isJoined;
+    try {
+      var serverPaused = acknowledgedPause;
+      while (current() && intent.paused != serverPaused) {
+        final paused = intent.paused;
+        final accepted = await _request(
+            SyncPlayRequest(paused
+                ? SyncPlayRequestType.pause
+                : SyncPlayRequestType.unpause),
+            requireClock: false,
+            userInitiated: true);
+        if (!accepted || !current()) {
+          if (!accepted) _markInitialQueueUncertain(intent);
+          return;
+        }
+        serverPaused = paused;
+      }
+      if (!current()) return;
+      _initialQueueIntent = null;
+      unawaited(reportReady());
+      _drainCommand();
+    } finally {
+      intent.settling = false;
+    }
+  }
+
+  void _markInitialQueueUncertain(_InitialQueueIntent intent) {
+    intent.uncertain = true;
+    if (identical(intent, _initialQueueIntent) &&
+        _current(intent.source) &&
+        !_leaveRequested) {
+      _emit();
+    }
+  }
+
+  Future<bool> _request(SyncPlayRequest request,
       {bool report = false,
       bool requireClock = true,
       bool userInitiated = false}) async {
+    if (initialQueueUncertain) return false;
     // Backend callbacks must not echo a server command. An explicit user action
     // remains valid while that command's asynchronous player work is pending.
-    if (_disposed || (!report && !userInitiated && isApplyingRemote)) return;
+    if (_disposed || (!report && !userInitiated && isApplyingRemote)) {
+      return false;
+    }
     if (!state.isJoined ||
         !_connected ||
         (requireClock && !clock.isSynchronized)) {
@@ -1038,16 +1151,18 @@ class SyncPlayController {
           ? SyncPlayFailureCode.disconnected
           : SyncPlayFailureCode.clock);
       _emit();
-      return;
+      return false;
     }
     final source = _sourceEpoch, op = _operation;
     try {
       await _bounded(_api.sendRequest(request));
+      return _current(source, op) && state.isJoined;
     } catch (error) {
       if (_current(source, op)) {
         _failure = _safeFailure(error);
         _emit();
       }
+      return false;
     }
   }
 
@@ -1088,6 +1203,7 @@ class SyncPlayController {
   bool get _rawBuffering => _isPlayerBuffering?.call() ?? _buffering;
 
   Future<void> _flushBufferReports() async {
+    if (_holdingInitialReady) return;
     final active = _bufferReportPump;
     if (active != null) {
       _bufferReportWakeup = true;
@@ -1435,6 +1551,11 @@ class SyncPlayController {
         command.playlistItemId != _queue?.current?.playlistItemId) {
       return;
     }
+    if (_holdingInitialReady &&
+        _initialQueueIntent!.paused &&
+        command.type == SyncPlayCommandType.unpause) {
+      return;
+    }
     final previous = _commandIds[command.fingerprint];
     if (previous != null) {
       if (!command.emittedAt.isAfter(previous) ||
@@ -1496,6 +1617,9 @@ class SyncPlayController {
   void _drainCommand() {
     final command = _deferredCommand;
     if (command == null || _loading || !state.isJoined || !_connected) return;
+    if (_holdingInitialReady && command.type == SyncPlayCommandType.unpause) {
+      return;
+    }
     if (!clock.isSynchronized) {
       // A failed time read retains this command until the scheduled poll.
       // Draining or receiving another correction must not bypass that wait

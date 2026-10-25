@@ -376,6 +376,8 @@ class _SyncPlayRoomPanelState extends State<SyncPlayRoomPanel> {
         !pending &&
         !leavePending;
     final failure = state.failure ?? room.failure;
+    final creationUnconfirmed =
+        failure?.code == SyncPlayFailureCode.creationUnconfirmed;
     final temporaryFailure = const {
       SyncPlayFailureCode.timeoutUnknown,
       SyncPlayFailureCode.disconnected,
@@ -487,10 +489,13 @@ class _SyncPlayRoomPanelState extends State<SyncPlayRoomPanel> {
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
                 const SizedBox(height: 12),
-                if (!pending && !uncertain && widget.retry != null)
+                if (!pending &&
+                    !uncertain &&
+                    !creationUnconfirmed &&
+                    widget.retry != null)
                   OutlinedButton(onPressed: widget.retry, child: Text(s.retry)),
               ],
-              if (uncertain) ...[
+              if (uncertain && !creationUnconfirmed) ...[
                 Semantics(
                   liveRegion: true,
                   child: Text(
@@ -834,6 +839,9 @@ class SyncPlayStrings {
         SyncPlayFailureCode.denied => zh
             ? '伺服器拒絕此操作，請確認帳號及影片權限。'
             : 'The server denied the action. Check account and media permissions.',
+        SyncPlayFailureCode.creationUnconfirmed => zh
+            ? '建房尚未完成。離開房間即可回到單人播放。'
+            : 'Room creation is unconfirmed. Leave the room to return to solo playback.',
         SyncPlayFailureCode.timeoutUnknown => zh
             ? '伺服器確認逾時，請重新連線確認房間狀態。'
             : 'Confirmation timed out. Reconnect to check the room state.',

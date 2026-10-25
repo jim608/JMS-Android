@@ -384,6 +384,37 @@ void main() {
     });
   }
 
+  testWidgets(
+      'unconfirmed creation offers one Leave without reconnect or retry',
+      (tester) async {
+    final room = await openDialog(
+        tester,
+        SyncPlayViewState(
+          room: SyncPlayControllerState(
+            status: SyncPlayStatus.disconnected,
+            group: joined.room.group,
+            failure:
+                const SyncPlayFailure(SyncPlayFailureCode.creationUnconfirmed),
+          ),
+        ));
+    expect(
+        find.text(
+            'Room creation is unconfirmed. Leave the room to return to solo playback.'),
+        findsOneWidget);
+    expect(find.text('Reconnect and check'), findsNothing);
+    expect(find.text('Retry'), findsNothing);
+    expect(find.textContaining('Reconnecting'), findsNothing);
+    final leave = find.widgetWithText(TextButton, 'Leave room');
+    expect(tester.widget<TextButton>(leave).onPressed, isNotNull);
+    await tester.ensureVisible(leave);
+    await tester.tap(leave);
+    await tester.pump();
+    expect(room.leaves, 1);
+    expect(find.byType(SyncPlayDialog), findsNothing);
+    expect(find.text('Playing solo'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('closing a joined dialog preserves room membership',
       (tester) async {
     final room = await openDialog(tester, joined);

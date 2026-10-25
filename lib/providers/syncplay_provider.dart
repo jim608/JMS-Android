@@ -55,6 +55,13 @@ class SyncPlayViewState {
   final bool leavePending;
 }
 
+class _CreatorPlaybackIntent {
+  _CreatorPlaybackIntent(this.operation, this.paused);
+  final int operation;
+  bool paused;
+  bool explicit = false;
+}
+
 /// Explicitly opened by the room dialog. No socket, room, or sharing at startup.
 /// Every asynchronous operation remains bound to the captured login generation.
 class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
@@ -101,6 +108,7 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
   bool _homeMode = false;
   bool _preparingPlayback = false;
   bool _localLeaveIntent = false;
+  _CreatorPlaybackIntent? _creatorPlaybackIntent;
   Future<void>? _leaveSettlement;
   SyncPlayControllerState? _backgroundLeaveResult;
 
@@ -409,7 +417,7 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
       controller.setConnected(false);
       _recovery = SyncPlayRecovery(
         readState: () => controller.state,
-        isCurrent: current,
+        isCurrent: () => current() && !controller.initialQueueUncertain,
         reconnectTransport: transport.reconnect,
         rejoinKnownGroup: (isRecoveryCurrent) => controller.reconnect(
             automatic: true, isRecoveryCurrent: isRecoveryCurrent),
@@ -473,8 +481,9 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
             if (state.room.group != null) _preparingPlayback = false;
           }
           if (room.failure != null) _preparingPlayback = false;
+          if (controller.initialQueueUncertain) _recovery?.cancel();
           state = _view(room: room, busy: state.busy);
-          _recovery?.observe(room);
+          if (!controller.initialQueueUncertain) _recovery?.observe(room);
         }
       });
       _connectionSubscription = transport.connections.listen((connected) {
@@ -585,29 +594,49 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
         if (!canCreate || !supported) return;
         final operationId = _uiOperation;
         final itemId = ref.read(playBackModel)?.item.id;
-        final position =
-            ref.read(videoPlayerProvider).lastState?.position ?? Duration.zero;
-        if (itemId == null || !await _ensureSession()) return;
-        if (_localLeaveIntent || operationId != _uiOperation) return;
-        final controller = _controller!;
-        final generation = _generation;
-        final code = (100000 + Random.secure().nextInt(900000)).toString();
-        await controller.createRoom(code);
-        if (_disposed ||
-            _localLeaveIntent ||
-            operationId != _uiOperation ||
-            generation != _generation ||
-            !controller.state.isJoined) {
-          return;
+        final initialPlayer = ref.read(videoPlayerProvider).lastState;
+        final position = initialPlayer?.position ?? Duration.zero;
+        final startPaused = initialPlayer?.playing == false;
+        final preserveIntent = !kIsWeb &&
+            ref.read(applicationInfoProvider).platform ==
+                TargetPlatform.windows;
+        final intent = _CreatorPlaybackIntent(operationId, startPaused);
+        if (preserveIntent) _creatorPlaybackIntent = intent;
+        try {
+          if (itemId == null || !await _ensureSession()) return;
+          if (_localLeaveIntent || operationId != _uiOperation) return;
+          if (!intent.explicit) {
+            // Until New, a local control may have changed the original player
+            // before the room wrapper was bound. No room load has paused it yet.
+            intent.paused =
+                ref.read(videoPlayerProvider).lastState?.playing == false;
+          }
+          final controller = _controller!;
+          final generation = _generation;
+          final code = (100000 + Random.secure().nextInt(900000)).toString();
+          await controller.createRoom(code,
+              startPaused: preserveIntent ? intent.paused : null);
+          if (_disposed ||
+              _localLeaveIntent ||
+              operationId != _uiOperation ||
+              generation != _generation ||
+              !controller.state.isJoined) {
+            return;
+          }
+          await controller.synchronizeClock();
+          if (_disposed ||
+              _localLeaveIntent ||
+              operationId != _uiOperation ||
+              generation != _generation) {
+            return;
+          }
+          await controller.setQueue([itemId],
+              position: position, startPaused: preserveIntent && intent.paused);
+        } finally {
+          if (identical(intent, _creatorPlaybackIntent)) {
+            _creatorPlaybackIntent = null;
+          }
         }
-        await controller.synchronizeClock();
-        if (_disposed ||
-            _localLeaveIntent ||
-            operationId != _uiOperation ||
-            generation != _generation) {
-          return;
-        }
-        await controller.setQueue([itemId], position: position);
       });
 
   Future<void> joinRoom(String code) => _run(() async {
@@ -700,6 +729,7 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
           await _settleLeave(controller);
           return;
         }
+        if (controller.initialQueueUncertain) return;
         if (!(_homeMode || supported) || !canJoin) return;
         _recovery?.manualRetry();
         await transport.reconnect();
@@ -708,11 +738,21 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
 
   @override
   Future<void> pause() async {
+    final intent = _creatorPlaybackIntent;
+    if (intent != null && intent.operation == _uiOperation) {
+      intent.paused = true;
+      intent.explicit = true;
+    }
     await _controller?.requestPause(userInitiated: true);
   }
 
   @override
   Future<void> play() async {
+    final intent = _creatorPlaybackIntent;
+    if (intent != null && intent.operation == _uiOperation) {
+      intent.paused = false;
+      intent.explicit = true;
+    }
     await _controller?.requestUnpause(userInitiated: true);
   }
 

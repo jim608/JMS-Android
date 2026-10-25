@@ -68,6 +68,14 @@ class _Server {
   String? name;
   Map<String, dynamic>? queue;
   bool legacyNewNoContent = false;
+  bool legacyQueueStartsPlaying = false;
+  bool _resumePlaying = false;
+  bool _waitingForInitialReady = false;
+  Completer<void>? queueResponseGate, pauseResponseGate, unpauseResponseGate;
+  final queueStarted = Completer<void>();
+  final pauseStarted = Completer<void>();
+  final unpauseStarted = Completer<void>();
+  final readyPlayingValues = <bool>[];
   bool leaveFails = false;
   bool leftBeforeLeaveResponse = false;
   Completer<void>? leaveGate;
@@ -110,7 +118,7 @@ class _Server {
     }
   }
 
-  void unpause() {
+  void unpause({Duration position = const Duration(seconds: 3)}) {
     final emitted = DateTime.now().toUtc();
     for (final socket
         in sockets.where((socket) => socket.readyState == WebSocket.open)) {
@@ -120,7 +128,7 @@ class _Server {
           'GroupId': _group,
           'PlaylistItemId': _queueEntry,
           'Command': 'Unpause',
-          'PositionTicks': 30000000,
+          'PositionTicks': syncPlayTicks(position),
           'When':
               emitted.add(const Duration(milliseconds: 30)).toIso8601String(),
           'EmittedAt': emitted.toIso8601String(),
@@ -239,6 +247,10 @@ class _Server {
           await _reply(request,
               {'RequestReceptionTime': time, 'ResponseTransmissionTime': time});
         case 'SetNewQueue':
+          if (legacyQueueStartsPlaying) {
+            _resumePlaying = true;
+            _waitingForInitialReady = true;
+          }
           queue = {
             'Reason': 'NewPlaylist',
             'LastUpdate': DateTime.now().toUtc().toIso8601String(),
@@ -251,7 +263,9 @@ class _Server {
             'ShuffleMode': 'Sorted',
             'RepeatMode': 'RepeatNone',
           };
+          if (!queueStarted.isCompleted) queueStarted.complete();
           emit('PlayQueue', queue);
+          await queueResponseGate?.future;
           await _reply(request, null, 204);
         case _media:
           mediaUsers.add(request.uri.queryParameters['userId']);
@@ -265,12 +279,35 @@ class _Server {
               {'Id': _media, 'SupportsDirectPlay': true, 'MediaStreams': []}
             ],
           });
-        case 'Ping':
         case 'Ready':
+          if (legacyQueueStartsPlaying) {
+            readyPlayingValues.add(body['IsPlaying'] as bool);
+            if (_waitingForInitialReady) {
+              _waitingForInitialReady = false;
+              emit('StateUpdate', {
+                'State': _resumePlaying ? 'Playing' : 'Paused',
+                'Reason': 'Ready',
+              });
+              if (_resumePlaying) {
+                unpause(
+                    position: syncPlayPosition(queue!['StartPositionTicks']));
+              }
+            }
+          }
+          await _reply(request, null, 204);
+        case 'Ping':
         case 'Buffering':
-        case 'Pause':
-        case 'Unpause':
         case 'Seek':
+          await _reply(request, null, 204);
+        case 'Pause':
+          if (legacyQueueStartsPlaying) _resumePlaying = false;
+          if (!pauseStarted.isCompleted) pauseStarted.complete();
+          await pauseResponseGate?.future;
+          await _reply(request, null, 204);
+        case 'Unpause':
+          if (legacyQueueStartsPlaying) _resumePlaying = true;
+          if (!unpauseStarted.isCompleted) unpauseStarted.complete();
+          await unpauseResponseGate?.future;
           await _reply(request, null, 204);
         default:
           await _reply(request, {'error': 'unsupported fixture endpoint'}, 404);
@@ -283,7 +320,14 @@ class _Server {
   }
 
   Future<void> close() async {
-    for (final gate in [listGate, joinGate, itemGate]) {
+    for (final gate in [
+      listGate,
+      joinGate,
+      itemGate,
+      queueResponseGate,
+      pauseResponseGate,
+      unpauseResponseGate
+    ]) {
       if (gate != null && !gate.isCompleted) gate.complete();
     }
     if (newGate != null && !newGate!.isCompleted) newGate!.complete();
@@ -523,6 +567,177 @@ void main() {
     });
     return scope;
   }
+
+  Future<_Scope> creatorScope(_Server server, {bool playing = false}) async {
+    await server.start();
+    final scope = _Scope(server, preferences);
+    scope.wrapper.raw.position = const Duration(minutes: 9, seconds: 29);
+    scope.wrapper.raw.playing = playing;
+    addTearDown(() async {
+      scope.dispose();
+      await server.close();
+    });
+    return scope;
+  }
+
+  _Server legacyCreatorServer() => _Server()
+    ..legacyNewNoContent = true
+    ..legacyQueueStartsPlaying = true;
+
+  test('legacy creator keeps Pause before the first Ready despite fast loading',
+      () async {
+    final server = legacyCreatorServer()
+      ..queueResponseGate = Completer<void>()
+      ..pauseResponseGate = Completer<void>();
+    final scope = await creatorScope(server);
+    final creating = scope.notifier.createRoom();
+    await server.queueStarted.future;
+    await _until(() => scope.video.loaded.length == 1, 'fast room load');
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+    expect(server.requests.where((request) => request == 'Ready'), isEmpty);
+    expect(server.requests.where((request) => request == 'Pause'), isEmpty);
+    expect(scope.wrapper.plays, 0);
+    server.queueResponseGate!.complete();
+    await server.pauseStarted.future;
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+    expect(server.requests.where((request) => request == 'Ready'), isEmpty);
+    expect(scope.wrapper.plays, 0);
+    server.pauseResponseGate!.complete();
+    await creating;
+    await _until(
+        () => server.readyPlayingValues.isNotEmpty, 'first safe Ready');
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+    expect(
+        server.requests.where((request) => request == 'Pause'), hasLength(1));
+    expect(server.requests.indexOf('SetNewQueue'),
+        lessThan(server.requests.indexOf('Pause')));
+    expect(server.requests.indexOf('Pause'),
+        lessThan(server.requests.indexOf('Ready')));
+    expect(server.readyPlayingValues, [false]);
+    expect(scope.wrapper.plays, 0);
+    expect(scope.wrapper.raw.playing, false);
+    expect(scope.wrapper.raw.position, const Duration(minutes: 9, seconds: 29));
+    expect(scope.video.loaded, hasLength(1));
+    expect(scope.state.busy, false);
+    expect(scope.state.room.failure, isNull);
+  });
+
+  test('legacy creator that was playing retains normal Ready autoplay',
+      () async {
+    final server = legacyCreatorServer();
+    final scope = await creatorScope(server, playing: true);
+    await scope.notifier.createRoom();
+    await _until(() => scope.wrapper.plays == 1, 'normal server Unpause');
+    expect(server.requests.where((request) => request == 'Pause'), isEmpty);
+    expect(scope.wrapper.raw.playing, true);
+    expect(scope.wrapper.raw.position, const Duration(minutes: 9, seconds: 29));
+    expect(scope.video.loaded, hasLength(1));
+  });
+
+  test('legacy creator drains latest Play then Pause behind both intent ACKs',
+      () async {
+    final server = legacyCreatorServer()
+      ..pauseResponseGate = Completer<void>()
+      ..unpauseResponseGate = Completer<void>();
+    final scope = await creatorScope(server);
+    final creating = scope.notifier.createRoom();
+    await server.pauseStarted.future;
+    await scope.wrapper.play();
+    expect(server.requests.where((request) => request == 'Unpause'), isEmpty);
+    server.pauseResponseGate!.complete();
+    await server.unpauseStarted.future;
+    await scope.wrapper.pause();
+    expect(server.requests.where((request) => request == 'Ready'), isEmpty);
+    server.unpauseResponseGate!.complete();
+    await creating;
+    await _until(
+        () => server.readyPlayingValues.isNotEmpty, 'latest paused Ready');
+    expect(
+        server.requests.where((request) => request == 'Pause'), hasLength(2));
+    expect(
+        server.requests.where((request) => request == 'Unpause'), hasLength(1));
+    expect(server.requests.lastIndexOf('Pause'),
+        lessThan(server.requests.indexOf('Ready')));
+    expect(scope.wrapper.plays, 0);
+    expect(scope.wrapper.raw.playing, false);
+    expect(scope.state.busy, false);
+    expect(scope.state.room.failure, isNull);
+  });
+
+  test('legacy creator records a newer Pause while New is still pending',
+      () async {
+    final server = legacyCreatorServer()..newGate = Completer<void>();
+    final scope = await creatorScope(server, playing: true);
+    final creating = scope.notifier.createRoom();
+    await server.newStarted.future;
+    await scope.wrapper.pause();
+    expect(server.requests.where((request) => request == 'Pause'), isEmpty);
+    server.newGate!.complete();
+    await creating;
+    await _until(
+        () => server.readyPlayingValues.isNotEmpty, 'manual paused Ready');
+    expect(
+        server.requests.where((request) => request == 'Pause'), hasLength(1));
+    expect(scope.wrapper.plays, 0);
+    expect(scope.wrapper.raw.playing, false);
+    expect(scope.state.room.failure, isNull);
+  });
+
+  test('legacy creator Leave revokes the late initial Pause ACK and Ready',
+      () async {
+    final server = legacyCreatorServer()..pauseResponseGate = Completer<void>();
+    final scope = await creatorScope(server);
+    final creating = scope.notifier.createRoom();
+    await server.pauseStarted.future;
+    await scope.notifier.leaveRoom();
+    expect(scope.wrapper.syncPlayCommands, isNull);
+    server.pauseResponseGate!.complete();
+    await creating;
+    await _until(() => !scope.state.leavePending, 'cancelled creator cleanup');
+    expect(server.requests.where((request) => request == 'Ready'), isEmpty);
+    expect(server.requests.where((request) => request == 'Unpause'), isEmpty);
+    expect(scope.wrapper.plays, 0);
+    expect(scope.wrapper.raw.playing, false);
+    expect(scope.wrapper.raw.position, const Duration(minutes: 9, seconds: 29));
+    expect(scope.state.busy, false);
+    expect(scope.state.room.status, SyncPlayStatus.idle);
+  });
+
+  test(
+      'legacy creator timed-out Pause blocks contradictory Play through late HTTP ACK',
+      () async {
+    final server = legacyCreatorServer()..pauseResponseGate = Completer<void>();
+    final scope = await creatorScope(server);
+    final creating = scope.notifier.createRoom();
+    await server.pauseStarted.future;
+    await creating; // The controller's 10s budget ends before HTTP's 15s budget.
+    expect(scope.state.busy, false);
+    expect(scope.state.room.failure?.code,
+        SyncPlayFailureCode.creationUnconfirmed);
+    expect(scope.state.recoveryActive, false);
+    await scope.wrapper.play();
+    await scope.wrapper.pause();
+    await scope.notifier.reconnect();
+    expect(server.sockets, hasLength(1));
+    expect(server.requests.where((request) => request == 'Join'), isEmpty);
+    expect(
+        server.requests.where((request) => request == 'Pause'), hasLength(1));
+    expect(server.requests.where((request) => request == 'Unpause'), isEmpty);
+    expect(server.requests.where((request) => request == 'Ready'), isEmpty);
+    server.pauseResponseGate!.complete();
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+    await scope.wrapper.play();
+    expect(server.requests.where((request) => request == 'Unpause'), isEmpty);
+    expect(server.requests.where((request) => request == 'Ready'), isEmpty);
+    expect(scope.wrapper.plays, 0);
+    expect(scope.wrapper.raw.playing, false);
+    await scope.notifier.leaveRoom();
+    await _until(() => !scope.state.leavePending, 'uncertain creator left');
+    expect(scope.wrapper.syncPlayCommands, isNull);
+    expect(scope.state.busy, false);
+    expect(scope.state.room.status, SyncPlayStatus.idle);
+    expect(scope.wrapper.raw.position, const Duration(minutes: 9, seconds: 29));
+  }, timeout: const Timeout(Duration(seconds: 15)));
 
   test(
       'Android home joins with no media, authorizes own item and becomes ready once',
@@ -1408,6 +1623,7 @@ void main() {
         'joined and loaded');
     scope.wrapper.playGate = gate;
     scope.wrapper.playStarted = Completer<void>();
+    final requestsBeforeManualControls = server.requests.length;
     server.unpause();
     await scope.wrapper.playStarted!.future;
     expect(gate.isCompleted, false);
@@ -1416,7 +1632,10 @@ void main() {
     await scope.wrapper.play();
     await scope.wrapper.seek(const Duration(seconds: 37));
     for (final endpoint in ['Pause', 'Unpause', 'Seek']) {
-      expect(server.requests.where((request) => request == endpoint),
+      expect(
+          server.requests
+              .skip(requestsBeforeManualControls)
+              .where((request) => request == endpoint),
           hasLength(1));
     }
     expect(scope.wrapper.plays, 1,
