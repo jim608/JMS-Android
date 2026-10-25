@@ -343,6 +343,7 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
         token: account.credentials.token,
         deviceId: controlDeviceId,
         socketHeaders: isolateControlSession ? controlHeaders : null,
+        traceRestHeaders: isolateControlSession ? controlHeaders : null,
         isCurrent: current,
       );
       constructedTransport = transport;

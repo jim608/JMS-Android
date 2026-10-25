@@ -9,6 +9,7 @@ import 'syncplay_clock.dart';
 import 'syncplay_models.dart';
 import 'syncplay_socket_connector_stub.dart'
     if (dart.library.io) 'syncplay_socket_connector_io.dart';
+import 'syncplay_test_trace.dart';
 
 /// Injectable socket boundary; neither socket URLs nor errors may be logged.
 abstract interface class SyncPlaySocket {
@@ -57,6 +58,8 @@ class SyncPlayTransport implements SyncPlayApiPort {
     bool ownsApi = true,
     SyncPlaySocketFactory? socketFactory,
     Map<String, String>? socketHeaders,
+    Map<String, String>? traceRestHeaders,
+    SyncPlayTestTrace? testTrace,
     SyncPlayScheduler scheduler = const SyncPlayTimerScheduler(),
     this.requestTimeout = const Duration(seconds: 15),
     this.connectTimeout = const Duration(seconds: 10),
@@ -65,7 +68,14 @@ class SyncPlayTransport implements SyncPlayApiPort {
         _isCurrent = isCurrent ?? _alwaysCurrent,
         _ownsApi = ownsApi,
         _scheduler = scheduler,
-        _socketFactory = socketFactory ?? _capturedSocketFactory(socketHeaders);
+        _socketFactory = socketFactory ?? _capturedSocketFactory(socketHeaders),
+        _testTrace = testTrace ?? SyncPlayTestTrace.localWindowsTest() {
+    _testTrace.controlIdentity(
+      restHeaders: traceRestHeaders,
+      socketHeaders: socketHeaders,
+      socketQueryDeviceId: _socketUri.queryParameters['deviceId'],
+    );
+  }
 
   final jellyfin.JellyfinOpenApi _api;
   // This URL contains the token. Keep it private and out of all errors/logs.
@@ -74,6 +84,7 @@ class SyncPlayTransport implements SyncPlayApiPort {
   final bool _ownsApi;
   final SyncPlayScheduler _scheduler;
   final SyncPlaySocketFactory _socketFactory;
+  final SyncPlayTestTrace _testTrace;
   final Duration requestTimeout;
   final Duration connectTimeout;
   final _events = StreamController<Map<String, dynamic>>.broadcast(sync: true);
@@ -160,6 +171,7 @@ class SyncPlayTransport implements SyncPlayApiPort {
       if (_socketEnded) {
         throw const SyncPlayFailure(SyncPlayFailureCode.disconnected);
       }
+      _testTrace.socketOpened();
       _setConnected(true);
     } catch (_) {
       _lostConnection();
@@ -232,6 +244,10 @@ class SyncPlayTransport implements SyncPlayApiPort {
       }
       if (type != 'SyncPlayGroupUpdate' && type != 'SyncPlayCommand') return;
       final data = syncPlayMap(envelope['Data']);
+      if (type == 'SyncPlayGroupUpdate') {
+        if (data['Type'] == 'GroupJoined') _testTrace.groupJoined();
+        if (data['Type'] == 'GroupLeft') _testTrace.groupLeft();
+      }
       // Preserve polymorphic Type/Data, bypassing the generated empty base DTO.
       _events.add(Map.unmodifiable({'MessageType': type, 'Data': data}));
     } catch (_) {
@@ -283,13 +299,36 @@ class SyncPlayTransport implements SyncPlayApiPort {
     bool ambiguousMutation = false,
     bool requiresSocket = false,
     bool unsupportedIsDefinitive = false,
+    bool traceNew = false,
   }) async {
     _checkCurrent();
     if (requiresSocket && !connected) {
       throw const SyncPlayFailure(SyncPlayFailureCode.disconnected);
     }
+    final tracingNew = traceNew && _testTrace.enabled;
+    final watch = tracingNew ? (Stopwatch()..start()) : null;
+    var responseObserved = false;
+    void recordUnobservedFailure() {
+      if (tracingNew && !responseObserved) {
+        _testTrace.newFailed(elapsedMs: watch!.elapsedMilliseconds);
+      }
+    }
+
     try {
       final response = await request().timeout(requestTimeout);
+      responseObserved = true;
+      if (tracingNew) {
+        _testTrace.newHttp(
+          status: response.statusCode,
+          elapsedMs: watch!.elapsedMilliseconds,
+          bodyPresent: response.body != null,
+          bodyShape: response.body == null
+              ? SyncPlayTraceBodyShape.empty
+              : response.body is jellyfin.GroupInfoDto
+                  ? SyncPlayTraceBodyShape.groupDto
+                  : SyncPlayTraceBodyShape.other,
+        );
+      }
       _checkCurrent();
       if (response.statusCode == 401 || response.statusCode == 403) {
         throw const SyncPlayFailure(SyncPlayFailureCode.denied);
@@ -305,12 +344,15 @@ class SyncPlayTransport implements SyncPlayApiPort {
       }
       return response;
     } on SyncPlayFailure {
+      recordUnobservedFailure();
       rethrow;
     } on FormatException {
+      recordUnobservedFailure();
       throw SyncPlayFailure(ambiguousMutation
           ? SyncPlayFailureCode.timeoutUnknown
           : SyncPlayFailureCode.protocol);
     } catch (_) {
+      recordUnobservedFailure();
       _checkCurrent();
       throw SyncPlayFailure(ambiguousMutation
           ? SyncPlayFailureCode.timeoutUnknown
@@ -348,6 +390,7 @@ class SyncPlayTransport implements SyncPlayApiPort {
           body: jellyfin.NewGroupRequestDto(groupName: groupName)),
       ambiguousMutation: true,
       requiresSocket: true,
+      traceNew: true,
     );
     // Jellyfin <=10.10 acknowledges New with 204 and confirms the exact room
     // through GroupJoined. An empty successful response is not membership.
