@@ -20,8 +20,8 @@ SOURCE = Path(__file__).resolve().parent
 spec = importlib.util.spec_from_file_location('public_helpers', SOURCE / 'run-cloud-validation.py')
 common = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(common)  # Helpers only; the historical main is not run.
-require, digest, hex64, fetch, command = (getattr(common, name) for name in
-    ('require', 'digest', 'hex64', 'fetch', 'command'))
+require, digest, hex64, fetch = (getattr(common, name) for name in
+    ('require', 'digest', 'hex64', 'fetch'))
 ORIGIN, REF, RUNTIME = common.ORIGIN, common.REF, common.RUNTIME
 DESCRIPTOR_URL = ORIGIN + 'ci-fixtures/private-baseline-validation.json'
 FILES = {name: limit for name, limit in common.FILES.items() if not name.startswith('baseline-')}
@@ -40,6 +40,14 @@ FAILURE_STAGES = {'verify-inputs', 'prepare-session', 'install-bundle', 'install
     'launchers-before', 'permissions-before', 'synthetic-settings-fixture', 'portal-session',
     'after-update-origin-check', 'settings-preserved', 'after-update-commit-check',
     'permissions-preserved', 'launchers-after', 'target-contents-check', 'write-result'}
+FAILURE_STAGES.update({'bootstrap', 'guard-isolation', 'guard-account', 'guard-home',
+    'guard-mode', 'guard-paths', 'guard-empty-output', 'guard-not-installed'})
+PORTAL_STAGES = {'bootstrap', 'guard-isolation', 'guard-account', 'guard-mode',
+    'activation-environment', 'consent-fixture', 'probe-run'}
+PORTAL_CODES = {'expected-method-denial', 'method-denied', 'invalid-signal-signature',
+    'unexpected-update-identity', 'invalid-progress', 'unexpected-install', 'terminal-done',
+    'unexpected-empty-update', 'expected-progress-denial', 'terminal-failed',
+    'deadline-update-outcome-uncertain', 'deadline-no-update-signal', 'portal-setup-failed'}
 HOST_FAILURE_STAGES = {'fetch-public-fixtures', 'private-baseline-check', 'target-receipt-check',
     'copy-harness', 'probe-toolchain', 'probe-compile', 'environment-build', 'account-check',
     'account-create', 'account-verify', 'output-prepare', 'invocation-build', 'driver', 'case-result-check'}
@@ -49,6 +57,116 @@ HOST_LOG_NAMES = {'compile.log',
     'trust-negative-account.log', 'trust-negative-output.log', 'trust-negative-driver.log',
     'unsigned-migration-account.log', 'unsigned-migration-output.log', 'unsigned-migration-driver.log',
     'denied-update-account.log', 'denied-update-output.log', 'denied-update-driver.log'}
+
+
+def command(args, logfile, timeout=1200):
+    """Same command/log/timeout and zero-exit gate; retain its actual failure code."""
+    with logfile.open('xb') as log:
+        result = subprocess.run(args, stdout=log, stderr=subprocess.STDOUT, timeout=timeout)
+    if result.returncode != 0:
+        raise subprocess.CalledProcessError(result.returncode, ())
+
+
+def bounded_bytes(path, limit, tail=False):
+    try:
+        if not path.is_file() or path.is_symlink():
+            return None
+        with path.open('rb') as stream:
+            if tail:
+                size = path.stat().st_size
+                stream.seek(max(0, size - limit))
+                raw = stream.read(limit)
+                return raw.split(b'\n', 1)[-1] if size > limit else raw
+            raw = stream.read(limit + 1)
+            return raw if len(raw) <= limit else None
+    except OSError:
+        return None
+
+
+def diagnostic_json(raw):
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('Duplicate diagnostic key')
+            result[key] = value
+        return result
+    return json.loads(raw, object_pairs_hook=unique)
+
+
+def bounded_json(path, limit=2048):
+    raw = bounded_bytes(path, limit)
+    try:
+        return diagnostic_json(raw) if raw is not None else None
+    except (ValueError, UnicodeError, RecursionError):
+        return None
+
+
+def commit_class(raw, baseline, target):
+    if raw is None:
+        return 'missing'
+    try:
+        value = raw.decode('ascii').strip()
+    except UnicodeError:
+        return 'invalid'
+    if not hex64(value):
+        return 'invalid'
+    return 'baseline' if value == baseline else 'target' if value == target else 'other'
+
+
+def safe_portal_events(path, baseline, target):
+    """No raw lines, unknown strings, D-Bus messages, paths or arbitrary hashes."""
+    raw = bounded_bytes(path, 65536, tail=True)
+    result = {'evidence': 'missing' if raw is None else 'present', 'recognizedEvents': 0}
+    if raw is None:
+        return result
+    for line in raw.splitlines()[-256:]:
+        if len(line) > 2048:
+            continue
+        try:
+            event = diagnostic_json(line)
+        except (ValueError, UnicodeError, RecursionError):
+            continue
+        if type(event) is not dict:
+            continue
+        kind = event.get('event')
+        valid = False
+        if (kind == 'result' and set(event) == {'event', 'code', 'updateDispatched', 'success'}
+                and type(event['code']) is str and event['code'] in PORTAL_CODES
+                and type(event['updateDispatched']) is bool and type(event['success']) is bool):
+            result['terminal'] = {key: event[key] for key in ('code', 'updateDispatched', 'success')}
+            valid = True
+        elif (kind == 'request' and set(event) in ({'event', 'acknowledged'},
+                {'event', 'acknowledged', 'outcomeUncertain'})
+                and type(event['acknowledged']) is bool
+                and ('outcomeUncertain' not in event or type(event['outcomeUncertain']) is bool)):
+            result['request'] = {key: event[key] for key in ('acknowledged', 'outcomeUncertain') if key in event}
+            valid = True
+        elif (kind == 'progress' and set(event) == {'event', 'status', 'percent', 'hasPercent'}
+                and type(event['status']) is int and 0 <= event['status'] <= 3
+                and type(event['percent']) is int and 0 <= event['percent'] <= 100
+                and type(event['hasPercent']) is bool):
+            result['lastProgress'] = {key: event[key] for key in ('status', 'percent', 'hasPercent')}
+            valid = True
+        elif (kind == 'update-available' and set(event) == {'event', 'running', 'local', 'remote'}
+                and all(type(event[key]) is str and hex64(event[key]) for key in ('running', 'local', 'remote'))):
+            result['availableVersions'] = {key: commit_class(event[key].encode(), baseline, target)
+                                            for key in ('running', 'local', 'remote')}
+            valid = True
+        if valid:
+            result['recognizedEvents'] += 1
+    return result
+
+
+def safe_stage(data, mode, stages, failure=False):
+    keys = {'mode', 'stage', 'line', 'exitCode'} if failure else {'mode', 'stage'}
+    if (type(data) is not dict or set(data) != keys or data['mode'] not in (mode, 'bootstrap')
+            or type(data['stage']) is not str or data['stage'] not in stages):
+        return None
+    if failure and not (type(data['line']) is int and 0 < data['line'] < 10000
+            and type(data['exitCode']) is int and 0 < data['exitCode'] <= 255):
+        return None
+    return {key: data[key] for key in keys if key != 'mode'}
 
 
 def safe_log_categories(logfile):
@@ -88,24 +206,68 @@ def safe_host_failure(stage, mode, logfile, error):
     return result
 
 
-def safe_case_failure(output, mode, logfile):
+def safe_case_failure(output, mode, logfile, error=None, baseline=None, target=None):
     """Only known stage enums/numbers/categories, never raw logs or exception text."""
     result = {'mode': mode, 'stage': 'case-driver', 'categories': []}
-    path = output / 'failure-stage.json'
-    try:
-        if path.is_file() and not path.is_symlink():
-            with path.open('rb') as stream:
-                raw = stream.read(1025)
-            data = json.loads(raw) if len(raw) <= 1024 else None
-            if (type(data) is dict and set(data) == {'mode', 'stage', 'line', 'exitCode'}
-                    and data['mode'] == mode and type(data['stage']) is str
-                    and data['stage'] in FAILURE_STAGES and type(data['line']) is int
-                    and 0 < data['line'] < 10000 and type(data['exitCode']) is int
-                    and 0 < data['exitCode'] <= 255):
-                result.update(stage=data['stage'], line=data['line'], exitCode=data['exitCode'])
-    except (OSError, ValueError, UnicodeError):
-        pass  # Diagnostic input must never replace the original driver failure.
+    current = safe_stage(bounded_json(output / 'case-stage.json'), mode, FAILURE_STAGES)
+    failure = safe_stage(bounded_json(output / 'failure-stage.json'), mode, FAILURE_STAGES, True)
+    # Bootstrap failures can occur before the output directory is verified. Only
+    # the fixed sentinel schema is accepted from the bounded driver log tail.
+    raw = bounded_bytes(logfile, 65536, tail=True)
+    if raw is not None and failure is None:
+        for line in raw.splitlines()[-256:]:
+            if line.startswith(b'JMS_CASE_DIAGNOSTIC ') and len(line) <= 2048:
+                try:
+                    failure = safe_stage(diagnostic_json(line.split(b' ', 1)[1]), mode, FAILURE_STAGES, True)
+                except (ValueError, UnicodeError, RecursionError):
+                    pass
+                if failure:
+                    break
+    if failure or current:
+        result.update(failure or current)
+    host = safe_host_failure('driver', mode, logfile, error)
+    if 'exitCode' in host:
+        result['driverExitCode'] = host['exitCode']
+    result['driverTimedOut'] = isinstance(error, subprocess.TimeoutExpired)
     result['categories'] = safe_log_categories(logfile)
+    for value in host['categories']:
+        if value not in result['categories']:
+            result['categories'].append(value)
+    if not (hex64(baseline) and hex64(target) and baseline != target):
+        return result
+    portal = safe_stage(bounded_json(output / 'portal-stage.json'), mode, PORTAL_STAGES)
+    portal_failure = safe_stage(bounded_json(output / 'portal-failure.json'), mode, PORTAL_STAGES, True)
+    if raw is not None and portal_failure is None:
+        for line in raw.splitlines()[-256:]:
+            if line.startswith(b'JMS_PORTAL_DIAGNOSTIC ') and len(line) <= 2048:
+                try:
+                    portal_failure = safe_stage(diagnostic_json(line.split(b' ', 1)[1]), mode, PORTAL_STAGES, True)
+                except (ValueError, UnicodeError, RecursionError):
+                    pass
+                if portal_failure:
+                    break
+    if portal_failure or portal:
+        result['portalStage'] = portal_failure or portal
+    case = bounded_json(output / 'result.json')
+    if (type(case) is dict and set(case) == {'mode', 'passed', 'portalExit', 'inspectInstalledCommitBeforeRetry'}
+            and case['mode'] == mode and case['passed'] is False
+            and case['inspectInstalledCommitBeforeRetry'] is True
+            and type(case['portalExit']) is int and 0 < case['portalExit'] <= 255):
+        result['portalExitCode'] = case['portalExit']
+        if result['stage'] == 'case-driver':
+            result['stage'] = 'portal-session'
+    result['portal'] = safe_portal_events(output / 'portal.jsonl', baseline, target)
+    result['observedVersions'] = {
+        'before': commit_class(bounded_bytes(output / 'observed-before-portal-commit.txt', 66), baseline, target),
+        'afterPortal': commit_class(bounded_bytes(output / 'observed-after-failed-portal-commit.txt', 66), baseline, target),
+        'atDriverExit': commit_class(bounded_bytes(output / 'observed-at-driver-exit-commit.txt', 66), baseline, target)}
+    code = result['portal'].get('terminal', {}).get('code')
+    if code in ('deadline-no-update-signal', 'deadline-update-outcome-uncertain'):
+        result['timeoutStage'] = code
+    elif result['driverTimedOut']:
+        result['timeoutStage'] = 'driver-command'
+    elif result.get('portalExitCode') == 124:
+        result['timeoutStage'] = 'outer-probe-command'
     return result
 
 
@@ -256,8 +418,9 @@ def run(args):
             host_stage, host_log = 'driver', driver_log
             try:
                 command(invocation, driver_log)
-            except Exception:
-                record['failure'] = safe_case_failure(output, mode, driver_log)
+            except Exception as error:
+                record['failure'] = safe_case_failure(output, mode, driver_log, error,
+                    binding['runtime']['ostreeCommit'], descriptor['targetCommit'])
                 raise
             host_stage = 'case-result-check'
             result = json.loads((output / ('negative-result.json' if mode == 'trust-negative' else 'result.json')).read_text())
