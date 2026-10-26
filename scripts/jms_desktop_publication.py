@@ -3,6 +3,8 @@ import configparser
 import json
 import io
 import hashlib
+import os
+import shutil
 import re
 import subprocess
 import tarfile
@@ -275,15 +277,32 @@ def flatpak_ci_artifact(github, run_id, name, head):
 
 def download_flatpak_ci_artifact(github, artifact, downloaded):
     prefix = 'repos/jim608/JMS-Android/actions/'
-    with downloaded.open('wb') as output:
-        try:
-            result = subprocess.run(['rtk', 'proxy', str(github.executable), 'api',
-                prefix + 'artifacts/' + str(artifact['id']) + '/zip'], cwd=ROOT,
-                env=github.environment, stdout=output, stderr=subprocess.PIPE, timeout=600)
-        except subprocess.TimeoutExpired as error:
-            raise ReleaseError('Flatpak CI artifact download timed out') from error
-    if result.returncode != 0:
-        raise ReleaseError('Flatpak CI artifact download failed')
+    # API identity, run/steps and member binding checks still run in the caller.
+    # The optional cache is untrusted: both it and the copied output must match
+    # the authenticated GitHub artifact digest/size. No cached verdict is used.
+    digest = artifact.get('digest', '')
+    if (not re.fullmatch(r'sha256:[a-f0-9]{64}', digest)
+            or type(artifact.get('size_in_bytes')) is not int
+            or not 0 < artifact['size_in_bytes'] <= MAX_CI_ARCHIVE_BYTES):
+        raise ReleaseError('Invalid Flatpak CI artifact metadata')
+    cache_root = os.environ.get('JMS_CI_ARTIFACT_CACHE')
+    cached = Path(cache_root) / (digest.removeprefix('sha256:') + '.zip') if cache_root else None
+    if cached is not None and (cached.exists() or cached.is_symlink()):
+        if (cached.is_symlink() or not cached.is_file()
+                or cached.stat().st_size != artifact['size_in_bytes']
+                or sha256(cached) != digest.removeprefix('sha256:')):
+            raise ReleaseError('Cached Flatpak CI archive differs from GitHub metadata')
+        shutil.copyfile(cached, downloaded)
+    else:
+        with downloaded.open('wb') as output:
+            try:
+                result = subprocess.run(['rtk', 'proxy', str(github.executable), 'api',
+                    prefix + 'artifacts/' + str(artifact['id']) + '/zip'], cwd=ROOT,
+                    env=github.environment, stdout=output, stderr=subprocess.PIPE, timeout=600)
+            except subprocess.TimeoutExpired as error:
+                raise ReleaseError('Flatpak CI artifact download timed out') from error
+        if result.returncode != 0:
+            raise ReleaseError('Flatpak CI artifact download failed')
     if (downloaded.stat().st_size != artifact['size_in_bytes']
             or downloaded.stat().st_size > MAX_CI_ARCHIVE_BYTES
             or sha256(downloaded) != artifact['digest'].removeprefix('sha256:')):
@@ -405,6 +424,17 @@ def verify_flatpak_ci(record, files):
     return digest.removeprefix('sha256:')
 
 
+
+def flatpak_application_members(expected, payload_names):
+    """Normalize only the historical empty deployment-lock inventory entry."""
+    if 'files/.ref' not in expected:
+        return expected
+    if (expected['files/.ref'] != hashlib.sha256(b'').hexdigest()
+            or 'files/.ref' in payload_names):
+        raise ReleaseError('Unexpected Flatpak deployment lock in application evidence')
+    return {name: digest for name, digest in expected.items() if name != 'files/.ref'}
+
+
 def verify_flatpak_payload(directory, record, files):
     flatpak = record['flatpak']
     receipt = json.loads((directory / flatpak['receipt']).read_text(encoding='utf-8'))
@@ -473,7 +503,7 @@ def verify_flatpak_payload(directory, record, files):
                     applications.append(record['buildId'].encode() in data)
             elif not member.isdir():
                 raise ReleaseError('Unsupported Flatpak deployment member type')
-    if actual != expected:
+    if actual != flatpak_application_members(expected, names):
         raise ReleaseError('Flatpak deployment member hashes differ from verified installation')
     for notice in FLATPAK_REQUIRED_LICENSES:
         name = 'files/share/licenses/' + notice
@@ -540,7 +570,12 @@ def validate_flatpak_inventory(directory, record):
             'payloadSha256': files[flatpak['payload']]['sha256'],
             'provenanceSha256': provenance}})
     if not privacy.get('complete') or not privacy.get('accepted'):
-        raise ReleaseError('Flatpak release asset privacy review required')
+        error = ReleaseError('Flatpak release asset privacy review required')
+        # The scanner reports only paths, rule labels, hashes and completeness,
+        # never matched values. Preserve it for the local caller without
+        # changing rejection, printing it or adding it to public release assets.
+        error.privacy_report = privacy
+        raise error
     with zipfile.ZipFile(directory / flatpak['source']) as archive:
         version = re.search(rb'^version:\s*(\S+)', archive.read('JMS/pubspec.yaml'), re.M)
         if not version or version[1].decode() != record['versionName'] + '+' + str(record['versionCode']):

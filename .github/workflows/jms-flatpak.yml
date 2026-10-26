@@ -47,6 +47,22 @@ jobs:
           test -n "$VERSION"
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "BUILD_ID=JMS-$VERSION-flatpak-${SOURCE_COMMIT:0:12}" >> "$GITHUB_ENV"
+      - name: Verify canonical Flatpak metadata before compilation
+        env:
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, sys
+          from pathlib import Path
+          sys.path.insert(0, 'scripts')
+          from package_jms_flatpak import identity, validate_appstream_release
+          from jms_release_notes import release_notes_for
+          build = identity(os.environ['SOURCE_COMMIT'])
+          validate_appstream_release(Path('flatpak/com.jim608.jms.metainfo.xml'), build['versionName'])
+          release_notes_for(Path('CHANGELOG.md'), build['versionName'])
+          print('Canonical notes and AppStream version match the exact candidate.')
+          PY
       - name: 建置鎖定的 Flutter Linux 來源
         if: inputs.native_run_id == ''
         env:

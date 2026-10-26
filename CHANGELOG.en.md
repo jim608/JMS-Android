@@ -1,3 +1,35 @@
+# JMS 0.11.1-jms.50
+
+## Fixed
+- Waits for the latest renderer initialization and prevents stale loads or routes from replacing newer requests.
+- Shares pending native stop operations while preserving cancellation and sleep timer intent.
+- Keeps unattributed native messages as diagnostic context instead of treating them as confirmed current-playback failures.
+
+## Known issues
+- SteamOS, physical controllers and GPU network playback still require device validation.
+- Cross-device synchronization and all hardware combinations have not been fully verified.
+
+## Update notes
+- Linux and Steam Deck share the signed update origin, with installation still confirmed by the system.
+
+# JMS 0.11.1-jms.49
+
+## Added
+- Adds Flatpak Portal update checks, installation confirmation and progress, with automatic checks following the saved preference.
+- Linux and Steam Deck share the app ID and stable branch while retaining desktop and handheld launchers.
+- Keeps playback active after installation and offers reopening after playback ends; updates that add permissions use the system software center.
+
+## Fixed
+- Preserves explicit leave intent during reconnection and releases local playback while room departure is awaiting confirmation.
+- Preserves the latest player loading state and performs at most one initial room-position correction to avoid repeated seeks.
+
+## Known issues
+- Cross-device synchronization, physical Steam Deck, SteamOS Gaming Mode and native analog input have not been fully verified.
+- The existing Windows HDR10-to-SDR correction remains, while other HDR formats and all display hardware combinations have not been fully verified.
+
+## Update notes
+- Flatpak updates require the configured signed JMS origin; existing standalone installations must first confirm their origin and public-key trust.
+
 # JMS 0.11.1-jms.47
 
 ## Added

@@ -2,12 +2,18 @@
 import argparse
 import hashlib
 import io
+import errno
+import http.client
 import json
 import re
 import shutil
 import subprocess
 import tarfile
 import tempfile
+import time
+import socket
+import ssl
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -25,20 +31,69 @@ def git(*args, cwd=ROOT):
     return subprocess.check_output(['git', *args], cwd=cwd)
 
 
+def _transient_download_error(error):
+    if isinstance(error, urllib.error.HTTPError):
+        return error.code in {408, 429, 500, 502, 503, 504}
+    if isinstance(error, urllib.error.URLError):
+        error = error.reason
+    if isinstance(error, ssl.SSLError):
+        return False  # Never retry certificate/verification or TLS policy errors.
+    if isinstance(error, socket.gaierror):
+        return error.errno == socket.EAI_AGAIN
+    return isinstance(error, (TimeoutError, ConnectionError, http.client.IncompleteRead)) or (
+        isinstance(error, OSError) and error.errno in {
+            errno.ETIMEDOUT, errno.ECONNRESET, errno.ECONNABORTED,
+            errno.EHOSTUNREACH, errno.ENETUNREACH,
+        })
+
+
 def download(url, destination, expected, limit=256 * 1024 * 1024):
     if not url.startswith('https://') or not re.fullmatch('[a-f0-9]{64}', expected):
         raise ValueError('Pinned HTTPS source archive required')
-    with urllib.request.urlopen(url, timeout=60) as response, destination.open('wb') as stream:
-        count = 0
-        digest = hashlib.sha256()
-        while block := response.read(1024 * 1024):
-            count += len(block)
-            if count > limit:
-                raise ValueError('Source archive exceeds bounded download size')
-            digest.update(block)
-            stream.write(block)
-    if digest.hexdigest() != expected:
-        raise ValueError('Source archive SHA256 differs')
+    if not isinstance(limit, int) or isinstance(limit, bool) or limit <= 0:
+        raise ValueError('Positive bounded source size required')
+    # Retry only transient connect/read failures, at most three times, against
+    # the identical pinned URL. Each attempt starts with an empty private file.
+    for attempt in range(3):
+        with tempfile.TemporaryDirectory(prefix='.jms-source-download-', dir=destination.parent) as temporary:
+            partial = Path(temporary) / 'archive.partial'
+            try:
+                response = urllib.request.urlopen(url, timeout=60)
+            except Exception as error:
+                if attempt == 2 or not _transient_download_error(error):
+                    raise
+            else:
+                retry = False
+                with response:
+                    final_url = response.geturl()
+                    if not isinstance(final_url, str) or not final_url.startswith('https://'):
+                        raise ValueError('Source archive response left pinned HTTPS transport')
+                    with partial.open('wb') as stream:
+                        count = 0
+                        digest = hashlib.sha256()
+                        while True:
+                            try:
+                                block = response.read(1024 * 1024)
+                            except Exception as error:
+                                if attempt == 2 or not _transient_download_error(error):
+                                    raise
+                                retry = True
+                                break
+                            if not block:
+                                break
+                            count += len(block)
+                            if count > limit:
+                                raise ValueError('Source archive exceeds bounded download size')
+                            digest.update(block)
+                            stream.write(block)
+                if not retry:
+                    # Integrity and local file failures are never retried.
+                    if digest.hexdigest() != expected:
+                        raise ValueError('Source archive SHA256 differs')
+                    partial.replace(destination)
+                    return
+        # Discard the partial before waiting. Fixed delays total only 3 seconds.
+        time.sleep(attempt + 1)
 
 
 def export_git(repository, commit, archive, prefix, depth=0):
@@ -68,10 +123,38 @@ def modules(manifest):
         yield module
 
 
+
+def prove_baseline_lock_metadata(before, current):
+    """Accept only the reviewed dbus classification change, never new sources."""
+    if before == current:
+        return None
+    before_sha = hashlib.sha256(before).hexdigest()
+    current_sha = hashlib.sha256(current).hexdigest()
+    if (before_sha, current_sha) != (
+            'fe711da11c425511a3f9532f1844eca7f61cde55236ec417daf503e5d46fe279',
+            '8b9731738677e4d0cd18e7592210f7b0eaf37a711052d5d78b66b5d43856ad19'):
+        raise ValueError('Native baseline source changed: pubspec.lock')
+    baseline = yaml.safe_load(before)
+    changed = yaml.safe_load(current)
+    if (baseline['packages']['dbus']['dependency'] != 'transitive'
+            or changed['packages']['dbus']['dependency'] != 'direct main'):
+        raise ValueError('Reviewed dbus classification differs')
+    changed['packages']['dbus']['dependency'] = 'transitive'
+    if changed != baseline:
+        raise ValueError('Resolved package versions, hashes or sources differ')
+    return {'baselineLockSHA256': before_sha, 'currentLockSHA256': current_sha,
+            'onlyChangedField': 'packages.dbus.dependency',
+            'before': 'transitive', 'after': 'direct main',
+            'resolvedPackageVersionsHashesSourcesAndSdksIdentical': True,
+            'currentExactLockLocation': 'full-corresponding-application-source-zip'}
+
+
 def collect(manifest_path, output, commit):
     build = identity(commit)
     # Only unchanged native plugin/toolchain inputs can reuse the fixed prior sources.
-    for path in ('pubspec.lock', 'Dockerfile.linux', 'linux/CMakeLists.txt'):
+    lock_proof = prove_baseline_lock_metadata(
+        git('show', BASELINE_COMMIT + ':pubspec.lock'), git('show', commit + ':pubspec.lock'))
+    for path in ('Dockerfile.linux', 'linux/CMakeLists.txt'):
         if git('show', BASELINE_COMMIT + ':' + path) != git('show', commit + ':' + path):
             raise ValueError('Native baseline source changed: ' + path)
     manifest = yaml.safe_load(manifest_path.read_text(encoding='utf-8'))
@@ -119,8 +202,14 @@ def collect(manifest_path, output, commit):
                                         'sha256': item(source_archive)['sha256'], 'member': archived})
                     else:
                         raise ValueError('Unsupported external native source type: ' + kind)
-            records.append({'module': 'unchanged-native-plugins', 'url': BASELINE_URL, 'sha256': BASELINE_SHA,
-                            'sourceCommit': BASELINE_COMMIT, 'unchangedInputs': ['pubspec.lock', 'Dockerfile.linux', 'linux/CMakeLists.txt']})
+            baseline_record = {'module': 'unchanged-native-plugins', 'url': BASELINE_URL, 'sha256': BASELINE_SHA,
+                               'sourceCommit': BASELINE_COMMIT,
+                               'unchangedInputs': ['Dockerfile.linux', 'linux/CMakeLists.txt']}
+            if lock_proof is None:
+                baseline_record['unchangedInputs'].insert(0, 'pubspec.lock')
+            else:
+                baseline_record['lockMetadataEquivalence'] = lock_proof
+            records.append(baseline_record)
             evidence = json.dumps({'build': build, 'sources': records,
                                    'runtime': {'id': manifest['runtime'], 'branch': manifest['runtime-version'],
                                                'sourceProject': 'https://gitlab.gnome.org/GNOME/gnome-build-meta'}}, indent=2).encode()

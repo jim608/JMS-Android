@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "appId": "com.jim608.jms",
+  "arch": "x86_64",
+  "branch": "stable",
+  "originName": "jms-linux",
+  "repositoryUrl": "https://jim608.github.io/JMS-Linux/flatpak/repo/",
+  "runtimeRepositoryUrl": "https://dl.flathub.org/repo/flathub.flatpakrepo",
+  "publicKey": "flatpak/jms-release.gpg",
+  "publicKeySha256": "e708e8459f4be5143ce6cfa20ca69a0b3a10b8ecc248b006354d36e57ecc02d3",
+  "publicKeyFingerprint": "D6E660D8B8FE38C675446512D18E33589A802783",
+  "desktopCommand": "jms",
+  "handheldCommand": "jms --handheld",
+  "privateKeyOrPassphraseInSource": false
+}
