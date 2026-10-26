@@ -1,3 +1,46 @@
+# JMS 0.11.1-jms.49
+
+## Changes
+
+- Simplify room controls and collapse advanced diagnostics by default.
+
+## Fixes
+
+- Leave releases local sync control immediately while server confirmation finishes within a bounded background operation.
+- Late join and media-load replies no longer take control after cancellation.
+- Coordinate player initialization, cancellation and rebuilds, and retain the position and delivery label after paused reloads.
+
+## Known issues
+
+- Android is offered as a prerelease; phone and cross-device room acceptance remains unverified.
+- Web playback capabilities depend on the browser. Windows-specific acceptance does not establish equivalent Android or Web acceptance.
+
+## Update notes
+
+- The Android ARM64 package retains the production com.jim608.jms identity and existing upgrade signer; keep application data when updating.
+- The .dev test application is separate; its data is not automatically migrated to the production application.
+
+# JMS 0.11.1-jms.48-syncplay-recovery-test.20261025
+
+## Changes
+
+- One Leave action returns Windows TEST to solo controls; advanced diagnostics start collapsed.
+
+## Fixes
+
+- Room creation retains the current position and the user's paused intent.
+- Accept the empty success response used by older Jellyfin room creation.
+- Cancellation, leave and late room commands no longer retake solo playback control.
+- Restore the displayed position and delivery label after a paused reload.
+
+## Known issues
+
+- This is an unsigned Windows x64 TEST installer using the existing TEST application identity.
+
+## Update notes
+
+- Retain the existing TEST installation directory and settings without new desktop shortcuts or automatic installation, launch or restart.
+
 # JMS 0.11.1-jms.47
 
 ## Added
