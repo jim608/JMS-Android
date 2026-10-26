@@ -43207,6 +43207,10 @@
       {
         "archiveSha256": "01f50110615b3eabd85dd54cdb7d5b31db534b09338c81227d41b60d48b534f4",
         "member": "lib/arm64-v8a/libass.so"
+      },
+      {
+        "archiveSha256": "667c8db74cdd3f810c7137539645b6669c3339b60104224cae2a017a56c2bc30",
+        "member": "lib/arm64-v8a/libass.so"
       }
     ]
   },
@@ -43339,6 +43343,10 @@
       {
         "archiveSha256": "01f50110615b3eabd85dd54cdb7d5b31db534b09338c81227d41b60d48b534f4",
         "member": "lib/arm64-v8a/libmpv.so"
+      },
+      {
+        "archiveSha256": "667c8db74cdd3f810c7137539645b6669c3339b60104224cae2a017a56c2bc30",
+        "member": "lib/arm64-v8a/libmpv.so"
       }
     ]
   },
@@ -43409,6 +43417,10 @@
       },
       {
         "archiveSha256": "01f50110615b3eabd85dd54cdb7d5b31db534b09338c81227d41b60d48b534f4",
+        "member": "org/apache/tika/mime/tika-mimetypes.xml"
+      },
+      {
+        "archiveSha256": "667c8db74cdd3f810c7137539645b6669c3339b60104224cae2a017a56c2bc30",
         "member": "org/apache/tika/mime/tika-mimetypes.xml"
       }
     ]

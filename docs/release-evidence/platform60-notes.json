@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "android": {
+    "versionName": "0.11.1-jms.49",
+    "versionCode": 2060,
+    "artifactSourceCommit": "95aa8e4e2605e8032bb3e17e6359c1a17d610c8e",
+    "canonicalNotesCommit": "1602c7c686fc0c90cb0dfe7a8c9fd4d442e0cfa5",
+    "canonicalNotesFiles": [
+      "CHANGELOG.md",
+      "CHANGELOG.en.md"
+    ],
+    "apkSHA256": "667c8db74cdd3f810c7137539645b6669c3339b60104224cae2a017a56c2bc30"
+  },
+  "windows": {
+    "artifactSourceCommit": "118b1396a7ac6f2a48dc04ce9882a31feface4f7",
+    "canonicalNotesCommit": "1602c7c686fc0c90cb0dfe7a8c9fd4d442e0cfa5",
+    "versionName": "0.11.1-jms.48-syncplay-recovery-test.20261025"
+  },
+  "frozenArtifactsRebuiltForNotes": false,
+  "publishedLinuxChangelogAndInputsPreserved": true
+}
