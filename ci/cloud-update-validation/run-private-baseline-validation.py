@@ -35,6 +35,42 @@ BOOLEANS = ('passed', 'realPortalUpdate', 'consentPermissionStoreFixture', 'real
             'signedOriginAndInstalledCommitChecked', 'syntheticFixtureRetained',
             'launcherMetadataOnly', 'realAuthenticatedMediaTested', 'wrongPublicKeyRejected',
             'tamperedSummaryRejected', 'targetRefNotAcceptedByNegatives')
+FAILURE_STAGES = {'verify-inputs', 'prepare-session', 'install-bundle', 'installed-commit',
+    'origin-name', 'origin-migration', 'origin-trust-check', 'remote-target-check',
+    'launchers-before', 'permissions-before', 'synthetic-settings-fixture', 'portal-session',
+    'after-update-origin-check', 'settings-preserved', 'after-update-commit-check',
+    'permissions-preserved', 'launchers-after', 'target-contents-check', 'write-result'}
+
+
+def safe_case_failure(output, mode, logfile):
+    """Only known stage enums/numbers/categories, never raw logs or exception text."""
+    result = {'mode': mode, 'stage': 'case-driver', 'categories': []}
+    path = output / 'failure-stage.json'
+    try:
+        if path.is_file() and not path.is_symlink():
+            with path.open('rb') as stream:
+                raw = stream.read(1025)
+            data = json.loads(raw) if len(raw) <= 1024 else None
+            if (type(data) is dict and set(data) == {'mode', 'stage', 'line', 'exitCode'}
+                    and data['mode'] == mode and type(data['stage']) is str
+                    and data['stage'] in FAILURE_STAGES and type(data['line']) is int
+                    and 0 < data['line'] < 10000 and type(data['exitCode']) is int
+                    and 0 < data['exitCode'] <= 255):
+                result.update(stage=data['stage'], line=data['line'], exitCode=data['exitCode'])
+    except (OSError, ValueError, UnicodeError):
+        pass  # Diagnostic input must never replace the original driver failure.
+    if logfile.is_file() and not logfile.is_symlink():
+        with logfile.open('rb') as stream:
+            stream.seek(max(0, logfile.stat().st_size - 65536))
+            text = stream.read(65536).decode('utf-8', errors='replace')
+        rules = {'missing-summary-setting': r'NoOptionError:.*gpg-verify-summary',
+            'missing-ref': r'No such ref|not installed',
+            'session-bus-unavailable': r'Failed to connect to.*bus|Unable to autolaunch',
+            'sandbox-unavailable': r'bwrap:.*(?:Operation not permitted|Permission denied)',
+            'untrusted-signature': r'GPG signatures found, but none|no signatures found',
+            'permission-denied': r'Permission denied', 'state-assertion': r'AssertionError'}
+        result['categories'] = [name for name, pattern in rules.items() if re.search(pattern, text, re.I)]
+    return result
 
 
 def descriptor_check(data, binding):
@@ -168,7 +204,12 @@ def run(args):
                 *[key + '=' + value for key, value in environment.items()], 'bash', str(harness / script)]
             if mode != 'trust-negative':
                 invocation.append(mode)
-            command(invocation, results / (mode + '-driver.log'))
+            driver_log = results / (mode + '-driver.log')
+            try:
+                command(invocation, driver_log)
+            except Exception:
+                record['failure'] = safe_case_failure(output, mode, driver_log)
+                raise
             result = json.loads((output / ('negative-result.json' if mode == 'trust-negative' else 'result.json')).read_text())
             if mode == 'trust-negative':
                 require(all(result.get(key) is True for key in BOOLEANS[-3:]), 'Trust negatives incomplete')

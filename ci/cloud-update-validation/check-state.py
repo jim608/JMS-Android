@@ -51,7 +51,7 @@ def target(deployment):
             actual[name] = sha(path)
     assert actual == expected, 'Installed members differ from exact CI target receipt'
     info = json.loads((root / 'files/share/jms/JMS_BUILD_INFO.json').read_text())
-    fields = ('platform', 'packageFormat', 'versionName', 'versionCode', 'sourceCommit', 'buildId')
+    fields = ('applicationId', 'platform', 'packageFormat', 'versionName', 'versionCode', 'sourceCommit', 'buildId')
     assert info == {key: receipt[key] for key in fields}
     print(json.dumps({'targetCommit': receipt['ostreeCommit'], 'sourceCommit': info['sourceCommit'],
                       'buildId': info['buildId'], 'installedMembersMatched': len(actual),
