@@ -25,6 +25,8 @@ BASELINE_NAME = 'JMS-Third-Party-Sources-20261024.tar.gz'
 BASELINE_SHA = '4674801f277f2b32b31f00248c1646da6106456aa5dc9aa512a1ea5b03877519'
 BASELINE_SIZE = 310532681
 BASELINE_URL = 'https://github.com/jim608/JMS-SteamDeck/releases/download/v0.11.1-jms.46-deck-test.20261024/' + BASELINE_NAME
+UCHARDET_URL = 'https://www.freedesktop.org/software/uchardet/releases/uchardet-0.0.8.tar.xz'
+UCHARDET_SHA = 'e97a60cfc00a1c147a674b097bb1422abd9fa78a2d9ce3f3fdcc2e78a34ac5f0'
 
 
 def git(*args, cwd=ROOT):
@@ -94,6 +96,19 @@ def download(url, destination, expected, limit=256 * 1024 * 1024):
                     return
         # Discard the partial before waiting. Fixed delays total only 3 seconds.
         time.sleep(attempt + 1)
+
+
+def pinned_archive(source, destination, manifest_directory):
+    """Reuse the exact reviewed source already committed with the application."""
+    url, expected = source['url'], source['sha256']
+    if url != UCHARDET_URL or expected != UCHARDET_SHA:
+        download(url, destination, expected)
+        return
+    committed = manifest_directory / 'uchardet-0.0.8.tar.xz'
+    if (not committed.is_file() or committed.stat().st_size > 256 * 1024 * 1024
+            or hashlib.sha256(committed.read_bytes()).hexdigest() != expected):
+        raise ValueError('Committed pinned uchardet archive differs')
+    shutil.copyfile(committed, destination)
 
 
 def export_git(repository, commit, archive, prefix, depth=0):
@@ -179,7 +194,7 @@ def collect(manifest_path, output, commit):
                     name = module['name']
                     if kind == 'archive':
                         target = work / f'{name}-{index}.source'
-                        download(source['url'], target, source['sha256'])
+                        pinned_archive(source, target, manifest_path.parent)
                         archived = f'components/{name}/' + source['url'].rsplit('/', 1)[-1]
                         materials.add(target, arcname=archived)
                         records.append({'module': name, 'url': source['url'], 'sha256': source['sha256'], 'member': archived})
