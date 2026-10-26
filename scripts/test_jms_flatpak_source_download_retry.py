@@ -5,6 +5,7 @@ import inspect
 import io
 import socket
 import ssl
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -40,6 +41,37 @@ class _PartialTimeout(_Response):
 
 
 class DownloadRetryTests(unittest.TestCase):
+    def test_committed_uchardet_source_matches_pin_without_network(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            committed = collector.ROOT / 'flatpak/uchardet-0.0.8.tar.xz'
+            shutil.copyfile(committed, root / committed.name)
+            output = root / 'source.archive'
+            source = {'url': collector.UCHARDET_URL, 'sha256': collector.UCHARDET_SHA}
+            with patch.object(collector, 'download') as network:
+                collector.pinned_archive(source, output, root)
+            network.assert_not_called()
+            self.assertEqual(hashlib.sha256(output.read_bytes()).hexdigest(), collector.UCHARDET_SHA)
+
+    def test_committed_uchardet_mismatch_fails_without_network(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'uchardet-0.0.8.tar.xz').write_bytes(b'wrong')
+            source = {'url': collector.UCHARDET_URL, 'sha256': collector.UCHARDET_SHA}
+            with patch.object(collector, 'download') as network:
+                with self.assertRaisesRegex(ValueError, 'Committed pinned uchardet archive differs'):
+                    collector.pinned_archive(source, root / 'source.archive', root)
+            network.assert_not_called()
+            self.assertFalse((root / 'source.archive').exists())
+
+    def test_other_archive_still_uses_pinned_network_download(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = {'url': URL, 'sha256': SHA}
+            with patch.object(collector, 'download') as network:
+                collector.pinned_archive(source, root / 'source.archive', root)
+            network.assert_called_once_with(URL, root / 'source.archive', SHA)
+
     def test_transient_timeout_then_exact_success_uses_identical_pin(self):
         failures = [
             TimeoutError('synthetic connect timeout'),
