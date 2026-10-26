@@ -99,21 +99,26 @@ Future<Map<String, Object?>> _nativeProfileConfiguration() async {
 /// downloader construction or any application directory lookup.
 Future<WindowsTestProfile?> initializeWindowsTestProfile(
   List<String> arguments, {
-  bool testBuild = JmsTestProfilePolicy.enabled,
+  bool testBuild = JmsTestProfilePolicy.buildEnabled,
   bool? isWindows,
   TestProfileConfigurationLoader configurationLoader =
       _nativeProfileConfiguration,
 }) async {
   final requested = WindowsTestProfile.requestedDirectory(arguments);
-  if (!testBuild && requested == null) return null;
-  if (!testBuild || !(isWindows ?? (!kIsWeb && Platform.isWindows))) {
-    throw StateError(
-        'Profile arguments require an isolated Windows test build');
+  if (!(isWindows ?? (!kIsWeb && Platform.isWindows))) {
+    if (!testBuild && requested == null) return null;
+    throw StateError('Profile arguments require Windows');
   }
+  // Secondary engines inherit the process root through the native bridge,
+  // even when their entrypoint has no command-line arguments.
   final configuration = await configurationLoader();
   final root = configuration['root'];
-  if (configuration['testBuild'] != true || root is! String || root.isEmpty) {
+  if (configuration['testBuild'] != testBuild) {
     throw StateError('Native and Dart test-profile configuration do not match');
+  }
+  if (root == null && !testBuild && requested == null) return null;
+  if (root is! String || root.isEmpty) {
+    throw StateError('Missing isolated profile root');
   }
   WindowsTestProfile.validateDirectory(root);
   if (requested != null &&
@@ -146,6 +151,7 @@ Future<WindowsTestProfile?> initializeWindowsTestProfile(
     }
   }
 
+  JmsTestProfilePolicy.enableRuntimeIsolation();
   final store =
       await TestProfilePreferences.open(File(profile.preferencesFile));
   PathProviderPlatform.instance = TestProfilePathProvider(profile);

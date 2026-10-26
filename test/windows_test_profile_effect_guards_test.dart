@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:fladder/background/update_notifications_worker.dart';
+import 'package:fladder/logic/application_menu.dart';
 import 'package:fladder/models/item_base_model.dart';
 import 'package:fladder/models/notification_model.dart';
 import 'package:fladder/providers/diagnostics_provider.dart';
@@ -77,6 +78,78 @@ class _UnreadFixtureItem implements ItemBaseModel {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('isolated new-instance action cannot open a normal-profile process',
+      () async {
+    var launches = 0;
+    final menu =
+        ApplicationMenuImp(newInstanceLauncher: () async => launches++);
+    await menu.newInstance();
+    expect(launches, 0);
+    JmsTestProfilePolicy.resetRuntimeIsolationForTesting();
+    await menu.newInstance();
+    expect(launches, 1);
+  });
+
+  setUp(() {
+    JmsTestProfilePolicy.resetRuntimeIsolationForTesting();
+    JmsTestProfilePolicy.enableRuntimeIsolation();
+  });
+
+  tearDown(() {
+    JmsTestProfilePolicy.resetRuntimeIsolationForTesting();
+    SharedPreferences.resetStatic();
+  });
+
+  test('runtime isolation applies to default service constructors', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final client = FakeDiscordPresenceClient();
+    final discord = DiscordPresenceSettings(
+      preferences: prefs,
+      controller: DiscordPresenceController(client: client),
+    );
+    final diagnostics = DiagnosticsSettings(
+      preferences: prefs,
+      version: '0.11.1-jms.51',
+      buildId: 'JMS-0.11.1-jms.51-123456abcdef',
+      platform: 'windows',
+    );
+    final reporter = AppDiagnostics(
+      endpoint: Uri.parse('https://diagnostics.example.invalid/fixture'),
+      platform: 'windows',
+      version: '0.11.1-jms.51',
+      buildId: 'JMS-0.11.1-jms.51-123456abcdef',
+    );
+    final bridge = _ForbiddenUpdateBridge();
+    var requests = 0;
+    final updater = UpdateController(
+      checker: UpdateChecker(
+        source: const UpdateSource(owner: 'fixture-owner', repo: 'jms-fixture'),
+        client: MockClient((_) async {
+          requests++;
+          throw StateError('Runtime-isolated updater must not use the network');
+        }),
+      ),
+      bridge: bridge,
+      preferences: () async => throw StateError(
+          'Runtime-isolated updater must not request preferences'),
+    );
+    expect(discord.disabledForTestProfile, isTrue);
+    expect(diagnostics.disabledForTestProfile, isTrue);
+    expect(reporter.disabledForTestProfile, isTrue);
+    expect(updater.disabledForTestProfile, isTrue);
+    expect(updater.supported, isFalse);
+    await updater.initialize();
+    await updater.check();
+    expect(bridge.calls, 0);
+    expect(requests, 0);
+    updater.dispose();
+    reporter.dispose();
+    diagnostics.dispose();
+    discord.dispose();
+    await client.events.close();
+  });
+
   testWidgets(
       'isolated profile cannot enable IPC or artwork with saved consent',
       (tester) async {
@@ -95,8 +168,8 @@ void main() {
         artworkCalls++;
         return 'https://images.example.invalid/fixture.jpg';
       },
-      // In a test build, a false constructor argument cannot override the flag.
-      disabledForTestProfile: !JmsTestProfilePolicy.enabled,
+      // An explicit false cannot override validated runtime isolation.
+      disabledForTestProfile: false,
     );
     settings.activateAccount('fixture-scope');
     settings.updatePlayback(
@@ -141,7 +214,7 @@ void main() {
       version: '0.11.1-jms.45',
       buildId: 'JMS-0.11.1-jms.45-123456abcdef',
       platform: 'windows',
-      disabledForTestProfile: !JmsTestProfilePolicy.enabled,
+      disabledForTestProfile: false,
       clientFactory: () {
         clients++;
         return MockClient((_) async => http.Response('', 202));
@@ -168,7 +241,7 @@ void main() {
       platform: 'windows',
       version: '0.11.1-jms.45',
       buildId: 'JMS-0.11.1-jms.45-123456abcdef',
-      disabledForTestProfile: !JmsTestProfilePolicy.enabled,
+      disabledForTestProfile: false,
       clientFactory: () {
         clients++;
         return MockClient((_) async => http.Response('', 202));
@@ -194,7 +267,7 @@ void main() {
   });
 
   test(
-      'test-build flag blocks notification registration, permissions and delivery',
+      'runtime isolation blocks notification registration, permissions and delivery',
       () async {
     var channelCalls = 0;
     const channel = MethodChannel('dexterous.com/flutter/local_notifications');
@@ -223,7 +296,7 @@ void main() {
         ],
         'Fixture summary');
     expect(channelCalls, 0);
-  }, skip: !JmsTestProfilePolicy.enabled);
+  });
 
   test(
       'disabled updater rejects direct actions before preferences or native calls',
@@ -246,7 +319,7 @@ void main() {
         preferenceReads++;
         throw StateError('Fixture updater preferences must not be read');
       },
-      disabledForTestProfile: !JmsTestProfilePolicy.enabled,
+      disabledForTestProfile: false,
     );
     await controller.initialize();
     controller.ready = true;
@@ -302,7 +375,7 @@ void main() {
     callbackDispatcher();
     expect(await performHeadlessUpdateCheck(debug: true), isNull);
     expect(store.reads, 0);
-  }, skip: !JmsTestProfilePolicy.enabled);
+  });
 
   test('raw Windows media metadata setup is disabled before media or OS access',
       () async {
@@ -316,5 +389,5 @@ void main() {
       await wrapper.dispose();
       container.dispose();
     }
-  }, skip: !JmsTestProfilePolicy.enabled);
+  });
 }

@@ -9,6 +9,8 @@
 #include <string>
 #include <vector>
 
+#include "test_profile.h"
+
 namespace {
 using Value = flutter::EncodableValue;
 using Map = flutter::EncodableMap;
@@ -95,6 +97,18 @@ DesktopUpdateBridge::DesktopUpdateBridge(flutter::BinaryMessenger* messenger) {
   channel_ = std::make_unique<flutter::MethodChannel<Value>>(
       messenger, "com.jim608.jms/desktop_updates", &flutter::StandardMethodCodec::GetInstance());
   channel_->SetMethodCallHandler([](const auto& call, auto result) {
+    // Do not permit a direct native-channel call to validate or launch an
+    // installer while an explicit isolated profile is active. The Dart update
+    // bridge also suppresses update work, but this closes the native boundary.
+    try {
+      if (GetIsolatedTestProfileRoot().has_value()) {
+        result->Error("isolated_profile");
+        return;
+      }
+    } catch (...) {
+      result->Error("isolated_profile_unavailable");
+      return;
+    }
     if (call.method_name() == "device") {
       using VersionFunction = LONG(WINAPI*)(OSVERSIONINFOW*);
       const auto address = GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlGetVersion");

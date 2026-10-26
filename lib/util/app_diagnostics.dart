@@ -56,7 +56,7 @@ class AppDiagnostics {
     this.timeout = const Duration(seconds: 3),
     this.minimumInterval = const Duration(minutes: 5),
     this.maximumReports = 20,
-    bool disabledForTestProfile = JmsTestProfilePolicy.enabled,
+    bool disabledForTestProfile = false,
   })  : disabledForTestProfile =
             JmsTestProfilePolicy.enabled || disabledForTestProfile,
         sourceCommit = sourceCommit != null &&

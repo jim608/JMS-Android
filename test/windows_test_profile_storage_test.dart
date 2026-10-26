@@ -18,6 +18,7 @@ import 'package:fladder/util/jms_test_profile_policy.dart';
 class _ForbiddenPreferences extends InMemorySharedPreferencesStore {
   _ForbiddenPreferences() : super.empty();
   var reads = 0;
+  var writes = 0;
   @override
   Future<Map<String, Object>> getAll() async {
     reads++;
@@ -30,9 +31,43 @@ class _ForbiddenPreferences extends InMemorySharedPreferencesStore {
     reads++;
     throw StateError('Default preferences must not be read');
   }
+
+  @override
+  Future<bool> setValue(String valueType, String key, Object value) async {
+    writes++;
+    throw StateError('Default preferences must not be written');
+  }
 }
 
-class _ForbiddenPaths extends PathProviderPlatform {}
+class _ForbiddenPaths extends PathProviderPlatform {
+  var reads = 0;
+  Future<String?> _forbidden() async {
+    reads++;
+    throw StateError('Default paths must not be requested');
+  }
+
+  @override
+  Future<String?> getTemporaryPath() => _forbidden();
+  @override
+  Future<String?> getApplicationSupportPath() => _forbidden();
+  @override
+  Future<String?> getApplicationDocumentsPath() => _forbidden();
+  @override
+  Future<String?> getApplicationCachePath() => _forbidden();
+  @override
+  Future<String?> getLibraryPath() => _forbidden();
+  @override
+  Future<String?> getDownloadsPath() => _forbidden();
+}
+
+final class _ForbiddenAsyncPreferences extends SharedPreferencesAsyncPlatform {
+  var calls = 0;
+  @override
+  dynamic noSuchMethod(Invocation invocation) {
+    calls++;
+    throw StateError('Default asynchronous preferences must not be accessed');
+  }
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -41,14 +76,20 @@ void main() {
   late SharedPreferencesAsyncPlatform? originalAsync;
   late Directory fixture;
   late _ForbiddenPreferences forbiddenStore;
+  late _ForbiddenPaths forbiddenPaths;
+  late _ForbiddenAsyncPreferences forbiddenAsync;
 
   setUp(() async {
+    JmsTestProfilePolicy.resetRuntimeIsolationForTesting();
     originalPaths = PathProviderPlatform.instance;
     originalStore = SharedPreferencesStorePlatform.instance;
     originalAsync = SharedPreferencesAsyncPlatform.instance;
     forbiddenStore = _ForbiddenPreferences();
+    forbiddenPaths = _ForbiddenPaths();
+    forbiddenAsync = _ForbiddenAsyncPreferences();
     SharedPreferencesStorePlatform.instance = forbiddenStore;
-    PathProviderPlatform.instance = _ForbiddenPaths();
+    SharedPreferencesAsyncPlatform.instance = forbiddenAsync;
+    PathProviderPlatform.instance = forbiddenPaths;
     SharedPreferences.resetStatic();
     final parent = Directory(
         path.join(Directory.current.path, 'build', 'profile-fixtures'));
@@ -57,6 +98,7 @@ void main() {
   });
 
   tearDown(() async {
+    JmsTestProfilePolicy.resetRuntimeIsolationForTesting();
     FileDownloader.setDesktopDirectoryPaths(null);
     SharedPreferences.resetStatic();
     PathProviderPlatform.instance = originalPaths;
@@ -92,42 +134,97 @@ void main() {
   }
 
   Future<WindowsTestProfile?> initialize(WindowsTestProfile profile,
-          {List<String>? arguments}) =>
+          {List<String>? arguments, bool testBuild = true}) =>
       initializeWindowsTestProfile(
         arguments ?? ['--profile-dir', profile.root],
-        testBuild: true,
+        testBuild: testBuild,
         isWindows: true,
         configurationLoader: () async =>
-            {'testBuild': true, 'root': profile.root},
+            {'testBuild': testBuild, 'root': profile.root},
       );
 
-  test(
-      'ordinary builds preserve registered stores and do not ask native configuration',
+  test('ordinary Windows startup confirms no native root and preserves stores',
       () async {
     var nativeCalls = 0;
     final beforePaths = PathProviderPlatform.instance;
     final beforeStore = SharedPreferencesStorePlatform.instance;
+    final beforeAsync = SharedPreferencesAsyncPlatform.instance;
     expect(
-        await initializeWindowsTestProfile([], testBuild: false,
-            configurationLoader: () async {
+        await initializeWindowsTestProfile([],
+            testBuild: false, isWindows: true, configurationLoader: () async {
           nativeCalls++;
-          throw StateError('Should not be queried');
+          return {'testBuild': false, 'root': null};
         }),
         isNull);
     expect(PathProviderPlatform.instance, same(beforePaths));
     expect(SharedPreferencesStorePlatform.instance, same(beforeStore));
-    expect(nativeCalls, 0);
+    expect(SharedPreferencesAsyncPlatform.instance, same(beforeAsync));
+    expect(nativeCalls, 1);
+    expect(JmsTestProfilePolicy.enabled, JmsTestProfilePolicy.buildEnabled);
     expect(forbiddenStore.reads, 0);
+    expect(forbiddenStore.writes, 0);
+    expect(forbiddenAsync.calls, 0);
+    expect(forbiddenPaths.reads, 0);
   });
 
-  test('ordinary builds reject profile arguments before any preference read',
+  test('explicit production profile isolates paths and both preference APIs',
       () async {
-    await expectLater(
-      initializeWindowsTestProfile(['--profile-dir', fixture.path],
-          testBuild: false),
-      throwsStateError,
-    );
+    final profile = await createProfile('production');
+    expect((await initialize(profile, testBuild: false))!.root, profile.root);
+    expect(JmsTestProfilePolicy.enabled, isTrue);
+    expect((await getApplicationSupportDirectory()).path, profile.support);
+    expect((await getApplicationDocumentsDirectory()).path, profile.documents);
+    expect((await getApplicationCacheDirectory()).path, profile.cache);
+    expect((await getTemporaryDirectory()).path, profile.temporary);
+    expect((await getDownloadsDirectory())!.path, profile.downloads);
+    expect((await getLibraryDirectory()).path, profile.support);
+    final preferences = await SharedPreferences.getInstance();
+    expect(preferences.getKeys(), isEmpty);
+    await preferences.setString('fixture', 'FAKE-PRODUCTION-PROFILE');
+    await SharedPreferencesAsyncPlatform.instance!
+        .setInt('async-fixture', 41, const SharedPreferencesOptions());
+    final isolated =
+        await TestProfilePreferences.open(File(profile.preferencesFile));
+    final values = await isolated.getAllWithParameters(
+        GetAllParameters(filter: PreferencesFilter(prefix: '')));
+    expect(values['flutter.fixture'], 'FAKE-PRODUCTION-PROFILE');
+    expect(values['async-fixture'], 41);
     expect(forbiddenStore.reads, 0);
+    expect(forbiddenStore.writes, 0);
+    expect(forbiddenAsync.calls, 0);
+    expect(forbiddenPaths.reads, 0);
+    expect(
+        ArgumentsModel.fromArguments([], '', false).skipNotifications, isTrue);
+  });
+
+  test('non-Windows ordinary startup does not query native configuration',
+      () async {
+    expect(
+        await initializeWindowsTestProfile([],
+            testBuild: false, isWindows: false, configurationLoader: () async {
+          throw StateError('Non-Windows must not ask the Windows bridge');
+        }),
+        isNull);
+    await expectLater(
+        initializeWindowsTestProfile(['--profile-dir', fixture.path],
+            testBuild: false, isWindows: false),
+        throwsStateError);
+    expect(forbiddenStore.reads, 0);
+    expect(forbiddenPaths.reads, 0);
+  });
+
+  test('production secondary engine inherits root without a profile argument',
+      () async {
+    final profile = await createProfile('production-secondary');
+    expect(
+        (await initialize(profile,
+                testBuild: false, arguments: ['multi_window', '1']))!
+            .root,
+        profile.root);
+    expect(JmsTestProfilePolicy.enabled, isTrue);
+    expect((await getApplicationSupportDirectory()).path, profile.support);
+    expect(forbiddenStore.reads, 0);
+    expect(forbiddenPaths.reads, 0);
   });
 
   test('missing native profile and mismatched build fail closed', () async {
@@ -156,18 +253,43 @@ void main() {
     expect(forbiddenStore.reads, 0);
   });
 
+  test('production malformed or missing root cannot reach default stores',
+      () async {
+    for (final root in <Object?>[null, '', 'relative', 7]) {
+      await expectLater(
+          initializeWindowsTestProfile(
+              ['--profile-dir', r'C:\fixture\isolated'],
+              testBuild: false,
+              isWindows: true,
+              configurationLoader: () async =>
+                  {'testBuild': false, 'root': root}),
+          root is String && root == 'relative'
+              ? throwsFormatException
+              : throwsStateError);
+    }
+    expect(forbiddenStore.reads, 0);
+    expect(forbiddenStore.writes, 0);
+    expect(forbiddenAsync.calls, 0);
+    expect(forbiddenPaths.reads, 0);
+    expect(JmsTestProfilePolicy.enabled, JmsTestProfilePolicy.buildEnabled);
+  });
+
   test('mismatched directory is rejected before any configured store is opened',
       () async {
     final profileA = await createProfile('a');
     final profileB = await createProfile('b');
-    await expectLater(
-        initializeWindowsTestProfile(['--profile-dir', profileA.root],
-            testBuild: true,
-            isWindows: true,
-            configurationLoader: () async =>
-                {'testBuild': true, 'root': profileB.root}),
-        throwsStateError);
+    for (final testBuild in [false, true]) {
+      await expectLater(
+          initializeWindowsTestProfile(['--profile-dir', profileA.root],
+              testBuild: testBuild,
+              isWindows: true,
+              configurationLoader: () async =>
+                  {'testBuild': testBuild, 'root': profileB.root}),
+          throwsStateError);
+    }
     expect(forbiddenStore.reads, 0);
+    expect(forbiddenAsync.calls, 0);
+    expect(forbiddenPaths.reads, 0);
     expect(await File(profileA.preferencesFile).exists(), isFalse);
     expect(await File(profileB.preferencesFile).exists(), isFalse);
   });
@@ -266,10 +388,13 @@ void main() {
   });
 
   test(
-      'test builds force notification skipping independently of saved settings',
+      'runtime isolation forces notification skipping independently of saved settings',
       () {
     expect(ArgumentsModel.fromArguments([], '', false).skipNotifications,
         JmsTestProfilePolicy.enabled);
+    JmsTestProfilePolicy.enableRuntimeIsolation();
+    expect(
+        ArgumentsModel.fromArguments([], '', false).skipNotifications, isTrue);
     expect(
         ArgumentsModel.fromArguments(['--skipNotifications'], '', false)
             .skipNotifications,

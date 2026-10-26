@@ -64,6 +64,13 @@ void HandleCall(
     const flutter::MethodCall<flutter::EncodableValue>& call,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
   try {
+    // DPAPI can access the current Windows user's master-key store even when
+    // the encrypted Seerr record itself lives under an isolated root.
+    if (GetIsolatedTestProfileRoot().has_value()) {
+      result->Error("isolated_profile",
+                    "Seerr session storage is unavailable in an isolated profile");
+      return;
+    }
     const auto* arguments = std::get_if<flutter::EncodableMap>(call.arguments());
     if (arguments == nullptr) throw std::runtime_error("invalid arguments");
     const auto scope_entry = arguments->find(flutter::EncodableValue("key"));

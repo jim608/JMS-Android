@@ -47,10 +47,10 @@ class DiagnosticsSettings extends ChangeNotifier {
     this.configuredEndpoint,
     this.webOrigin,
     this.clientFactory,
-    bool disabledForTestProfile = JmsTestProfilePolicy.enabled,
+    bool disabledForTestProfile = false,
   }) : disabledForTestProfile =
             JmsTestProfilePolicy.enabled || disabledForTestProfile {
-    if (disabledForTestProfile) {
+    if (this.disabledForTestProfile) {
       _awaitingActivation = true;
       return;
     }

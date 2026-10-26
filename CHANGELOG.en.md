@@ -1,3 +1,9 @@
+# JMS 0.11.1-jms.52
+
+## Windows
+- Adds an explicit, validated isolated profile directory for diagnostic startup of the normal Windows binary. Ordinary startup keeps the existing installation and profile behavior.
+- Keeps settings, accounts, databases and caches inside that directory; isolated startup blocks native Seerr persistence and system integrations, and cannot launch a new process with the normal profile.
+
 # JMS 0.11.1-jms.51
 
 ## Fixed

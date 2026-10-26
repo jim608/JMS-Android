@@ -14,19 +14,33 @@ struct TestProfileConfiguration {
 using TestProfileDriveTypeGetter =
     unsigned int (*)(const std::filesystem::path& drive_root);
 
-// Pure argument policy plus setup of only the explicitly selected test root.
-// Existing roots must carry the fixed test marker, or be completely empty.
+struct TestProfileProtectedPaths {
+  std::vector<std::filesystem::path> known_folder_roots;
+  std::vector<std::filesystem::path> storage_paths;
+};
+
+using TestProfileProtectedPathsGetter = TestProfileProtectedPaths (*)();
+using TestProfilePathIdentityGetter =
+    std::filesystem::path (*)(const std::filesystem::path& path);
+
+// With no profile argument, a formal build returns without querying any OS
+// folder or storage. A test build still requires an explicit root. Existing
+// roots must carry the fixed marker, or be completely empty.
 TestProfileConfiguration PrepareTestProfile(
     bool test_build, const std::vector<std::string>& arguments,
     bool configure_process_temp = true,
-    TestProfileDriveTypeGetter drive_type_getter = nullptr);
+    TestProfileDriveTypeGetter drive_type_getter = nullptr,
+    TestProfileProtectedPathsGetter protected_paths_getter = nullptr,
+    TestProfilePathIdentityGetter path_identity_getter = nullptr);
 
 // Called by WinMain before the engine or any plugins are created.
-void InitializeTestProfile(const std::vector<std::string>& arguments);
+void InitializeTestProfile(
+    const std::vector<std::string>& arguments,
+    TestProfileProtectedPathsGetter protected_paths_getter = nullptr);
 const TestProfileConfiguration& GetTestProfileConfiguration();
 
 // Revalidates the dedicated namespace and never falls back to production.
-// A normal build returns nullopt without reading any profile or storage.
+// A build without an explicit root returns nullopt without reading storage.
 std::optional<std::filesystem::path> GetIsolatedTestProfileRoot();
 void ValidateIsolatedTestProfileFile(const std::filesystem::path& file);
 

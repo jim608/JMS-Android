@@ -230,7 +230,7 @@ class UpdateController extends ChangeNotifier with WidgetsBindingObserver {
       required this.bridge,
       this.preferences = SharedPreferences.getInstance,
       this.now = DateTime.now,
-      bool disabledForTestProfile = JmsTestProfilePolicy.enabled,
+      bool disabledForTestProfile = false,
       bool supported = true})
       : disabledForTestProfile =
             JmsTestProfilePolicy.enabled || disabledForTestProfile,

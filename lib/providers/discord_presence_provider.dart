@@ -162,7 +162,7 @@ class DiscordPresenceSettings extends ChangeNotifier {
     required this.preferences,
     required this.controller,
     this.artworkLoader,
-    bool disabledForTestProfile = JmsTestProfilePolicy.enabled,
+    bool disabledForTestProfile = false,
   }) : disabledForTestProfile =
             JmsTestProfilePolicy.enabled || disabledForTestProfile {
     controller.addListener(_notify);

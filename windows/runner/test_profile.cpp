@@ -1,5 +1,6 @@
 #include "test_profile.h"
 
+#include <shlobj.h>
 #include <windows.h>
 
 #include <array>
@@ -52,9 +53,120 @@ void RejectReparseAncestors(const std::filesystem::path& path) {
   }
 }
 
+bool SameComponent(const std::filesystem::path& left,
+                   const std::filesystem::path& right) {
+  const auto a = left.wstring();
+  const auto b = right.wstring();
+  return CompareStringOrdinal(a.c_str(), static_cast<int>(a.size()), b.c_str(),
+                              static_cast<int>(b.size()), TRUE) == CSTR_EQUAL;
+}
+
+bool IsWithinOrSame(const std::filesystem::path& path,
+                    const std::filesystem::path& ancestor) {
+  auto part = path.begin();
+  for (auto base = ancestor.begin(); base != ancestor.end(); ++base, ++part) {
+    if (part == path.end() || !SameComponent(*part, *base)) return false;
+  }
+  return true;
+}
+
+std::filesystem::path KnownFolder(REFKNOWNFOLDERID id) {
+  PWSTR raw = nullptr;
+  // DONT_VERIFY only obtains the configured path string; it does not open the
+  // user's directory or create a missing Known Folder.
+  if (FAILED(SHGetKnownFolderPath(id, KF_FLAG_DONT_VERIFY, nullptr, &raw)) ||
+      raw == nullptr) {
+    InvalidProfile();
+  }
+  const std::wstring text(raw);
+  CoTaskMemFree(raw);
+  return std::filesystem::path(text);
+}
+
+std::filesystem::path ExecutableDirectory() {
+  std::wstring text(32768, L'\0');
+  const auto length = GetModuleFileNameW(nullptr, text.data(),
+                                          static_cast<DWORD>(text.size()));
+  if (length == 0 || length >= text.size()) InvalidProfile();
+  text.resize(length);
+  return std::filesystem::path(text).parent_path();
+}
+
+TestProfileProtectedPaths DefaultProtectedPaths() {
+  const auto roaming = KnownFolder(FOLDERID_RoamingAppData);
+  const auto local = KnownFolder(FOLDERID_LocalAppData);
+  const auto documents = KnownFolder(FOLDERID_Documents);
+  return {{roaming, local, documents},
+          {roaming / L"Jim608" / L"JMS", local / L"Jim608" / L"JMS",
+           local / L"JMS" / L"seerr-sessions", ExecutableDirectory()}};
+}
+
+std::filesystem::path VolumeIdentityPath(const std::filesystem::path& path) {
+  // A second drive letter may name the same physical volume. Replace the
+  // drive letter with its volume GUID before comparing path components.
+  if (path.root_name().wstring().size() != 2) return path;
+  std::array<wchar_t, 32768> volume{};
+  if (!GetVolumeNameForVolumeMountPointW(path.root_path().c_str(),
+                                        volume.data(),
+                                        static_cast<DWORD>(volume.size()))) {
+    InvalidProfile();
+  }
+  return (std::filesystem::path(volume.data()) / path.relative_path())
+      .lexically_normal();
+}
+
+void RejectDriveAlias(const std::filesystem::path& root) {
+  // SUBST and DOS device paths can make a seemingly separate drive point into
+  // an existing profile subtree. A real local drive maps to a device volume.
+  std::array<wchar_t, 32768> target{};
+  const auto name = root.root_name().wstring();
+  if (QueryDosDeviceW(name.c_str(), target.data(),
+                      static_cast<DWORD>(target.size())) == 0 ||
+      std::wstring(target.data()).rfind(L"\\Device\\", 0) != 0) {
+    InvalidProfile();
+  }
+}
+
+void RejectProtectedOverlap(
+    const std::filesystem::path& root,
+    TestProfileProtectedPathsGetter protected_paths_getter,
+    TestProfilePathIdentityGetter path_identity_getter) {
+  const auto paths = protected_paths_getter != nullptr
+                         ? protected_paths_getter()
+                         : DefaultProtectedPaths();
+  // Synthetic test paths do not query any actual user folder or drive. Native
+  // startup additionally compares physical volume identities.
+  const bool physical = protected_paths_getter == nullptr;
+  if (physical) RejectDriveAlias(root);
+  auto identity = [&](const std::filesystem::path& value) {
+    if (path_identity_getter != nullptr) return path_identity_getter(value);
+    return physical ? VolumeIdentityPath(value) : value;
+  };
+  const auto selected = identity(root);
+  auto comparable = [&](const std::filesystem::path& value) {
+    if (!value.is_absolute()) InvalidProfile();
+    const auto normalized = value.lexically_normal();
+    return identity(normalized);
+  };
+  for (const auto& base : paths.known_folder_roots) {
+    // Documents/task-child is allowed; Documents itself and its ancestors
+    // would include user data and are rejected.
+    if (IsWithinOrSame(comparable(base), selected)) InvalidProfile();
+  }
+  for (const auto& storage : paths.storage_paths) {
+    const auto guarded = comparable(storage);
+    if (IsWithinOrSame(selected, guarded) ||
+        IsWithinOrSame(guarded, selected)) {
+      InvalidProfile();
+    }
+  }
+}
+
 std::filesystem::path NormalizeRoot(
     const std::string& argument,
-    TestProfileDriveTypeGetter drive_type_getter) {
+    TestProfileDriveTypeGetter drive_type_getter,
+    TestProfileProtectedPathsGetter protected_paths_getter,
+    TestProfilePathIdentityGetter path_identity_getter) {
   if (argument.empty() || argument.find('\0') != std::string::npos) {
     InvalidProfile();
   }
@@ -70,7 +182,8 @@ std::filesystem::path NormalizeRoot(
   for (const auto& component : root.relative_path()) {
     const auto name = component.wstring();
     if (name.empty()) continue;
-    if (name == L"." || name == L".." || name.back() == L' ' ||
+    if (name == L"." || name == L".." || name.find(L'~') != std::wstring::npos ||
+        name.back() == L' ' ||
         name.back() == L'.' || name.find_first_of(L"<>:\"|?*") !=
                                     std::wstring::npos) {
       InvalidProfile();
@@ -100,6 +213,7 @@ std::filesystem::path NormalizeRoot(
       drive_type != DRIVE_RAMDISK) {
     InvalidProfile();
   }
+  RejectProtectedOverlap(root, protected_paths_getter, path_identity_getter);
   RejectReparseAncestors(root);
   return root;
 }
@@ -169,14 +283,16 @@ void ValidatePreparedRoot(const std::filesystem::path& root, bool scan_leaves) {
 TestProfileConfiguration PrepareTestProfile(
     bool test_build, const std::vector<std::string>& arguments,
     bool configure_process_temp,
-    TestProfileDriveTypeGetter drive_type_getter) {
+    TestProfileDriveTypeGetter drive_type_getter,
+    TestProfileProtectedPathsGetter protected_paths_getter,
+    TestProfilePathIdentityGetter path_identity_getter) {
   std::optional<std::string> root_argument;
   for (size_t index = 0; index < arguments.size(); ++index) {
     const auto& argument = arguments[index];
     if (argument != "--profile-dir" && argument.rfind("--profile-dir=", 0) != 0) {
       continue;
     }
-    if (!test_build || root_argument.has_value()) InvalidProfile();
+    if (root_argument.has_value()) InvalidProfile();
     if (argument == "--profile-dir") {
       if (++index == arguments.size()) InvalidProfile();
       root_argument = arguments[index];
@@ -184,10 +300,13 @@ TestProfileConfiguration PrepareTestProfile(
       root_argument = argument.substr(14);
     }
   }
-  if (!test_build) return TestProfileConfiguration{false, std::nullopt};
-  if (!root_argument.has_value()) InvalidProfile();
+  if (!root_argument.has_value()) {
+    if (test_build) InvalidProfile();
+    return TestProfileConfiguration{false, std::nullopt};
+  }
 
-  auto root = NormalizeRoot(*root_argument, drive_type_getter);
+  auto root = NormalizeRoot(*root_argument, drive_type_getter,
+                            protected_paths_getter, path_identity_getter);
   const bool exists = Attributes(root) != INVALID_FILE_ATTRIBUTES;
   const bool marked = exists && ValidMarker(root);
   if (exists && !marked &&
@@ -210,24 +329,30 @@ TestProfileConfiguration PrepareTestProfile(
        !SetEnvironmentVariableW(L"TMP", (root / L"temp").c_str()))) {
     InvalidProfile();
   }
-  return TestProfileConfiguration{true, std::move(root)};
+  return TestProfileConfiguration{test_build, std::move(root)};
 }
 
-void InitializeTestProfile(const std::vector<std::string>& arguments) {
-  configuration = PrepareTestProfile(JMS_TEST_PROFILE_BUILD != 0, arguments);
+void InitializeTestProfile(
+    const std::vector<std::string>& arguments,
+    TestProfileProtectedPathsGetter protected_paths_getter) {
+  configuration = PrepareTestProfile(JMS_TEST_PROFILE_BUILD != 0, arguments,
+                                     true, nullptr, protected_paths_getter);
 }
 
 const TestProfileConfiguration& GetTestProfileConfiguration() {
-  if (configuration.test_build) {
-    if (!configuration.root.has_value()) InvalidProfile();
+  if (configuration.root.has_value()) {
     ValidatePreparedRoot(*configuration.root, true);
+  } else if (configuration.test_build) {
+    InvalidProfile();
   }
   return configuration;
 }
 
 std::optional<std::filesystem::path> GetIsolatedTestProfileRoot() {
-  if (!configuration.test_build) return std::nullopt;
-  if (!configuration.root.has_value()) InvalidProfile();
+  if (!configuration.root.has_value()) {
+    if (configuration.test_build) InvalidProfile();
+    return std::nullopt;
+  }
   ValidatePreparedRoot(*configuration.root, false);
   return configuration.root;
 }
