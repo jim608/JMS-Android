@@ -395,8 +395,12 @@ Future<List<ItemBaseModel>> _fetchPlaylistItems(
 
 Future<bool> _openPlaylistVideo(BuildContext context, WidgetRef ref,
     PlaybackModel model, PlaybackAttemptRef attempt,
-    {Duration? startPosition}) async {
+    {Duration? startPosition, bool Function()? isCurrent}) async {
   final diagnostics = PlaybackDiagnostics.instance;
+  final player = ref.read(videoPlayerProvider.notifier);
+  bool available() => context.mounted && (isCurrent?.call() ?? true);
+  bool currentAttempt() =>
+      available() && player.isPlaybackAttemptCurrent(attempt);
   var stage = PlaybackStage.resume;
   var step = 'start_position';
   try {
@@ -408,18 +412,19 @@ Future<bool> _openPlaylistVideo(BuildContext context, WidgetRef ref,
         event: PlaybackEvent.succeeded, detail: step);
     stage = PlaybackStage.mediaOpen;
     step = 'load_playback';
-    final loaded = await ref
-        .read(videoPlayerProvider.notifier)
-        .loadPlaybackItem(model, actualStartPosition,
-            diagnosticAttempt: attempt);
+    if (!available()) return false;
+    final loaded = await player.loadPlaybackItem(model, actualStartPosition,
+        diagnosticAttempt: attempt, isCurrent: available);
     if (!loaded) {
-      _showPlaybackError(context);
+      if (currentAttempt()) _showPlaybackError(context);
       return false;
     }
+    if (!currentAttempt()) return false;
     stage = PlaybackStage.lifecycle;
     step = 'open_player_route';
-    await ref.read(videoPlayerProvider.notifier).openPlayer(context);
-    return true;
+    await player.openPlaybackAttempt(context, attempt,
+        isCurrent: currentAttempt);
+    return currentAttempt();
   } catch (error) {
     diagnostics.record(attempt, stage,
         event: PlaybackEvent.failed,

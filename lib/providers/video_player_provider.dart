@@ -38,6 +38,33 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
   bool _usingSyncPlayPlayer = false;
   String? _initializationErrorClass;
   bool _initializationTimedOut = false;
+  int _rendererEpoch = 0;
+  PlaybackAttemptRef? _currentPlaybackAttempt;
+  int? _acceptedRendererEpoch;
+  int? _acceptedStopEpoch;
+
+  bool isPlaybackAttemptCurrent(PlaybackAttemptRef attempt) =>
+      mounted &&
+      identical(_currentPlaybackAttempt, attempt) &&
+      (_acceptedRendererEpoch == null ||
+          _acceptedRendererEpoch == _rendererEpoch) &&
+      (_acceptedStopEpoch == null ||
+          _acceptedStopEpoch == state.playbackStopEpoch);
+
+  void _invalidatePlaybackAttempt() {
+    _rendererEpoch++;
+    _currentPlaybackAttempt = null;
+    _acceptedRendererEpoch = null;
+    _acceptedStopEpoch = null;
+  }
+
+  Future<void> _waitForStableInitialization() async {
+    while (mounted) {
+      final pending = _initialization;
+      await pending;
+      if (identical(pending, _initialization)) return;
+    }
+  }
 
   void _rememberInitializationError(Object error) {
     _initializationErrorClass = error.runtimeType.toString();
@@ -49,7 +76,7 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
   MediaPlaybackModel get playbackState => ref.read(mediaPlaybackProvider);
 
   Future<bool> waitUntilReady() async {
-    await _initialization;
+    await _waitForStableInitialization();
     return mounted && state.hasPlayer;
   }
 
@@ -102,6 +129,7 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
   ProviderSubscription<VideoPlayerSettingsModel>? settingsChanged;
   @override
   void dispose() {
+    _invalidatePlaybackAttempt();
     settingsChanged?.close();
     for (final subscription in subscriptions) {
       unawaited(subscription.cancel());
@@ -113,6 +141,7 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
   }
 
   Future<void> init() {
+    _invalidatePlaybackAttempt();
     final task = _initialization.then((_) async {
       await _initialize();
       _initializationErrorClass = null;
@@ -130,6 +159,7 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
       {PlayerOptions? overridePlayer, bool Function()? isCurrent}) async {
     bool current() => mounted && (isCurrent?.call() ?? true);
     if (!current()) return;
+    _rendererEpoch++;
     _initializationErrorClass = null;
     _initializationTimedOut = false;
     final player = state;
@@ -139,7 +169,7 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
     }
     subscriptions.clear();
     if (!current()) return;
-    await player.stop();
+    await player.stopBeforePlayback(preserveSleepTimer: false);
     if (!current()) return;
     await player.dispose();
     if (!current()) return;
@@ -242,10 +272,24 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
       PlaybackAttemptRef? diagnosticAttempt}) async {
     final diagnostics = PlaybackDiagnostics.instance;
     final attempt = diagnosticAttempt ?? diagnostics.startAttempt();
+    if (!mounted || !(isCurrent?.call() ?? true)) {
+      diagnostics.record(attempt, PlaybackStage.lifecycle,
+          cancelled: true, detail: 'request_invalidated');
+      return false;
+    }
+    _currentPlaybackAttempt = attempt;
+    // Renderer binding is deferred during initial setup/restore. An explicit
+    // user/room stop revokes this request even while that renderer is pending.
+    _acceptedRendererEpoch = null;
+    _acceptedStopEpoch = state.playbackStopEpoch;
+    int? rendererEpoch;
     state.attachPlaybackAttempt(attempt);
     diagnostics.record(attempt, PlaybackStage.syncPlay,
         detail: 'active=${state.syncPlayActive}');
-    bool current() => mounted && (isCurrent?.call() ?? true);
+    bool current() =>
+        isPlaybackAttemptCurrent(attempt) &&
+        (isCurrent?.call() ?? true) &&
+        (rendererEpoch == null || rendererEpoch == _rendererEpoch);
     bool stillCurrent() {
       if (current()) return true;
       diagnostics.record(attempt, PlaybackStage.lifecycle,
@@ -258,7 +302,7 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
     diagnostics.record(attempt, stage,
         event: PlaybackEvent.started, detail: step);
     try {
-      await _initialization;
+      await _waitForStableInitialization();
       if (!stillCurrent()) return false;
       if (_usingSyncPlayPlayer && !model.serverManagedQueue) {
         step = 'restore_renderer';
@@ -274,6 +318,8 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
         }
         if (!stillCurrent()) return false;
       }
+      rendererEpoch = _rendererEpoch;
+      _acceptedRendererEpoch = rendererEpoch;
       if (!state.hasPlayer) {
         diagnostics.record(attempt, stage,
             event: PlaybackEvent.failed,
@@ -289,7 +335,7 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
       stage = PlaybackStage.lifecycle;
       step = 'stop_previous';
       final previousModel = ref.read(playBackModel);
-      await state.stop(preserveSleepTimer: true);
+      await state.stopBeforePlayback();
       previousModel?.dispose();
       if (!stillCurrent()) return false;
       ref.read(playbackRateProvider.notifier).state = 1.0;
@@ -370,6 +416,11 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
       mediaState.update((state) => state.copyWith(errorPlaying: true));
       return false;
     } catch (error) {
+      if (!current()) {
+        diagnostics.record(attempt, PlaybackStage.lifecycle,
+            cancelled: true, detail: 'request_invalidated');
+        return false;
+      }
       diagnostics.record(attempt, stage,
           event: PlaybackEvent.failed,
           errorClass: error.runtimeType.toString(),
@@ -467,6 +518,17 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
 
   Future<void> openPlayer(BuildContext context) async =>
       state.openPlayer(context);
+
+  Future<void> openPlaybackAttempt(
+      BuildContext context, PlaybackAttemptRef attempt,
+      {bool Function()? isCurrent}) async {
+    bool current() =>
+        isPlaybackAttemptCurrent(attempt) && (isCurrent?.call() ?? true);
+    if (!current()) return;
+    await _waitForStableInitialization();
+    if (!current() || !state.hasPlayer) return;
+    await state.openPlayer(context);
+  }
 
   Future<bool> takeScreenshot() async {
     final syncPath = ref.read(clientSettingsProvider).syncPath;
