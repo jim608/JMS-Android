@@ -104270,5 +104270,59 @@
       "version": "0.12.2-1",
       "binarySha256": "dbaf4b60ccbcef6aa5d6385d8d1965d4f483999b9ced1d5a2afbf719028b3d1e"
     }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/apps/privkey.pem",
+    "sha256": "64795d8b4aac68c76ba833da4cfb54e739b7a90161ab3866d441ae0205da6fa9",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "These exact private-key bytes are already public in the official OpenSSL openssl-3.6.4 tag and match the pinned source archive. No direct consumer of this exact file has been proven. The user approved review of only this archive/member/content and these two scanner findings. Anyone can copy this public key material; never use it as a service credential.",
+    "evidence": {
+      "kind": "upstream-public-key-identical-bytes",
+      "archiveSha256": "9bffaa1ad1e07b354c21bd3324ec02fa15579f45a7d0494b3e74bc449b7333ef",
+      "member": "openssl-3.6.4/apps/privkey.pem",
+      "sha256": "64795d8b4aac68c76ba833da4cfb54e739b7a90161ab3866d441ae0205da6fa9",
+      "upstreamUrl": "https://github.com/openssl/openssl/blob/openssl-3.6.4/apps/privkey.pem"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/apps/rsa8192.pem",
+    "sha256": "24f69b9f93919a7cc85159762f269b3b3a7e807dec24ebf90ccf166e1d63fe6b",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "These exact private-key bytes are already public in the official OpenSSL openssl-3.6.4 tag and match the pinned source archive. No direct consumer of this exact file has been proven. The user approved review of only this archive/member/content and these two scanner findings. Anyone can copy this public key material; never use it as a service credential.",
+    "evidence": {
+      "kind": "upstream-public-key-identical-bytes",
+      "archiveSha256": "9bffaa1ad1e07b354c21bd3324ec02fa15579f45a7d0494b3e74bc449b7333ef",
+      "member": "openssl-3.6.4/apps/rsa8192.pem",
+      "sha256": "24f69b9f93919a7cc85159762f269b3b3a7e807dec24ebf90ccf166e1d63fe6b",
+      "upstreamUrl": "https://github.com/openssl/openssl/blob/openssl-3.6.4/apps/rsa8192.pem"
+    }
+  },
+  {
+    "source": "https://repo.msys2.org/mingw/sources/mingw-w64-openssl-3.6.4-1.src.tar.zst",
+    "archiveSha256": "b60a8978d0e45f433ee8db7825d9ba90cc38956c89ab52055c05546f421942f9",
+    "member": "mingw-w64-openssl/openssl-3.6.4.tar.gz/openssl-3.6.4/test/certs/ncca-key.pem",
+    "sha256": "045409cc24a17bede92d82ad1322f77b4f3a67b21e017460d75fef3076d57616",
+    "rules": [
+      "private file type",
+      "credential pattern"
+    ],
+    "explanation": "These exact private-key bytes are already public in the official OpenSSL openssl-3.6.4 tag and match the pinned source archive. No direct consumer of this exact file has been proven. The user approved review of only this archive/member/content and these two scanner findings. Anyone can copy this public key material; never use it as a service credential.",
+    "evidence": {
+      "kind": "upstream-public-key-identical-bytes",
+      "archiveSha256": "9bffaa1ad1e07b354c21bd3324ec02fa15579f45a7d0494b3e74bc449b7333ef",
+      "member": "openssl-3.6.4/test/certs/ncca-key.pem",
+      "sha256": "045409cc24a17bede92d82ad1322f77b4f3a67b21e017460d75fef3076d57616",
+      "upstreamUrl": "https://github.com/openssl/openssl/blob/openssl-3.6.4/test/certs/ncca-key.pem"
+    }
   }
 ]
