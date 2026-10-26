@@ -1,0 +1,75 @@
+# OFFLINE REVIEW DRAFT ONLY. Do not dispatch until the signed .51+56 package,
+# its public verification receipt and descriptor are published and pinned.
+# Intended destination: jim608/JMS-Android/.github/workflows/flatpak-signed-upgrade51.yml
+name: Verify signed Flatpak 50 to 51 update
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jms-signed50-to-signed51-update-validation
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: github.repository == 'jim608/JMS-Android' && github.ref == 'refs/heads/jms'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      # Replace BOTH with the frozen public descriptor's actual SHA and bytes.
+      # The deliberate UNSET values make this draft fail closed.
+      JMS_DESCRIPTOR_SHA256: 21e40ad9d0073c97ffc05eb7d1825d1cd01701df1dd02cb6caaff116a477d07f
+      JMS_DESCRIPTOR_BYTES: 1447
+      JMS_WORK_ROOT: /var/tmp/jms-signed51-${{ github.run_id }}
+    steps:
+      - name: Refuse unfrozen descriptor
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$JMS_DESCRIPTOR_SHA256" =~ ^[a-f0-9]{64}$ ]]
+          [[ "$JMS_DESCRIPTOR_BYTES" =~ ^[1-9][0-9]{0,5}$ ]]
+      - name: Check out reviewed verification driver
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Check draft driver syntax before provisioning
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n ci/cloud-update-validation/validate-signed-case.sh
+          python3 -m py_compile ci/cloud-update-validation/run-signed-upgrade51.py
+          test -s ci/cloud-update-validation/portal-session.sh
+          test -s ci/cloud-update-validation/portal-probe.c
+          test -s ci/cloud-update-validation/check-state.py
+      - name: Install public Flatpak runtime and probe toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            flatpak ostree xvfb xauth dbus-x11 xdg-desktop-portal \
+            xdg-desktop-portal-gtk build-essential pkg-config libglib2.0-dev \
+            python3 desktop-file-utils
+          sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          sudo flatpak install --noninteractive flathub org.gnome.Platform//50
+      - name: Verify existing signed origin and real Portal update plus denial
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/cloud-update-validation/run-signed-upgrade51.py \
+            --descriptor-sha256 "$JMS_DESCRIPTOR_SHA256" \
+            --descriptor-bytes "$JMS_DESCRIPTOR_BYTES" \
+            --work-root "$JMS_WORK_ROOT"
+      - name: Retain only nonsecret bounded results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: jms-signed-upgrade51-sanitized-${{ github.run_id }}
+          path: ${{ env.JMS_WORK_ROOT }}/safe-evidence/sanitized-results.json
+          if-no-files-found: ignore
+          retention-days: 14
+          # Do not upload bundles, source archives, logs or account homes.
