@@ -32,6 +32,8 @@ class SettingsUpdateInformation extends ConsumerWidget {
       String? status() => switch (flatpak.phase) {
             FlatpakUpdatePhase.idle => null,
             FlatpakUpdatePhase.checking => labels.jmsUpdateState('checking'),
+            FlatpakUpdatePhase.monitoring =>
+              text('Waiting for update information', '等待更新資訊'),
             FlatpakUpdatePhase.manual => text(
                 'A JMS update source has not been confirmed.',
                 '尚未確認可用的 JMS 更新來源。'),
@@ -117,7 +119,9 @@ class SettingsUpdateInformation extends ConsumerWidget {
                 .update(
                     (settings) => settings.copyWith(checkForUpdates: enabled)),
           ),
-          if (!capability.canRequestPortalCheck)
+          if (!capability.canRequestPortalCheck &&
+              flatpak.phase != FlatpakUpdatePhase.checking &&
+              !flatpak.waitingForSnapshot)
             Padding(
               padding: const EdgeInsets.all(12),
               child: Text(

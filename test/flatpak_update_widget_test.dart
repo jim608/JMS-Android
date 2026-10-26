@@ -112,7 +112,7 @@ void main() {
   });
 
   testWidgets(
-      'missing remote evidence keeps manual instructions without readiness',
+      'quiet open monitor shows waiting without false manual instructions',
       (tester) async {
     final portal = _Portal(sendSnapshot: false);
     final controller = FlatpakUpdateController(
@@ -120,15 +120,27 @@ void main() {
     await _mount(tester, controller);
     await tester.tap(find.byKey(const ValueKey('flatpak-check-update')));
     await tester.pump();
+    expect(find.byKey(const ValueKey('flatpak-update-instructions')), findsNothing);
     await tester.pump(const Duration(seconds: 2));
     await tester.pump();
     expect(find.byKey(const ValueKey('flatpak-update-remoteUnverified')),
         findsOneWidget);
     expect(find.byKey(const ValueKey('flatpak-confirm-update')), findsNothing);
     expect(find.byKey(const ValueKey('flatpak-open-releases')), findsOneWidget);
-    expect(find.textContaining('update source has not been confirmed'),
-        findsOneWidget);
+    expect(find.byKey(const ValueKey('flatpak-phase-monitoring')), findsOneWidget);
+    expect(find.text('Waiting for update information'), findsOneWidget);
+    expect(find.byKey(const ValueKey('flatpak-update-instructions')), findsNothing);
+    expect(find.textContaining('update source has not been confirmed'), findsNothing);
+    expect(find.byKey(const ValueKey('flatpak-phase-current')), findsNothing);
     expect(controller.canRequestUpdate, isFalse);
+    expect(portal.requests, 0);
+    portal.updateEvents.add(FlatpakPortalUpdate(
+        runningCommit: 'a' * 64,
+        localCommit: 'a' * 64,
+        remoteCommit: 'b' * 64));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('flatpak-confirm-update')), findsOneWidget);
+    expect(find.byKey(const ValueKey('flatpak-phase-monitoring')), findsNothing);
     expect(portal.requests, 0);
     await tester.pumpWidget(const SizedBox());
     await tester.pump();

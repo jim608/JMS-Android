@@ -8,6 +8,7 @@ import 'package:fladder/util/flatpak_update_capability.dart';
 enum FlatpakUpdatePhase {
   idle,
   checking,
+  monitoring,
   manual,
   available,
   current,
@@ -60,6 +61,8 @@ class FlatpakUpdateController extends ChangeNotifier {
   bool get restartRequired => _installed || candidate?.restartRequired == true;
   bool get restartDeferred =>
       restartRequired && (_playbackActive || _syncPlayActive);
+  bool get waitingForSnapshot =>
+      _portalOpened && candidate == null && failure == null;
   bool get busy =>
       phase == FlatpakUpdatePhase.checking ||
       phase == FlatpakUpdatePhase.updating;
@@ -245,11 +248,22 @@ class FlatpakUpdateController extends ChangeNotifier {
       await Future.any([first.future, cancelled.future]).timeout(checkTimeout);
     } catch (error) {
       if (!_current(generation)) return;
-      failure = _safeFailure(error);
-      phase = failure == FlatpakPortalFailureCode.unsupported
-          ? FlatpakUpdatePhase.unsupported
-          : FlatpakUpdatePhase.manual;
-      if (!_portalOpened) await _releasePortal();
+      if (_portalOpened &&
+          error is TimeoutException &&
+          phase == FlatpakUpdatePhase.checking &&
+          failure == null) {
+        // Opening succeeded. The host may poll later and emits no snapshot
+        // when nothing changes; silence is neither a failure nor "up to date".
+        phase = restartRequired
+            ? FlatpakUpdatePhase.restartRequired
+            : FlatpakUpdatePhase.monitoring;
+      } else {
+        failure = _safeFailure(error);
+        phase = failure == FlatpakPortalFailureCode.unsupported
+            ? FlatpakUpdatePhase.unsupported
+            : FlatpakUpdatePhase.manual;
+        if (!_portalOpened) await _releasePortal();
+      }
       _notify();
     } finally {
       if (identical(_firstSnapshot, first)) _firstSnapshot = null;
@@ -335,7 +349,8 @@ class FlatpakUpdateController extends ChangeNotifier {
     _complete(_firstSnapshot);
     // A manual check can start immediately, without awaiting a retired open.
     _check = null;
-    if (phase == FlatpakUpdatePhase.checking) {
+    if (phase == FlatpakUpdatePhase.checking ||
+        phase == FlatpakUpdatePhase.monitoring) {
       phase = restartRequired
           ? FlatpakUpdatePhase.restartRequired
           : FlatpakUpdatePhase.idle;

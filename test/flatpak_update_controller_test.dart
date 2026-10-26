@@ -64,6 +64,12 @@ class _Portal implements FlatpakUpdatePortal {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  Future<void> drainPortalCleanup(WidgetTester tester) async {
+    await tester.pump();
+    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    await tester.pump();
+  }
+
   FlatpakUpdateController controller(_Portal portal,
       {Duration checkTimeout = const Duration(seconds: 15),
       Duration updateTimeout = const Duration(minutes: 10)}) {
@@ -288,19 +294,214 @@ void main() {
   });
 
   testWidgets(
-      'no initial portal snapshot does not imply latest or remote ready',
-      (tester) async {
+    'quiet open monitor stays healthy without claiming latest or remote ready',
+    (tester) async {
+      final portal = _Portal();
+      final updates = controller(
+        portal,
+        checkTimeout: const Duration(seconds: 1),
+      );
+      final check = updates.check();
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 2));
+      await check;
+      expect(updates.phase, FlatpakUpdatePhase.monitoring);
+      expect(updates.failure, isNull);
+      expect(updates.busy, isFalse);
+      expect(updates.canCheck, isTrue);
+      expect(updates.capability.appRemote, FlatpakAppRemoteState.unverified);
+      expect(updates.canRequestUpdate, isFalse);
+      expect(portal.requests, 0);
+      expect(portal.opens, 1);
+      expect(portal.closes, 0);
+      portal.updateEvents.add(_snapshot());
+      expect(updates.phase, FlatpakUpdatePhase.available);
+      expect(updates.canRequestUpdate, isTrue);
+      expect(updates.failure, isNull);
+      expect(portal.requests, 0);
+    },
+  );
+
+  testWidgets('disabling a quiet automatic monitor retires late events', (
+    tester,
+  ) async {
     final portal = _Portal();
-    final updates =
-        controller(portal, checkTimeout: const Duration(seconds: 1));
-    final check = updates.check();
+    final updates = controller(
+      portal,
+      checkTimeout: const Duration(seconds: 1),
+    );
+    final check = updates.setAutomatic(true);
     await tester.pump();
     await tester.pump(const Duration(seconds: 2));
     await check;
-    expect(updates.phase, FlatpakUpdatePhase.manual);
-    expect(updates.capability.appRemote, FlatpakAppRemoteState.unverified);
-    expect(updates.canRequestUpdate, isFalse);
+    expect(updates.phase, FlatpakUpdatePhase.monitoring);
+    final stopped = updates.setAutomatic(false);
+    await drainPortalCleanup(tester);
+    await stopped;
+    expect(updates.phase, FlatpakUpdatePhase.idle);
+    expect(updates.failure, isNull);
+    expect(updates.canCheck, isTrue);
+    expect(portal.closes, 1);
+    portal.updateEvents.add(_snapshot());
+    expect(updates.candidate, isNull);
+    expect(updates.phase, FlatpakUpdatePhase.idle);
     expect(portal.requests, 0);
+  });
+
+  testWidgets(
+    'late current or installed snapshots preserve playback and restart',
+    (tester) async {
+      final portal = _Portal();
+      final updates = controller(
+        portal,
+        checkTimeout: const Duration(seconds: 1),
+      );
+      updates.setActivity(playback: true, syncPlay: true);
+      final check = updates.check();
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 2));
+      await check;
+      expect(updates.restartRequired, isFalse);
+      portal.updateEvents.add(_snapshot(remote: 'a'));
+      expect(updates.phase, FlatpakUpdatePhase.current);
+      expect(updates.restartRequired, isFalse);
+      portal.updateEvents.add(_snapshot(local: 'b'));
+      expect(updates.phase, FlatpakUpdatePhase.restartRequired);
+      expect(updates.restartDeferred, isTrue);
+      expect(updates.canRequestUpdate, isFalse);
+      expect(portal.requests, 0);
+    },
+  );
+
+  testWidgets(
+    'a real stream failure after quiet waiting still allows recovery',
+    (tester) async {
+      final portal = _Portal();
+      final updates = controller(
+        portal,
+        checkTimeout: const Duration(seconds: 1),
+      );
+      final check = updates.check();
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 2));
+      await check;
+      portal.updateEvents.addError(
+        const FlatpakPortalFailure(FlatpakPortalFailureCode.unavailable),
+      );
+      expect(updates.phase, FlatpakUpdatePhase.manual);
+      expect(updates.failure, FlatpakPortalFailureCode.unavailable);
+      expect(updates.canCheck, isTrue);
+      expect(updates.canRequestUpdate, isFalse);
+      expect(portal.requests, 0);
+    },
+  );
+
+  testWidgets('opening timeout remains a real failure and cannot revive late', (
+    tester,
+  ) async {
+    final gate = Completer<void>();
+    final portal = _Portal(openGate: gate.future);
+    final updates = controller(
+      portal,
+      checkTimeout: const Duration(seconds: 1),
+    );
+    final check = updates.check();
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 2));
+      await drainPortalCleanup(tester);
+    await check;
+    expect(updates.phase, FlatpakUpdatePhase.manual);
+    expect(updates.failure, FlatpakPortalFailureCode.timeout);
+    expect(portal.closes, 1);
+    gate.complete();
+    portal.updateEvents.add(_snapshot());
+    await tester.pump();
+    expect(updates.phase, FlatpakUpdatePhase.manual);
+    expect(updates.canRequestUpdate, isFalse);
+  });
+
+  testWidgets(
+    'disposing a quiet monitor cannot revive UI or a new controller',
+    (tester) async {
+      final portal = _Portal();
+      final updates = controller(
+        portal,
+        checkTimeout: const Duration(seconds: 1),
+      );
+      var notifications = 0;
+      updates.addListener(() => notifications++);
+      final check = updates.check();
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 2));
+      await check;
+      final beforeDispose = notifications;
+      updates.dispose();
+      portal.updateEvents.add(_snapshot());
+      await drainPortalCleanup(tester);
+      expect(notifications, beforeDispose);
+      expect(portal.closes, 1);
+      final next = _Portal();
+      final fresh = controller(next);
+      expect(fresh.phase, FlatpakUpdatePhase.idle);
+      expect(fresh.failure, isNull);
+      expect(fresh.candidate, isNull);
+      expect(next.opens, 0);
+      expect(next.requests, 0);
+    },
+  );
+
+  testWidgets('quiet monitor permits explicit recovery after silent owner loss',
+      (tester) async {
+    final old = _Portal();
+    final next = _Portal(initial: _snapshot(remote: 'c'));
+    addTearDown(old.disposeFixture);
+    addTearDown(next.disposeFixture);
+    var factories = 0;
+    final updates = FlatpakUpdateController(
+        portalFactory: () => factories++ == 0 ? old : next,
+        checkTimeout: const Duration(seconds: 1));
+    addTearDown(updates.dispose);
+    final first = updates.check();
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 2));
+    await first;
+    expect(updates.phase, FlatpakUpdatePhase.monitoring);
+    expect(updates.canCheck, isTrue);
+    final retry = updates.check();
+    await drainPortalCleanup(tester);
+    await retry;
+    old.updateEvents.add(_snapshot(remote: 'd'));
+    expect(factories, 2);
+    expect(old.closes, 1);
+    expect(updates.phase, FlatpakUpdatePhase.available);
+    expect(updates.candidate?.remoteCommit, 'c' * 64);
+    expect(next.requests, 0);
+  });
+
+  testWidgets('quiet recheck preserves a known installed update and restart',
+      (tester) async {
+    final installed = _Portal(initial: _snapshot(local: 'b'));
+    final quiet = _Portal();
+    addTearDown(installed.disposeFixture);
+    addTearDown(quiet.disposeFixture);
+    var factories = 0;
+    final updates = FlatpakUpdateController(
+        portalFactory: () => factories++ == 0 ? installed : quiet,
+        checkTimeout: const Duration(seconds: 1));
+    addTearDown(updates.dispose);
+    updates.setActivity(playback: true, syncPlay: true);
+    final first = updates.check();
+    await tester.pump();
+    await first;
+    final recheck = updates.check();
+    await drainPortalCleanup(tester);
+    await tester.pump(const Duration(seconds: 2));
+    await recheck;
+    expect(updates.phase, FlatpakUpdatePhase.restartRequired);
+    expect(updates.waitingForSnapshot, isTrue);
+    expect(updates.failure, isNull);
+    expect(updates.restartDeferred, isTrue);
+    expect(quiet.requests, 0);
   });
 
   test(
