@@ -1,3 +1,15 @@
+# JMS 0.11.1-jms.51
+
+## Fixed
+- Keeps a successfully opened Flatpak Portal monitor waiting for meaningful update or current-state evidence when no notification has arrived.
+- Shows an error and keeps retry available after an actual Portal opening failure, without treating an unreported state as up to date.
+
+## Known issues
+- Physical Steam Deck devices, SteamOS Gaming Mode and real hardware combinations still require validation.
+
+## Update notes
+- Linux and Steam Deck continue using the signed Flatpak update origin, with installation confirmed by the system.
+
 # JMS 0.11.1-jms.50
 
 ## Fixed

@@ -1,29 +1,25 @@
-# JMS 0.11.1-jms.50
+# JMS 0.11.1-jms.51
 
 ## 繁體中文 / Traditional Chinese
 
 ### 修正
-- 播放器設定重建時等待最新初始化完成，過期載入與路由不再覆蓋新請求。
-- 連續停止會等待同一個底層停止作業，保留取消與睡眠計時器意圖。
-- 無法對應影片的原生訊息保留為診斷線索，避免誤判目前播放失敗。
+- Flatpak Portal 成功開啟監看後，暫無通知時仍顯示等待更新資訊，直到收到有意義的更新或目前狀態證據。
+- 只有 Portal 開啟失敗才顯示錯誤並保留重試，不會把尚未回報的狀態誤判為已是最新版本。
 
 ### 已知問題
-- SteamOS、實體手把與 GPU 串流播放仍需裝置驗證。
-- 跨裝置同步與不同硬體組合尚未完成全面驗證。
+- 實體 Steam Deck、SteamOS 遊戲模式與真實硬體組合仍需驗證。
 
 ### 更新注意事項
-- Linux 與 Steam Deck 共用簽章更新來源；安裝更新仍由系統確認。
+- Linux 與 Steam Deck 沿用已簽署的 Flatpak 更新來源；安裝仍須由系統確認。
 
 ## English
 
 ### Fixed
-- Waits for the latest renderer initialization and prevents stale loads or routes from replacing newer requests.
-- Shares pending native stop operations while preserving cancellation and sleep timer intent.
-- Keeps unattributed native messages as diagnostic context instead of treating them as confirmed current-playback failures.
+- Keeps a successfully opened Flatpak Portal monitor waiting for meaningful update or current-state evidence when no notification has arrived.
+- Shows an error and keeps retry available after an actual Portal opening failure, without treating an unreported state as up to date.
 
 ### Known issues
-- SteamOS, physical controllers and GPU network playback still require device validation.
-- Cross-device synchronization and all hardware combinations have not been fully verified.
+- Physical Steam Deck devices, SteamOS Gaming Mode and real hardware combinations still require validation.
 
 ### Update notes
-- Linux and Steam Deck share the signed update origin, with installation still confirmed by the system.
+- Linux and Steam Deck continue using the signed Flatpak update origin, with installation confirmed by the system.
