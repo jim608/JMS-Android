@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "scope": "isolated-original-unsigned-runtime-fixture-only",
+  "privateRuntimeFixtureAccepted": true,
+  "originalFullPublicGatePassed": false,
+  "publicRepublishOrSigningPermitted": false,
+  "doesNotProveSignedToSignedOrLegacyUiMigration": true,
+  "acceptanceReceiptSHA256": "84481126fe1c420a5f14eb122c1de5866ce3458b3baefb8b94940b8c2f65474f",
+  "completeDiagnosticSHA256": "62cdd90099fe03c87bb4ec67938e1c3aac6ce5d2253975567d4b8e258f4a2fcb",
+  "runtimeAndPayloadPrivacyRejectedCount": 0,
+  "sourceOnlyRejections": 7,
+  "ci": {
+    "repository": "jim608/JMS-Android",
+    "runId": 40115911726,
+    "artifactId": 12570256262,
+    "artifactName": "jms-flatpak-d2580f81402c25ee7b54b4921c7f9d0ad96ff84d",
+    "sourceCommit": "d2580f81402c25ee7b54b4921c7f9d0ad96ff84d",
+    "zipBytes": 530938062,
+    "zipSHA256": "318fe44f281360d369f07d429482abd4fbdee8c1d70ffc61ff57be0e63e68624"
+  },
+  "runtime": {
+    "name": "JMS-Linux-0.11.1-jms.47-x86_64.flatpak",
+    "size": 48544216,
+    "sha256": "92de119cc7620fe3f1031069316c64d2aed41f3c6201e08afb80125082b7ac7a",
+    "ostreeCommit": "fbfd43711a701fcda048d3d1913573cf33a6431094a78cab89e19071be587660",
+    "runtime": "org.gnome.Platform/x86_64/50",
+    "payloadName": "JMS-Linux-0.11.1-jms.47-flatpak-payload.tar.gz",
+    "payloadBytes": 63829515,
+    "payloadSHA256": "a1425df849c808d5978712580c311dd4bae62c39bdbb3605542b991b9f6a5d07"
+  },
+  "selectedMetadata": {
+    "runner-source.json": "d35d4bb71a7a2ad36f6dc91e54a529888cf9c636ee94ebb447121b5cd31a5d4d",
+    "flatpak-verification.json": "26edfe13767fa78b3625838fbef4d5cca57e70bda9b322d8cbbb6ca4bb9f1769",
+    "flatpak-build-manifest.json": "1feb3b0d3d072825fc3a589baac8e534ebd992b026a895fff47c7a8de2f85f31"
+  }
+}

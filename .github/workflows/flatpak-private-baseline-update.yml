@@ -1,0 +1,84 @@
+# LOCAL REVIEW CANDIDATE ONLY. Not pushed, installed, enabled, or dispatched.
+# Destination: jim608/JMS-Android/.github/workflows/flatpak-private-baseline-update.yml
+name: Verify private unsigned Flatpak migration
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: jms-private-baseline-portal-validation
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: github.repository == 'jim608/JMS-Android'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      # Fill only after target release gates, signing and public origin freeze.
+      JMS_FIXTURE_DESCRIPTOR_SHA256: 0db63ab0fb3a26bedcc2854d323875a62b1d7acdf391f4d7a532c72c79a62f38
+      JMS_TARGET_ROOT: /var/tmp/jms-private-portal-${{ github.run_id }}-public-target
+      JMS_LEGACY_ROOT: /var/tmp/jms-private-portal-${{ github.run_id }}-legacy-migration
+      JMS_PRIVATE_FIXTURE_ROOT: /var/tmp/jms-private-baseline-${{ github.run_id }}
+    steps:
+      - name: Refuse unready fixture pin
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$JMS_FIXTURE_DESCRIPTOR_SHA256" =~ ^[a-f0-9]{64}$ ]]
+      - name: Check out only this reviewed verification-tools commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Provision public runtime and probe toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            flatpak ostree xvfb xauth dbus-x11 xdg-desktop-portal \
+            xdg-desktop-portal-gtk build-essential pkg-config libglib2.0-dev \
+            python3 curl desktop-file-utils
+          sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          sudo flatpak install --noninteractive flathub org.gnome.Platform//50
+          # Fail if this runner cannot run a real sandbox. No protection changes.
+      - name: Independently check fresh target and trust negatives
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/cloud-update-validation/run-private-baseline-validation.py \
+            --descriptor-sha256 "$JMS_FIXTURE_DESCRIPTOR_SHA256" \
+            --group public-target --work-root "$JMS_TARGET_ROOT"
+      - name: Read and verify only the original own-Actions private fixture
+        env:
+          # Token exists in this authenticated read step only, never the sandbox.
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/cloud-update-validation/download-private-baseline47.py \
+            --output "$JMS_PRIVATE_FIXTURE_ROOT"
+      - name: Verify explicit unsigned-origin migration and denied Portal update
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/cloud-update-validation/run-private-baseline-validation.py \
+            --descriptor-sha256 "$JMS_FIXTURE_DESCRIPTOR_SHA256" \
+            --group legacy-migration --work-root "$JMS_LEGACY_ROOT" \
+            --private-fixture-root "$JMS_PRIVATE_FIXTURE_ROOT"
+      - name: Preserve only sanitized hashes and results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: jms-private-baseline-sanitized-results-${{ github.run_id }}
+          path: |
+            ${{ env.JMS_TARGET_ROOT }}/safe-evidence/sanitized-results.json
+            ${{ env.JMS_LEGACY_ROOT }}/safe-evidence/sanitized-results.json
+          if-no-files-found: ignore
+          retention-days: 14
+          # Never upload old ZIP/runtime, source/native archives, logs or inputs.
