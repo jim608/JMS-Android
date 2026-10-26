@@ -40,6 +40,52 @@ FAILURE_STAGES = {'verify-inputs', 'prepare-session', 'install-bundle', 'install
     'launchers-before', 'permissions-before', 'synthetic-settings-fixture', 'portal-session',
     'after-update-origin-check', 'settings-preserved', 'after-update-commit-check',
     'permissions-preserved', 'launchers-after', 'target-contents-check', 'write-result'}
+HOST_FAILURE_STAGES = {'fetch-public-fixtures', 'private-baseline-check', 'target-receipt-check',
+    'copy-harness', 'probe-toolchain', 'probe-compile', 'environment-build', 'account-check',
+    'account-create', 'account-verify', 'output-prepare', 'invocation-build', 'driver', 'case-result-check'}
+HOST_CASE_MODES = {'fresh-target', 'trust-negative', 'unsigned-migration', 'denied-update'}
+HOST_LOG_NAMES = {'compile.log',
+    'fresh-target-account.log', 'fresh-target-output.log', 'fresh-target-driver.log',
+    'trust-negative-account.log', 'trust-negative-output.log', 'trust-negative-driver.log',
+    'unsigned-migration-account.log', 'unsigned-migration-output.log', 'unsigned-migration-driver.log',
+    'denied-update-account.log', 'denied-update-output.log', 'denied-update-driver.log'}
+
+
+def safe_log_categories(logfile):
+    """Bounded best-effort input; diagnostic I/O cannot replace a real failure."""
+    try:
+        if logfile is None or not logfile.is_file() or logfile.is_symlink():
+            return []
+        with logfile.open('rb') as stream:
+            stream.seek(max(0, logfile.stat().st_size - 65536))
+            text = stream.read(65536).decode('utf-8', errors='replace')
+    except OSError:
+        return []
+    rules = {'missing-summary-setting': r'NoOptionError:.*gpg-verify-summary',
+        'missing-ref': r'No such ref|not installed',
+        'session-bus-unavailable': r'Failed to connect to.*bus|Unable to autolaunch',
+        'sandbox-unavailable': r'bwrap:.*(?:Operation not permitted|Permission denied)',
+        'untrusted-signature': r'GPG signatures found, but none|no signatures found',
+        'permission-denied': r'Permission denied', 'state-assertion': r'AssertionError'}
+    return [name for name, pattern in rules.items() if re.search(pattern, text, re.I)]
+
+
+def safe_host_failure(stage, mode, logfile, error):
+    """Only source-defined enums/basenames and genuinely known numeric exits."""
+    result = {'scope': 'host', 'stage': stage if stage in HOST_FAILURE_STAGES else 'host-validation',
+              'categories': []}
+    if mode in HOST_CASE_MODES:
+        result['mode'] = mode
+    if logfile is not None and logfile.name in HOST_LOG_NAMES:
+        result['commandLog'] = logfile.name
+        result['categories'] = safe_log_categories(logfile)
+    if isinstance(error, subprocess.CalledProcessError) and type(error.returncode) is int and -255 <= error.returncode <= 255:
+        result['exitCode'] = error.returncode
+    if isinstance(error, PermissionError) and 'permission-denied' not in result['categories']:
+        result['categories'].append('permission-denied')
+    elif isinstance(error, subprocess.TimeoutExpired):
+        result['categories'].append('operation-timeout')
+    return result
 
 
 def safe_case_failure(output, mode, logfile):
@@ -59,17 +105,7 @@ def safe_case_failure(output, mode, logfile):
                 result.update(stage=data['stage'], line=data['line'], exitCode=data['exitCode'])
     except (OSError, ValueError, UnicodeError):
         pass  # Diagnostic input must never replace the original driver failure.
-    if logfile.is_file() and not logfile.is_symlink():
-        with logfile.open('rb') as stream:
-            stream.seek(max(0, logfile.stat().st_size - 65536))
-            text = stream.read(65536).decode('utf-8', errors='replace')
-        rules = {'missing-summary-setting': r'NoOptionError:.*gpg-verify-summary',
-            'missing-ref': r'No such ref|not installed',
-            'session-bus-unavailable': r'Failed to connect to.*bus|Unable to autolaunch',
-            'sandbox-unavailable': r'bwrap:.*(?:Operation not permitted|Permission denied)',
-            'untrusted-signature': r'GPG signatures found, but none|no signatures found',
-            'permission-denied': r'Permission denied', 'state-assertion': r'AssertionError'}
-        result['categories'] = [name for name, pattern in rules.items() if re.search(pattern, text, re.I)]
+    result['categories'] = safe_log_categories(logfile)
     return result
 
 
@@ -131,6 +167,7 @@ def run(args):
         'realConsentUiTested': False, 'productionRefChanged': False,
         'sourceHashes': {name: digest(SOURCE / name) for name in TOOLS}, 'cases': []}
     accounts = []
+    host_stage, host_mode, host_log = 'fetch-public-fixtures', None, None
     try:
         for name, limit in FILES.items():
             item = descriptor['fixtures'][name]
@@ -138,6 +175,7 @@ def run(args):
             (inputs / name).chmod(0o444)
         record['publicInputSHA256'] = {name: item['sha256'] for name, item in descriptor['fixtures'].items()}
         if args.group == 'legacy-migration':
+            host_stage = 'private-baseline-check'
             private = args.private_fixture_root
             require(private == Path('/var/tmp/jms-private-baseline-' + run_id) and
                     private.is_dir() and not private.is_symlink(), 'Exact private fixture directory required')
@@ -154,18 +192,23 @@ def run(args):
             record['privateOriginalZipSHA256'] = binding['ci']['zipSHA256']
         else:
             require(args.private_fixture_root is None, 'Fresh target checks cannot depend on the old fixture')
+        host_stage = 'target-receipt-check'
         receipt = json.loads((inputs / 'target-verification.json').read_text())
         require(receipt.get('applicationId') == 'com.jim608.jms' and receipt.get('architecture') == 'x86_64' and
                 receipt.get('branch') == 'stable' and receipt.get('runtime') == RUNTIME and
                 receipt.get('ostreeCommit') == descriptor['targetCommit'], 'Target CI receipt identity differs')
+        host_stage = 'copy-harness'
         for name in SOURCES:
             shutil.copyfile(SOURCE / name, harness / name)
             (harness / name).chmod(0o444)
+        host_stage = 'probe-toolchain'
         flags = subprocess.check_output(['pkg-config', '--cflags', '--libs', 'gio-2.0'], text=True).split()
+        host_stage, host_log = 'probe-compile', root / 'compile.log'
         command(['cc', '-std=c11', '-O2', '-Wall', '-Wextra', str(harness / 'portal-probe.c'),
-                 *flags, '-o', str(inputs / 'portal-probe')], root / 'compile.log', timeout=120)
+                 *flags, '-o', str(inputs / 'portal-probe')], host_log, timeout=120)
         (inputs / 'portal-probe').chmod(0o555)
         record['probeSHA256'] = digest(inputs / 'portal-probe')
+        host_stage, host_log = 'environment-build', None
         f = descriptor['fixtures']
         public_env = {'JMS_ISOLATED_UPDATE_TEST': '1', 'JMS_INPUT_DIR': str(inputs),
             'JMS_BASELINE_COMMIT': binding['runtime']['ostreeCommit'], 'JMS_TARGET_COMMIT': descriptor['targetCommit'],
@@ -177,15 +220,17 @@ def run(args):
             'JMS_WRONG_PUBLIC_KEY_SHA256': f['wrong-public-key.gpg']['sha256'],
             'JMS_SUMMARY_SHA256': f['summary']['sha256'], 'JMS_SUMMARY_SIG_SHA256': f['summary.sig']['sha256']}
         for index, mode in enumerate(GROUPS[args.group]):
+            host_stage, host_mode, host_log = 'account-check', mode, None
             name = f'jms-flatpak-cloud-{run_id}-' + ('p' if args.group == 'public-target' else 'l') + str(index)
             try:
                 pwd.getpwnam(name)
                 raise ValueError('CI account exists; refusing reuse')
             except KeyError:
                 pass
+            host_stage, host_log = 'account-create', results / (mode + '-account.log')
             try:
                 command(['sudo', 'useradd', '--create-home', '--user-group', '--shell', '/bin/bash', name],
-                        results / (mode + '-account.log'), timeout=30)
+                        host_log, timeout=30)
             finally:
                 try:
                     user = pwd.getpwnam(name)
@@ -193,11 +238,14 @@ def run(args):
                         accounts.append((name, user.pw_uid, user.pw_dir))
                 except KeyError:
                     pass
+            host_stage, host_log = 'account-verify', None
             user = pwd.getpwnam(name)
             require(user.pw_uid != 0 and user.pw_dir == '/home/' + name, 'New account identity differs')
             output = results / mode
+            host_stage, host_log = 'output-prepare', results / (mode + '-output.log')
             command(['sudo', 'install', '-d', '-m755', '-o', name, '-g', name, str(output)],
-                    results / (mode + '-output.log'), timeout=30)
+                    host_log, timeout=30)
+            host_stage, host_log = 'invocation-build', None
             environment = dict(public_env, JMS_OUTPUT_DIR=str(output))
             script = 'negative-origin.sh' if mode == 'trust-negative' else 'validate-private-case.sh'
             invocation = ['sudo', '-u', name, 'env', '-i', 'PATH=/usr/bin:/bin', 'HOME=' + user.pw_dir,
@@ -205,11 +253,13 @@ def run(args):
             if mode != 'trust-negative':
                 invocation.append(mode)
             driver_log = results / (mode + '-driver.log')
+            host_stage, host_log = 'driver', driver_log
             try:
                 command(invocation, driver_log)
             except Exception:
                 record['failure'] = safe_case_failure(output, mode, driver_log)
                 raise
+            host_stage = 'case-result-check'
             result = json.loads((output / ('negative-result.json' if mode == 'trust-negative' else 'result.json')).read_text())
             if mode == 'trust-negative':
                 require(all(result.get(key) is True for key in BOOLEANS[-3:]), 'Trust negatives incomplete')
@@ -217,8 +267,10 @@ def run(args):
                 require(result.get('passed') is True, 'Case failed')
             record['cases'].append({'mode': mode, **{key: result[key] for key in BOOLEANS if type(result.get(key)) is bool}})
         record['status'] = 'passed'
-    except Exception:
+    except Exception as error:
         record['status'] = 'failed-inspect-private-runner-state-before-retry'
+        if 'failure' not in record:
+            record['failure'] = safe_host_failure(host_stage, host_mode, host_log, error)
         raise
     finally:
         removed = []
