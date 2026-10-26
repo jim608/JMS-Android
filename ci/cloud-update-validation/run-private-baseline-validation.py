@@ -43,7 +43,7 @@ FAILURE_STAGES = {'verify-inputs', 'prepare-session', 'install-bundle', 'install
 FAILURE_STAGES.update({'bootstrap', 'guard-isolation', 'guard-account', 'guard-home',
     'guard-mode', 'guard-paths', 'guard-empty-output', 'guard-not-installed'})
 PORTAL_STAGES = {'bootstrap', 'guard-isolation', 'guard-account', 'guard-mode',
-    'activation-environment', 'consent-fixture', 'probe-run'}
+    'activation-environment', 'portal-daemon-start', 'portal-owner-check', 'consent-fixture', 'probe-run'}
 PORTAL_CODES = {'expected-method-denial', 'method-denied', 'invalid-signal-signature',
     'unexpected-update-identity', 'invalid-progress', 'unexpected-install', 'terminal-done',
     'unexpected-empty-update', 'expected-progress-denial', 'terminal-failed',
@@ -392,7 +392,7 @@ def run(args):
             host_stage, host_log = 'account-create', results / (mode + '-account.log')
             try:
                 command(['sudo', 'useradd', '--create-home', '--user-group', '--shell', '/bin/bash', name],
-                        host_log, timeout=30)
+                        host_log, timeout=120)
             finally:
                 try:
                     user = pwd.getpwnam(name)
