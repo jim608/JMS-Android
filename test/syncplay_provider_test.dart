@@ -804,7 +804,7 @@ void main() {
     expect(scope.state.readyHomeJoin, isNull);
   });
 
-  test('home cancel waits late Join then Leave and prevents late media/Ready',
+  test('home cancel detaches immediately then leaves late Join without media/Ready',
       () async {
     final server = _Server()
       ..name = 'JMS-123456'
@@ -814,11 +814,16 @@ void main() {
     final ticket = scope.notifier.beginHomeJoin('123456')!;
     await server.joinStarted.future;
     final cancelled = scope.notifier.cancelHomeJoin(ticket);
+    await cancelled.timeout(const Duration(seconds: 3));
+    expect(scope.state.room.status, SyncPlayStatus.idle);
+    expect(scope.container.exists(videoPlayerProvider), isFalse);
+    expect(server.requests.where((e) => e == 'Leave'), isEmpty);
     server.joinGate!.complete();
-    await cancelled;
-    await _until(() => scope.state.room.status == SyncPlayStatus.idle,
-        'join cleanup complete');
+    await server.leaveStarted.future.timeout(const Duration(seconds: 3));
+    await _until(() => server.completedLeaves.length == 1,
+        'late Join membership cleanup confirmed');
     expect(server.requests.where((e) => e == 'Leave'), hasLength(1));
+    expect(server.memberships, isEmpty);
     expect(server.requests.where((e) => e == 'Ready'), isEmpty);
     expect(scope.container.exists(videoPlayerProvider), isFalse);
     expect(scope.state.room.status, SyncPlayStatus.idle);
