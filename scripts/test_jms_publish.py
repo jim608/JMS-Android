@@ -20,6 +20,7 @@ class FakeGithub:
         self.uploads = []
         self.downloads = []
         self.publishes = 0
+        self.patch_payloads = []
         self.fail_once = None
         self.release = {'id': 7, 'draft': True, 'tag_name': 'vfixture', 'name': 'JMS fixture', 'prerelease': True,
                         'body': 'fixture notes', 'assets': []}
@@ -27,6 +28,7 @@ class FakeGithub:
     def api(self, endpoint, method='GET', payload=None):
         if method == 'PATCH':
             self.publishes += 1
+            self.patch_payloads.append(payload)
             self.release['draft'] = False
         return copy.deepcopy(self.release)
 
@@ -77,10 +79,23 @@ class PublisherTests(unittest.TestCase):
         policy.upload_complete_release(github, state, files, lambda: saved.append(copy.deepcopy(state)), target)
         self.assertEqual(github.uploads, list(files))
         self.assertEqual(github.publishes, 1)
+        self.assertEqual(github.patch_payloads, [{'draft': False, 'make_latest': 'false'}])
         self.assertFalse(github.release['draft'])
         policy.upload_complete_release(github, state, files, lambda: None, target)
         self.assertEqual(github.uploads, list(files))
         self.assertEqual(github.publishes, 1)
+
+    def test_stable_release_becomes_latest_after_complete_verified_upload(self):
+        files = self.assets()
+        github = FakeGithub(files)
+        github.release['prerelease'] = False
+        state = dict(self.state(), prerelease=False)
+        target = self.root / 'stable-verified'
+        target.mkdir()
+        policy.upload_complete_release(github, state, files, lambda: None, target)
+        self.assertEqual(github.uploads, list(files))
+        self.assertEqual(github.downloads, list(files))
+        self.assertEqual(github.patch_payloads, [{'draft': False, 'make_latest': 'true'}])
 
     def test_verified_download_cache_requires_current_digest_and_intact_bytes(self):
         files = self.assets()

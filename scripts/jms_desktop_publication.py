@@ -140,7 +140,32 @@ def validate_inventory(directory, platform):
         if not path.is_file() or path.stat().st_size != entry['size'] or sha256(path) != entry['sha256']:
             raise ReleaseError('Prepared asset changed: ' + name)
         files[name] = {'path': str(path), 'size': entry['size'], 'sha256': entry['sha256']}
-    privacy = scan_packages_cached([entry['path'] for entry in files.values()], policy,
+    portable = f'JMS-Windows-{record["versionName"]}-x64-portable.zip' if platform == 'windows' else f'JMS-Linux-{record["versionName"]}-x64.tar.gz'
+    internal_portable = None
+    if platform == 'windows':
+        distribution = record.get('distribution')
+        if distribution not in (None, 'installer-only'):
+            raise ReleaseError('Unknown Windows distribution policy')
+        if distribution == 'installer-only':
+            if portable in files:
+                raise ReleaseError('Installer-only release must not publish a portable package')
+            evidence = record.get('internalPortable')
+            if (not isinstance(evidence, dict) or set(evidence) != {'name', 'size', 'sha256'}
+                    or evidence['name'] != portable or type(evidence['size']) is not int
+                    or evidence['size'] <= 0 or not isinstance(evidence['sha256'], str)
+                    or not re.fullmatch('[a-f0-9]{64}', evidence['sha256'])):
+                raise ReleaseError('Internal portable evidence is incomplete')
+            internal_portable = directory / portable
+            if (internal_portable.is_symlink() or not internal_portable.is_file()
+                    or internal_portable.stat().st_size != evidence['size']
+                    or sha256(internal_portable) != evidence['sha256']):
+                raise ReleaseError('Internal portable evidence changed')
+        elif 'internalPortable' in record:
+            raise ReleaseError('Unexpected internal portable evidence')
+    privacy_paths = [entry['path'] for entry in files.values()]
+    if internal_portable is not None:
+        privacy_paths.append(str(internal_portable))
+    privacy = scan_packages_cached(privacy_paths, policy,
                                    ROOT / git('rev-parse', '--git-path', 'jms-privacy-cache'))
     if not privacy['accepted']:
         raise ReleaseError('Release asset privacy review required')
@@ -157,15 +182,14 @@ def validate_inventory(directory, platform):
             raise ReleaseError('Update asset binding mismatch')
     if not all(name in files for name in review['materials']):
         raise ReleaseError('Native material archive missing from release')
-    portable = f'JMS-Windows-{record["versionName"]}-x64-portable.zip' if platform == 'windows' else f'JMS-Linux-{record["versionName"]}-x64.tar.gz'
-    if portable not in files:
+    if portable not in files and internal_portable is None:
         raise ReleaseError('Portable package is required')
     if platform == 'linux':
         with tarfile.open(directory / portable, 'r:gz') as archive:
             binaries = {member.name.removeprefix('JMS/'): hashlib.sha256(archive.extractfile(member).read()).hexdigest()
                         for member in archive if member.isfile() and member.name.endswith('.so')}
     else:
-        with zipfile.ZipFile(directory / portable) as archive:
+        with zipfile.ZipFile(internal_portable or directory / portable) as archive:
             binaries = {name.split('/', 1)[-1]: hashlib.sha256(archive.read(name)).hexdigest()
                         for name in archive.namelist() if name.lower().endswith('.dll')}
     if not binaries or binaries != review.get('binaries'):
@@ -609,6 +633,11 @@ def publish_desktop(args):
     directory = Path(args.artifact_directory).resolve()
     record, files = (validate_web_inventory(directory) if args.platform == 'web'
                      else validate_inventory(directory, args.platform))
+    if args.platform == 'windows' and args.channel == 'stable':
+        if record.get('distribution') != 'installer-only':
+            raise ReleaseError('Stable Windows release requires installer-only public assets')
+        if record.get('releaseTag') != f'v{record["versionName"]}+{record["versionCode"]}':
+            raise ReleaseError('Stable Windows tag must include the exact build version and code')
     tag = release_tag(record)
     # The source SHA is a shared-source commit; the release tag belongs to the release repository.
     remote_source = git('ls-remote', 'https://github.com/jim608/JMS-Android.git', 'refs/heads/jms').split()[0]

@@ -126,6 +126,112 @@ class DesktopPublicationTests(unittest.TestCase):
                     resume_publication_state(path, changed)
 
 
+class WindowsInstallerOnlyPublicationTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.directory = Path(temporary.name)
+        self.version = '0.11.1-jms.51'
+        self.portable = f'JMS-Windows-{self.version}-x64-portable.zip'
+        self.installer = f'JMS-Windows-{self.version}-x64-setup.exe'
+        self.source = f'JMS-Windows-{self.version}-source.zip'
+        self.main = b'void main() {}\n'
+        self.native = b'public native fixture'
+        with zipfile.ZipFile(self.directory / self.portable, 'w') as archive:
+            archive.writestr('JMS/native.dll', self.native)
+        with zipfile.ZipFile(self.directory / self.source, 'w') as archive:
+            archive.writestr('JMS/lib/main.dart', self.main)
+            archive.writestr('JMS/pubspec.yaml', f'version: {self.version}+60\n')
+        (self.directory / self.installer).write_bytes(b'installer fixture')
+        (self.directory / 'native.zip').write_bytes(b'public native source fixture')
+        self.record = {
+            'repository': 'jim608/JMS-Desktop', 'platform': 'windows-x64',
+            'sourceRepository': 'jim608/JMS-Android', 'sourceCommit': 'a' * 40,
+            'versionName': self.version, 'versionCode': 60,
+            'buildId': 'JMS-windows-fixture', 'distribution': 'installer-only',
+            'releaseTag': f'v{self.version}+60',
+            'validation': {'launch': True},
+            'nativeReview': {'platform': 'windows-x64', 'missing': [],
+                             'materials': ['native.zip'],
+                             'binaries': {'native.dll': hashlib.sha256(self.native).hexdigest()}},
+            'internalPortable': self.asset(self.portable),
+        }
+        self.refresh_assets()
+
+    def asset(self, name):
+        path = self.directory / name
+        return {'name': name, 'size': path.stat().st_size,
+                'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+
+    def refresh_assets(self):
+        names = [self.installer, self.source, 'native.zip', 'update.json']
+        update = dict(platform='windows-x64', versionName=self.version, versionCode=60,
+                      sourceCommit='a' * 40, buildId='JMS-windows-fixture',
+                      installer=self.asset(self.installer), source=self.asset(self.source))
+        (self.directory / 'update.json').write_text(json.dumps(update), encoding='utf-8')
+        assets = [self.asset(name) for name in names]
+        (self.directory / 'SHA256SUMS.txt').write_text(
+            ''.join(f'{item["sha256"]}  {item["name"]}\n' for item in assets), encoding='ascii')
+        self.record['assets'] = assets + [self.asset('SHA256SUMS.txt')]
+        (self.directory / 'desktop-publication.json').write_text(
+            json.dumps(self.record), encoding='utf-8')
+
+    def validate(self, *, accepted=True):
+        with patch.object(desktop, 'verify_source_archive'), \
+                patch.object(desktop, 'load_policy', return_value={}), \
+                patch.object(desktop, 'scan_packages_cached', return_value={'accepted': accepted}) as privacy, \
+                patch.object(desktop, 'git', return_value='cache'), \
+                patch.object(desktop.subprocess, 'check_output', return_value=self.main):
+            result = desktop.validate_inventory(self.directory, 'windows')
+            return result, privacy.call_args.args[0]
+
+    def test_installer_only_uses_scanned_local_portable_without_publishing_it(self):
+        (record, files), scanned = self.validate()
+        self.assertEqual(record['internalPortable'], self.asset(self.portable))
+        self.assertNotIn(self.portable, files)
+        self.assertIn(str(self.directory / self.portable), scanned)
+        self.assertIn(self.installer, files)
+
+    def test_internal_portable_hash_and_native_binding_remain_required(self):
+        (self.directory / self.portable).write_bytes(b'changed portable evidence')
+        with self.assertRaisesRegex(ReleaseError, 'Internal portable evidence changed'):
+            self.validate()
+        self.record['internalPortable'] = self.asset(self.portable)
+        self.refresh_assets()
+        with self.assertRaises(zipfile.BadZipFile):
+            self.validate()
+
+    def test_internal_portable_native_bytes_must_match_review(self):
+        with zipfile.ZipFile(self.directory / self.portable, 'w') as archive:
+            archive.writestr('JMS/native.dll', b'changed native fixture')
+        self.record['internalPortable'] = self.asset(self.portable)
+        self.refresh_assets()
+        with self.assertRaisesRegex(ReleaseError, 'Native review is not bound'):
+            self.validate()
+
+    def test_installer_only_rejects_public_portable_and_privacy_failure(self):
+        self.record['assets'].append(self.asset(self.portable))
+        (self.directory / 'desktop-publication.json').write_text(json.dumps(self.record), encoding='utf-8')
+        with self.assertRaisesRegex(ReleaseError, 'must not publish a portable'):
+            self.validate()
+        self.refresh_assets()
+        with self.assertRaisesRegex(ReleaseError, 'privacy review required'):
+            self.validate(accepted=False)
+
+    def test_stable_windows_channel_requires_installer_only_inventory(self):
+        record = {'versionName': self.version, 'versionCode': 60}
+        args = SimpleNamespace(artifact_directory=str(self.directory), platform='windows',
+                               dry_run=True, channel='stable')
+        with patch.object(desktop, 'validate_inventory', return_value=(record, {})):
+            with self.assertRaisesRegex(ReleaseError, 'installer-only public assets'):
+                desktop.publish_desktop(args)
+            record['distribution'] = 'installer-only'
+            with self.assertRaisesRegex(ReleaseError, 'exact build version and code'):
+                desktop.publish_desktop(args)
+            record['releaseTag'] = f'v{self.version}+60'
+            self.assertEqual(desktop.release_tag(record), record['releaseTag'])
+
+
 class FlatpakPublicationTests(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()

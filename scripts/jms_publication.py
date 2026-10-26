@@ -343,6 +343,7 @@ def upload_complete_release(github, state, files, save, verification_directory):
         state.setdefault('verifiedAssets', {})[name] = expected['sha256']
         save()
     if release['draft']:
-        github.api(f'repos/{repository}/releases/{state["releaseId"]}', 'PATCH', {'draft': False, 'make_latest': 'false'})
+        github.api(f'repos/{repository}/releases/{state["releaseId"]}', 'PATCH', {
+            'draft': False, 'make_latest': 'false' if state['prerelease'] else 'true'})
     state['published'] = True
     save()
