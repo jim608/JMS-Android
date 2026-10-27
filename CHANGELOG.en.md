@@ -1,3 +1,12 @@
+# JMS 0.11.1-jms.53
+
+## Fixed
+- Retries one failed early renderer initialization when playback is explicitly requested; concurrent requests share that retry and user stop prevents stale playback.
+- Records fixed, redacted startup failure phases and keeps the first failure class distinct from a retry failure.
+
+## Known issues
+- Physical Steam Deck playback and GPU combinations still need device validation. This candidate is not a stable release.
+
 # JMS 0.11.1-jms.52
 
 ## Windows

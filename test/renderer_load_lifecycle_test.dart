@@ -82,6 +82,7 @@ class _Playback extends Fake implements PlaybackModel {
 class _Wrapper extends MediaControlsWrapper {
   _Wrapper({required super.ref});
   final initQueue = <Future<void>>[];
+  final initFailures = <Object>[];
   Future<void>? openGate;
   Future<void>? stopGate;
   final events = <String>[];
@@ -98,6 +99,7 @@ class _Wrapper extends MediaControlsWrapper {
     usingSyncRenderer = overridePlayer == PlayerOptions.libMPV;
     events.add('init');
     if (initQueue.isNotEmpty) await initQueue.removeAt(0);
+    if (initFailures.isNotEmpty) throw initFailures.removeAt(0);
     available = true;
   }
 
@@ -319,6 +321,78 @@ void main() {
     await latestInit;
     expect(await loading, isFalse);
     expect(await notifier.waitUntilReady(), isTrue);
+  });
+
+  test('explicit play recovers one failed early renderer setup', () async {
+    wrapper.initFailures.add(StateError('synthetic startup failure'));
+    await expectLater(notifier.init(), throwsA(isA<StateError>()));
+    expect(await notifier.waitUntilReady(), isFalse);
+
+    final attempt = PlaybackDiagnostics.instance.startAttempt();
+    expect(
+        await notifier.loadPlaybackItem(_Playback(), Duration.zero,
+            diagnosticAttempt: attempt),
+        isTrue);
+    expect(wrapper.events.where((event) => event == 'init'), hasLength(2));
+    expect(wrapper.events.where((event) => event == 'open'), hasLength(1));
+    expect(wrapper.events, contains('play'));
+    final log = PlaybackDiagnostics.instance.exportText();
+    expect(log, contains('renderer_retry'));
+    expect(log, isNot(contains('synthetic startup failure')));
+  });
+
+  test('failed renderer retry is bounded to one setup per play', () async {
+    wrapper.initFailures.addAll([
+      StateError('synthetic startup failure'),
+      TimeoutException('synthetic retry failure'),
+    ]);
+    await expectLater(notifier.init(), throwsA(isA<StateError>()));
+
+    expect(await notifier.loadPlaybackItem(_Playback(), Duration.zero), isFalse);
+    expect(wrapper.events.where((event) => event == 'init'), hasLength(2));
+    expect(wrapper.events, isNot(contains('open')));
+    expect(wrapper.events, isNot(contains('play')));
+    final log = PlaybackDiagnostics.instance.exportText();
+    expect(log, contains('error=StateError'));
+    expect(log, contains('error=TimeoutException'));
+    expect(log, contains('renderer_unavailable'));
+    expect(log, isNot(contains('synthetic startup failure')));
+    expect(log, isNot(contains('synthetic retry failure')));
+  });
+
+  test('concurrent loads share renderer recovery and only latest opens',
+      () async {
+    wrapper.initFailures.add(StateError('synthetic startup failure'));
+    await expectLater(notifier.init(), throwsA(isA<StateError>()));
+    final ready = Completer<void>();
+    wrapper.initQueue.add(ready.future);
+
+    final first = notifier.loadPlaybackItem(_Playback(), Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+    final second = notifier.loadPlaybackItem(_Playback(), Duration.zero);
+    ready.complete();
+
+    expect(await first, isFalse);
+    expect(await second, isTrue);
+    expect(wrapper.events.where((event) => event == 'init'), hasLength(2));
+    expect(wrapper.events.where((event) => event == 'open'), hasLength(1));
+    expect(wrapper.events.where((event) => event == 'play'), hasLength(1));
+  });
+
+  test('user stop during renderer retry revokes the pending play', () async {
+    wrapper.initFailures.add(StateError('synthetic startup failure'));
+    await expectLater(notifier.init(), throwsA(isA<StateError>()));
+    final ready = Completer<void>();
+    wrapper.initQueue.add(ready.future);
+
+    final loading = notifier.loadPlaybackItem(_Playback(), Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+    await wrapper.requestUserStop();
+    ready.complete();
+
+    expect(await loading, isFalse);
+    expect(wrapper.events, isNot(contains('open')));
+    expect(wrapper.events, isNot(contains('play')));
   });
 
   testWidgets('reinit after successful load prevents stale route opening',

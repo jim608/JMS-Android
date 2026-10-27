@@ -66,6 +66,8 @@ class LibMPV extends BasePlayer {
   PlaybackAttemptRef? _activeDiagnosticAttempt;
   PlaybackSourceKind _diagnosticSourceKind = PlaybackSourceKind.unknown;
   bool _diagnosticOpening = false;
+  // Fixed labels only: never retain a native exception message or stack.
+  String _initializationPhase = 'not_started';
   final Set<String> _nativeDiagnosticFailures = {};
   MpvPlaybackTransitions _diagnosticTransitions = MpvPlaybackTransitions();
 
@@ -346,13 +348,19 @@ class LibMPV extends BasePlayer {
             'software_override_requested=$_softwareDecodeFallback',
       );
     } catch (error) {
+      final attempt = diagnosticAttempt ??
+          PlaybackDiagnostics.instance.startAttempt(
+            backend: kIsWeb
+                ? PlaybackBackend.webVideo
+                : PlaybackBackend.mediaKit,
+          );
       _recordDiagnostic(
-        diagnosticAttempt,
+        attempt,
         PlaybackStage.playerInit,
         event: PlaybackEvent.failed,
         errorClass: safeMpvErrorClass(error),
         timedOut: error is TimeoutException,
-        detail: 'media kit initialization failed',
+        detail: 'init_$_initializationPhase',
       );
       rethrow;
     }
@@ -360,11 +368,13 @@ class LibMPV extends BasePlayer {
 
   Future<void> _initializePlayer(VideoPlayerSettingsModel settings) async {
     _settings = settings;
+    _initializationPhase = 'previous_cleanup';
     await dispose();
     _ambientFrameSource = Object();
     _softwareDecodeFallback = false;
     _nativeDiagnosticFailures.clear();
 
+    _initializationPhase = 'player_construct';
     mpv.MediaKit.ensureInitialized();
 
     _player = mpv.Player(
@@ -384,6 +394,7 @@ class LibMPV extends BasePlayer {
         _webSubtitleTiming.attach(_player!.platform);
         _subtitleOffsetSupported = _webSubtitleTiming.supported;
       }
+      _initializationPhase = 'video_controller';
       _controller = VideoController(
         _player!,
         configuration:
@@ -395,11 +406,13 @@ class LibMPV extends BasePlayer {
           player == _player && controller == _controller;
       if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
         // Apply the fixed decoder policy and create the texture before open().
+        _initializationPhase = 'texture_ready';
         WidgetsBinding.instance.ensureVisualUpdate();
         await controller.platform.future.timeout(const Duration(seconds: 10));
         if (!currentController()) return;
         _renderCapabilityOwner.reset(MpvRenderCapabilities.configuredWindows);
       } else if (!kIsWeb && defaultTargetPlatform == TargetPlatform.linux) {
+        _initializationPhase = 'texture_ready';
         final resolved = await _renderCapabilityOwner.resolve(() async {
           try {
             // The native constructor has now selected GL or its SW fallback.
@@ -420,6 +433,7 @@ class LibMPV extends BasePlayer {
       _setupPlayerStreams(_player!);
     }
 
+    _initializationPhase = 'native_config';
     if (_player?.platform is mpv.NativePlayer) {
       final nativePlayer = _player!.platform as dynamic;
       if (useLinuxFlatpakSoftwareDecodeFallback(
@@ -482,6 +496,7 @@ class LibMPV extends BasePlayer {
     }
 
     await _applyReplayGainSettings();
+    _initializationPhase = 'ready';
   }
 
   @override

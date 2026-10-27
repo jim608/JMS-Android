@@ -24,7 +24,11 @@ final playBackModel = StateProvider<PlaybackModel?>((ref) => null);
 final videoPlayerProvider =
     StateNotifierProvider<VideoPlayerNotifier, MediaControlsWrapper>((ref) {
   final videoPlayer = VideoPlayerNotifier(ref);
-  videoPlayer.init();
+  // The first renderer can fail before a video surface exists. Keep the error
+  // on the notifier for the next explicit play instead of leaving an
+  // unhandled startup future behind.
+  unawaited(videoPlayer.init().then<void>((_) {},
+      onError: (Object error, StackTrace stack) {}));
   return videoPlayer;
 });
 
@@ -35,6 +39,7 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
 
   List<StreamSubscription> subscriptions = [];
   Future<void> _initialization = Future<void>.value();
+  Future<void>? _rendererRecovery;
   bool _usingSyncPlayPlayer = false;
   String? _initializationErrorClass;
   bool _initializationTimedOut = false;
@@ -64,6 +69,34 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
       await pending;
       if (identical(pending, _initialization)) return;
     }
+  }
+
+  /// Retry a failed early renderer setup once when playback is explicitly
+  /// requested. Concurrent loads share the same setup; a user stop revokes it
+  /// without allowing the older request to open media or start playback.
+  Future<void> _recoverMissingRenderer() {
+    final pending = _rendererRecovery;
+    if (pending != null) return pending;
+    final stopEpoch = state.playbackStopEpoch;
+    final previous = _initialization;
+    late final Future<void> recovery;
+    recovery = previous.then((_) async {
+      if (!mounted || state.hasPlayer || state.playbackStopEpoch != stopEpoch) {
+        return;
+      }
+      try {
+        await _initialize(
+          isCurrent: () => mounted && state.playbackStopEpoch == stopEpoch,
+        );
+      } catch (error) {
+        _rememberInitializationError(error);
+      }
+    }).whenComplete(() {
+      if (identical(_rendererRecovery, recovery)) _rendererRecovery = null;
+    });
+    _rendererRecovery = recovery;
+    _initialization = recovery;
+    return recovery;
   }
 
   void _rememberInitializationError(Object error) {
@@ -304,6 +337,12 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
     try {
       await _waitForStableInitialization();
       if (!stillCurrent()) return false;
+      if (!state.hasPlayer) {
+        diagnostics.record(attempt, stage,
+            errorClass: _initializationErrorClass, detail: 'renderer_retry');
+        await _recoverMissingRenderer();
+        if (!stillCurrent()) return false;
+      }
       if (_usingSyncPlayPlayer && !model.serverManagedQueue) {
         step = 'restore_renderer';
         final restored = await _restoreConfiguredPlayer(isCurrent: current);
