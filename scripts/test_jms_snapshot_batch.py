@@ -169,6 +169,26 @@ class RecordedWindowsCandidateTests(unittest.TestCase):
                     self.git('add', path)
                 self.git('commit', '-qm', 'restore synthetic build input')
 
+    def test_reviewed_tools_do_not_hide_windows_vendor_or_lookalike_changes(self):
+        reviewed = 'Dockerfile.web.dockerignore'
+        for path in ('windows/runner/main.cpp', 'vendor/media_kit_video/lib/video.dart',
+                     'third_party/screen_brightness_windows/windows/native.cpp',
+                     'scripts/test_jms_oci_privacy_extra.py',
+                     'scripts/test_jms_credential_text_extra.py',
+                     'test/syncplay_provider_test_extra.dart',
+                     'test/syncplay_player_test_extra.dart',
+                     'lib/providers/syncplay_provider.dart'):
+            with self.subTest(path=path):
+                self.write(reviewed, b'synthetic reviewed Web-only verification update')
+                self.write(path, b'synthetic unreviewed Windows or vendor input')
+                self.git('add', reviewed, path)
+                self.git('commit', '-qm', 'synthetic mixed reviewed and unreviewed changes')
+                with self.assertRaisesRegex(ReleaseError, 'application or build inputs changed'):
+                    self.verify()
+                self.git('rm', '-q', '--', path)
+                self.git('commit', '-qm', 'restore original compiled inputs')
+                self.assertEqual(self.verify()['sourceCommit'], self.commit)
+
     def test_recorded_outputs_build_identity_and_native_content_cannot_be_rebound(self):
         self.portable.write_bytes(self.portable.read_bytes() + b'changed')
         with self.assertRaises(ReleaseError): self.verify()

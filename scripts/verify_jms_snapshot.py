@@ -28,6 +28,20 @@ RECORDED_CANDIDATE_REVIEW_PATHS = frozenset({
     '.github/workflows/jms-linux.yml',
     'scripts/jms_docker_cleanup.py',
     'scripts/test_jms_docker_cleanup.py',
+    # Exact reviewed Web/Flatpak verification paths are not Windows build inputs.
+    'Dockerfile.web.dockerignore',
+    '.github/workflows/jms-flatpak.yml',
+    'scripts/test_jms_flatpak.sh',
+    'scripts/test_jms_flatpak_launcher_contract.py',
+    'scripts/test_jms_oci_privacy.py',
+    'scripts/test_jms_credential_text.py',
+    # Exact fixture/contract-only test corrections are not application inputs.
+    'test/jms_feature_widgets_test.dart',
+    'test/jms_update_widget_test.dart',
+    'test/syncplay_adaptive_controller_test.dart',
+    'test/syncplay_local_status_widget_test.dart',
+    'test/syncplay_player_test.dart',
+    'test/syncplay_provider_test.dart',
 })
 
 
