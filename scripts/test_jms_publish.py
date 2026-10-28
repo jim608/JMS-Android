@@ -362,6 +362,45 @@ class PublisherTests(unittest.TestCase):
             publisher.quality_checks(scripts_changed)
             self.assertEqual(execute.call_count, 7)
 
+    def test_quality_cache_dart_script_rechecks_analysis_and_publication_only(self):
+        def run(command, log, timeout):
+            log.write_text('PASS')
+        with patch.object(publisher, 'ROOT', self.root), patch.object(publisher, 'PUBLICATION', self.root), \
+             patch.object(publisher, 'execute', side_effect=run) as execute:
+            files = {'lib/main.dart': 'app', 'scripts/prepare_jms_web_bootstrap.dart': 'Dart helper',
+                     'scripts/tool.py': 'Python helper', 'docs/status.md': 'documentation'}
+            publisher.quality_checks(files)
+            self.assertEqual(execute.call_count, 3)
+            dart_changed = dict(files, **{'scripts/prepare_jms_web_bootstrap.dart': 'changed Dart helper'})
+            result = publisher.quality_checks(dart_changed)
+            self.assertEqual([call.kwargs['log'].name for call in execute.call_args_list[3:]],
+                             ['flutter-analyze.log', 'publication-tests.log'])
+            self.assertEqual([log['reused'] for log in result['logs']], [True, False, False])
+            python_changed = dict(dart_changed, **{'scripts/tool.py': 'changed Python helper'})
+            result = publisher.quality_checks(python_changed)
+            self.assertEqual(execute.call_count, 6)
+            self.assertEqual(execute.call_args.kwargs['log'].name, 'publication-tests.log')
+            self.assertEqual([log['reused'] for log in result['logs']], [True, True, False])
+            result = publisher.quality_checks(dict(python_changed, **{'docs/status.md': 'changed documentation'}))
+            self.assertEqual(execute.call_count, 6)
+            self.assertTrue(all(log['reused'] for log in result['logs']))
+
+    def test_quality_cache_analyzer_covers_dart_outside_application_directories(self):
+        def run(command, log, timeout):
+            log.write_text('PASS')
+        for index, path in enumerate(('analyzer_fixture.dart', 'tool/analyzer_fixture.dart', 'docs/example.dart')):
+            with self.subTest(path=path):
+                publication = self.root / f'analysis-case-{index}'
+                publication.mkdir()
+                with patch.object(publisher, 'ROOT', self.root), patch.object(publisher, 'PUBLICATION', publication), \
+                     patch.object(publisher, 'execute', side_effect=run) as execute:
+                    files = {'lib/main.dart': 'app', path: 'Dart source'}
+                    publisher.quality_checks(files)
+                    result = publisher.quality_checks(dict(files, **{path: 'changed Dart source'}))
+                    self.assertEqual(execute.call_count, 4)
+                    self.assertEqual(execute.call_args.kwargs['log'].name, 'flutter-analyze.log')
+                    self.assertEqual([log['reused'] for log in result['logs']], [True, False, True])
+
     def test_source_scanner_refuses_secret_material(self):
         with patch.object(policy, 'ROOT', self.root):
             policy.execute(['git', 'init', '-q'])

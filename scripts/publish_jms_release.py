@@ -14,6 +14,7 @@ from jms_publication import (
     save_json, sha256, source_files, source_fingerprint, upload_complete_release,
 )
 from jms_release_notes import require_current_notes, release_body_for_candidate
+from jms_release_history import verify_published_version_codes
 from jms_git_release import committed_source, check_upstream, push_release, verify_build_record, GitReleaseError
 from prepare_jms_release import apk_info, require_bound_sources
 from verify_jms_snapshot import verify_snapshot
@@ -75,7 +76,9 @@ def quality_checks(files):
         path = PUBLICATION / (name + '.log')
         scopes = ('scripts/', 'config/', 'server/') if name == 'publication-tests' else ('lib/', 'vendor/', 'test/', 'integration_test/', 'assets/', 'icons/', 'android/', 'third_party/')
         inputs = {entry: checksum for entry, checksum in files.items()
-                  if entry.startswith(scopes) or entry in ('pubspec.yaml', 'pubspec.lock', '.fvmrc', 'analysis_options.yaml', 'l10n.yaml', 'config/config.json', 'config/jms_updates.json')}
+                  if entry.startswith(scopes)
+                  or (name == 'flutter-analyze' and entry.endswith('.dart'))
+                  or entry in ('pubspec.yaml', 'pubspec.lock', '.fvmrc', 'analysis_options.yaml', 'l10n.yaml', 'config/config.json', 'config/jms_updates.json')}
         fingerprint = source_fingerprint(inputs)
         prior = next((log for log in previous.get('logs', []) if log.get('name') == name), {})
         reused = prior.get('status') == 'PASS' and prior.get('fingerprint') == fingerprint and path.exists() and prior.get('sha256') == sha256(path)
@@ -281,16 +284,12 @@ def publish(args):
         if not state:
             if matching:
                 raise ReleaseError('Existing remote version has no local immutable state; do not overwrite it')
-            for previous in releases:
-                if previous['draft']:
-                    continue
-                manifests = [asset for asset in previous['assets'] if asset['name'] == 'update.json']
-                if len(manifests) != 1:
-                    raise ReleaseError('Existing published release has incomplete metadata')
-                path = state_directory / 'previous-update.json'
-                github.asset_bytes(manifests[0], path)
-                if read_json(path)['versionCode'] >= code:
-                    raise ReleaseError('VersionCode is not newer than all published versions')
+            history = verify_published_version_codes(
+                github, releases, code, state_directory / 'history-assets', SDK)
+            save_json(state_directory / 'published-version-history.json', {
+                'status': 'PASS', 'candidateVersionCode': code, 'releases': history,
+                'highestPublishedVersionCode': max((entry['versionCode'] for entry in history), default=0),
+            })
             for path in (ROOT / 'artifacts/checks').glob('build-*-inputs.json'):
                 previous = read_json(path)
                 if path.name == f'build-{version}-inputs.json' and candidate.is_file() and previous.get('version') == version:
