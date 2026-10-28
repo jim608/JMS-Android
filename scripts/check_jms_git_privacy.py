@@ -1,8 +1,9 @@
 """Check staged Git blobs, without printing matching private content."""
 
 import argparse
+import codecs
 import ipaddress
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
 import subprocess
 import sys
@@ -48,6 +49,47 @@ def blob_findings(entries, domains):
     return result
 
 
+_CREDENTIAL_URL_HEADER = re.compile(
+    r'https?://[^\s/:\x00-\x1f\x7f-\x9f\ud800-\udfff]+'
+    r':[^\s/@\x00-\x1f\x7f-\x9f\ud800-\udfff]+@'
+    # Preserve wrapped textual logs and Unicode whitespace, but never bridge
+    # NULs, nontext control bytes, or malformed encoded characters.
+    r'|\bBearer[^\S\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]+'
+    r'[A-Za-z0-9_.-]{16,}', re.I)
+_CREDENTIAL_UTF8_PREFIX = re.compile(rb'https?://|Bearer', re.I)
+_CREDENTIAL_UTF16_PREFIXES = tuple(
+    (encoding, re.compile('http'.encode(encoding)
+        + b'(?:' + 's'.encode(encoding) + b')?' + '://'.encode(encoding)
+        + b'|' + 'Bearer'.encode(encoding), re.I))
+    for encoding in ('utf-16-le', 'utf-16-be'))
+
+
+def credential_url_or_header(name, data):
+    """Match contiguous text, preserving binary/string-pool boundaries.
+
+    Invalid UTF-8 bytes and lone UTF-16 surrogates remain distinct boundary
+    characters. No NUL is removed. Wide prefixes select only applicable byte
+    alignments, avoiding four full binary decodes when no wide text is present.
+    """
+    if _CREDENTIAL_URL_HEADER.search(name):
+        return True
+    if (_CREDENTIAL_UTF8_PREFIX.search(data)
+            and _CREDENTIAL_URL_HEADER.search(data.decode('utf-8', errors='surrogateescape'))):
+        return True
+    for encoding, prefix in _CREDENTIAL_UTF16_PREFIXES:
+        alignments = set()
+        for match in prefix.finditer(data):
+            alignments.add(match.start() % 2)
+            if len(alignments) == 2:
+                break
+        for alignment in alignments:
+            end = len(data) - (len(data) - alignment) % 2
+            text = codecs.decode(memoryview(data)[alignment:end], encoding, errors='surrogatepass')
+            if _CREDENTIAL_URL_HEADER.search(text):
+                return True
+    return False
+
+
 def findings(name, data, domains):
     problems = []
     path = Path(name)
@@ -64,7 +106,7 @@ def findings(name, data, domains):
         problems.append('personal filesystem path')
     if re.search(r'/home/[A-Za-z0-9_.-]+/|/Users/[A-Za-z0-9_.-]+/(?:Documents|Desktop|Library|Downloads|\.ssh|\.config)/', text):
         problems.append('personal filesystem path')
-    if re.search(r'https?://[^\s/:]+:[^\s/@]+@|\bBearer\s+[A-Za-z0-9_.-]{16,}', text, re.I):
+    if credential_url_or_header(name, data):
         problems.append('credential URL/header')
     assignments = re.findall(r'''(?i)(?<![A-Za-z0-9_])["']?(?:password|passwd|api[_-]?key|access[_-]?token|refresh[_-]?token|sessionCookie|cookie|set-cookie)["']?\s*[:=]\s*["']([A-Za-z0-9_./+=:;-]{16,})["']''', text)
     for value in assignments:
@@ -369,7 +411,271 @@ class ArchiveScan:
         if time.monotonic() - self.started > self.max_seconds:
             raise ValueError('Archive privacy inspection time limit exceeded')
 
-    def scan(self, name, data, depth=0, contexts=()):
+    @staticmethod
+    def tar_input(data, compression):
+        stream = io.BytesIO(data)
+        if compression == 'zstd':
+            import zstandard
+            return zstandard.ZstdDecompressor().stream_reader(stream)
+        if compression == 'gzip':
+            import gzip
+            return gzip.GzipFile(fileobj=stream)
+        if compression == 'xz':
+            import lzma
+            return lzma.LZMAFile(stream)
+        if compression == 'bzip2':
+            import bz2
+            return bz2.BZ2File(stream)
+        return stream
+
+    @staticmethod
+    def oci_path(name):
+        if not isinstance(name, str):
+            raise ValueError('OCI archive path must be text')
+        path = PurePosixPath(name)
+        if (not name or path.is_absolute() or '..' in path.parts
+                or any(value in name for value in ('\\', '\x00', '\n', '\r', '\t'))):
+            raise ValueError('Unsafe OCI archive path')
+        return path.as_posix()
+
+    def oci_descriptors(self, data, compression):
+        """Recognize an OCI layout and validate every referenced blob before descent.
+
+        The catalog pass is bounded like the subsequent content scan. It retains
+        only small JSON metadata, never complete layers or a reconstructed image.
+        Every historical layer is scanned, including files later whiteouted.
+        """
+        records, metadata, duplicate, unsafe, catalog_members = {}, {}, False, False, 0
+        metadata_files = {'oci-layout', 'index.json', 'manifest.json', 'repositories'}
+        with self.tar_input(data, compression) as stream, tarfile.open(
+                fileobj=self.bounded_stream(stream), mode='r|') as archive:
+            for member in archive:
+                self.check_budget()
+                self.check_budget(member.size)
+                catalog_members += 1
+                if catalog_members + self.members > self.max_members:
+                    raise ValueError('Archive aggregate privacy inspection limit exceeded')
+                try:
+                    path = self.oci_path(member.name)
+                except ValueError:
+                    unsafe = True
+                    path = member.name
+                duplicate |= path in records
+                records[path] = (member.name, member.size, member.isfile())
+                if member.isfile() and (path in metadata_files or path.startswith('blobs/')):
+                    source = archive.extractfile(member)
+                    prefix = source.read(4)
+                    if path in metadata_files or member.size <= 16 * 1024 * 1024:
+                        content = prefix + source.read()
+                        if len(content) != member.size:
+                            raise ValueError('Truncated OCI metadata')
+                        if path in metadata_files or content.lstrip()[:1] in (b'{', b'['):
+                            metadata[path] = content
+        if 'oci-layout' not in records:
+            return None
+        if duplicate or unsafe or any(not regular and size for _, size, regular in records.values()):
+            raise ValueError('Duplicate, unsafe or payload-bearing OCI metadata')
+
+        def json_object(path):
+            def unique_pairs(pairs):
+                value = {}
+                for key, item in pairs:
+                    if key in value:
+                        raise ValueError('Duplicate OCI JSON key')
+                    value[key] = item
+                return value
+            if path not in metadata or not records[path][2]:
+                raise ValueError('Missing or oversized OCI JSON metadata')
+            try:
+                return json.loads(metadata[path], object_pairs_hook=unique_pairs)
+            except (UnicodeError, json.JSONDecodeError) as error:
+                raise ValueError('Invalid OCI JSON metadata') from error
+
+        if json_object('oci-layout') != {'imageLayoutVersion': '1.0.0'}:
+            raise ValueError('Unsupported OCI layout version')
+        layer_types = {
+            'application/vnd.oci.image.layer.v1.tar': '',
+            'application/vnd.oci.image.layer.v1.tar+gzip': 'gzip',
+            'application/vnd.oci.image.layer.nondistributable.v1.tar': '',
+            'application/vnd.oci.image.layer.nondistributable.v1.tar+gzip': 'gzip',
+            'application/vnd.docker.image.rootfs.diff.tar.gzip': 'gzip',
+            'application/vnd.docker.image.rootfs.foreign.diff.tar.gzip': 'gzip',
+        }
+        index_types = {'application/vnd.oci.image.index.v1+json',
+                       'application/vnd.docker.distribution.manifest.list.v2+json'}
+        manifest_types = {'application/vnd.oci.image.manifest.v1+json',
+                          'application/vnd.docker.distribution.manifest.v2+json'}
+        config_types = {'application/vnd.oci.image.config.v1+json',
+                        'application/vnd.docker.container.image.v1+json'}
+        descriptors, images = {}, set()
+
+        def visit(descriptor, level=0):
+            if not isinstance(descriptor, dict) or level > self.max_depth:
+                raise ValueError('Invalid or excessively nested OCI descriptor')
+            digest, size, media = (descriptor.get(key) for key in ('digest', 'size', 'mediaType'))
+            if (not isinstance(digest, str) or not re.fullmatch(r'sha256:[a-f0-9]{64}', digest)
+                    or type(size) is not int or size < 0):
+                raise ValueError('Invalid OCI digest or size')
+            path = 'blobs/sha256/' + digest[7:]
+            if path not in records or not records[path][2] or records[path][1] != size:
+                raise ValueError('Missing OCI blob or descriptor size mismatch')
+            self.check_budget(size)
+            identity = {'sha256': digest[7:], 'size': size, 'mediaType': media}
+            if path in descriptors:
+                if any(descriptors[path].get(key) != value for key, value in identity.items()):
+                    raise ValueError('Conflicting OCI blob descriptors')
+                return path
+            descriptors[path] = identity
+            if media in layer_types:
+                identity['compression'] = layer_types[media]
+                return path
+            if media not in index_types | manifest_types | config_types:
+                raise ValueError('Unsupported OCI blob media type')
+            if hashlib.sha256(metadata.get(path, b'')).hexdigest() != digest[7:]:
+                raise ValueError('OCI metadata digest mismatch')
+            value = json_object(path)
+            if not isinstance(value, dict):
+                raise ValueError('OCI metadata must be a JSON object')
+            if media in config_types:
+                return path
+            if value.get('schemaVersion') != 2:
+                raise ValueError('Unsupported OCI manifest schema')
+            if media in index_types:
+                children = value.get('manifests')
+                if not isinstance(children, list) or not children:
+                    raise ValueError('OCI index has no manifests')
+                for child in children:
+                    if not isinstance(child, dict) or child.get('mediaType') not in index_types | manifest_types:
+                        raise ValueError('OCI index references a nonimage descriptor')
+                    visit(child, level + 1)
+            else:
+                config = visit(value.get('config'), level + 1)
+                layers = value.get('layers')
+                if (descriptors[config]['mediaType'] not in config_types or not isinstance(layers, list)):
+                    raise ValueError('Invalid OCI config or layers')
+                ordered = tuple(visit(layer, level + 1) for layer in layers)
+                if any(descriptors[path]['mediaType'] not in layer_types for path in ordered):
+                    raise ValueError('OCI layer references a nonlayer blob')
+                images.add((config, ordered))
+            return path
+
+        index = json_object('index.json')
+        if (not isinstance(index, dict) or index.get('schemaVersion') != 2
+                or index.get('mediaType', 'application/vnd.oci.image.index.v1+json') not in index_types
+                or not isinstance(index.get('manifests'), list) or not index['manifests']):
+            raise ValueError('Invalid OCI root index')
+        for descriptor in index['manifests']:
+            if not isinstance(descriptor, dict) or descriptor.get('mediaType') not in index_types | manifest_types:
+                raise ValueError('OCI index references a nonimage descriptor')
+            visit(descriptor)
+        if not images:
+            raise ValueError('OCI layout has no image manifests')
+        blobs = {path for path in records if path.startswith('blobs/') and records[path][2]}
+        # Docker-save also emits legacy per-layer JSON config blobs. They are
+        # not image payload exemptions: validate their exact hash, schema and
+        # complete parent chain against the declared plain layers and tag map,
+        # then scan every JSON byte normally in the content pass.
+        extras = blobs - set(descriptors)
+        legacy_configs = {}
+        legacy_keys = {'id', 'parent', 'created', 'container_config', 'config', 'architecture', 'os'}
+        for path in extras:
+            if (not re.fullmatch(r'blobs/sha256/[a-f0-9]{64}', path) or path not in metadata
+                    or hashlib.sha256(metadata[path]).hexdigest() != path.rsplit('/', 1)[1]):
+                raise ValueError('Unreferenced or unsupported OCI blobs')
+            value = json_object(path)
+            if (not isinstance(value, dict) or set(value) - legacy_keys
+                    or not {'id', 'created', 'container_config', 'os'} <= set(value)
+                    or not isinstance(value['id'], str) or not re.fullmatch('[a-f0-9]{64}', value['id'])
+                    or value['id'] in legacy_configs or not isinstance(value['created'], str)
+                    or not isinstance(value['container_config'], dict) or not isinstance(value['os'], str)
+                    or ('config' in value and not isinstance(value['config'], dict))
+                    or ('parent' in value and (not isinstance(value['parent'], str)
+                        or not re.fullmatch('[a-f0-9]{64}', value['parent'])))):
+                raise ValueError('Invalid Docker-save compatibility config')
+            legacy_configs[value['id']] = value
+            descriptors[path] = {'sha256': path.rsplit('/', 1)[1], 'size': records[path][1],
+                                 'mediaType': 'docker-save-compatibility-json'}
+        if extras and 'manifest.json' not in records:
+            raise ValueError('Unreferenced OCI compatibility configs')
+        used_configs, expected_repositories = set(), {}
+        if 'manifest.json' in records:
+            legacy = json_object('manifest.json')
+            if not isinstance(legacy, list) or not legacy:
+                raise ValueError('Invalid Docker-save manifest')
+            for image in legacy:
+                if not isinstance(image, dict) or not isinstance(image.get('Layers'), list):
+                    raise ValueError('Invalid Docker-save image entry')
+                config = self.oci_path(image.get('Config', ''))
+                layers = tuple(self.oci_path(path) for path in image['Layers'])
+                if (config, layers) not in images:
+                    raise ValueError('Docker-save and OCI manifests differ')
+                if extras:
+                    config_value = json_object(config)
+                    ids = [path.rsplit('/', 1)[1] for path in layers]
+                    if not ids or any(path not in descriptors or descriptors[path].get('compression') != '' for path in layers):
+                        raise ValueError('Unsupported Docker-save compatibility layer representation')
+                    canonical = config_value.get('config', {})
+                    defaults = {'AttachStderr': False, 'AttachStdin': False, 'AttachStdout': False,
+                                'OpenStdin': False, 'StdinOnce': False, 'Tty': False, 'Domainname': '',
+                                'Hostname': '', 'Image': '', 'Cmd': None, 'OnBuild': None, 'Volumes': None}
+                    leaves = []
+                    for leaf in legacy_configs.values():
+                        if 'config' not in leaf or leaf.get('architecture') != config_value.get('architecture'):
+                            continue
+                        compatible = dict(leaf['config'])
+                        valid = True
+                        for key in set(compatible) - set(canonical):
+                            if key not in defaults or compatible[key] != defaults[key]:
+                                valid = False
+                            del compatible[key]
+                        if valid and compatible == canonical:
+                            leaves.append(leaf)
+                    if len(leaves) != 1:
+                        raise ValueError('Docker-save compatibility runtime config differs')
+                    # Legacy v1 IDs are generated IDs, not layer DiffIDs. Bind
+                    # their entire acyclic parent chain by the image's exact
+                    # runtime config, OS/architecture and declared layer count.
+                    chain, value = set(), leaves[0]
+                    while value is not None:
+                        identifier = value['id']
+                        if (identifier in chain or value['os'] != config_value.get('os')
+                                or len(chain) >= len(ids)):
+                            raise ValueError('Docker-save compatibility parent chain differs')
+                        chain.add(identifier)
+                        if 'parent' not in value:
+                            break
+                        value = legacy_configs.get(value['parent'])
+                        if value is None:
+                            raise ValueError('Docker-save compatibility parent chain differs')
+                    if len(chain) != len(ids):
+                        raise ValueError('Docker-save compatibility parent chain differs')
+                    used_configs.update(chain)
+                    tags = image.get('RepoTags')
+                    if not isinstance(tags, list) or not tags:
+                        raise ValueError('Docker-save compatibility tags missing')
+                    for tag in tags:
+                        if not isinstance(tag, str) or ':' not in tag:
+                            raise ValueError('Invalid Docker-save compatibility tag')
+                        repository, label = tag.rsplit(':', 1)
+                        expected_repositories.setdefault(repository, {})[label] = ids[-1]
+                sources = image.get('LayerSources', {})
+                if not isinstance(sources, dict):
+                    raise ValueError('Invalid Docker-save layer sources')
+                for digest, descriptor in sources.items():
+                    if not isinstance(digest, str) or not re.fullmatch(r'sha256:[a-f0-9]{64}', digest):
+                        raise ValueError('Invalid Docker-save layer source digest')
+                    path = 'blobs/sha256/' + digest.removeprefix('sha256:')
+                    expected = descriptors.get(path, {})
+                    if (path not in layers or not isinstance(descriptor, dict)
+                            or descriptor.get('digest') != digest
+                            or descriptor.get('size') != expected.get('size')
+                            or descriptor.get('mediaType') != expected.get('mediaType')):
+                        raise ValueError('Docker-save layer source differs from OCI descriptor')
+        if extras and (used_configs != set(legacy_configs) or json_object('repositories') != expected_repositories):
+            raise ValueError('Unreferenced or inconsistent Docker-save compatibility configs')
+        return descriptors
+
+    def scan(self, name, data, depth=0, contexts=(), *, _oci_format=None):
         self.current_member = name
         self.check_budget(len(data))
         self.expanded += len(data)
@@ -403,7 +709,7 @@ class ArchiveScan:
         self.used_reviews.extend(approvals)
         raw = [r for r in approvals if r.get('inspection') == 'raw-public-test-sample'
                and r.get('testReference') and r.get('rawContentReview')]
-        if raw and not problems:
+        if raw and not problems and _oci_format is None:
             self.raw_samples.append({'member': name, 'sha256': hashlib.sha256(data).hexdigest(),
                                      'scope': 'raw bytes only; nested content not expanded'})
             return results
@@ -428,17 +734,17 @@ class ArchiveScan:
                                      ((digest, payload.name),)))
             return results
         is_zip = lower.endswith(('.zip', '.apk', '.jar', '.aar'))
-        is_tar = lower.endswith(('.tar.gz', '.tgz', '.tar.xz', '.tar', '.tar.bz2', '.tar.zst'))
+        is_tar = _oci_format is not None or lower.endswith(('.tar.gz', '.tgz', '.tar.xz', '.tar', '.tar.bz2', '.tar.zst'))
         if not (is_zip or is_tar):
             return results
         if depth >= self.max_depth:
             raise ValueError('Archive nesting limit exceeded')
         parent_hash = hashlib.sha256(data).hexdigest()
 
-        def child(member, content):
+        def child(member, content, oci_format=None):
             ancestry = tuple((digest, path + '/' + member) for digest, path in contexts)
             ancestry += ((parent_hash, member),)
-            return self.scan(name + '/' + member, content, depth + 1, ancestry)
+            return self.scan(name + '/' + member, content, depth + 1, ancestry, _oci_format=oci_format)
 
         if is_zip:
             with zipfile.ZipFile(io.BytesIO(data)) as archive:
@@ -477,29 +783,66 @@ class ArchiveScan:
                 # remain inspected. A member review never approves the container.
                 results[0] = (name, findings(name, b'\n'.join(metadata), self.domains))
         else:
-            stream = io.BytesIO(data)
-            if lower.endswith('.tar.zst'):
-                import zstandard
-                stream = zstandard.ZstdDecompressor().stream_reader(stream)
-            elif lower.endswith(('.tar.gz', '.tgz')):
-                import gzip
-                stream = gzip.GzipFile(fileobj=stream)
-            elif lower.endswith('.tar.xz'):
-                import lzma
-                stream = lzma.LZMAFile(stream)
-            elif lower.endswith('.tar.bz2'):
-                import bz2
-                stream = bz2.BZ2File(stream)
+            compression = (_oci_format if _oci_format is not None else
+                           'zstd' if lower.endswith('.tar.zst') else
+                           'gzip' if lower.endswith(('.tar.gz', '.tgz')) else
+                           'xz' if lower.endswith('.tar.xz') else
+                           'bzip2' if lower.endswith('.tar.bz2') else '')
+            descriptors = None if _oci_format is not None else self.oci_descriptors(data, compression)
+            structural = _oci_format is not None or descriptors is not None
+            plain = data
+            if structural and compression:
+                with self.tar_input(data, compression) as compressed:
+                    reader = self.bounded_stream(compressed)
+                    chunks = []
+                    while chunk := reader.read(1024 * 1024):
+                        chunks.append(chunk)
+                    plain = b''.join(chunks)
+            stream = io.BytesIO(plain) if structural else self.tar_input(data, compression)
+            payload_ranges, seen_paths = [], set()
             with stream, tarfile.open(fileobj=self.bounded_stream(stream), mode='r|') as archive:
                 for member in archive:
                     self.current_member = name + '/' + member.name
                     self.check_budget()
+                    if structural:
+                        path = self.oci_path(member.name)
+                        if path in seen_paths or member.sparse is not None:
+                            raise ValueError('Duplicate or sparse OCI layer member')
+                        seen_paths.add(path)
                     if member.isfile():
                         self.check_budget(member.size)
-                        results.extend(child(member.name, archive.extractfile(member).read()))
+                        content = archive.extractfile(member).read()
+                        if len(content) != member.size:
+                            raise ValueError('Truncated TAR member')
+                        descriptor = descriptors.get(path) if descriptors is not None else None
+                        if descriptor is not None and (len(content) != descriptor['size']
+                                or hashlib.sha256(content).hexdigest() != descriptor['sha256']):
+                            raise ValueError('OCI blob digest or size mismatch')
+                        results.extend(child(member.name, content,
+                            descriptor.get('compression') if descriptor is not None else None))
+                        if structural:
+                            start, end = member.offset_data, member.offset_data + member.size
+                            if start < 0 or end > len(plain):
+                                raise ValueError('Invalid OCI TAR payload range')
+                            payload_ranges.append((start, end))
                     else:
+                        if structural and member.size:
+                            raise ValueError('OCI nonfile member contains uninspected payload')
                         self.members += 1
                         results.append((self.current_member, findings(member.name, member.linkname.encode(), self.domains)))
+            if structural:
+                metadata, cursor = [], 0
+                for start, end in sorted(payload_ranges):
+                    if start < cursor:
+                        raise ValueError('Overlapping OCI TAR members')
+                    metadata.append(plain[cursor:start])
+                    cursor = end
+                metadata.append(plain[cursor:])
+                # Like ZIP, exclude only payload bytes already fully decoded and
+                # scanned with their exact identities. Headers, links, PAX data,
+                # padding and trailing bytes remain subject to the raw policy.
+                header_problems = findings(name, b'\n'.join(metadata), self.domains)
+                results[0] = (name, list(dict.fromkeys((problems if compression else []) + header_problems)))
         return results
 
 
