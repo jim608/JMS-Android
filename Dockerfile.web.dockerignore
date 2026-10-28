@@ -18,6 +18,9 @@
 !third_party/
 !third_party/fvp/
 !third_party/fvp/**
+!vendor/
+!vendor/media_kit_video/
+!vendor/media_kit_video/**
 
 **/.env
 **/.env.*
