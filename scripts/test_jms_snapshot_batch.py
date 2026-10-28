@@ -14,6 +14,42 @@ from jms_publication import ReleaseError
 
 
 class SnapshotBatchTests(unittest.TestCase):
+    def test_vendored_dependency_is_bound_to_snapshot_and_scanned_for_credentials(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            def git(*args, data=None):
+                return subprocess.check_output(['git', '-C', directory, *args], input=data,
+                                               stderr=subprocess.PIPE)
+            git('init', '-q')
+            git('config', 'core.autocrlf', 'false')
+            contents = {'LICENSE': b'fixture license', 'pubspec.yaml': b'version: 1.2.3+4\n',
+                        'pubspec.lock': b'fixture lock', '.fvmrc': b'{}', 'config/jms_updates.json': b'{}',
+                        'vendor/media_kit_video/lib/video.dart': b'void vendoredVideo() {}\n'}
+            for name, data in contents.items():
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(data)
+            git('add', '.')
+            git('-c', 'user.name=fixture', '-c', 'user.email=fixture@users.noreply.github.com',
+                'commit', '-qm', 'fixture')
+            commit = git('rev-parse', 'HEAD').decode().strip()
+            def execute(command, *, data=None):
+                return git(*command[1:], data=data)
+            with patch.object(jms_publication, 'ROOT', root), \
+                 patch.object(jms_publication, 'execute', execute), \
+                 patch.object(snapshot, 'execute', execute):
+                files = jms_publication.source_files()
+                self.assertEqual(files['vendor/media_kit_video/lib/video.dart'],
+                                 hashlib.sha256(contents['vendor/media_kit_video/lib/video.dart']).hexdigest())
+                snapshot.verify_snapshot(commit)
+                dependency = root / 'vendor/media_kit_video/lib/video.dart'
+                dependency.write_bytes(b'void changedVendoredVideo() {}\n')
+                with self.assertRaisesRegex(ReleaseError, 'Source snapshot drift: vendor/'):
+                    snapshot.verify_snapshot(commit)
+                dependency.write_bytes(b'-----BEGIN ' + b'PRIVATE KEY-----')
+                with self.assertRaisesRegex(ReleaseError, 'Possible credential in source: vendor/'):
+                    jms_publication.source_files()
+
     def test_binary_and_spaced_paths_missing_objects_and_changed_bytes(self):
         with tempfile.TemporaryDirectory() as directory:
             def git(*args, data=None):

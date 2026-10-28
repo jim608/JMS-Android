@@ -37,6 +37,15 @@ on:
         description: "Completed candidate workflow run to validate"
         required: false
         type: string
+      candidate_platform:
+        description: "Build only the needed JMS candidate platform"
+        required: false
+        default: all
+        type: choice
+        options:
+          - all
+          - linux
+          - web
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -88,7 +97,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [linux, web]
+        platform: ${{ fromJSON(inputs.candidate_platform == 'web' && '["web"]' || inputs.candidate_platform == 'linux' && '["linux"]' || '["linux","web"]') }}
     steps:
       - uses: actions/checkout@v4.1.1
         with:
@@ -130,6 +139,22 @@ jobs:
           docker cp jms-web-test:/usr/share/nginx/html/. candidate/site/
           docker image inspect jms-candidate > candidate/image-record.json
           docker save jms-candidate | gzip > candidate/JMS-Web-container.tar.gz
+      - name: Set up pinned Flutter for browser regressions
+        if: matrix.platform == 'web'
+        uses: subosito/flutter-action@v2.19.0
+        with:
+          channel: stable
+          flutter-version: 3.35.7
+          cache: true
+      - name: Verify Linux-browser controller layout and fullscreen
+        if: matrix.platform == 'web'
+        run: |
+          set -euo pipefail
+          export CHROME_EXECUTABLE="$(command -v google-chrome)"
+          test -x "$CHROME_EXECUTABLE"
+          flutter pub get --enforce-lockfile
+          flutter gen-l10n
+          timeout --kill-after=10s 300s flutter test --no-pub --platform chrome --timeout=90s test/handheld_layout_browser_test.dart test/player_fullscreen_browser_test.dart 2>&1 | tee candidate/browser-regressions.log
       - name: Record source identity
         env:
           SOURCE_COMMIT: ${{ inputs.source_commit }}
@@ -155,7 +180,9 @@ jobs:
 
   # Check if workflow should run based on trigger conditions
   check-trigger:
-    if: inputs.build_type != 'jms-candidates' && inputs.build_type != 'jms-validate-linux'
+    # JMS releases use the explicit source-bound platform paths. Preserve PR
+    # compilation, but never let a JMS tag start upstream signing/Apple jobs.
+    if: (github.repository == 'DonutWare/Fladder' || github.event_name == 'pull_request') && inputs.build_type != 'jms-candidates' && inputs.build_type != 'jms-validate-linux'
     runs-on: ubuntu-latest
     outputs:
       should_run: ${{ steps.check.outputs.should_run }}

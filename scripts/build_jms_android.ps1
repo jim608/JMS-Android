@@ -40,7 +40,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Dependency lock validation failed' }
 & rtk proxy $flutterPath gen-l10n
 if ($LASTEXITCODE -ne 0) { throw 'Localization generation failed' }
 $inputPaths = @(& rtk proxy git ls-files --cached --others --exclude-standard) |
-    Where-Object { $_ -match '^(lib/|assets/|icons/|android/|third_party/|config/(config|jms_updates)\.json$|pubspec\.yaml$|pubspec\.lock$|l10n\.yaml$|scripts/build_jms_android\.ps1$)' } |
+    Where-Object { $_ -match '^(lib/|assets/|icons/|android/|third_party/|vendor/|config/(config|jms_updates)\.json$|pubspec\.yaml$|pubspec\.lock$|l10n\.yaml$|scripts/build_jms_android\.ps1$)' } |
     Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Sort-Object -Unique
 $inputs = @($inputPaths | ForEach-Object {
     [ordered]@{ path = $_; sha256 = (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash.ToLowerInvariant() }

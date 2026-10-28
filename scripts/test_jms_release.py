@@ -20,6 +20,15 @@ class ReleaseToolTests(unittest.TestCase):
         self.assertFalse(tool.validate_source_name("artifacts/private.apk.txt"))
         self.assertFalse(tool.validate_source_name(".codex/private.json"))
 
+    def test_vendored_source_keeps_private_and_traversal_exclusions(self):
+        self.assertTrue(tool.validate_source_name("vendor/media_kit_video/lib/src/video.dart"))
+        for name in ["vendor/media_kit_video/.env", "vendor/package/credentials.json",
+                     "vendor/package/key.properties", "vendor/package/private.jks",
+                     "vendor/package/private.pem", "vendor/../escape.dart",
+                     "vendor/package/../../escape.dart"]:
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                tool.validate_source_name(name)
+
     def test_secret_scan(self):
         self.assertIsNotNone(tool.SECRET.search(b"-----BEGIN " + b"PRIVATE KEY-----"))
         self.assertIsNone(tool.SECRET.search(b"public source without credentials"))
