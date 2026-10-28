@@ -24,6 +24,7 @@ _MediaSegment _$MediaSegmentFromJson(Map<String, dynamic> json) =>
       type: $enumDecode(_$MediaSegmentTypeEnumMap, json['type']),
       start: Duration(microseconds: (json['start'] as num).toInt()),
       end: Duration(microseconds: (json['end'] as num).toInt()),
+      explicitBounds: json['explicitBounds'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$MediaSegmentToJson(_MediaSegment instance) =>
@@ -31,6 +32,7 @@ Map<String, dynamic> _$MediaSegmentToJson(_MediaSegment instance) =>
       'type': _$MediaSegmentTypeEnumMap[instance.type]!,
       'start': instance.start.inMicroseconds,
       'end': instance.end.inMicroseconds,
+      'explicitBounds': instance.explicitBounds,
     };
 
 const _$MediaSegmentTypeEnumMap = {

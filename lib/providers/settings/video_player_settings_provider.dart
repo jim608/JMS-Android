@@ -4,14 +4,16 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:volume_controller/volume_controller.dart';
 
+import 'package:fladder/models/items/chapters_model.dart';
 import 'package:fladder/models/settings/key_combinations.dart';
 import 'package:fladder/models/settings/video_player_settings.dart';
 import 'package:fladder/providers/shared_provider.dart';
+import 'package:fladder/providers/segment_skip_provider.dart';
+import 'package:fladder/providers/syncplay_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
 import 'package:fladder/util/ambient_interval.dart';
 
@@ -123,39 +125,35 @@ class VideoPlayerSettingsProviderNotifier extends StateNotifier<VideoPlayerSetti
     state = state.copyWith(hotKeys: state.hotKeys.setOrRemove(newEntry, state.defaultShortCuts));
   }
 
-  void nextChapter() {
-    final chapters = ref.read(playBackModel)?.chapters ?? [];
-    final currentPosition = ref.read(videoPlayerProvider.select((value) => value.lastState?.position));
+  bool _chapterSeekPending = false;
 
-    if (chapters.isNotEmpty && currentPosition != null) {
-      final currentChapter = chapters.lastWhereOrNull((element) => element.startPosition <= currentPosition);
+  Future<void> nextChapter() => _seekChapter(next: true);
+  Future<void> prevChapter() => _seekChapter(next: false);
 
-      if (currentChapter != null) {
-        final nextChapterIndex = chapters.indexOf(currentChapter) + 1;
-        if (nextChapterIndex < chapters.length) {
-          ref.read(videoPlayerProvider).seek(chapters[nextChapterIndex].startPosition);
-        } else {
-          ref.read(videoPlayerProvider).seek(currentChapter.startPosition);
-        }
-      }
+  Future<void> _seekChapter({required bool next}) async {
+    // The player position may still describe the old chapter until an
+    // asynchronous backend/room seek completes. Do not send duplicate requests.
+    if (_chapterSeekPending) return;
+    final chapters = ref.read(playBackModel)?.chapters ?? <Chapter>[];
+    final player = ref.read(videoPlayerProvider);
+    final syncPlay = ref.read(syncPlayProvider);
+    if (!segmentSkipCanSeek(syncPlay.room,
+        wrapperActive: player.syncPlayActive,
+        busy: syncPlay.busy || syncPlay.preparingPlayback || syncPlay.recoveryActive || syncPlay.leavePending)) {
+      return;
     }
-  }
-
-  void prevChapter() {
-    final chapters = ref.read(playBackModel)?.chapters ?? [];
-    final currentPosition = ref.read(videoPlayerProvider.select((value) => value.lastState?.position));
-
-    if (chapters.isNotEmpty && currentPosition != null) {
-      final currentChapter = chapters.lastWhereOrNull((element) => element.startPosition <= currentPosition);
-
-      if (currentChapter != null) {
-        final prevChapterIndex = chapters.indexOf(currentChapter) - 1;
-        if (prevChapterIndex >= 0) {
-          ref.read(videoPlayerProvider).seek(chapters[prevChapterIndex].startPosition);
-        } else {
-          ref.read(videoPlayerProvider).seek(currentChapter.startPosition);
-        }
-      }
+    final playback = ref.read(mediaPlaybackProvider);
+    final position = player.lastState?.position ?? playback.position;
+    final navigation =
+        chapters.navigationAt(position, duration: playback.duration);
+    final target = next ? navigation.next : navigation.previous;
+    if (target == null) return;
+    _chapterSeekPending = true;
+    try {
+      // MediaControlsWrapper owns solo/SyncPlay routing and permissions.
+      await player.seek(target.startPosition);
+    } finally {
+      _chapterSeekPending = false;
     }
   }
 

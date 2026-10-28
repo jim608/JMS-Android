@@ -1468,7 +1468,7 @@ class JellyService {
   }) async {
     try {
       final response = await api.mediaSegmentsItemIdGet(itemId: id);
-      final newSegments = response.body?.items?.map((e) => e.toSegment).toList() ?? [];
+      final newSegments = response.body?.items?.map((e) => e.validToSegment).whereType<MediaSegment>().toList() ?? [];
       return response.copyWith(
         body: MediaSegmentsModel(segments: newSegments),
       );

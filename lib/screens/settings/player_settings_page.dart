@@ -28,9 +28,19 @@ import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
 import 'package:fladder/util/bitrate_helper.dart';
 import 'package:fladder/util/box_fit_extension.dart';
 import 'package:fladder/util/localization_helper.dart';
+import 'package:fladder/util/segment_skip_settings.dart';
 import 'package:fladder/widgets/shared/fladder_slider.dart';
 import 'package:fladder/widgets/shared/item_actions.dart';
 import 'package:fladder/wrappers/pip_manager.dart';
+
+String _segmentSkipLabel(BuildContext context, MediaSegmentType type, SegmentSkip value) {
+  if (!usesOpeningEndingModes(type)) return value.label(context);
+  return switch (displayedSegmentSkipMode(type, value)) {
+    SegmentSkip.none => context.localized.segmentActionOff,
+    SegmentSkip.askToSkip => context.localized.segmentActionPromptOnly,
+    SegmentSkip.skipOnce || SegmentSkip.skip => context.localized.segmentActionAutoSkip,
+  };
+}
 
 @RoutePage()
 class PlayerSettingsPage extends ConsumerStatefulWidget {
@@ -151,16 +161,23 @@ class _PlayerSettingsPageState extends ConsumerState<PlayerSettingsPage> {
         ),
         const SizedBox(height: 12),
         ...settingsListGroup(context, SettingsLabelDivider(label: context.localized.mediaSegmentActions), [
-          ...videoSettings.segmentSkipSettings.entries.sorted((a, b) => b.key.index.compareTo(a.key.index)).map(
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(context.localized.segmentMetadataHint),
+          ),
+          ...completeSegmentSkipSettings(videoSettings.segmentSkipSettings)
+              .entries
+              .sorted((a, b) => b.key.index.compareTo(a.key.index))
+              .map(
                 (entry) => SettingsListTileEnum(
                   label: Text(entry.key.label(context)),
-                  current: entry.value.label(context),
-                  itemBuilder: (context) => SegmentSkip.values
+                  current: _segmentSkipLabel(context, entry.key, entry.value),
+                  itemBuilder: (context) => selectableSegmentSkipModes(entry.key)
                       .map(
                         (value) => ItemActionButton(
-                          label: Text(value.label(context)),
+                          label: Text(_segmentSkipLabel(context, entry.key, value)),
                           action: () {
-                            final newEntries = videoSettings.segmentSkipSettings
+                            final newEntries = completeSegmentSkipSettings(videoSettings.segmentSkipSettings)
                                 .map((key, currentValue) => MapEntry(key, key == entry.key ? value : currentValue));
                             ref.read(videoPlayerSettingsProvider.notifier).state =
                                 videoSettings.copyWith(segmentSkipSettings: newEntries);

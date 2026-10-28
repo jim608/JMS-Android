@@ -25,12 +25,23 @@ import nl.jknaapen.fladder.utility.getAudioTracks
 import nl.jknaapen.fladder.utility.getSubtitleTracks
 import nl.jknaapen.fladder.utility.setInternalAudioTrack
 import nl.jknaapen.fladder.utility.setInternalSubtitleTrack
+import nl.jknaapen.fladder.utility.SegmentSkipPolicy
 import kotlin.time.Duration.Companion.seconds
 
 class VideoPlayerImplementation(
 ) : VideoPlayerApi {
     var player: ExoPlayer? = null
     val playbackData: MutableStateFlow<PlayableData?> = MutableStateFlow(null)
+    val playbackOccurrence = MutableStateFlow(0L)
+    internal val segmentSkipPolicy = SegmentSkipPolicy()
+    private var occurrenceItemId: String? = null
+    private var occurrencePlayer: ExoPlayer? = null
+    private var stoppedByUser = true
+
+    internal fun beginPlaybackOccurrence() {
+        playbackOccurrence.value += 1
+        segmentSkipPolicy.beginPlayback(playbackOccurrence.value)
+    }
 
     var subsInitialized = false
 
@@ -105,10 +116,20 @@ class VideoPlayerImplementation(
 
                 val mediaItem = mediaItemBuilder.build()
 
+                val itemId = playbackData.value?.currentItem?.id
+                // Quality/track reloads resume the same item in the same player;
+                // retain consumed segments instead of immediately skipping replay.
+                val newOccurrence = player !== occurrencePlayer || itemId != occurrenceItemId ||
+                    player?.playbackState == Player.STATE_ENDED ||
+                    (stoppedByUser && (playbackData.value?.startPosition ?: 0L) == 0L)
                 player?.stop()
                 player?.clearMediaItems()
                 player?.setMediaItem(mediaItem)
                 player?.prepare()
+                if (player != null && newOccurrence) beginPlaybackOccurrence()
+                occurrenceItemId = itemId
+                occurrencePlayer = player
+                stoppedByUser = false
 
                 val startPosition = playbackData.value?.startPosition ?: 0L
                 if (startPosition > 0L) {
@@ -152,6 +173,7 @@ class VideoPlayerImplementation(
     }
 
     override fun stop() {
+        stoppedByUser = true
         player?.stop()
     }
 

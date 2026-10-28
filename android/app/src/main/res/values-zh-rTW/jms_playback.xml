@@ -1,0 +1,8 @@
+<resources>
+    <string name="jms_previous_chapter">上一章</string>
+    <string name="jms_next_chapter">下一章</string>
+    <string name="jms_chapter_controller_hint">方向鍵：選擇焦點 · 確認鍵：執行</string>
+    <string name="jms_dismiss_skip">關閉跳過提示</string>
+    <string name="jms_skip_opening">跳過片頭</string>
+    <string name="jms_skip_ending">跳過片尾</string>
+</resources>

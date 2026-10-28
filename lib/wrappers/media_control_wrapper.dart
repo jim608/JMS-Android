@@ -27,6 +27,7 @@ import 'package:fladder/models/settings/video_player_settings.dart';
 import 'package:fladder/providers/api_provider.dart';
 import 'package:fladder/providers/audio_lyrics_provider.dart';
 import 'package:fladder/providers/live_tv_provider.dart';
+import 'package:fladder/providers/segment_skip_provider.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
 import 'package:fladder/providers/settings/subtitle_settings_provider.dart';
 import 'package:fladder/providers/settings/video_player_settings_provider.dart';
@@ -330,6 +331,7 @@ class MediaControlsWrapper extends BaseAudioHandler
       throw StateError('Video player is not ready');
     }
     ref.read(sleepTimerProvider).bindMedia(model.item.id);
+    ref.read(segmentSkipSessionProvider).bindItem(model.item.id);
     if (model.ownsPlaybackResources) _resourceOwningPlaybackModel = model;
     try {
       if (_player is LibMPV) {
@@ -461,6 +463,7 @@ class MediaControlsWrapper extends BaseAudioHandler
   Future<void> _updateStateStream(PlayerState value) async {
     if (_isStopped) return;
     if (value.completed && !_isAudioQueueMode) {
+      ref.read(segmentSkipSessionProvider).markCompleted();
       ref.read(sleepTimerProvider).completed();
     }
 
@@ -757,7 +760,10 @@ class MediaControlsWrapper extends BaseAudioHandler
 
   @override
   Future<void> stop({bool preserveSleepTimer = false}) async {
-    if (!_internalPlaybackStop) _playbackStopEpoch++;
+    if (!_internalPlaybackStop) {
+      _playbackStopEpoch++;
+      ref.read(segmentSkipSessionProvider).reset();
+    }
     final commands = syncPlayCommands;
     if (!preserveSleepTimer && commands?.active == true) await commands!.stop();
     return _stopLocally(preserveSleepTimer: preserveSleepTimer);
@@ -777,6 +783,7 @@ class MediaControlsWrapper extends BaseAudioHandler
 
   Future<void> stopFromSyncPlay() {
     _playbackStopEpoch++;
+    ref.read(segmentSkipSessionProvider).reset();
     return _stopLocally(preserveSleepTimer: true);
   }
 
@@ -950,6 +957,15 @@ class MediaControlsWrapper extends BaseAudioHandler
 
   @override
   Future<void> seek(Duration position) async {
+    ref.read(segmentSkipSessionProvider).manualSeek(
+        ref.read(mediaPlaybackProvider).position, position);
+    return _seekThroughPlaybackRules(position);
+  }
+
+  Future<void> seekSegmentAutomatically(Duration position) =>
+      _seekThroughPlaybackRules(position);
+
+  Future<void> _seekThroughPlaybackRules(Duration position) async {
     final commands = syncPlayCommands;
     if (commands?.active == true) return commands!.seek(position);
     return seekFromSyncPlay(position);

@@ -26,8 +26,12 @@ import 'package:fladder/screens/shared/default_title_bar.dart';
 import 'package:fladder/screens/shared/media/components/item_logo.dart';
 import 'package:fladder/screens/video_player/components/video_playback_information.dart';
 import 'package:fladder/screens/video_player/components/player_controller_navigation.dart';
+import 'package:fladder/screens/video_player/components/chapter_navigation_controls.dart';
+import 'package:fladder/screens/video_player/components/segment_skip_overlay.dart';
+import 'package:fladder/providers/segment_skip_provider.dart';
+import 'package:fladder/providers/syncplay_provider.dart';
+import 'package:fladder/services/playback/segment_skip_policy.dart';
 import 'package:fladder/screens/video_player/components/video_player_brightness_indicator.dart';
-import 'package:fladder/screens/video_player/components/video_player_controls_extras.dart';
 import 'package:fladder/screens/video_player/components/video_player_options_sheet.dart';
 import 'package:fladder/screens/video_player/components/subtitle_offset_dialog.dart';
 import 'package:fladder/screens/video_player/components/syncplay_dialog.dart';
@@ -59,14 +63,22 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
   final GlobalKey _bottomControlsKey = GlobalKey();
   final FocusNode _playControl = FocusNode(debugLabel: 'Player play/pause');
 
-  late final initInputDevice = AdaptiveLayout.inputDeviceOf(context);
+  InputDevice get inputDevice => AdaptiveLayout.inputDeviceOf(context);
+
+  final Set<int> _activePointers = {};
 
   late RestartableTimer timer = RestartableTimer(
     const Duration(seconds: 5),
     () {
-      if (mounted && !AdaptiveLayout.of(context).controllerMode) {
-        toggleOverlay(value: false);
+      if (!mounted) return;
+      if (AdaptiveLayout.of(context).controllerMode ||
+          _activePointers.isNotEmpty ||
+          ModalRoute.of(context)?.isCurrent == false ||
+          !ref.read(mediaPlaybackProvider).playing) {
+        resetTimer();
+        return;
       }
+      toggleOverlay(value: false);
     },
   );
 
@@ -121,7 +133,6 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
         ],
       );
     }
-    final mediaSegments = ref.watch(playBackModel.select((value) => value?.mediaSegments));
     final subtitleWidget = player.subtitleWidget(showOverlay, controlsKey: _bottomControlsKey);
     final isDesktop = AdaptiveLayout.of(context).isDesktop || kIsWeb;
     final speedBoostEnabled = ref.watch(videoPlayerSettingsProvider.select((value) => value.enableSpeedBoost));
@@ -147,6 +158,12 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
         }
       },
       child: Listener(
+        onPointerDown: (event) {
+          _activePointers.add(event.pointer);
+          timer.cancel();
+        },
+        onPointerUp: _endPointerInteraction,
+        onPointerCancel: _endPointerInteraction,
         onPointerSignal: subtitleOffsetVisible ? null : setVolume,
         child: InputHandler(
           autoFocus: true,
@@ -173,26 +190,52 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
             },
             child: MouseRegion(
               cursor: showOverlay || subtitleOffsetVisible ? SystemMouseCursors.basic : SystemMouseCursors.none,
-              onExit: controllerMode ? null : (event) => toggleOverlay(value: false),
-              onEnter: (event) => toggleOverlay(value: true),
-              onHover: AdaptiveLayout.of(context).isDesktop || kIsWeb ? (event) => toggleOverlay(value: true) : null,
+              // Touch browsers may emit enter/exit around a tap. Only an
+              // actual mouse in pointer mode owns hover visibility.
+              onExit: (event) {
+                if (!controllerMode &&
+                    _isMouseHover(event) &&
+                    _activePointers.isEmpty &&
+                    ModalRoute.of(context)?.isCurrent != false) {
+                  toggleOverlay(value: false);
+                }
+              },
+              onEnter: (event) {
+                if (_isMouseHover(event)) toggleOverlay(value: true);
+              },
+              onHover: (event) {
+                if (_isMouseHover(event)) toggleOverlay(value: true);
+              },
               child: Stack(
                 children: [
                   Positioned.fill(
                     child: GestureDetector(
-                      onTap: initInputDevice == InputDevice.pointer ? null : () => toggleOverlay(),
-                      onDoubleTapDown: initInputDevice == InputDevice.touch ? _handleDoubleTapDown : null,
-                      onDoubleTap: initInputDevice == InputDevice.pointer
-                          ? () => fullScreenHelper.toggleFullScreen(ref)
-                          : _handleDoubleTapSeek,
-                      onLongPressStart: initInputDevice == InputDevice.touch ? _handleLongPressStart : null,
-                      onLongPressEnd: initInputDevice == InputDevice.touch ? _handleLongPressEnd : null,
-                      onVerticalDragStart: initInputDevice == InputDevice.touch ? _handleVerticalDragStart : null,
-                      onVerticalDragUpdate: initInputDevice == InputDevice.touch ? _handleVerticalDragUpdate : null,
-                      onVerticalDragEnd: initInputDevice == InputDevice.touch ? _handleVerticalDragEnd : null,
+                      supportedDevices: const {PointerDeviceKind.mouse, PointerDeviceKind.trackpad},
+                      onDoubleTap: () => fullScreenHelper.toggleFullScreen(ref),
                       //better play/pause handling on Desktop (works with dragging on click)
-                      onHorizontalDragDown:
-                          initInputDevice == InputDevice.pointer ? (details) => player.playOrPause() : null,
+                      onHorizontalDragDown: (details) => player.playOrPause(),
+                      child: GestureDetector(
+                        // Select recognizers from this event, including the
+                        // first touch before Web's adaptive input mode rebuilds.
+                        supportedDevices: const {
+                          PointerDeviceKind.touch,
+                          PointerDeviceKind.stylus,
+                          PointerDeviceKind.invertedStylus,
+                          PointerDeviceKind.unknown,
+                        },
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => toggleOverlay(),
+                        onDoubleTapDown: _handleDoubleTapDown,
+                        onDoubleTap: _handleDoubleTapSeek,
+                        onLongPressStart: _handleLongPressStart,
+                        onLongPressEnd: _handleLongPressEnd,
+                        // Native display brightness/system volume plugins
+                        // have no browser implementation.
+                        onVerticalDragStart: kIsWeb ? null : _handleVerticalDragStart,
+                        onVerticalDragUpdate: kIsWeb ? null : _handleVerticalDragUpdate,
+                        onVerticalDragEnd: kIsWeb ? null : _handleVerticalDragEnd,
+                        child: const SizedBox.expand(),
+                      ),
                     ),
                   ),
                   if (subtitleWidget != null) subtitleWidget,
@@ -224,45 +267,7 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
                   const VideoPlayerBrightnessIndicator(),
                   const VideoPlayerSpeedIndicator(),
                   const VideoPlayerScreenshotIndicator(),
-                  Consumer(
-                    builder: (context, ref, child) {
-                      final position = ref.watch(mediaPlaybackProvider.select((value) => value.position));
-                      final skippedSegments = ref.watch(mediaPlaybackProvider.select((value) => value.skippedSegments));
-                      MediaSegment? segment = mediaSegments?.atPosition(position);
-                      SegmentVisibility forceShow =
-                          segment?.visibility(position, force: showOverlay) ?? SegmentVisibility.hidden;
-                      final segmentSkipType = ref.watch(
-                          videoPlayerSettingsProvider.select((value) => value.segmentSkipSettings[segment?.type]));
-
-                      final segmentId = segment != null ? '${segment.type.name}_${segment.start.inMilliseconds}' : null;
-                      final wasSkipped = segmentId != null && skippedSegments.contains(segmentId);
-
-                      final autoSkip = forceShow != SegmentVisibility.hidden &&
-                          (segmentSkipType == SegmentSkip.skip ||
-                              (segmentSkipType == SegmentSkip.skipOnce && !wasSkipped)) &&
-                          player.lastState?.buffering == false;
-
-                      if (autoSkip) {
-                        skipToSegmentEnd(segment, segmentId);
-                      }
-                      return Stack(
-                        children: [
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: Padding(
-                              padding: const EdgeInsets.all(32),
-                              child: SkipSegmentButton(
-                                segment: segment,
-                                skipType: segmentSkipType,
-                                visibility: forceShow,
-                                pressedSkip: () => skipToSegmentEnd(segment, null),
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
+                  SegmentSkipOverlay(onInteraction: resetTimer),
                   const Positioned.fill(child: SubtitleOffsetOverlay()),
                 ],
               ),
@@ -355,7 +360,7 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
                         ),
                       ),
                     const SyncPlayButton(),
-                    if (initInputDevice == InputDevice.touch)
+                    if (inputDevice == InputDevice.touch)
                       Align(
                         alignment: Alignment.centerRight,
                         child: Tooltip(
@@ -399,13 +404,20 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
                 child: Consumer(
                   builder: (context, ref, child) {
                     final mediaPlayback = ref.watch(mediaPlaybackProvider);
-                    return progressBar(mediaPlayback);
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ChapterNavigationControls(controllerMode: AdaptiveLayout.of(context).controllerMode),
+                        progressBar(mediaPlayback),
+                      ],
+                    );
                   },
                 ),
               ),
               const SizedBox(height: 8),
               LayoutBuilder(builder: (context, constraints) {
-                final compact = AdaptiveLayout.of(context).controllerMode && constraints.maxWidth < 1000;
+                final compact = constraints.maxWidth < 600 ||
+                    (AdaptiveLayout.of(context).controllerMode && constraints.maxWidth < 1000);
                 final leading = Row(
                   children: <Widget>[
                     IconButton(
@@ -491,7 +503,7 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (initInputDevice == InputDevice.pointer || AdaptiveLayout.of(context).isDesktop)
+                    if (inputDevice == InputDevice.pointer || AdaptiveLayout.of(context).isDesktop)
                       Tooltip(
                         message: context.localized.stop,
                         child: IconButton(
@@ -510,13 +522,16 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
                           ),
                         ),
                     },
-                    if ((initInputDevice == InputDevice.pointer || AdaptiveLayout.of(context).isDesktop) &&
+                    if ((inputDevice == InputDevice.pointer || AdaptiveLayout.of(context).isDesktop) &&
                         AdaptiveLayout.viewSizeOf(context) > ViewSize.phone) ...[
                       VideoVolumeSlider(
                         onChanged: () => resetTimer(),
                       ),
+                    ],
+                    if (kIsWeb ||
+                        ((inputDevice == InputDevice.pointer || AdaptiveLayout.of(context).isDesktop) &&
+                            AdaptiveLayout.viewSizeOf(context) > ViewSize.phone))
                       const FullScreenButton(),
-                    ]
                   ].addInBetween(const SizedBox(width: 8)),
                 );
                 if (compact) {
@@ -742,21 +757,19 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
   }
 
   void skipToSegmentEnd(MediaSegment? mediaSegment, String? segmentId) {
-    final end = mediaSegment?.end;
-    if (end != null) {
+    final playback = ref.read(mediaPlaybackProvider);
+    final player = ref.read(videoPlayerProvider);
+    final sync = ref.read(syncPlayProvider);
+    if (mediaSegment != null &&
+        mediaSegment.inRange(playback.position) &&
+        SegmentSkipPolicy.validSegments(ref.read(playBackModel)?.mediaSegments?.segments ?? const [],
+            duration: playback.duration).contains(mediaSegment) &&
+        segmentSkipCanSeek(sync.room,
+            wrapperActive: player.syncPlayActive,
+            busy: sync.busy || sync.leavePending || sync.preparingPlayback || sync.recoveryActive)) {
       resetTimer();
-      ref.read(videoPlayerProvider).seek(end);
-
-      if (segmentId != null) {
-        Future(() {
-          final currentSkipped = ref.read(mediaPlaybackProvider).skippedSegments;
-          ref.read(mediaPlaybackProvider.notifier).update(
-                (state) => state.copyWith(
-                  skippedSegments: {...currentSkipped, segmentId},
-                ),
-              );
-        });
-      }
+      ref.read(segmentSkipSessionProvider).policy.markSkipped(mediaSegment);
+      player.seek(mediaSegment.end);
     }
   }
 
@@ -803,9 +816,14 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
   }
 
   void toggleOverlay({bool? value}) {
-    if (showOverlay == (value ?? !showOverlay)) return;
-    setState(() => showOverlay = (value ?? !showOverlay));
-    resetTimer();
+    final visible = value ?? !showOverlay;
+    if (visible) {
+      resetTimer();
+    } else {
+      timer.cancel();
+    }
+    if (showOverlay == visible) return;
+    setState(() => showOverlay = visible);
 
     final desiredMode = showOverlay ? SystemUiMode.edgeToEdge : SystemUiMode.immersiveSticky;
 
@@ -822,39 +840,51 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
     ));
   }
 
-  void minimizePlayer(BuildContext context) {
-    clearOverlaySettings();
+  Future<void> minimizePlayer(BuildContext context) async {
+    await clearOverlaySettings();
+    if (!context.mounted) return;
     ref.read(mediaPlaybackProvider.notifier).update((state) => state.copyWith(state: VideoPlayerState.minimized));
     Navigator.of(context).pop();
   }
 
   void resetTimer() => timer.reset();
 
+  bool _isMouseHover(PointerEvent event) => event.kind == PointerDeviceKind.mouse && inputDevice == InputDevice.pointer;
+
+  void _endPointerInteraction(PointerEvent event) {
+    _activePointers.remove(event.pointer);
+    if (_activePointers.isEmpty && showOverlay) resetTimer();
+  }
+
   Future<void> closePlayer() async {
-    clearOverlaySettings();
+    await clearOverlaySettings();
+    if (!mounted) return;
     ref.read(videoPlayerProvider).stop();
     Navigator.of(context).pop();
   }
 
   Future<void> clearOverlaySettings() async {
     toggleOverlay(value: true);
-    if (initInputDevice != InputDevice.pointer) {
+    timer.cancel();
+    if (kIsWeb) {
+      await fullScreenHelper.closeFullScreen(ref);
+    } else if (inputDevice != InputDevice.pointer) {
       ScreenBrightness().resetApplicationScreenBrightness();
     } else {
       disableFullScreen();
     }
 
+    if (!mounted) return;
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarIconBrightness: ref.read(clientSettingsProvider.select((value) => value.statusBarBrightness(context))),
     ));
-
     timer.cancel();
   }
 
   Future<void> disableFullScreen() async {
     resetTimer();
-    if (AdaptiveLayout.of(context).isDesktop && defaultTargetPlatform != TargetPlatform.macOS) {
-      fullScreenHelper.closeFullScreen(ref);
+    if (kIsWeb || (AdaptiveLayout.of(context).isDesktop && defaultTargetPlatform != TargetPlatform.macOS)) {
+      await fullScreenHelper.closeFullScreen(ref);
     }
   }
 
@@ -1053,10 +1083,12 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
       model: playbackModel,
       track: subModel,
       player: player,
-      isCurrent: () => mounted && identical(ref.read(playBackModel), playbackModel) &&
+      isCurrent: () =>
+          mounted &&
+          identical(ref.read(playBackModel), playbackModel) &&
           identical(ref.read(videoPlayerProvider), player),
-      onUnavailable: (_) => ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-          SnackBar(content: Text(context.localized.jmsSecondaryUnavailable))),
+      onUnavailable: (_) => ScaffoldMessenger.maybeOf(context)
+          ?.showSnackBar(SnackBar(content: Text(context.localized.jmsSecondaryUnavailable))),
     );
     if (newModel == null) return;
     if (mounted && previousSecondary != null && player.secondarySubtitleState.value.selected == null) {

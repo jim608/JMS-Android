@@ -34,11 +34,13 @@ abstract class MediaSegment with _$MediaSegment {
     required MediaSegmentType type,
     required Duration start,
     required Duration end,
+    @Default(false) bool explicitBounds,
   }) = _MediaSegment;
 
   factory MediaSegment.fromJson(Map<String, dynamic> json) => _$MediaSegmentFromJson(json);
 
-  bool inRange(Duration position) => (position.compareTo(start) >= 0 && position.compareTo(end) <= 0);
+  bool inRange(Duration position) =>
+      start >= Duration.zero && end > start && position.compareTo(start) >= 0 && position.compareTo(end) < 0;
 
   SegmentVisibility visibility(Duration position, {bool force = false}) {
     if (force) return SegmentVisibility.visible;
@@ -122,6 +124,24 @@ enum MediaSegmentType {
 }
 
 extension MediaSegmentExtension on dto.MediaSegmentDto {
+  /// Missing endpoints are not evidence that a segment starts at zero.
+  /// Runtime bounds are checked again by the playback skip policy.
+  MediaSegment? get validToSegment {
+    final start = startTicks;
+    final end = endTicks;
+    final segmentType = MediaSegmentType.fromDto(type);
+    if (start == null || end == null || start < 0 || end <= start || segmentType == MediaSegmentType.unknown) {
+      return null;
+    }
+    final segment = MediaSegment(
+      type: segmentType,
+      start: _durationToMilliseconds(start),
+      end: _durationToMilliseconds(end),
+      explicitBounds: true,
+    );
+    return segment.end > segment.start ? segment : null;
+  }
+
   MediaSegment get toSegment => MediaSegment(
         type: MediaSegmentType.fromDto(type),
         start: _durationToMilliseconds(startTicks ?? 0),

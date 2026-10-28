@@ -42,12 +42,22 @@ class Chapter {
     }
   }
 
-  static List<Chapter> chaptersFromInfo(String itemId, List<dto.ChapterInfo> chapters, Ref ref) {
+  static List<Chapter> chaptersFromInfo(
+      String itemId, List<dto.ChapterInfo> chapters, Ref ref) {
     return chapters
-        .mapIndexed((index, element) => Chapter(
+        // Missing timestamps are not chapter starts. Keep the original server
+        // index for thumbnails even when malformed entries are discarded.
+        .mapIndexed((index, element) {
+          final ticks = element.startPositionTicks;
+          if (ticks == null || ticks < 0) return null;
+          return Chapter(
             name: element.name ?? "",
-            imageUrl: ref.read(imageUtilityProvider).getChapterUrl(itemId, index),
-            startPosition: Duration(milliseconds: (element.startPositionTicks ?? 0) ~/ 10000)))
+            imageUrl:
+                ref.read(imageUtilityProvider).getChapterUrl(itemId, index),
+            startPosition: Duration(microseconds: ticks ~/ 10),
+          );
+        })
+        .whereType<Chapter>()
         .toList();
   }
 
@@ -81,11 +91,48 @@ class Chapter {
 
   String toJson() => json.encode(toMap());
 
-  factory Chapter.fromJson(String source) => Chapter.fromMap(json.decode(source));
+  factory Chapter.fromJson(String source) =>
+      Chapter.fromMap(json.decode(source));
 }
 
 extension ChapterExtension on List<Chapter> {
+  ChapterNavigation navigationAt(Duration position, {Duration? duration}) =>
+      ChapterNavigation(chapters: this, position: position, duration: duration);
+
   Chapter? getChapterFromDuration(Duration duration) {
     return lastWhereOrNull((element) => element.startPosition < duration);
+  }
+}
+
+/// Navigation uses actual, unique chapter starts and never wraps at an edge.
+/// A zero/unknown media duration does not manufacture an upper bound.
+class ChapterNavigation {
+  ChapterNavigation({
+    required Iterable<Chapter> chapters,
+    required this.position,
+    Duration? duration,
+  }) : chapters = _normalize(chapters, duration);
+
+  final List<Chapter> chapters;
+  final Duration position;
+
+  Chapter? get previous =>
+      chapters.lastWhereOrNull((chapter) => chapter.startPosition < position);
+  Chapter? get next =>
+      chapters.firstWhereOrNull((chapter) => chapter.startPosition > position);
+
+  static List<Chapter> _normalize(
+      Iterable<Chapter> source, Duration? duration) {
+    final unique = <Duration, Chapter>{};
+    for (final chapter in source) {
+      final start = chapter.startPosition;
+      if (start < Duration.zero ||
+          (duration != null && duration > Duration.zero && start >= duration)) {
+        continue;
+      }
+      unique.putIfAbsent(start, () => chapter);
+    }
+    final starts = unique.keys.toList()..sort();
+    return List.unmodifiable(starts.map((start) => unique[start]!));
   }
 }

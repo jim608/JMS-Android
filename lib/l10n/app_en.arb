@@ -1,4 +1,11 @@
 {
+  "segmentActionOff": "Off",
+  "segmentActionPromptOnly": "Prompt only",
+  "segmentActionAutoSkip": "Auto skip",
+  "chapterControllerHint": "Steam Deck: use the D-pad to focus a chapter button, then A to select.",
+  "segmentGroupManualHint": "In SyncPlay, use Skip to request a group seek. Auto skip is paused.",
+  "segmentDismiss": "Keep watching",
+  "segmentMetadataHint": "Opening and ending skips require explicit server start and end markers. Without them, use chapter navigation.",
   "jmsDiscordTitle": "Show JMS activity on Discord",
   "jmsDiscordHint": "Share browsing, title details, and playback status with Discord. Off by default for each JMS account.",
   "jmsDiscordAccountRequired": "Sign in to a JMS account before choosing to share activity.",

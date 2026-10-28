@@ -1,4 +1,11 @@
 {
+  "segmentActionOff": "關閉",
+  "segmentActionPromptOnly": "只顯示提示",
+  "segmentActionAutoSkip": "自動跳過",
+  "chapterControllerHint": "Steam Deck：用十字鍵選取章節按鈕，再按 A 確認。",
+  "segmentGroupManualHint": "SyncPlay 請按跳過以要求群組跳轉；自動跳過暫停。",
+  "segmentDismiss": "繼續觀看",
+  "segmentMetadataHint": "跳過片頭、片尾需要伺服器提供明確的起訖標記；沒有標記時可使用章節跳轉。",
   "jmsDiscordTitle": "在 Discord 顯示 JMS 活動",
   "jmsDiscordHint": "分享選片、作品瀏覽及播放狀態。每個 JMS 帳號預設關閉。",
   "jmsDiscordAccountRequired": "請先登入 JMS 帳號，再選擇是否分享活動。",

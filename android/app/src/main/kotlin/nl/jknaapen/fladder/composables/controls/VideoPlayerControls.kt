@@ -10,6 +10,8 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -50,6 +52,9 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
@@ -66,6 +71,7 @@ import io.github.rabehx.iconsax.filled.Subtitle
 import io.github.rabehx.iconsax.outline.CloseSquare
 import io.github.rabehx.iconsax.outline.Refresh
 import kotlinx.coroutines.delay
+import nl.jknaapen.fladder.R
 import nl.jknaapen.fladder.composables.dialogs.AudioPicker
 import nl.jknaapen.fladder.composables.dialogs.ChapterSelectionSheet
 import nl.jknaapen.fladder.composables.dialogs.PlaybackSpeedPicker
@@ -78,6 +84,7 @@ import nl.jknaapen.fladder.utility.defaultSelected
 import nl.jknaapen.fladder.utility.keyEvent
 import nl.jknaapen.fladder.utility.leanBackEnabled
 import nl.jknaapen.fladder.utility.visible
+import nl.jknaapen.fladder.utility.chapterTarget
 import kotlin.time.Duration.Companion.seconds
 
 
@@ -87,6 +94,7 @@ fun CustomVideoControls(
     exoPlayer: ExoPlayer,
 ) {
     var showControls by remember { mutableStateOf(false) }
+    var skipPromptFocused by remember { mutableStateOf(false) }
     val lastInteraction = remember { mutableLongStateOf(System.currentTimeMillis()) }
 
     val showAudioDialog = remember { mutableStateOf(false) }
@@ -124,9 +132,9 @@ fun CustomVideoControls(
     }
 
     // Restart the hide timer whenever `lastInteraction` changes.
-    LaunchedEffect(lastInteraction.longValue) {
+    LaunchedEffect(lastInteraction.longValue, skipPromptFocused) {
         delay(5.seconds)
-        hideControls()
+        if (!skipPromptFocused) hideControls()
     }
 
     fun updateLastInteraction() {
@@ -160,7 +168,7 @@ fun CustomVideoControls(
             .fillMaxSize()
             .focusable(enabled = false)
             .onFocusChanged { focusState ->
-                if (focusState.hasFocus) {
+                if (focusState.isFocused) {
                     bottomControlFocusRequester.requestFocus()
                 }
             }
@@ -327,6 +335,7 @@ fun CustomVideoControls(
                         modifier = Modifier,
                         exoPlayer, bottomControlFocusRequester, ::updateLastInteraction
                     )
+                    ChapterNavigation(exoPlayer, ::updateLastInteraction)
                     Row(
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically,
@@ -349,7 +358,7 @@ fun CustomVideoControls(
                 }
             }
         }
-        SegmentSkipOverlay()
+        SegmentSkipOverlay(onFocused = { skipPromptFocused = it })
         SeekOverlay(value = currentSkipTime)
         if (buffering && !playing) {
             CircularProgressIndicator(
@@ -399,6 +408,50 @@ fun CustomVideoControls(
                 showSpeedDialog = false
             }
         )
+    }
+}
+
+@kotlin.OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ChapterNavigation(player: ExoPlayer, onInteraction: () -> Unit) {
+    val chapters by VideoPlayerObject.chapters.collectAsState(emptyList())
+    val position by VideoPlayerObject.position.collectAsState(0L)
+    val duration by VideoPlayerObject.duration.collectAsState(0L)
+    val timestamps = chapters.orEmpty().map { it.time }
+    if (timestamps.none { it >= 0 && it < duration }) return
+    val previous = chapterTarget(timestamps, position, duration, false)
+    val next = chapterTarget(timestamps, position, duration, true)
+    val previousLabel = stringResource(R.string.jms_previous_chapter)
+    val nextLabel = stringResource(R.string.jms_next_chapter)
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+            verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            CustomButton(
+                modifier = Modifier.semantics { contentDescription = previousLabel },
+                enabled = previous != null,
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                onClick = {
+                    chapterTarget(timestamps, player.currentPosition, player.duration, false)?.let {
+                        player.seekTo(it)
+                        onInteraction()
+                    }
+                },
+            ) { Text("‹│ $previousLabel", style = MaterialTheme.typography.labelLarge) }
+            CustomButton(
+                modifier = Modifier.semantics { contentDescription = nextLabel },
+                enabled = next != null,
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                onClick = {
+                    chapterTarget(timestamps, player.currentPosition, player.duration, true)?.let {
+                        player.seekTo(it)
+                        onInteraction()
+                    }
+                },
+            ) { Text("$nextLabel │›", style = MaterialTheme.typography.labelLarge) }
+        }
+        if (leanBackEnabled(LocalContext.current)) {
+            Text(stringResource(R.string.jms_chapter_controller_hint), style = MaterialTheme.typography.labelSmall)
+        }
     }
 }
 

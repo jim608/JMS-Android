@@ -178,6 +178,7 @@ class NativePlayer extends BasePlayer implements VideoPlayerListenerCallback {
               .toList() ??
           [],
       segments: model.mediaSegments?.segments
+              .where((segment) => segment.explicitBounds)
               .map(
                 (e) => MediaSegment(
                   type: MediaSegmentType.values.firstWhere((element) => element.name == e.type.name),

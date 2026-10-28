@@ -218,13 +218,14 @@ mixin _$MediaSegment {
   MediaSegmentType get type;
   Duration get start;
   Duration get end;
+  bool get explicitBounds;
 
   /// Serializes this MediaSegment to a JSON map.
   Map<String, dynamic> toJson();
 
   @override
   String toString() {
-    return 'MediaSegment(type: $type, start: $start, end: $end)';
+    return 'MediaSegment(type: $type, start: $start, end: $end, explicitBounds: $explicitBounds)';
   }
 }
 
@@ -321,14 +322,16 @@ extension MediaSegmentPatterns on MediaSegment {
 
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>(
-    TResult Function(MediaSegmentType type, Duration start, Duration end)?
+    TResult Function(MediaSegmentType type, Duration start, Duration end,
+            bool explicitBounds)?
         $default, {
     required TResult orElse(),
   }) {
     final _that = this;
     switch (_that) {
       case _MediaSegment() when $default != null:
-        return $default(_that.type, _that.start, _that.end);
+        return $default(
+            _that.type, _that.start, _that.end, _that.explicitBounds);
       case _:
         return orElse();
     }
@@ -349,13 +352,15 @@ extension MediaSegmentPatterns on MediaSegment {
 
   @optionalTypeArgs
   TResult when<TResult extends Object?>(
-    TResult Function(MediaSegmentType type, Duration start, Duration end)
+    TResult Function(MediaSegmentType type, Duration start, Duration end,
+            bool explicitBounds)
         $default,
   ) {
     final _that = this;
     switch (_that) {
       case _MediaSegment():
-        return $default(_that.type, _that.start, _that.end);
+        return $default(
+            _that.type, _that.start, _that.end, _that.explicitBounds);
       case _:
         throw StateError('Unexpected subclass');
     }
@@ -375,13 +380,15 @@ extension MediaSegmentPatterns on MediaSegment {
 
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>(
-    TResult? Function(MediaSegmentType type, Duration start, Duration end)?
+    TResult? Function(MediaSegmentType type, Duration start, Duration end,
+            bool explicitBounds)?
         $default,
   ) {
     final _that = this;
     switch (_that) {
       case _MediaSegment() when $default != null:
-        return $default(_that.type, _that.start, _that.end);
+        return $default(
+            _that.type, _that.start, _that.end, _that.explicitBounds);
       case _:
         return null;
     }
@@ -391,7 +398,11 @@ extension MediaSegmentPatterns on MediaSegment {
 /// @nodoc
 @JsonSerializable()
 class _MediaSegment extends MediaSegment {
-  _MediaSegment({required this.type, required this.start, required this.end})
+  _MediaSegment(
+      {required this.type,
+      required this.start,
+      required this.end,
+      this.explicitBounds = false})
       : super._();
   factory _MediaSegment.fromJson(Map<String, dynamic> json) =>
       _$MediaSegmentFromJson(json);
@@ -402,6 +413,9 @@ class _MediaSegment extends MediaSegment {
   final Duration start;
   @override
   final Duration end;
+  @override
+  @JsonKey()
+  final bool explicitBounds;
 
   @override
   Map<String, dynamic> toJson() {
@@ -412,7 +426,7 @@ class _MediaSegment extends MediaSegment {
 
   @override
   String toString() {
-    return 'MediaSegment(type: $type, start: $start, end: $end)';
+    return 'MediaSegment(type: $type, start: $start, end: $end, explicitBounds: $explicitBounds)';
   }
 }
 

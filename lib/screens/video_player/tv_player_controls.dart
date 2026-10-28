@@ -12,6 +12,11 @@ import 'package:screen_brightness/screen_brightness.dart';
 
 import 'package:fladder/models/item_base_model.dart';
 import 'package:fladder/models/items/media_segments_model.dart';
+import 'package:fladder/providers/segment_skip_provider.dart';
+import 'package:fladder/providers/syncplay_provider.dart';
+import 'package:fladder/services/playback/segment_skip_policy.dart';
+import 'package:fladder/screens/video_player/components/chapter_navigation_controls.dart';
+import 'package:fladder/screens/video_player/components/segment_skip_overlay.dart';
 import 'package:fladder/models/media_playback_model.dart';
 import 'package:fladder/models/playback/playback_model.dart';
 import 'package:fladder/models/playback/tv_playback_model.dart';
@@ -132,6 +137,7 @@ class _TvPlayerControlsState extends ConsumerState<TvPlayerControls> {
                 const VideoPlayerSeekIndicator(),
                 const VideoPlayerVolumeIndicator(),
                 const VideoPlayerScreenshotIndicator(),
+                SegmentSkipOverlay(onInteraction: resetTimer),
                 const Positioned.fill(child: SubtitleOffsetOverlay()),
               ],
             ),
@@ -257,6 +263,7 @@ class _TvPlayerControlsState extends ConsumerState<TvPlayerControls> {
                 child: progressBar(mediaPlayback),
               ),
               const SizedBox(height: 8),
+              ChapterNavigationControls(controllerMode: AdaptiveLayout.of(context).controllerMode),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 spacing: 6,
@@ -582,21 +589,19 @@ class _TvPlayerControlsState extends ConsumerState<TvPlayerControls> {
   }
 
   void skipToSegmentEnd(MediaSegment? mediaSegment, String? segmentId) {
-    final end = mediaSegment?.end;
-    if (end != null) {
+    final playback = ref.read(mediaPlaybackProvider);
+    final player = ref.read(videoPlayerProvider);
+    final sync = ref.read(syncPlayProvider);
+    if (mediaSegment != null &&
+        mediaSegment.inRange(playback.position) &&
+        SegmentSkipPolicy.validSegments(ref.read(playBackModel)?.mediaSegments?.segments ?? const [],
+            duration: playback.duration).contains(mediaSegment) &&
+        segmentSkipCanSeek(sync.room,
+            wrapperActive: player.syncPlayActive,
+            busy: sync.busy || sync.leavePending || sync.preparingPlayback || sync.recoveryActive)) {
       resetTimer();
-      ref.read(videoPlayerProvider).seek(end);
-
-      if (segmentId != null) {
-        Future(() {
-          final currentSkipped = ref.read(mediaPlaybackProvider).skippedSegments;
-          ref.read(mediaPlaybackProvider.notifier).update(
-                (state) => state.copyWith(
-                  skippedSegments: {...currentSkipped, segmentId},
-                ),
-              );
-        });
-      }
+      ref.read(segmentSkipSessionProvider).policy.markSkipped(mediaSegment);
+      player.seek(mediaSegment.end);
     }
   }
 

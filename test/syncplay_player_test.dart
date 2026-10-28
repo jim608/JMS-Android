@@ -20,6 +20,7 @@ import 'package:fladder/profiles/default_profile.dart';
 import 'package:fladder/providers/settings/video_player_settings_provider.dart';
 import 'package:fladder/providers/image_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
+import 'package:fladder/providers/segment_skip_provider.dart';
 import 'package:fladder/services/syncplay/syncplay_clock.dart';
 import 'package:fladder/services/syncplay/syncplay_controller.dart';
 import 'package:fladder/services/syncplay/syncplay_models.dart';
@@ -114,6 +115,10 @@ final account = AccountModel(
 Response<T> response<T>(T data) => Response(http.Response('', 200), data);
 
 class _Ref extends Fake implements Ref {
+  _Ref() {
+    values[segmentSkipSessionProvider] = SegmentSkipSession();
+    values[mediaPlaybackProvider] = MediaPlaybackModel();
+  }
   final values = <Object, Object?>{};
   @override
   T read<T>(ProviderListenable<T> provider) => values[provider] as T;
