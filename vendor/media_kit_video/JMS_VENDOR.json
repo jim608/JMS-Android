@@ -143,5 +143,8 @@
     "macos/Classes/stub/common/MediaKitVideoPlugin.swift": "9fd1a6c381898dd4e993c5f3bd5375ed54544f3a40ce0f14836c5741ef77846d",
     "windows/include/media_kit_video/media_kit_video_plugin_c_api.h": "36da43a6e885235a95edb65f82df009634f20b057c82dcda2c4e4d8e6a40f00e"
   },
-  "local_changes": "Linux read-only actual render API query; other platforms unchanged"
+  "local_changes": "Linux read-only actual render API query; remove an unused Dart Cupertino theme helper for strict static analysis; remaining platform implementation files unchanged",
+  "local_file_hashes": {
+    "lib/media_kit_video_controls/src/controls/cupertino.dart": "05605fb324b69b8c372e1574c5fc955a40bedb559aa60629bcbfaa5914d9e89e"
+  }
 }

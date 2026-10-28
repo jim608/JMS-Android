@@ -224,14 +224,16 @@ class TransportFlatpakUpdatePortal implements FlatpakUpdatePortal {
       if (version < 2) {
         throw const FlatpakPortalFailure(FlatpakPortalFailureCode.unsupported);
       }
-      session.subscription = session.transport.signals.listen(
-        (signal) => _receive(session, signal),
-        onError: (Object error) => _transportFailure(session, error),
-        onDone: () => _transportFailure(
-          session,
-          const FlatpakPortalFailure(FlatpakPortalFailureCode.unavailable),
-        ),
-      );
+      session.cancelSignals = session.transport.signals
+          .listen(
+            (signal) => _receive(session, signal),
+            onError: (Object error) => _transportFailure(session, error),
+            onDone: () => _transportFailure(
+              session,
+              const FlatpakPortalFailure(FlatpakPortalFailureCode.unavailable),
+            ),
+          )
+          .cancel;
       await _bounded(session.transport.subscribe());
       _requireCurrent(session);
       final subscriptionFailure = session.failureBeforeMonitor;
@@ -426,9 +428,9 @@ class TransportFlatpakUpdatePortal implements FlatpakUpdatePortal {
 
   Future<void> _disposeSessionOnce(_PortalSession session) async {
     session.earlySignals.clear();
-    final subscription = session.subscription;
-    session.subscription = null;
-    if (subscription != null) await _ignoreFailure(subscription.cancel);
+    final cancelSignals = session.cancelSignals;
+    session.cancelSignals = null;
+    if (cancelSignals != null) await _ignoreFailure(cancelSignals);
     final path = session.path;
     session.path = null;
     if (path != null) {
@@ -462,7 +464,8 @@ class _PortalSession {
 
   final FlatpakPortalTransport transport;
   final int generation;
-  StreamSubscription<FlatpakPortalSignal>? subscription;
+  // Keep the cancellation capability; the session never pauses or resumes.
+  Future<void> Function()? cancelSignals;
   final earlySignals = <FlatpakPortalSignal>[];
   String? path;
   bool overflow = false;

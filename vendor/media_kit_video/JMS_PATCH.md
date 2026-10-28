@@ -4,8 +4,12 @@ This package is vendored from DonutWare/media-kit commit
 `cb56b5a6149f1e51086eba473c7e48041c54ab12`, subdirectory
 `media_kit_video` (version 2.0.0). `JMS_VENDOR.json` records all original file
 hashes. The MIT license is preserved in `LICENSE`. Example code, its local
-dependency override, and build caches are excluded. All Android, Apple,
-Windows, web and Dart implementation files retain their upstream bytes.
+dependency override, and build caches are excluded. Android, Apple, Windows and
+web native implementation files retain their upstream bytes. The Dart Cupertino
+controls file also removes its private, unused
+`_theme` helper so strict static analysis passes. This removes no reachable
+behavior. Its original upstream hash remains in `baseline_files`;
+`local_file_hashes` records the current patched file hash.
 
 The local Linux patch adds a read-only method on the existing channel:
 

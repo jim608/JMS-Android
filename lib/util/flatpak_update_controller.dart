@@ -49,8 +49,9 @@ class FlatpakUpdateController extends ChangeNotifier {
   bool _syncPlayActive = false;
   int _generation = 0;
   FlatpakUpdatePortal? _portal;
-  StreamSubscription<FlatpakPortalUpdate>? _updates;
-  StreamSubscription<FlatpakPortalProgress>? _progress;
+  // Detach these cancellation capabilities before awaiting portal cleanup.
+  Future<void> Function()? _cancelUpdates;
+  Future<void> Function()? _cancelProgress;
   Future<void>? _check;
   Future<void>? _install;
   Completer<void>? _firstSnapshot;
@@ -168,7 +169,7 @@ class FlatpakUpdateController extends ChangeNotifier {
         _notify();
       }
 
-      _updates = portal.updates.listen((update) {
+      _cancelUpdates = portal.updates.listen((update) {
         if (!_current(generation)) return;
         final commit = RegExp(r'^[a-fA-F0-9]{64}$');
         if (![update.runningCommit, update.localCommit, update.remoteCommit]
@@ -197,8 +198,8 @@ class FlatpakUpdateController extends ChangeNotifier {
         }
         _complete(first);
         _notify();
-      }, onError: streamFailure);
-      _progress = portal.progress.listen((event) {
+      }, onError: streamFailure).cancel;
+      _cancelProgress = portal.progress.listen((event) {
         if (!_monitorCurrent(generation) || !_hostUpdatePending) return;
         progress = event.percent?.clamp(0, 100).toInt();
         switch (event.status) {
@@ -235,7 +236,7 @@ class FlatpakUpdateController extends ChangeNotifier {
         if (event.status != FlatpakPortalProgressStatus.running) {
           _settledMonitor();
         }
-      }, onError: streamFailure);
+      }, onError: streamFailure).cancel;
       // A missing signal is not proof of a missing remote or current version.
       await Future.any([portal.open(), cancelled.future]).timeout(checkTimeout);
       if (!_current(generation)) return;
@@ -360,16 +361,16 @@ class FlatpakUpdateController extends ChangeNotifier {
   }
 
   Future<void> _releasePortal() async {
-    final updates = _updates;
-    final progress = _progress;
+    final cancelUpdates = _cancelUpdates;
+    final cancelProgress = _cancelProgress;
     final portal = _portal;
-    _updates = null;
-    _progress = null;
+    _cancelUpdates = null;
+    _cancelProgress = null;
     _portal = null;
     try {
       await Future.wait([
-        if (updates != null) updates.cancel(),
-        if (progress != null) progress.cancel(),
+        if (cancelUpdates != null) cancelUpdates(),
+        if (cancelProgress != null) cancelProgress(),
       ]).timeout(const Duration(seconds: 2));
     } catch (_) {
       // Still close the owned portal if a subscription cannot finish cleanup.
