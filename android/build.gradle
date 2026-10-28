@@ -7,6 +7,34 @@ allprojects {
 
 rootProject.buildDir = "../build"
 
+// These pinned plugins declare namespaces behind a legacy hasProperty check
+// that does not reliably identify the namespace DSL on the configured AGP.
+// Keep the exact plugin-declared values and preserve any explicit namespace.
+def legacyAndroidNamespaces = [
+    background_downloader: 'com.bbflight.background_downloader',
+    desktop_drop: 'one.mixin.desktop.drop',
+    file_picker: 'com.mr.flutter.plugin.filepicker',
+    flutter_custom_tabs_android: 'com.github.droibit.plugins.flutter.customtabs',
+    flutter_keyboard_visibility: 'com.jrai.flutter_keyboard_visibility',
+    media_kit_libs_android_video: 'com.alexmercerind.media_kit_libs_android_video',
+    pip: 'org.opentraa.pip',
+    screen_brightness_android: 'com.aaassseee.screen_brightness_android',
+    sqflite_android: 'com.tekartik.sqflite',
+    workmanager_android: 'dev.fluttercommunity.workmanager',
+]
+
+subprojects { pluginProject ->
+    def declaredNamespace = legacyAndroidNamespaces[pluginProject.name]
+    if (declaredNamespace != null) {
+        pluginProject.plugins.withId('com.android.library') {
+            def androidLibrary = pluginProject.extensions.getByName('android')
+            if (androidLibrary.namespace == null || androidLibrary.namespace.toString().trim().isEmpty()) {
+                androidLibrary.namespace = declaredNamespace
+            }
+        }
+    }
+}
+
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
