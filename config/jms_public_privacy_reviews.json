@@ -129672,5 +129672,110 @@
       "sha256": "eda02f00d80143be985d339cd364eb1f3856c92258443a9131dcd80d85eebc74",
       "archiveSha256": "580246fb9db6083e0191ac7fd0e44af71df6ec0dc52cfd384b5ae07f8665cc9e"
     }
+  },
+  {
+    "archiveSha256": "2fe6144d65e30747505393321402c01f38420cf5261cb221efe242e3c716569f",
+    "member": "libass/.github/workflows/ghci.yml",
+    "sha256": "201fac20f42a7a18418498260a60cd723897ecf4f9cbe8b288f0ed6cd85a1dcc",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "source": "https://raw.githubusercontent.com/libass/libass/4a05d8127f525943ebf45fdc6497c9e665947f0d/.github/workflows/ghci.yml",
+    "explanation": "Exact bytes match public upstream source at the pinned Git revision. Only upstream workflow, documentation and example paths are reviewed; no JMS user data, App AOT or compiled plug-in is exempted.",
+    "evidence": {
+      "kind": "pinned-upstream-source-file",
+      "member": "libass/.github/workflows/ghci.yml",
+      "sha256": "201fac20f42a7a18418498260a60cd723897ecf4f9cbe8b288f0ed6cd85a1dcc"
+    }
+  },
+  {
+    "archiveSha256": "2fe6144d65e30747505393321402c01f38420cf5261cb221efe242e3c716569f",
+    "member": "libass/.github/workflows/qemu-arch.yml",
+    "sha256": "23e466710ddcc8c19234a0cf75433890eff4c527dffdcf9b14a826c9b8ba37f3",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "source": "https://raw.githubusercontent.com/libass/libass/4a05d8127f525943ebf45fdc6497c9e665947f0d/.github/workflows/qemu-arch.yml",
+    "explanation": "Exact bytes match public upstream source at the pinned Git revision. Only upstream workflow, documentation and example paths are reviewed; no JMS user data, App AOT or compiled plug-in is exempted.",
+    "evidence": {
+      "kind": "pinned-upstream-source-file",
+      "member": "libass/.github/workflows/qemu-arch.yml",
+      "sha256": "23e466710ddcc8c19234a0cf75433890eff4c527dffdcf9b14a826c9b8ba37f3"
+    }
+  },
+  {
+    "archiveSha256": "f88ce8adb47275ad598880ba5af1454a17b2f08f80dd5951d51e675f3362f759",
+    "member": "libplacebo/demos/3rdparty/nuklear/demo/sfml_opengl2/Makefile",
+    "sha256": "db08114f4fa6f9218fa3707cde5e784de0cc37ee4e1a5678da5a6b2c4c11851f",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "source": "https://raw.githubusercontent.com/Immediate-Mode-UI/Nuklear/c512ac886425f6b6b6c816d67f4cb1385cd4cc53/demo/sfml_opengl2/Makefile",
+    "explanation": "Exact bytes match public upstream source at the pinned Git revision. Only upstream workflow, documentation and example paths are reviewed; no JMS user data, App AOT or compiled plug-in is exempted.",
+    "evidence": {
+      "kind": "pinned-upstream-source-file",
+      "member": "libplacebo/demos/3rdparty/nuklear/demo/sfml_opengl2/Makefile",
+      "sha256": "db08114f4fa6f9218fa3707cde5e784de0cc37ee4e1a5678da5a6b2c4c11851f"
+    }
+  },
+  {
+    "archiveSha256": "f88ce8adb47275ad598880ba5af1454a17b2f08f80dd5951d51e675f3362f759",
+    "member": "libplacebo/demos/3rdparty/nuklear/demo/sfml_opengl3/Makefile",
+    "sha256": "c924aeedddb5ebf547c2a974b057f71138ed15490a12194d766f8d112c7e293c",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "source": "https://raw.githubusercontent.com/Immediate-Mode-UI/Nuklear/c512ac886425f6b6b6c816d67f4cb1385cd4cc53/demo/sfml_opengl3/Makefile",
+    "explanation": "Exact bytes match public upstream source at the pinned Git revision. Only upstream workflow, documentation and example paths are reviewed; no JMS user data, App AOT or compiled plug-in is exempted.",
+    "evidence": {
+      "kind": "pinned-upstream-source-file",
+      "member": "libplacebo/demos/3rdparty/nuklear/demo/sfml_opengl3/Makefile",
+      "sha256": "c924aeedddb5ebf547c2a974b057f71138ed15490a12194d766f8d112c7e293c"
+    }
+  },
+  {
+    "archiveSha256": "0765ed1d19f0e6104ae0b68d48927afdd8a362a99eaf683a752e0b8b37b25f86",
+    "member": "mpv/.github/workflows/build.yml",
+    "sha256": "d2432c5adfd3e4a07ac2751dae332ac2dbaafd733d8256b9eab99a6e3b208df3",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "source": "https://raw.githubusercontent.com/mpv-player/mpv/a0fba7be57f3822d967b04f0f6b6d6341e7516e7/.github/workflows/build.yml",
+    "explanation": "Exact bytes match public upstream source at the pinned Git revision. Only upstream workflow, documentation and example paths are reviewed; no JMS user data, App AOT or compiled plug-in is exempted.",
+    "evidence": {
+      "kind": "pinned-upstream-source-file",
+      "member": "mpv/.github/workflows/build.yml",
+      "sha256": "d2432c5adfd3e4a07ac2751dae332ac2dbaafd733d8256b9eab99a6e3b208df3"
+    }
+  },
+  {
+    "archiveSha256": "0765ed1d19f0e6104ae0b68d48927afdd8a362a99eaf683a752e0b8b37b25f86",
+    "member": "mpv/DOCS/man/mpv.rst",
+    "sha256": "865ca1831efa7262ba735f707927424ef26c385d1b2257c1c92f364eb4ab4949",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "source": "https://raw.githubusercontent.com/mpv-player/mpv/a0fba7be57f3822d967b04f0f6b6d6341e7516e7/DOCS/man/mpv.rst",
+    "explanation": "Exact bytes match public upstream source at the pinned Git revision. Only upstream workflow, documentation and example paths are reviewed; no JMS user data, App AOT or compiled plug-in is exempted.",
+    "evidence": {
+      "kind": "pinned-upstream-source-file",
+      "member": "mpv/DOCS/man/mpv.rst",
+      "sha256": "865ca1831efa7262ba735f707927424ef26c385d1b2257c1c92f364eb4ab4949"
+    }
+  },
+  {
+    "archiveSha256": "0765ed1d19f0e6104ae0b68d48927afdd8a362a99eaf683a752e0b8b37b25f86",
+    "member": "mpv/player/javascript/defaults.js",
+    "sha256": "a6cafb2575c657c148ef0d8ec92a16ec47ac27bd777933346a04939e82649812",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "source": "https://raw.githubusercontent.com/mpv-player/mpv/a0fba7be57f3822d967b04f0f6b6d6341e7516e7/player/javascript/defaults.js",
+    "explanation": "Exact bytes match public upstream source at the pinned Git revision. Only upstream workflow, documentation and example paths are reviewed; no JMS user data, App AOT or compiled plug-in is exempted.",
+    "evidence": {
+      "kind": "pinned-upstream-source-file",
+      "member": "mpv/player/javascript/defaults.js",
+      "sha256": "a6cafb2575c657c148ef0d8ec92a16ec47ac27bd777933346a04939e82649812"
+    }
   }
 ]

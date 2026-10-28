@@ -175,6 +175,13 @@ class RecordedWindowsCandidateTests(unittest.TestCase):
                      'third_party/screen_brightness_windows/windows/native.cpp',
                      'scripts/test_jms_oci_privacy_extra.py',
                      'scripts/test_jms_credential_text_extra.py',
+                     'scripts/prepare_jms_web_bootstrap_extra.dart',
+                     'scripts/test_jms_web_bootstrap_extra.py',
+                     'scripts/publish_jms_release_extra.py',
+                     'scripts/jms_release_history_extra.py',
+                     'scripts/test_jms_release_history_extra.py',
+                     'web/flutter_bootstrap_extra.js',
+                     'Dockerfile.web.extra',
                      'test/syncplay_provider_test_extra.dart',
                      'test/syncplay_player_test_extra.dart',
                      'lib/providers/syncplay_provider.dart'):
