@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <!--
     If you are serving your web app in a path other than the root, change the
@@ -17,6 +17,7 @@
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta content="IE=Edge" http-equiv="X-UA-Compatible" />
   <meta name="description" content="A simple cross-platform Jellyfin client." />
 
@@ -31,8 +32,89 @@
 
   <title>JMS</title>
   <link rel="manifest" href="manifest.json">
+  <style>
+    html, body { margin: 0; background: #141218; color: #f4eff7; }
+    #jms-startup { position: fixed; inset: 0; z-index: 2147483647; background: #141218;
+      box-sizing: border-box; min-height: 100vh; min-height: 100dvh;
+      display: grid; align-content: center; justify-items: center; padding: 24px;
+      text-align: center; font: 16px/1.6 system-ui, sans-serif; }
+    #jms-startup h1 { margin: 16px 0 0; font-size: 28px; }
+    #jms-startup p { max-width: 34rem; margin: 8px 0 20px; color: #d2c8d9; }
+    #jms-startup button { padding: 10px 22px; border: 1px solid #cdb9df;
+      border-radius: 24px; color: #f4eff7; background: transparent; font: inherit;
+      cursor: pointer; }
+    #jms-startup button:focus-visible { outline: 3px solid #e7ceff; outline-offset: 4px; }
+    #jms-startup button:disabled { opacity: .65; cursor: default; }
+    #jms-startup-spinner { width: 32px; height: 32px; border: 3px solid #51425e;
+      border-top-color: #d6b2ff; border-radius: 50%; animation: jms-spin 1s linear infinite; }
+    #jms-startup[data-state="error"] #jms-startup-spinner { animation: none; opacity: .4; }
+    @keyframes jms-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { #jms-startup-spinner { animation: none; } }
+  </style>
 </head>
 <body>
+  <main id="jms-startup" role="status" aria-live="polite" aria-atomic="true" data-state="loading">
+    <div id="jms-startup-spinner" aria-hidden="true"></div>
+    <h1>JMS</h1>
+    <p id="jms-startup-message">Loading JMS… The first visit may take a little longer.</p>
+    <!-- Older Flutter workers cache index.html first, but use network first for
+         the canonical root. Preserve the route while leaving stale documents. -->
+    <button id="jms-startup-retry" type="button" onclick="this.disabled=true; const target=new window.URL(window.location.origin); target.pathname=new window.URL(document.baseURI).pathname; target.hash=window.location.hash; if (target.href===window.location.href) window.location.reload(); else window.location.replace(target.href)">Reload</button>
+    <noscript><p>JMS requires JavaScript. 請啟用 JavaScript 後重新載入。</p></noscript>
+  </main>
+  <script>
+    (() => {
+      const panel = document.getElementById('jms-startup');
+      const message = document.getElementById('jms-startup-message');
+      const retry = document.getElementById('jms-startup-retry');
+      const chinese = /^zh\b/i.test(navigator.language || '');
+      const text = chinese ? {
+        loading: '正在載入 JMS… 首次開啟可能需要較久時間。',
+        engine: '正在準備播放介面…',
+        slow: '仍在載入，網路較慢時可能需要多等一下。',
+        timeout: '載入比預期久。可以繼續等候，或檢查網路後重新載入。',
+        error: 'JMS 未能啟動。請檢查網路後重新載入。'
+      } : {
+        loading: 'Loading JMS… The first visit may take a little longer.',
+        engine: 'Preparing the player interface…',
+        slow: 'Still loading. A slower connection may need a little more time.',
+        timeout: 'Loading is taking longer than expected. You can keep waiting, or check your connection and reload.',
+        error: 'JMS could not start. Check your connection and reload.'
+      };
+      if (chinese) document.documentElement.lang = 'zh-Hant';
+      retry.textContent = chinese ? '重新載入' : 'Reload';
+      let finished = false;
+      let started = false;
+      const show = (state) => {
+        if (finished || (panel.dataset.state === 'error' && state !== 'error')) return;
+        panel.dataset.state = state;
+        message.textContent = text[state];
+      };
+      const fail = () => show('error');
+      const resourceError = (event) => {
+        if (event.target?.tagName === 'SCRIPT' || event.error) fail();
+      };
+      const timers = [setTimeout(() => show('slow'), 12000),
+        setTimeout(() => show('timeout'), 45000)];
+      const ready = () => {
+        if (finished) return;
+        finished = true;
+        timers.forEach(clearTimeout);
+        window.removeEventListener('error', resourceError, true);
+        window.removeEventListener('unhandledrejection', fail);
+        panel.remove();
+      };
+      window.addEventListener('error', resourceError, true);
+      window.addEventListener('unhandledrejection', fail);
+      // Install before the loader: runApp may produce its first frame immediately.
+      window.addEventListener('flutter-first-frame', ready, {once: true});
+      window.jmsStartup = Object.freeze({
+        begin: () => { if (started) return false; started = true; return true; },
+        stage: () => show('engine'), fail
+      });
+      show('loading');
+    })();
+  </script>
   <script>{{flutter_bootstrap_js}}</script>
 </body>
 </html>

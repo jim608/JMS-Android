@@ -15,6 +15,9 @@
 !config/config.json
 !web/
 !web/**
+!scripts/
+scripts/**
+!scripts/prepare_jms_web_bootstrap.dart
 !third_party/
 !third_party/fvp/
 !third_party/fvp/**

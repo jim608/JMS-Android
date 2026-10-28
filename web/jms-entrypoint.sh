@@ -92,6 +92,29 @@ else
   redirect="location = $no_slash { return 301 $webpath; } location / { return 404; }"
 fi
 
+# Cache only the exact JavaScript content addressed by the bootstrap. Hash the
+# public bundle, never the host-managed entry configuration. Native nginx ETags
+# depend on mtime/size, which can remain unchanged between exported builds.
+main_sha=$(sha256sum /usr/share/nginx/html/main.dart.js | cut -d ' ' -f 1)
+printf '%s' "$main_sha" | grep -Eq '^[a-f0-9]{64}$' || exit 1
+cat > /tmp/jms-cache.conf <<EOF
+map "\$arg_v:\$status" \$jms_main_cache_control {
+    default 'no-store';
+    '$main_sha:200' 'public, max-age=31536000, immutable';
+    '$main_sha:304' 'public, max-age=31536000, immutable';
+}
+map \$arg_v \$jms_main_version_valid {
+    default 0;
+    '' 1;
+    '$main_sha' 1;
+}
+map \$http_if_none_match \$jms_main_not_modified {
+    default 0;
+    '*' 1;
+    '~(^|,)[[:space:]]*(W/)?"sha256-$main_sha"[[:space:]]*(,|\$)' 1;
+}
+EOF
+
 cat > /tmp/jms.conf <<EOF
 server {
     listen 8080;
@@ -123,9 +146,22 @@ server {
         alias /usr/share/nginx/html/flutter_service_worker.js;
         add_header Cache-Control 'no-store' always;
     }
-    location = ${webpath}main.dart.js {
-        alias /usr/share/nginx/html/main.dart.js;
+    location = ${webpath}version.json {
+        alias /usr/share/nginx/html/version.json;
         add_header Cache-Control 'no-store' always;
+    }
+    location = ${webpath}main.dart.js {
+        if (\$request_method !~ "^(GET|HEAD)$") { return 405; }
+        if (\$jms_main_version_valid = 0) { return 404; }
+        if (\$jms_main_not_modified = 1) { return 304; }
+        alias /usr/share/nginx/html/main.dart.js;
+        etag off;
+        if_modified_since off;
+        # Keep the same variation metadata on the explicit 304 path as on 200.
+        gzip_vary off;
+        add_header Vary Accept-Encoding always;
+        add_header ETag 'W/"sha256-$main_sha"';
+        add_header Cache-Control \$jms_main_cache_control always;
     }
     location = ${webpath}flutter_bootstrap.js {
         alias /usr/share/nginx/html/flutter_bootstrap.js;
@@ -134,7 +170,7 @@ server {
     location ^~ $webpath {
         alias /usr/share/nginx/html/;
         try_files \$uri \$uri/ ${webpath}index.html;
-        expires 1h;
+        expires -1;
     }
     $redirect
 }

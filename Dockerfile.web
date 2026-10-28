@@ -21,7 +21,8 @@ COPY . .
 RUN flutter pub get --enforce-lockfile && \
     flutter build web --release --no-wasm-dry-run \
       --dart-define="JMS_BUILD_ID=$JMS_BUILD_ID" \
-      --dart-define="JMS_SOURCE_COMMIT=$JMS_SOURCE_COMMIT"
+      --dart-define="JMS_SOURCE_COMMIT=$JMS_SOURCE_COMMIT" && \
+    dart run scripts/prepare_jms_web_bootstrap.dart build/web
 
 FROM nginx:1.28-alpine@sha256:a8b39bd9cf0f83869a2162827a0caf6137ddf759d50a171451b335cecc87d236
 
