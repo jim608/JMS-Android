@@ -132,6 +132,8 @@ jobs:
           appstreamcli validate --no-net flatpak-build/files/share/metainfo/com.jim608.jms.metainfo.xml
           desktop-file-validate flatpak-build/files/share/applications/com.jim608.jms.desktop
           desktop-file-validate flatpak-build/files/share/applications/com.jim608.jms.SteamDeck.desktop
+          ! grep -qx 'NoDisplay=true' flatpak-build/files/share/applications/com.jim608.jms.desktop
+          grep -qx 'NoDisplay=true' flatpak-build/files/share/applications/com.jim608.jms.SteamDeck.desktop
           flatpak build-bundle flatpak-repo "candidate/JMS-Linux-$VERSION-x86_64.flatpak" com.jim608.jms stable --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo
       - name: 在隔離帳號驗證真正的 Flatpak 沙箱
         run: |

@@ -6,6 +6,7 @@ import tarfile
 import tempfile
 import unittest
 import xml.etree.ElementTree as ET
+from datetime import date
 from pathlib import Path
 from unittest import mock
 
@@ -77,9 +78,11 @@ class FlatpakPackageTests(unittest.TestCase):
         self.assertFalse((staged / 'payload/private-local-settings.json').exists())
 
     def test_stage_accepts_current_appstream_release_and_preserves_history(self):
-        (self.root / 'pubspec.yaml').write_text('version: 0.11.1-jms.47+50\n', encoding='utf-8')
-        current = Path(__file__).resolve().parents[1] / 'flatpak/com.jim608.jms.metainfo.xml'
+        source_root = Path(__file__).resolve().parents[1]
+        (self.root / 'pubspec.yaml').write_bytes((source_root / 'pubspec.yaml').read_bytes())
+        current = source_root / 'flatpak/com.jim608.jms.metainfo.xml'
         expected = current.read_bytes()
+        expected_history = [ET.tostring(release) for release in ET.fromstring(expected).findall('./releases/release')]
         self.metainfo.write_bytes(expected)
         staged = self.workspace / 'staged'
         build = package.stage(self.bundle, staged, self.commit)
@@ -87,8 +90,12 @@ class FlatpakPackageTests(unittest.TestCase):
         self.assertEqual(copied, expected)
         component = ET.fromstring(copied)
         releases = component.findall('./releases/release')
-        self.assertEqual(releases[0].attrib, {'version': build['versionName'], 'date': '2026-10-24'})
-        self.assertEqual(releases[1].get('version'), '0.11.1-jms.35')
+        self.assertTrue(releases)
+        self.assertEqual(releases[0].get('version'), build['versionName'])
+        release_date = releases[0].get('date', '')
+        self.assertRegex(release_date, r'^\d{4}-\d{2}-\d{2}$')
+        self.assertEqual(date.fromisoformat(release_date).isoformat(), release_date)
+        self.assertEqual([ET.tostring(release) for release in releases], expected_history)
         self.assertEqual(component.findtext('metadata_license'), 'CC0-1.0')
         self.assertEqual(component.findtext('project_license'), 'GPL-3.0-only')
 

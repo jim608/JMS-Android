@@ -2296,5 +2296,9 @@
   "jmsDiscordShareArtworkHint": "默认关闭，需启用 JMS 活动与作品名称分享，仅使用 TMDB 或 TVDB 公开封面。",
   "jmsDiscordArtworkConsent": "启用后，您浏览或观看作品的 TMDB 或 TVDB 公开封面网址会发送至 Discord，并与活动状态一同显示。您的朋友及 Discord 活动隐私设置允许的其他人可能看见。不会分享私人服务器网址或凭证。您可以随时关闭。",
   "jmsDiscordConsent": "启用后，您的 Discord 个人资料与朋友可能看见您正在使用 JMS，以及选片、浏览作品、播放或暂停状态。依 Discord 活动隐私设置，其他人也可能看见。作品名称及公开封面需另外取得同意才会分享。您可以随时关闭。",
-  "jmsDiscordTitleConsent": "启用后，您浏览或观看的作品名称也会发送至 Discord，并与活动状态一同显示。您的朋友及 Discord 活动隐私设置允许的其他人可能看见。请确认您愿意分享作品名称，您可以随时关闭。"
+  "jmsDiscordTitleConsent": "启用后，您浏览或观看的作品名称也会发送至 Discord，并与活动状态一同显示。您的朋友及 Discord 活动隐私设置允许的其他人可能看见。请确认您愿意分享作品名称，您可以随时关闭。",
+  "jmsInterfaceModeTitle": "界面模式",
+  "jmsInterfaceModeAuto": "自动",
+  "jmsInterfaceModeDesktop": "桌面版",
+  "jmsInterfaceModeHandheld": "掌机版"
 }

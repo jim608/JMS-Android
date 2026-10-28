@@ -4,6 +4,7 @@ Name[zh_TW]=JMS（Steam Deck）
 StartupWMClass=com.jim608.jms
 Comment=Play your Jellyfin library with the handheld interface.
 Exec=jms --handheld
+NoDisplay=true
 Icon=com.jim608.jms
 Terminal=false
 Type=Application

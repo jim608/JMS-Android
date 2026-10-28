@@ -60,6 +60,8 @@ enum BackgroundType {
   }
 }
 
+enum HandheldModePreference { auto, desktop, handheld }
+
 @Freezed(copyWith: true)
 abstract class ClientSettingsModel with _$ClientSettingsModel {
   const ClientSettingsModel._();
@@ -97,6 +99,7 @@ abstract class ClientSettingsModel with _$ClientSettingsModel {
     @Default(false) bool useSystemIME,
     @Default(false) bool useTVExpandedLayout,
     @Default(false) bool forceLeanBackMode,
+    @Default(HandheldModePreference.auto) HandheldModePreference handheldModePreference,
     String? lastViewedUpdate,
     int? libraryPageSize,
     @Default({}) Map<GlobalHotKeys, KeyCombination> shortcuts,

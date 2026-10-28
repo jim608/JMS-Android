@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 
 import 'package:fladder/providers/incognito_mode_provider.dart';
+import 'package:fladder/models/settings/client_settings_model.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
 import 'package:fladder/providers/settings/home_settings_provider.dart';
 import 'package:fladder/screens/settings/settings_list_tile.dart';
@@ -14,12 +15,33 @@ import 'package:fladder/screens/settings/widgets/settings_message_box.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
 import 'package:fladder/util/localization_helper.dart';
 import 'package:fladder/util/option_dialogue.dart';
+import 'package:fladder/widgets/shared/item_actions.dart';
+
+String _handheldModeLabel(BuildContext context, HandheldModePreference value) => switch (value) {
+      HandheldModePreference.auto => context.localized.jmsInterfaceModeAuto,
+      HandheldModePreference.desktop => context.localized.jmsInterfaceModeDesktop,
+      HandheldModePreference.handheld => context.localized.jmsInterfaceModeHandheld,
+    };
 
 List<Widget> buildClientSettingsAdvanced(BuildContext context, WidgetRef ref) {
   return settingsListGroup(
     context,
     SettingsLabelDivider(label: context.localized.advanced),
     [
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.linux)
+        SettingsListTileEnum(
+          label: Text(context.localized.jmsInterfaceModeTitle),
+          current: _handheldModeLabel(
+            context,
+            ref.watch(clientSettingsProvider.select((value) => value.handheldModePreference)),
+          ),
+          itemBuilder: (context) => HandheldModePreference.values
+              .map((mode) => ItemActionButton(
+                    label: Text(_handheldModeLabel(context, mode)),
+                    action: () => ref.read(clientSettingsProvider.notifier).setHandheldModePreference(mode),
+                  ))
+              .toList(),
+        ),
       SettingsListTile(
         label: Text(context.localized.settingsLayoutSizesTitle),
         subLabel: Text(context.localized.settingsLayoutSizesDesc),

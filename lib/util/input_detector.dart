@@ -49,6 +49,20 @@ class _InputDetectorState extends State<InputDetector> {
     _startListeningToKeyboard();
   }
 
+  @override
+  void didUpdateWidget(covariant InputDetector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final wasForced = oldWidget.htpcMode || oldWidget.controllerMode;
+    final isForced = widget.htpcMode || widget.controllerMode;
+    if (wasForced == isForced) return;
+    _controllerActive = isForced;
+    _currentInput = isForced
+        ? InputDevice.dPad
+        : (widget.isDesktop || kIsWeb)
+            ? InputDevice.pointer
+            : InputDevice.touch;
+  }
+
   void _startListeningToKeyboard() {
     ServicesBinding.instance.keyboard.addHandler(_handleKeyPress);
   }
@@ -64,13 +78,13 @@ class _InputDetectorState extends State<InputDetector> {
 
   bool _handleKeyPress(KeyEvent event) {
     if (event is KeyDownEvent) {
-      final fromController = widget.htpcMode || widget.controllerMode ||
+      final fromController = widget.htpcMode ||
+          widget.controllerMode ||
           isControllerKey(event.logicalKey) ||
           event.deviceType == KeyEventDeviceType.gamepad ||
           event.deviceType == KeyEventDeviceType.joystick ||
           event.deviceType == KeyEventDeviceType.directionalPad;
-      if (isEditableTextFocused() &&
-          directionalKeys.contains(event.logicalKey) && !fromController) {
+      if (isEditableTextFocused() && directionalKeys.contains(event.logicalKey) && !fromController) {
         _setControllerActive(false);
         return false;
       }

@@ -122,6 +122,8 @@ class ClientSettingsNotifier extends StateNotifier<ClientSettingsModel> {
 
   void setExpandedTVLayout(bool value) => state = state.copyWith(useTVExpandedLayout: value);
 
+  void setHandheldModePreference(HandheldModePreference value) => state = state.copyWith(handheldModePreference: value);
+
   void setBlurEffects(bool value) => state = state.copyWith(enableBlurEffects: value);
 
   void toggleSideBar() => state = state.copyWith(expandSideBar: !state.expandSideBar);

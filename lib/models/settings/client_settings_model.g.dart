@@ -63,6 +63,10 @@ _ClientSettingsModel _$ClientSettingsModelFromJson(Map<String, dynamic> json) =>
       useSystemIME: json['useSystemIME'] as bool? ?? false,
       useTVExpandedLayout: json['useTVExpandedLayout'] as bool? ?? false,
       forceLeanBackMode: json['forceLeanBackMode'] as bool? ?? false,
+      handheldModePreference: $enumDecodeNullable(
+              _$HandheldModePreferenceEnumMap,
+              json['handheldModePreference']) ??
+          HandheldModePreference.auto,
       lastViewedUpdate: json['lastViewedUpdate'] as String?,
       libraryPageSize: (json['libraryPageSize'] as num?)?.toInt(),
       shortcuts: (json['shortcuts'] as Map<String, dynamic>?)?.map(
@@ -108,6 +112,8 @@ Map<String, dynamic> _$ClientSettingsModelToJson(
       'useSystemIME': instance.useSystemIME,
       'useTVExpandedLayout': instance.useTVExpandedLayout,
       'forceLeanBackMode': instance.forceLeanBackMode,
+      'handheldModePreference':
+          _$HandheldModePreferenceEnumMap[instance.handheldModePreference]!,
       'lastViewedUpdate': instance.lastViewedUpdate,
       'libraryPageSize': instance.libraryPageSize,
       'shortcuts': instance.shortcuts
@@ -154,6 +160,12 @@ const _$BackgroundTypeEnumMap = {
   BackgroundType.disabled: 'disabled',
   BackgroundType.enabled: 'enabled',
   BackgroundType.blurred: 'blurred',
+};
+
+const _$HandheldModePreferenceEnumMap = {
+  HandheldModePreference.auto: 'auto',
+  HandheldModePreference.desktop: 'desktop',
+  HandheldModePreference.handheld: 'handheld',
 };
 
 const _$GlobalHotKeysEnumMap = {

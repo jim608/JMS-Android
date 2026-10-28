@@ -2106,5 +2106,9 @@
   "favoritesOf": "{artist} 的最愛",
   "leanBackModeTitle": "電視操作模式",
   "leanBackModeDesc": "在 Android 裝置上啟用適合電視與遙控器的操作介面，即使裝置未回報支援此模式。",
-  "leanBackModeInfo": "Android TV 裝置預設會重新啟用電視操作模式。在其他 Android 裝置上切換此選項可能導致非預期行為。"
+  "leanBackModeInfo": "Android TV 裝置預設會重新啟用電視操作模式。在其他 Android 裝置上切換此選項可能導致非預期行為。",
+  "jmsInterfaceModeTitle": "介面模式",
+  "jmsInterfaceModeAuto": "自動",
+  "jmsInterfaceModeDesktop": "桌面版",
+  "jmsInterfaceModeHandheld": "掌機版"
 }

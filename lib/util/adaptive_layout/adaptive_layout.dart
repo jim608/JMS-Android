@@ -18,6 +18,7 @@ import 'package:fladder/util/adaptive_layout/adaptive_layout_model.dart';
 import 'package:fladder/util/debug_banner.dart';
 import 'package:fladder/util/input_detector.dart';
 import 'package:fladder/util/handheld_layout.dart';
+import 'package:fladder/util/handheld_session.dart';
 import 'package:fladder/util/jms_smooth_scroll.dart';
 import 'package:fladder/util/localization_helper.dart';
 import 'package:fladder/util/poster_defaults.dart';
@@ -233,6 +234,13 @@ class _AdaptiveLayoutBuilderState extends ConsumerState<AdaptiveLayoutBuilder> {
     final arguments = ref.watch(argumentsStateProvider);
     final htpcMode = arguments.htpcMode;
     final isAndroidTV = arguments.leanBackMode;
+    final nativeLinux = !kIsWeb && currentPlatform == TargetPlatform.linux;
+    final linuxHandheldMode = nativeLinux &&
+        resolveHandheldMode(
+          preference: ref.watch(clientSettingsProvider.select((value) => value.handheldModePreference)),
+          explicitHandheldFlag: arguments.handheldMode,
+          automaticGamingMode: automaticSteamDeckGamingMode,
+        );
     final acceptedLayouts =
         htpcMode ? {LayoutMode.dual} : ref.watch(homeSettingsProvider.select((value) => value.screenLayouts));
     final acceptedViewSizes =
@@ -284,10 +292,12 @@ class _AdaptiveLayoutBuilderState extends ConsumerState<AdaptiveLayoutBuilder> {
         return InputDetector(
           isDesktop: isDesktop,
           htpcMode: htpcMode,
-          controllerMode: arguments.handheldMode,
+          controllerMode: nativeLinux ? linuxHandheldMode : arguments.handheldMode,
           child: (input) {
             final controllerActive = InputDetector.activeControllerMode ?? htpcMode;
-            final handheld = controllerActive && !htpcMode && !isAndroidTV && isHandheldViewport(mediaQuery.size);
+            final handheld = !htpcMode &&
+                !isAndroidTV &&
+                (nativeLinux ? linuxHandheldMode : controllerActive && isHandheldViewport(mediaQuery.size));
             return MediaQuery(
               data: mediaQuery.copyWith(
                 navigationMode: input == InputDevice.dPad ? NavigationMode.directional : NavigationMode.traditional,

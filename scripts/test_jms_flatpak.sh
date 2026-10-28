@@ -55,18 +55,38 @@ if match is None or match[1] != build['versionName']:
     raise SystemExit('Installed AppStream version differs from native build identity')
 PY_VERSION
 flatpak --user info --show-permissions "$app" > "$JMS_FLATPAK_OUTPUT/permissions.txt"
-# Save the actual exported launcher Steam selects, including Flatpak's rewrite.
-deck_entry="$HOME/.local/share/flatpak/exports/share/applications/com.jim608.jms.SteamDeck.desktop"
-test -f "$deck_entry"
-cp -L "$deck_entry" "$JMS_FLATPAK_OUTPUT/steamdeck.desktop"
-python3 - "$JMS_FLATPAK_OUTPUT/steamdeck.desktop" <<'PY_DESKTOP'
-import configparser, shlex, sys
-entry = configparser.ConfigParser(interpolation=None)
-entry.read(sys.argv[1])
-command = shlex.split(entry['Desktop Entry']['Exec'])
-if '--handheld' not in command or 'com.jim608.jms' not in command:
-    raise SystemExit('Exported Steam Deck launcher lacks application or handheld argument')
+# Flatpak rewrites Exec when exporting. Keep the old Steam shortcut target while
+# showing only the canonical JMS entry in application menus.
+verify_exported_launchers() {
+  desktop_dir="$HOME/.local/share/flatpak/exports/share/applications"
+  desktop_entry="$desktop_dir/com.jim608.jms.desktop"
+  deck_entry="$desktop_dir/com.jim608.jms.SteamDeck.desktop"
+  test -f "$desktop_entry" && test -f "$deck_entry"
+  cp -L "$desktop_entry" "$JMS_FLATPAK_OUTPUT/jms.desktop"
+  cp -L "$deck_entry" "$JMS_FLATPAK_OUTPUT/steamdeck.desktop"
+  python3 - "$JMS_FLATPAK_OUTPUT/jms.desktop" "$JMS_FLATPAK_OUTPUT/steamdeck.desktop" "$desktop_dir" <<'PY_DESKTOP'
+import configparser, pathlib, shlex, sys
+
+def entry(path):
+    parsed = configparser.ConfigParser(interpolation=None)
+    parsed.read(path, encoding='utf-8')
+    return parsed['Desktop Entry']
+
+desktop = entry(sys.argv[1])
+deck = entry(sys.argv[2])
+desktop_command = shlex.split(desktop['Exec'])
+deck_command = shlex.split(deck['Exec'])
+if desktop.getboolean('NoDisplay', fallback=False) or '--handheld' in desktop_command or 'com.jim608.jms' not in desktop_command:
+    raise SystemExit('Canonical JMS launcher is hidden or starts in handheld mode')
+if not deck.getboolean('NoDisplay', fallback=False) or '--handheld' not in deck_command or 'com.jim608.jms' not in deck_command:
+    raise SystemExit('Legacy Steam Deck launcher is visible or lacks handheld compatibility')
+visible = [path.name for path in pathlib.Path(sys.argv[3]).glob('com.jim608.jms*.desktop')
+           if not entry(path).getboolean('NoDisplay', fallback=False)]
+if visible != ['com.jim608.jms.desktop']:
+    raise SystemExit(f'Expected one visible JMS launcher, got {visible!r}')
 PY_DESKTOP
+}
+verify_exported_launchers
 python3 - "$JMS_FLATPAK_OUTPUT/permissions.txt" <<'PY'
 import configparser, sys
 permissions = configparser.ConfigParser(interpolation=None)
@@ -163,6 +183,7 @@ fi
 sha256sum --check "$JMS_FLATPAK_OUTPUT/config-before.txt"
 echo 'Flatpak validation phase: reinstall-retention'
 flatpak --user install --noninteractive --bundle "$JMS_FLATPAK_BUNDLE"
+verify_exported_launchers
 sha256sum --check "$JMS_FLATPAK_OUTPUT/config-before.txt"
 sha256sum "$settings" > "$JMS_FLATPAK_OUTPUT/settings-after.txt"
 cmp "$JMS_FLATPAK_OUTPUT/settings-before.txt" "$JMS_FLATPAK_OUTPUT/settings-after.txt"
@@ -198,6 +219,8 @@ output = pathlib.Path(sys.argv[1])
   'environment': 'Isolated Ubuntu x86_64 account, real Flatpak sandbox, Xvfb and PulseAudio',
   'physicalDesktop': False, 'realAccountLogin': False, 'hardwareGpuAudio': False,
   'upgradeFromPreviousFlatpak': False,
-  'exportedSteamDeckLauncherHandheldArgument': True, 'firstLaunchArguments': ['--handheld'],
+  'exportedSteamDeckLauncherHandheldArgument': True,
+  'legacySteamDeckLauncherHidden': True, 'singleVisibleJmsLauncher': True,
+  'firstLaunchArguments': ['--handheld'],
 }, indent=2) + '\n')
 PY

@@ -3022,5 +3022,9 @@
   "jmsSecondarySameTrack": "This is already the primary subtitle track.",
   "jmsSecondaryUnavailable": "This subtitle track is not available in the current video stream.",
   "jmsSecondaryFailed": "The secondary track could not be enabled. Secondary subtitles are off; select an available text track.",
-  "jmsSecondaryMediaChanged": "Secondary subtitles were turned off for the new video. Select a track for this episode."
+  "jmsSecondaryMediaChanged": "Secondary subtitles were turned off for the new video. Select a track for this episode.",
+  "jmsInterfaceModeTitle": "Interface mode",
+  "jmsInterfaceModeAuto": "Auto",
+  "jmsInterfaceModeDesktop": "Desktop",
+  "jmsInterfaceModeHandheld": "Handheld"
 }
