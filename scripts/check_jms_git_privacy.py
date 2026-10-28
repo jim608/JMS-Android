@@ -144,10 +144,12 @@ def load_public_reviews():
     return json.loads(registry.read_text(encoding='utf-8')) if registry.is_file() else []
 
 
-def matching_reviews(data, contexts, reviews):
+def matching_reviews(data, contexts, reviews, *, inspection=None):
     digest = hashlib.sha256(data).hexdigest()
     return [review for review in reviews
-            if review.get('sha256') == digest
+            if (review.get('inspection') == inspection if inspection is not None
+                else review.get('inspection') != 'public-ca-symlink')
+            and review.get('sha256') == digest
             and ((review.get('archiveSha256'), review.get('member')) in contexts
                  or any((item.get('archiveSha256'), item.get('member')) in contexts
                         for item in review.get('distributions', [])))
@@ -168,6 +170,38 @@ def valid_evidence(review):
         if (not isinstance(item, dict) or not item.get('member')
                 or not re.fullmatch(r'[0-9a-f]{64}', item.get('sha256', ''))):
             return False
+    if review.get('inspection') == 'public-ca-symlink':
+        certificate = review.get('certificate')
+        target = review.get('linkTarget')
+        origin = review.get('archiveSha256', '')
+        if (review.get('rules') != ['private file type']
+                or not re.fullmatch(r'[a-f0-9]{64}', origin)
+                or review.get('source') != 'https://registry-1.docker.io/v2/library/nginx/blobs/sha256:' + origin
+                or not isinstance(target, str) or not target or '\x00' in target or '\\' in target
+                or hashlib.sha256(target.encode()).hexdigest() != review.get('sha256')
+                or evidence['kind'] != 'upstream-public-x509-certificate'
+                or not isinstance(certificate, dict)
+                or certificate.get('member') != evidence['member']
+                or certificate.get('sha256') != evidence['sha256']):
+            return False
+        certificate_origin = evidence.get('archiveSha256', origin)
+        if (not isinstance(certificate_origin, str) or not re.fullmatch(r'[a-f0-9]{64}', certificate_origin)
+                or certificate.get('source') != 'https://registry-1.docker.io/v2/library/nginx/blobs/sha256:' + certificate_origin):
+            return False
+        if any(not isinstance(items, list) or any(not isinstance(item, dict) for item in items)
+               for items in (certificate.get('distributions', []), review.get('distributions', []))):
+            return False
+        for item in [certificate, *certificate.get('distributions', []),
+                     {'member': review.get('member'), 'archiveSha256': origin},
+                     *review.get('distributions', [])]:
+            member = item.get('member', '')
+            if (not isinstance(member, str) or not member or member.startswith('/')
+                    or '\\' in member or ':' in member
+                    or any(part in ('', '.', '..') for part in member.split('/'))
+                    or ('archiveSha256' in item and (not isinstance(item['archiveSha256'], str)
+                        or not re.fullmatch(r'[a-f0-9]{64}', item['archiveSha256'])))):
+                return False
+        return True
     if review.get('inspection') == 'raw-public-test-sample':
         return (evidence['kind'] == 'upstream-test-reference'
                 and evidence['member'] != review.get('member')
@@ -357,6 +391,11 @@ class ArchiveScan:
         self.raw_samples = []
         self.seen = set()
         self.used_reviews = []
+        self.ca_link_origins = set()
+        self.ca_links = []
+        self.ca_certificate_identities = set()
+        self.ca_verified_certificates = set()
+        self.ca_parsed_digests = set()
         from jms_source_derivations import policy_entries
         self.source_derivations = policy_entries(project)
         self.source_lineage = {}
@@ -369,6 +408,14 @@ class ArchiveScan:
                     self.expected_evidence.add((evidence.get('archiveSha256', review.get('archiveSha256')),
                                                evidence.get('member'), evidence.get('sha256')))
             self.expected_evidence.add((review.get('archiveSha256'), review.get('member'), review.get('sha256')))
+            if review.get('inspection') == 'public-ca-symlink' and valid_evidence(review):
+                evidence = review['evidence']
+                identities = {(evidence.get('archiveSha256', review['archiveSha256']),
+                               evidence['member'], evidence['sha256'])}
+                identities.update((item['archiveSha256'], item['member'], review['certificate']['sha256'])
+                                  for item in review['certificate'].get('distributions', []))
+                self.ca_certificate_identities.update(identities)
+                self.expected_evidence.update(identities)
 
     def finish(self):
         for review in self.used_reviews:
@@ -380,6 +427,107 @@ class ArchiveScan:
                             evidence['member'], evidence['sha256'])
                 if identity not in self.seen:
                     raise ValueError('Public review reference was not verified in inspected materials')
+        for review, contexts in self.ca_links:
+            origin = (review['archiveSha256'], review['member'], review['sha256'])
+            if origin not in self.ca_link_origins:
+                raise ValueError('Public CA origin was not verified as an exact TAR symlink')
+            evidence = review['evidence']
+            official = (evidence.get('archiveSha256', review['archiveSha256']),
+                        evidence['member'], evidence['sha256'])
+            if official not in self.ca_verified_certificates:
+                raise ValueError('Public CA official certificate was not parsed from a regular member')
+            allowed = {official}
+            allowed.update((item['archiveSha256'], item['member'], review['certificate']['sha256'])
+                           for item in review['certificate'].get('distributions', []))
+            parents = {archive for archive, _ in contexts}
+            if not any(item in self.ca_verified_certificates and item[0] in parents for item in allowed):
+                raise ValueError('Public CA certificate missing from the inspected link container')
+            for middle in self.ca_target_chain(review):
+                identity = (middle['archiveSha256'], middle['member'], middle['sha256'])
+                identities = {identity}
+                identities.update((item['archiveSha256'], item['member'], middle['sha256'])
+                                  for item in middle.get('distributions', []))
+                if identity not in self.ca_link_origins or not any(
+                        item in self.ca_link_origins and item[0] in parents for item in identities):
+                    raise ValueError('Public CA intermediate symlink missing from inspected materials')
+
+    def verify_ca_certificate(self, data, identities):
+        """Parse only pinned regular CA evidence in an empty, local TLS store."""
+        digest = hashlib.sha256(data).hexdigest()
+        if digest not in self.ca_parsed_digests:
+            import ssl
+            if (b'PRIVATE KEY' in data.upper() or not re.fullmatch(
+                    rb'(?:\s*-----BEGIN CERTIFICATE-----\r?\n[A-Za-z0-9+/=\r\n]+-----END CERTIFICATE-----\s*)+', data)):
+                raise ValueError('Public CA evidence is not certificate-only PEM')
+            try:
+                parser = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+                if parser.cert_store_stats()['x509']:
+                    raise ValueError('Public CA parser unexpectedly has ambient trust roots')
+                parser.load_verify_locations(cadata=data.decode('ascii'))
+                stats = parser.cert_store_stats()
+                if not stats['x509'] or stats['x509_ca'] != stats['x509']:
+                    raise ValueError('Public CA evidence contains non-CA certificates')
+            except (UnicodeError, ssl.SSLError) as error:
+                raise ValueError('Public CA evidence cannot be parsed') from error
+            self.ca_parsed_digests.add(digest)
+        self.ca_verified_certificates.update(identities)
+
+    def ca_target_chain(self, review):
+        """Follow only reviewed same-origin links to their pinned CA member."""
+        current = review
+        seen = set()
+        chain = []
+        expected = review['certificate']
+        for _ in range(20):
+            path = current['member']
+            if path in seen:
+                return None
+            seen.add(path)
+            target = current['linkTarget']
+            parts = [] if target.startswith('/') else path.split('/')[:-1]
+            for part in target.split('/'):
+                if part in ('', '.'):
+                    continue
+                if part == '..':
+                    if not parts:
+                        return None
+                    parts.pop()
+                else:
+                    parts.append(part)
+            resolved = '/'.join(parts)
+            if resolved == expected['member']:
+                return chain
+            candidates = [item for item in self.reviews
+                          if item.get('inspection') == 'public-ca-symlink' and valid_evidence(item)
+                          and item['archiveSha256'] == review['archiveSha256'] and item['member'] == resolved
+                          and item['certificate']['member'] == expected['member']
+                          and item['certificate']['sha256'] == expected['sha256']]
+            if len(candidates) != 1:
+                return None
+            current = candidates[0]
+            chain.append(current)
+        return None
+
+    def ca_target_resolves(self, review):
+        return self.ca_target_chain(review) is not None
+
+    def scan_ca_link(self, member, contexts):
+        data = member.linkname.encode()
+        problems = findings(member.name, data, self.domains)
+        if not member.issym():
+            return problems
+        approvals = [review for review in matching_reviews(data, contexts, self.reviews,
+                                                          inspection='public-ca-symlink')
+                     if self.ca_target_resolves(review)]
+        if not approvals:
+            return problems
+        digest = hashlib.sha256(data).hexdigest()
+        identities = {(archive, name, digest) for archive, name in contexts}
+        self.seen.update(identities & self.expected_evidence)
+        self.ca_link_origins.update(identities)
+        self.used_reviews.extend(approvals)
+        self.ca_links.extend((review, contexts) for review in approvals)
+        return [problem for problem in problems if problem != 'private file type']
 
     def bounded_stream(self, stream):
         owner = self
@@ -700,6 +848,9 @@ class ArchiveScan:
                     self.source_lineage.update(verify_lineage(data, derivation, self.registry_project))
         self.seen.update(identity for archive, member in contexts
                          if (identity := (archive, member, digest)) in self.expected_evidence)
+        ca_identities = {(archive, member, digest) for archive, member in contexts} & self.ca_certificate_identities
+        if ca_identities:
+            self.verify_ca_certificate(data, ca_identities)
         # Only an actually scanned, unchanged retained member can supply its
         # original identity. Excluded members and changed containers never do.
         for archive, member in contexts:
@@ -829,7 +980,9 @@ class ArchiveScan:
                         if structural and member.size:
                             raise ValueError('OCI nonfile member contains uninspected payload')
                         self.members += 1
-                        results.append((self.current_member, findings(member.name, member.linkname.encode(), self.domains)))
+                        ancestry = tuple((value, parent + '/' + member.name) for value, parent in contexts)
+                        ancestry += ((parent_hash, member.name),)
+                        results.append((self.current_member, self.scan_ca_link(member, ancestry)))
             if structural:
                 metadata, cursor = [], 0
                 for start, end in sorted(payload_ranges):
