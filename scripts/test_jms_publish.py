@@ -344,16 +344,23 @@ class PublisherTests(unittest.TestCase):
             log.write_text('PASS')
         with patch.object(publisher, 'ROOT', self.root), patch.object(publisher, 'PUBLICATION', self.root), \
              patch.object(publisher, 'execute', side_effect=run) as execute:
-            files = {'lib/main.dart': 'app', 'scripts/tool.py': 'tool', 'docs/status.md': 'old'}
+            files = {'lib/main.dart': 'app', 'scripts/tool.py': 'tool', 'docs/status.md': 'old',
+                     'vendor/media_kit_video/lib/video.dart': 'vendored app'}
             publisher.quality_checks(files)
             self.assertEqual(execute.call_count, 3)
             publisher.quality_checks(dict(files, **{'docs/status.md': 'new'}))
             self.assertEqual(execute.call_count, 3)
-            publisher.quality_checks(dict(files, **{'scripts/tool.py': 'changed'}))
-            self.assertEqual(execute.call_count, 4)
-            (self.root / 'flutter-tests.log').write_text('tampered')
-            publisher.quality_checks(dict(files, **{'scripts/tool.py': 'changed'}))
+            vendor_changed = dict(files, **{'vendor/media_kit_video/lib/video.dart': 'changed'})
+            publisher.quality_checks(vendor_changed)
             self.assertEqual(execute.call_count, 5)
+            self.assertEqual([call.kwargs['log'].name for call in execute.call_args_list[-2:]],
+                             ['flutter-tests.log', 'flutter-analyze.log'])
+            scripts_changed = dict(vendor_changed, **{'scripts/tool.py': 'changed'})
+            publisher.quality_checks(scripts_changed)
+            self.assertEqual(execute.call_count, 6)
+            (self.root / 'flutter-tests.log').write_text('tampered')
+            publisher.quality_checks(scripts_changed)
+            self.assertEqual(execute.call_count, 7)
 
     def test_source_scanner_refuses_secret_material(self):
         with patch.object(policy, 'ROOT', self.root):
