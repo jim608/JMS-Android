@@ -87,9 +87,10 @@ if visible != ['com.jim608.jms.desktop']:
 PY_DESKTOP
 }
 verify_exported_launchers
-# The reinstall check runs in TEST_SESSION's child bash below. Export the
-# function so that shell can repeat the same launcher assertions.
-export -f verify_exported_launchers
+# xvfb-run's POSIX shell may discard exported Bash functions. Pass this exact
+# validator as a private fixture file and load it in TEST_SESSION explicitly.
+export JMS_FLATPAK_LAUNCHER_VALIDATOR="$JMS_FLATPAK_OUTPUT/launcher-validator.sh"
+(umask 077; set -o noclobber; declare -f verify_exported_launchers > "$JMS_FLATPAK_LAUNCHER_VALIDATOR")
 python3 - "$JMS_FLATPAK_OUTPUT/permissions.txt" <<'PY'
 import configparser, sys
 permissions = configparser.ConfigParser(interpolation=None)
@@ -104,6 +105,7 @@ export JMS_FLATPAK_DEPLOYMENT="$deployment"
 # Start X first so D-Bus-activated GTK portals inherit its display and authority.
 xvfb-run -a dbus-run-session -- bash -euo pipefail <<'TEST_SESSION'
 set -E
+source "$JMS_FLATPAK_LAUNCHER_VALIDATOR"
 trap 'printf "Flatpak sandbox validation failed at line %s\n" "$LINENO" >&2' ERR
 dbus-update-activation-environment DISPLAY XAUTHORITY XDG_RUNTIME_DIR XDG_CONFIG_HOME XDG_DATA_HOME XDG_CACHE_HOME XDG_STATE_HOME
 trap 'flatpak kill com.jim608.jms 2>/dev/null || true; pulseaudio --kill 2>/dev/null || true; pkill -u "$(id -u)" -x gnome-keyring-d 2>/dev/null || true' EXIT

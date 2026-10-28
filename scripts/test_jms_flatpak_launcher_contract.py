@@ -25,12 +25,14 @@ class FlatpakLauncherContractTests(unittest.TestCase):
     def setUpClass(cls):
         script = (ROOT / 'scripts/test_jms_flatpak.sh').read_text(encoding='utf-8')
         cls.validator = script.split("<<'PY_DESKTOP'\n", 1)[1].split('\nPY_DESKTOP\n', 1)[0]
-        # Exercise the actual parent definition/call/export, then invoke a new
-        # bash process as TEST_SESSION does. Python-only extraction missed this
-        # shell-scope regression in the real reinstall check.
+        # Exercise the actual parent definition/call/helper file and child load.
+        # Python-only extraction missed shell scope in the real reinstall check.
         cls.parent_launcher_check = script.split('verify_exported_launchers() {', 1)[1].split(
             'python3 - "$JMS_FLATPAK_OUTPUT/permissions.txt"', 1)[0]
         cls.parent_launcher_check = 'verify_exported_launchers() {' + cls.parent_launcher_check
+        session = script.split("<<'TEST_SESSION'\n", 1)[1]
+        cls.child_launcher_source = next(line for line in session.splitlines()
+                                        if line == 'source "$JMS_FLATPAK_LAUNCHER_VALIDATOR"')
 
     def setUp(self):
         temporary = tempfile.TemporaryDirectory(prefix='jms-launcher-contract-')
@@ -106,11 +108,15 @@ class FlatpakLauncherContractTests(unittest.TestCase):
         if legacy_visible:
             child = ('cp "$JMS_CHANGED_LEGACY" "$HOME/.local/share/flatpak/exports/share/applications/'
                      + APP + '.SteamDeck.desktop"\n' + child)
-        # Forward Python explicitly for Windows Git Bash; it still executes the
-        # exact embedded validator against disposable exported desktop fixtures.
-        command = ('python3() { "$JMS_FIXTURE_PYTHON" "$@"; }\nexport -f python3\n'
+        # A wrapper such as xvfb-run can strip Bash function exports. Remove the
+        # parent definition before starting the child, which must load the real
+        # source-bound helper. Forward Python separately for Windows fixtures.
+        python_fixture = 'python3() { "$JMS_FIXTURE_PYTHON" "$@"; }\n'
+        child = python_fixture + self.child_launcher_source + '\n' + child
+        command = (python_fixture
                    + self.parent_launcher_check
-                   + '\nbash --noprofile --norc -euo pipefail -c ' + shlex.quote(child))
+                   + '\nunset -f verify_exported_launchers\n'
+                   + 'bash --noprofile --norc -euo pipefail -c ' + shlex.quote(child))
         return subprocess.run([bash, '--noprofile', '--norc', '-euo', 'pipefail', '-c', command],
                               env=environment, capture_output=True, text=True,
                               encoding='utf-8', errors='replace', timeout=15)
