@@ -351,7 +351,7 @@ void main() {
     });
     final api = _Api();
     api.itemReady.complete(response(dto));
-    api.infoReady.complete(response(PlaybackInfoResponse(mediaSources: [
+    api.infoReady.complete(response(const PlaybackInfoResponse(mediaSources: [
       MediaSourceInfo(id: mediaId, supportsDirectPlay: true, mediaStreams: [])
     ])));
     final adapter = SyncPlayPlayerAdapter(
