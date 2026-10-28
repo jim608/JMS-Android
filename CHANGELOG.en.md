@@ -1,3 +1,24 @@
+# JMS 0.11.1-jms.54
+
+## Added
+- Adds Previous Chapter and Next Chapter controls using video chapter metadata, with Steam Deck navigation hints.
+- Adds separate Off, Prompt only and Auto skip choices for opening and ending segments; prompts are the default and require explicit server start and end markers.
+- Uses one JMS launcher on Linux and Steam Deck, with automatic interface selection and manual Desktop or Handheld preferences.
+
+## Fixed
+- Keeps mobile Web controls available during touch interaction, menus and fullscreen transitions.
+- Prevents repeated automatic skips after manual replay, duplicate playback events or mode changes, and keeps prompts from stealing focus.
+
+## Known issues
+- SyncPlay uses manual chapter and segment seeks coordinated by the room; automatic skipping is disabled for individual participants.
+- Servers without reliable media-segment markers do not show opening or ending prompts; ordinary video chapters remain available.
+- Recovery after a denied SyncPlay media request remains a known limitation.
+- Physical Steam Deck Gaming Mode detection and KDE or Steam menu-cache behavior after upgrading an older version still require device validation.
+
+## Update notes
+- Hides the legacy Steam Deck launcher while preserving existing Steam shortcuts and --handheld activation; user-created shortcuts are not deleted.
+- Linux and Steam Deck retain the existing signed Flatpak update origin, with installation confirmed by the system.
+
 # JMS 0.11.1-jms.53
 
 ## Fixed
