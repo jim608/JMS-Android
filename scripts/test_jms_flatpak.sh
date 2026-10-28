@@ -87,6 +87,9 @@ if visible != ['com.jim608.jms.desktop']:
 PY_DESKTOP
 }
 verify_exported_launchers
+# The reinstall check runs in TEST_SESSION's child bash below. Export the
+# function so that shell can repeat the same launcher assertions.
+export -f verify_exported_launchers
 python3 - "$JMS_FLATPAK_OUTPUT/permissions.txt" <<'PY'
 import configparser, sys
 permissions = configparser.ConfigParser(interpolation=None)

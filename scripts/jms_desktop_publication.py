@@ -22,7 +22,7 @@ FLATPAK_WORKFLOW = '.github/workflows/jms-flatpak.yml'
 MAX_CI_ARCHIVE_BYTES = 512 * 1024 * 1024
 FLATPAK_BUILD_INPUTS = (
     'Dockerfile.linux', 'pubspec.yaml', 'pubspec.lock', '.fvmrc', 'lib', 'linux',
-    'third_party', 'flatpak', 'assets', 'icons', 'LICENSE', 'l10n.yaml',
+    'third_party', 'vendor', 'flatpak', 'assets', 'icons', 'LICENSE', 'l10n.yaml',
     '.dockerignore', '.gitattributes', '.gitmodules',
 )
 FLATPAK_BUILD_STEPS = ('建置鎖定的 Flutter Linux 來源', '建置原生依賴與 Flatpak')

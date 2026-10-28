@@ -2,6 +2,7 @@ import unittest
 import hashlib
 import io
 import json
+import shlex
 import tarfile
 import tempfile
 import zipfile
@@ -636,7 +637,8 @@ class FlatpakVerificationCommitTests(unittest.TestCase):
         self.command('config', 'user.name', 'fixture')
         self.command('config', 'user.email', 'fixture@users.noreply.github.com')
         self.inputs = ['Dockerfile.linux', 'pubspec.lock', '.fvmrc', 'lib/main.dart',
-                       'linux/CMakeLists.txt', 'flatpak/jms-flatpak', 'LICENSE', '.dockerignore']
+                       'linux/CMakeLists.txt', 'flatpak/jms-flatpak', 'LICENSE', '.dockerignore',
+                       'vendor/media_kit_video/lib/video.dart']
         for name in self.inputs:
             path = self.root / name
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -674,6 +676,25 @@ class FlatpakVerificationCommitTests(unittest.TestCase):
         with patch.object(desktop, 'ROOT', self.root), \
                 self.assertRaisesRegex(ReleaseError, 'not descended'):
             desktop.verify_flatpak_verification_inputs(self.source, unrelated)
+
+    def test_vendored_dependency_change_is_rejected_by_workflow_and_publication_reuse_guards(self):
+        path = 'vendor/media_kit_video/lib/video.dart'
+        (self.root / path).write_text('changed vendored video dependency\n')
+        self.command('add', '--', path)
+        self.command('commit', '--quiet', '-m', 'vendored dependency changed')
+        changed = self.command('rev-parse', 'HEAD')
+        workflow = (Path(__file__).resolve().parents[1] / '.github/workflows/jms-flatpak.yml').read_text(encoding='utf-8')
+        guards = [line for line in workflow.splitlines() if 'git -C verification-tools diff --quiet' in line]
+        self.assertEqual(len(guards), 1)
+        # Exercise the workflow's real pathspec against changed Git blobs. This
+        # rejects a dependency change even when the app's Dart files match.
+        pathspec = shlex.split(guards[0].split(' -- ', 1)[1].split('; then', 1)[0])
+        self.command('diff', '--quiet', self.source, self.verification, '--', *pathspec)
+        with self.assertRaises(desktop.subprocess.CalledProcessError):
+            self.command('diff', '--quiet', self.source, changed, '--', *pathspec)
+        with patch.object(desktop, 'ROOT', self.root), \
+                self.assertRaisesRegex(ReleaseError, 'changes candidate build inputs'):
+            desktop.verify_flatpak_verification_inputs(self.source, changed)
 
 
 if __name__ == '__main__':

@@ -90,7 +90,7 @@ jobs:
           test "$(git -C verification-tools rev-parse HEAD)" = "$VERIFICATION_COMMIT"
           git -C verification-tools merge-base --is-ancestor "$SOURCE_COMMIT" "$VERIFICATION_COMMIT"
           test -z "$(git -C verification-tools status --porcelain)"
-          if ! git -C verification-tools diff --quiet "$SOURCE_COMMIT" "$VERIFICATION_COMMIT" -- Dockerfile.linux 'pubspec.*' .fvmrc l10n.yaml .dockerignore .gitattributes .gitmodules lib linux third_party flatpak assets icons LICENSE; then
+          if ! git -C verification-tools diff --quiet "$SOURCE_COMMIT" "$VERIFICATION_COMMIT" -- Dockerfile.linux 'pubspec.*' .fvmrc l10n.yaml .dockerignore .gitattributes .gitmodules lib linux third_party vendor flatpak assets icons LICENSE; then
             echo 'App/native/build inputs changed; refusing source or bundle reuse' >&2
             exit 1
           fi
