@@ -142,9 +142,18 @@ void main() {
   Future<void> capture(WidgetTester tester, GlobalKey key, String name) => tester.runAsync(() async {
         final boundary = key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
         final image = await boundary.toImage();
-        final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-        await File('artifacts/checks/m11/$name.png').writeAsBytes(bytes!.buffer.asUint8List());
-        image.dispose();
+        try {
+          final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+          expect(bytes, isNotNull);
+          final png = bytes!.buffer.asUint8List(bytes.offsetInBytes, bytes.lengthInBytes);
+          expect(png.take(8), [137, 80, 78, 71, 13, 10, 26, 10]);
+          final output = File('artifacts/checks/m11/$name.png');
+          await output.parent.create(recursive: true);
+          await output.writeAsBytes(png);
+          expect(await output.length(), png.length);
+        } finally {
+          image.dispose();
+        }
       });
 
   testWidgets('sleep controls support countdown, end-of-item and cancellation in Traditional Chinese', (tester) async {

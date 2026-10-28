@@ -344,7 +344,7 @@ void main() {
     expect(f.q.isPlaying, isTrue);
   });
 
-  test('ambiguous IgnoreWait suppresses Buffer and blocks membership mutations',
+  test('ambiguous IgnoreWait suppresses Buffer and preserves pending Leave',
       () async {
     await f.open();
     final gate = Completer<void>();
@@ -366,13 +366,57 @@ void main() {
     await leaving;
     expect(f.server.leaves, 0);
     expect(f.first.state.status, SyncPlayStatus.unknown);
+    expect(f.first.leaveRequested, isTrue);
     gate.complete();
     await flushTasks();
+    expect(f.server.members[f.a]!.ignored, isTrue);
+    expect(f.server.leaves, 0);
+    expect(f.first.leaveRequested, isTrue);
     final joins = f.server.joins;
     await f.first.reconnect();
+    expect(f.server.joins, joins,
+        reason: 'reconnect must preserve the explicit Leave intent');
+    expect(f.server.leaves, 1,
+        reason: 'the exact settled acknowledgement permits pending Leave');
+    expect(f.first.state.status, SyncPlayStatus.idle);
+    expect(f.first.state.group, isNull);
+    expect(f.first.leaveRequested, isFalse);
+    expect(f.server.members.containsKey(f.a), isFalse);
+  });
+
+  test('only settled IgnoreWait acknowledgement permits rejoin without Leave',
+      () async {
+    await f.open();
+    final gate = Completer<void>();
+    addTearDown(() {
+      if (!gate.isCompleted) gate.complete();
+    });
+    f.a.afterRequest = (r) async {
+      if (r.type == SyncPlayRequestType.setIgnoreWait) await gate.future;
+    };
+    await f.starve();
+    await f.time.advance(const Duration(seconds: 8));
+    expect(
+        f.first.state.waitParticipation, SyncPlayWaitParticipation.uncertain);
+    f.first.setConnected(false);
+    f.first.setConnected(true);
+    final joins = f.server.joins;
+    final reconnecting = f.first.reconnect();
+    await flushTasks();
+    await f.time.advance(const Duration(seconds: 6));
+    await reconnecting;
+    expect(f.server.joins, joins,
+        reason: 'an unresolved session mutation still blocks rejoin');
+    expect(f.server.leaves, 0);
+    expect(f.first.leaveRequested, isFalse);
+    expect(f.first.state.status, SyncPlayStatus.unknown);
+    gate.complete();
+    await flushTasks();
+    await f.first.reconnect();
     expect(f.server.joins, joins + 1,
-        reason:
-            'only the exact settled acknowledgement releases the membership barrier');
+        reason: 'only the exact settled acknowledgement releases rejoin');
+    expect(f.server.leaves, 0);
+    expect(f.first.state.status, SyncPlayStatus.joined);
     expect(f.server.members[f.a]!.ignored, isTrue,
         reason:
             'restoring the same session must preserve its server ignore flag');
@@ -496,14 +540,21 @@ void main() {
       () async {
     await f.open();
     final previous = f.first.state.group;
+    final previousCheckAge = f.first.state.membershipCheckAge;
+    final joins = f.server.joins;
     f.a.listOverride = [];
     await f.first.refreshMembership();
     expect(f.first.state.group, same(previous));
-    expect(f.first.state.status, SyncPlayStatus.unknown);
-    expect(f.first.state.canControl, isFalse);
+    expect(f.first.state.status, SyncPlayStatus.joined);
+    expect(f.first.state.canControl, isTrue,
+        reason: 'a visibility list does not deny confirmed session membership');
     expect(f.first.state.membershipFreshness,
         SyncPlayMembershipFreshness.uncertain);
-    expect(f.first.state.membershipCheckAge, Duration.zero);
+    expect(previousCheckAge, isNotNull);
+    expect(f.first.state.membershipCheckAge, previousCheckAge,
+        reason: 'a visibility list cannot renew the membership confirmation');
+    expect(f.server.members.containsKey(f.a), isTrue);
+    expect(f.server.joins, joins);
     expect(f.server.leaves, 0);
     expect(
         f.requests.where((r) =>

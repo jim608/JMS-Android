@@ -13,6 +13,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fladder/l10n/generated/app_localizations.dart';
 import 'package:fladder/providers/update_provider.dart';
 import 'package:fladder/screens/settings/widgets/settings_update_information.dart';
+import 'package:fladder/services/flatpak_update_portal.dart';
+import 'package:fladder/util/flatpak_update_controller.dart';
 import 'package:fladder/util/update_checker.dart';
 import 'package:fladder/util/update_controller.dart';
 import 'package:fladder/util/update_source.dart';
@@ -32,9 +34,41 @@ class DesktopUiBridge extends FakeBridge {
   Future<UpdateDevice> device() async => desktopDevice;
 }
 
-Future<void> mountUpdateUi(WidgetTester tester, UpdateController controller) =>
+class _CurrentFlatpakPortal implements FlatpakUpdatePortal {
+  final snapshots = StreamController<FlatpakPortalUpdate>.broadcast(sync: true);
+  final progressEvents =
+      StreamController<FlatpakPortalProgress>.broadcast(sync: true);
+  int opens = 0;
+  int requests = 0;
+
+  @override
+  Stream<FlatpakPortalUpdate> get updates => snapshots.stream;
+  @override
+  Stream<FlatpakPortalProgress> get progress => progressEvents.stream;
+  @override
+  Future<void> open() async {
+    opens++;
+    snapshots.add(FlatpakPortalUpdate(
+      runningCommit: 'a' * 64,
+      localCommit: 'a' * 64,
+      remoteCommit: 'a' * 64,
+    ));
+  }
+
+  @override
+  Future<void> requestUpdate({String parentWindow = ''}) async => requests++;
+  @override
+  Future<void> close() async {}
+}
+
+Future<void> mountUpdateUi(WidgetTester tester, UpdateController controller,
+        {FlatpakUpdateController? flatpak}) =>
     tester.pumpWidget(ProviderScope(
-      overrides: [updateProvider.overrideWith((ref) => controller)],
+      overrides: [
+        updateProvider.overrideWith((ref) => controller),
+        if (flatpak != null)
+          flatpakUpdateProvider.overrideWith((ref) => flatpak),
+      ],
       child: const MaterialApp(
         locale: Locale('en'),
         localizationsDelegates: [
@@ -50,26 +84,62 @@ Future<void> mountUpdateUi(WidgetTester tester, UpdateController controller) =>
     ));
 
 void main() {
-  testWidgets('Flatpak shows managed updates without Arch actions or switches',
+  testWidgets(
+      'Flatpak checks its portal without standalone or unverified installs',
       (tester) async {
+    SharedPreferences.setMockInitialValues({'jms.update.auto': false});
+    final portal = _CurrentFlatpakPortal();
+    addTearDown(() async {
+      await portal.snapshots.close();
+      await portal.progressEvents.close();
+    });
+    final flatpak = FlatpakUpdateController(portalFactory: () => portal);
     final controller = UpdateController(
         checker: UpdateChecker(
             source: const UpdateSource(owner: 'jim608', repo: 'JMS-Linux')),
         bridge: FlatpakUpdateBridge());
     await controller.initialize();
-    await mountUpdateUi(tester, controller);
+    await mountUpdateUi(tester, controller, flatpak: flatpak);
     await tester.pumpAndSettle();
     expect(find.text('JMS Flatpak updates'), findsOneWidget);
-    expect(
-        find.textContaining('flatpak update com.jim608.jms'), findsOneWidget);
-    expect(find.textContaining('newer .flatpak file'), findsOneWidget);
-    expect(find.byType(SwitchListTile), findsNothing);
+    final automatic = find.byKey(const ValueKey('flatpak-auto-check'));
+    expect(find.byType(SwitchListTile), findsOneWidget);
+    expect(tester.widget<SwitchListTile>(automatic).onChanged, isNotNull);
+    final check = find.byKey(const ValueKey('flatpak-check-update'));
+    expect(tester.widget<TextButton>(check).onPressed, isNotNull);
+    expect(find.byKey(const ValueKey('flatpak-open-releases')), findsOneWidget);
+    expect(find.byKey(const ValueKey('flatpak-update-instructions')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('flatpak-update-remoteUnverified')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('flatpak-confirm-update')), findsNothing);
+    expect(flatpak.canRequestUpdate, isFalse);
+    expect(portal.opens, 0);
+    expect(portal.requests, 0);
+    expect(find.textContaining('yay -Bi'), findsNothing);
+    expect(find.textContaining('pacman'), findsNothing);
+    expect(find.text('JMS EndeavourOS / Arch Linux updates'), findsNothing);
     expect(find.byType(FilledButton), findsNothing);
     expect(find.byType(OutlinedButton), findsNothing);
     expect(find.byKey(const ValueKey('update-primary-check')), findsNothing);
     expect(find.byKey(const ValueKey('update-primary-download')), findsNothing);
     expect(find.byKey(const ValueKey('update-primary-install')), findsNothing);
     expect(controller.supported, isFalse);
+    await tester.tap(check);
+    await tester.pumpAndSettle();
+    expect(portal.opens, 1);
+    expect(flatpak.phase, FlatpakUpdatePhase.current);
+    expect(find.byKey(const ValueKey('flatpak-phase-current')), findsOneWidget);
+    expect(find.byKey(const ValueKey('flatpak-update-instructions')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('flatpak-confirm-update')), findsNothing);
+    expect(flatpak.canRequestUpdate, isFalse);
+    expect(portal.requests, 0);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    await tester.pump();
   });
 
   testWidgets(

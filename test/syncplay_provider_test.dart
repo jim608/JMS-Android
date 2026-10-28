@@ -862,8 +862,13 @@ void main() {
     expect(server.requests.where((e) => e == 'PlaybackInfo'), isEmpty);
     expect(scope.notifier.beginHomeJoin('123456'), isNull);
     await scope.notifier.cancelHomeJoin(first);
-    await _until(() => scope.state.room.status == SyncPlayStatus.idle,
+    await _until(
+        () =>
+            scope.state.room.status == SyncPlayStatus.idle &&
+            !scope.state.leavePending,
         'explicit cleanup confirmed');
+    expect(server.completedLeaves, hasLength(1));
+    expect(server.memberships, isEmpty);
     server.itemStatus = 200;
     final second = scope.notifier.beginHomeJoin('123456')!;
     await _until(() => scope.state.readyHomeJoin == second, 'retry loaded');

@@ -159,7 +159,10 @@ void main() {
             close: () async {
               closed++;
             }));
-    expect(find.textContaining('confirmation is out of date'), findsOneWidget);
+    expect(
+        find.text(
+            'Room status needs confirmation; the participant count is from the last snapshot. You can leave immediately.'),
+        findsOneWidget);
     expect(
         find.text(
             'Connected. Playback controls are synchronized with the room.'),
@@ -227,8 +230,7 @@ void main() {
     await tester.pump();
     expect(find.text('Local buffer measurements are not available yet…'),
         findsOneWidget);
-    expect(
-        find.textContaining('Unable to load the room video'), findsOneWidget);
+    expect(find.text('Room video could not be loaded.'), findsOneWidget);
     final cancel =
         tester.widget<TextButton>(find.widgetWithText(TextButton, 'Cancel'));
     expect(cancel.onPressed, isNotNull);
