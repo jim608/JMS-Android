@@ -43211,6 +43211,10 @@
       {
         "archiveSha256": "667c8db74cdd3f810c7137539645b6669c3339b60104224cae2a017a56c2bc30",
         "member": "lib/arm64-v8a/libass.so"
+      },
+      {
+        "archiveSha256": "94509b55aa519ff5b886505d41b83cf84a759ede237a7a6917a69a7469eb7e29",
+        "member": "lib/arm64-v8a/libass.so"
       }
     ]
   },
@@ -43347,6 +43351,10 @@
       {
         "archiveSha256": "667c8db74cdd3f810c7137539645b6669c3339b60104224cae2a017a56c2bc30",
         "member": "lib/arm64-v8a/libmpv.so"
+      },
+      {
+        "archiveSha256": "94509b55aa519ff5b886505d41b83cf84a759ede237a7a6917a69a7469eb7e29",
+        "member": "lib/arm64-v8a/libmpv.so"
       }
     ]
   },
@@ -43422,6 +43430,10 @@
       {
         "archiveSha256": "667c8db74cdd3f810c7137539645b6669c3339b60104224cae2a017a56c2bc30",
         "member": "org/apache/tika/mime/tika-mimetypes.xml"
+      },
+      {
+        "archiveSha256": "94509b55aa519ff5b886505d41b83cf84a759ede237a7a6917a69a7469eb7e29",
+        "member": "org/apache/tika/mime/tika-mimetypes.xml"
       }
     ]
   },
@@ -43439,7 +43451,13 @@
       "archiveSha256": "fa594a8e13fa22300435925ebe57eca1c2a4015b68f00bf506c99fd6a6aff1a4",
       "member": "mingw-w64-mpv/mpv-0.41.0.tar.gz/mpv-0.41.0/player/javascript/defaults.js",
       "sha256": "f42e9436e4b72bcb17d05579f8d87a697e340e21404f7139191f3b5502ecfa28"
-    }
+    },
+    "distributions": [
+      {
+        "archiveSha256": "c76ca062d52e344432201df3f9ccbc07d78db2d48ef34e950409671e2b6ecdf0",
+        "member": "JMS-Windows-0.11.1-jms.54-x64/libmpv-2.dll"
+      }
+    ]
   },
   {
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-libdovi-3.4.0-1.src.tar.zst",
@@ -43564,6 +43582,12 @@
         "archiveSha256": "05f360fc0b24296329c78fda852a1e9ae82de9cf7b27dae4b7f62f118f77b9ed",
         "member": "wyz-0.5.1/src/comu.rs",
         "sha256": "f1e5982a14a966125a9d20707694465caa4dadcd2efed527d4d860fcd544129f"
+      }
+    ],
+    "distributions": [
+      {
+        "archiveSha256": "c76ca062d52e344432201df3f9ccbc07d78db2d48ef34e950409671e2b6ecdf0",
+        "member": "JMS-Windows-0.11.1-jms.54-x64/libdovi.dll"
       }
     ]
   },
@@ -43786,6 +43810,12 @@
         "archiveSha256": "666b7727c8875d6ab5db9533418d7c764233ac9c0cff1d469aec8fa127597be2",
         "member": "v_frame-0.3.9/src/plane.rs",
         "sha256": "e517ad4dfe667fe90bf7ff79a5e015deaae99482e82bd3821cbdd8873a349fe0"
+      }
+    ],
+    "distributions": [
+      {
+        "archiveSha256": "c76ca062d52e344432201df3f9ccbc07d78db2d48ef34e950409671e2b6ecdf0",
+        "member": "JMS-Windows-0.11.1-jms.54-x64/librav1e.dll"
       }
     ]
   },
@@ -47387,6 +47417,12 @@
         "member": "zune-jpeg-0.5.15/src/worker.rs",
         "sha256": "6f939fa614844d11b826c196ea56ea13846ba7725025da0e2418b2d453fecc6d"
       }
+    ],
+    "distributions": [
+      {
+        "archiveSha256": "c76ca062d52e344432201df3f9ccbc07d78db2d48ef34e950409671e2b6ecdf0",
+        "member": "JMS-Windows-0.11.1-jms.54-x64/librsvg-2-2.dll"
+      }
     ]
   },
   {
@@ -47410,6 +47446,12 @@
         "archiveSha256": "b935d915b5392e573f65855c491e476ae38860d3929d2b564e507aa660c3e05b",
         "member": "mingw-w64-libssh/libssh-0.12.2.tar.xz/libssh-0.12.2/include/libssh/pki.h",
         "sha256": "ed2ba0060253de3b360305af93a4763bc72a61460e6bc68eaf3fc5d7d19f7f52"
+      }
+    ],
+    "distributions": [
+      {
+        "archiveSha256": "c76ca062d52e344432201df3f9ccbc07d78db2d48ef34e950409671e2b6ecdf0",
+        "member": "JMS-Windows-0.11.1-jms.54-x64/libssh.dll"
       }
     ]
   },
@@ -47473,7 +47515,13 @@
         "7c4c63ee462e0e700cd9e29c8e0f730b3f1b484c4abdd83f1e69fcd477c061fa",
         "d039c8119a029ab9f9c83c04d67002d887b6bc6026c4264402ab27cdf24cf138"
       ]
-    }
+    },
+    "distributions": [
+      {
+        "archiveSha256": "c76ca062d52e344432201df3f9ccbc07d78db2d48ef34e950409671e2b6ecdf0",
+        "member": "JMS-Windows-0.11.1-jms.54-x64/libgnutls-30.dll"
+      }
+    ]
   },
   {
     "source": "https://www.libssh.org/files/0.12/libssh-0.12.2.tar.xz",
@@ -56082,7 +56130,13 @@
       "member": "mingw-w64-glib2/glib-2.90.0.tar.xz/glib-2.90.0/gio/gtlscertificate.c",
       "sha256": "eda02f00d80143be985d339cd364eb1f3856c92258443a9131dcd80d85eebc74",
       "archiveSha256": "580246fb9db6083e0191ac7fd0e44af71df6ec0dc52cfd384b5ae07f8665cc9e"
-    }
+    },
+    "distributions": [
+      {
+        "archiveSha256": "c76ca062d52e344432201df3f9ccbc07d78db2d48ef34e950409671e2b6ecdf0",
+        "member": "JMS-Windows-0.11.1-jms.54-x64/libgio-2.0-0.dll"
+      }
+    ]
   },
   {
     "source": "https://repo.msys2.org/mingw/sources/mingw-w64-vulkan-loader-1~1.4.357.0-1.src.tar.zst",
