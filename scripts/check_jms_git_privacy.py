@@ -1096,8 +1096,15 @@ def scan_packages_cached(paths, domains, cache_directory=None, *, flatpak_bindin
         rejected.extend((name, reasons) for name, reasons in results if reasons)
         scanners.append(scanner)
     verified = set().union(*(scanner.seen for scanner in scanners))
+    verified_ca_links = set().union(*(scanner.ca_link_origins for scanner in scanners))
+    verified_ca_certificates = set().union(*(scanner.ca_verified_certificates for scanner in scanners))
     for scanner in scanners:
         scanner.seen = verified
+        # Only identities observed during these complete, actual material scans
+        # can satisfy cross-material origin evidence. Each link retains its own
+        # container contexts for current certificate and intermediate checks.
+        scanner.ca_link_origins = verified_ca_links
+        scanner.ca_verified_certificates = verified_ca_certificates
         scanner.finish()
     report = {'inputs': inputs, 'accepted': not rejected, 'complete': True,
               'rejected': rejected, 'items': sum(scanner.members for scanner in scanners),

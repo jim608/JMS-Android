@@ -1,10 +1,13 @@
 """Exact public CA link reviews never approve regular PEMs or private keys."""
 import hashlib
 import io
+from pathlib import Path
 import tarfile
+import tempfile
 import unittest
+from unittest.mock import patch
 
-from check_jms_git_privacy import ArchiveScan, matching_reviews, valid_evidence
+from check_jms_git_privacy import ArchiveScan, matching_reviews, scan_packages_cached, valid_evidence
 
 
 # Public Amazon Root CA 3 from the reviewed official NGINX package layer.
@@ -70,6 +73,16 @@ def review(data, *, certificate=CA, target=TARGET):
 
 
 class PublicCaSymlinkTests(unittest.TestCase):
+    def scan_materials(self, materials, reviews):
+        with tempfile.TemporaryDirectory() as folder:
+            paths = []
+            for index, data in enumerate(materials):
+                path = Path(folder) / f'material-{index}.tar'
+                path.write_bytes(data)
+                paths.append(path)
+            with patch('check_jms_git_privacy.load_public_reviews', return_value=reviews):
+                return scan_packages_cached(paths, ['private.example.invalid'], cache_directory=None)
+
     def scan(self, data, reviews, *, name='candidate.tar', finish=True):
         scanner = ArchiveScan(['private.example.invalid'], reviews=reviews)
         results = scanner.scan(name, data)
@@ -240,6 +253,62 @@ class PublicCaSymlinkTests(unittest.TestCase):
         scanner.scan('actual.tar', changed)
         with self.assertRaisesRegex(ValueError, 'inspected link container'):
             scanner.finish()
+
+    def test_complete_normal_material_scan_verifies_separate_official_origin(self):
+        original = archive(extra=[('origin.txt', b'official fixture')])
+        actual = archive(extra=[('candidate.txt', b'actual candidate')])
+        row = review(original)
+        row['distributions'] = [{'archiveSha256': sha(actual), 'member': LINK}]
+        row['certificate']['distributions'] = [{'archiveSha256': sha(actual), 'member': CERT}]
+        report = self.scan_materials([actual, original], [row])
+        self.assertTrue(report['accepted'])
+        self.assertTrue(report['complete'])
+        self.assertEqual([], report['rejected'])
+        self.assertEqual(2, len(report['inputs']['materials']))
+
+    def test_normal_material_scan_still_requires_the_actual_official_origin(self):
+        original = archive(extra=[('origin.txt', b'official fixture')])
+        actual = archive(extra=[('candidate.txt', b'actual candidate')])
+        row = review(original)
+        row['distributions'] = [{'archiveSha256': sha(actual), 'member': LINK}]
+        row['certificate']['distributions'] = [{'archiveSha256': sha(actual), 'member': CERT}]
+        with self.assertRaisesRegex(ValueError, 'origin was not verified'):
+            self.scan_materials([actual], [row])
+
+    def test_normal_material_scan_does_not_borrow_unrelated_or_changed_current_certificate(self):
+        original = archive(extra=[('origin.txt', b'official fixture')])
+        for actual in (archive(include_certificate=False), archive(certificate=CA + b'\n')):
+            with self.subTest(actual=sha(actual)):
+                row = review(original)
+                row['distributions'] = [{'archiveSha256': sha(actual), 'member': LINK}]
+                row['certificate']['distributions'] = [{'archiveSha256': sha(actual), 'member': CERT}]
+                with self.assertRaisesRegex(ValueError, 'inspected link container'):
+                    self.scan_materials([actual, original], [row])
+
+    def test_normal_material_scan_requires_current_intermediate_not_just_official_one(self):
+        intermediate = 'etc/ssl/intermediate.pem'
+        original = archive(target='/' + intermediate, extra_links=[(intermediate, TARGET)])
+        actual = archive(target='/' + intermediate)
+        first = review(original, target='/' + intermediate)
+        second = review(original)
+        second['member'] = intermediate
+        for row in (first, second):
+            row['distributions'] = [{'archiveSha256': sha(actual), 'member': row['member']}]
+            row['certificate']['distributions'] = [{'archiveSha256': sha(actual), 'member': CERT}]
+        with self.assertRaisesRegex(ValueError, 'intermediate symlink missing'):
+            self.scan_materials([actual, original], [first, second])
+
+    def test_normal_material_scan_does_not_approve_current_regular_pem(self):
+        original = archive()
+        actual = archive(link_type=tarfile.REGTYPE)
+        row = review(original)
+        row['distributions'] = [{'archiveSha256': sha(actual), 'member': LINK}]
+        row['certificate']['distributions'] = [{'archiveSha256': sha(actual), 'member': CERT}]
+        report = self.scan_materials([actual, original], [row])
+        self.assertFalse(report['accepted'])
+        self.assertTrue(report['complete'])
+        self.assertTrue(any(path.endswith(LINK) and 'private file type' in reasons
+                            for path, reasons in report['rejected']))
 
 
 if __name__ == '__main__':
