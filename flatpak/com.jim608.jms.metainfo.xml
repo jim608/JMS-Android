@@ -25,6 +25,14 @@
   </developer>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.11.1-jms.55" date="2026-10-29">
+      <description>
+        <p>Improves touch control visibility and preserves controls during interactions.</p>
+        <p>Preserves home content after refresh failures and supports retry while
+          preventing stale responses from replacing newer state.</p>
+        <p>Fixes horizontal list animation cancellation and cleans up owned focus resources.</p>
+      </description>
+    </release>
     <release version="0.11.1-jms.54" date="2026-10-28">
       <description>
         <p>Adds chapter navigation, explicit opening and ending skip preferences,
