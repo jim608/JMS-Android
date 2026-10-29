@@ -19,6 +19,7 @@ from jms_git_release import committed_source, check_upstream, push_release, veri
 from prepare_jms_release import apk_info, require_bound_sources
 from verify_jms_snapshot import verify_snapshot
 from jms_legacy_verifier import prepare_legacy_verifier
+from jms_android_feed_preflight import preflight_android_feed
 from check_jms_git_privacy import load_policy, scan_packages_cached
 
 PUBLICATION = ROOT / 'artifacts/publication'
@@ -352,6 +353,12 @@ def publish(args):
             committed_source(publication_commit)
             committed_source(state['sourceCommit'], allow_ancestor=True)
             verify_asset_privacy(assets)
+            # A predictable legacy-feed failure must stop before the first
+            # public write, not after upload_complete_release publishes a draft.
+            # Frozen .8 and current algorithms run unchanged against the exact
+            # candidate plus an anonymous, unmodified public-history snapshot.
+            preflight_android_feed(ROOT, state, assets, state_directory, execute,
+                                   authenticated_history=github.releases)
             helper = '!"' + str(github.executable).replace('\\', '/') + '" auth git-credential'
             push_release('https://github.com/' + REPOSITORY + '.git', state['sourceCommit'], tag,
                          branch_commit=publication_commit,
@@ -367,6 +374,11 @@ def publish(args):
                         'body': state['notes'], 'draft': True, 'prerelease': state['prerelease'], 'make_latest': 'false'})
                 state['releaseId'] = release['id']
                 save()
+            # A newly created release's position is only an assumption in the
+            # pre-write preview. Bind its observed leading draft (or exact
+            # public resume) before any asset upload or public promotion.
+            preflight_android_feed(ROOT, state, assets, state_directory, execute,
+                                   authenticated_history=github.releases, require_placement=True)
             verification = state_directory / 'draft-verification'
             verification.mkdir(exist_ok=True)
             upload_complete_release(github, state, assets, save, verification)
