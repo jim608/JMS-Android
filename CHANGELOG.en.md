@@ -1,3 +1,21 @@
+# JMS 0.11.1-jms.55
+
+## Fixed
+
+- Touch player backgrounds toggle the controls, which hide after ten idle seconds even when paused; held interactions and open menus keep controls available.
+- Failed home refreshes preserve existing content and allow another attempt, while stale responses cannot overwrite state after navigation or a newer refresh.
+- Fixes animation exceptions after horizontal scrolling is cancelled or its page closes, and cleans up focus resources owned by the list.
+
+## Known issues
+
+- Older Android installations that include test releases may still be unable to retrieve updates because historical releases have incomplete update metadata.
+- Linux Portal upgrades, physical Steam Deck operation and touch on physical devices still require validation in the corresponding environments.
+- SyncPlay continues to coordinate manual chapter and segment seeks through the room, with per-device automatic skipping disabled during group playback.
+
+## Update notes
+
+- This candidate preserves historical releases and the existing signed Linux update origin, without automatically changing the production origin.
+
 # JMS 0.11.1-jms.54
 
 ## Added

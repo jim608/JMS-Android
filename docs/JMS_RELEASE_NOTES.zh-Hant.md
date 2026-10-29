@@ -1,43 +1,37 @@
-# JMS 0.11.1-jms.54
+# JMS 0.11.1-jms.55
 
 ## 繁體中文 / Traditional Chinese
 
-### 新增
-- 播放器新增上一章與下一章，依影片章節跳轉，並提供 Steam Deck 操作提示。
-- 片頭與片尾可分別選擇關閉、只顯示提示或自動跳過，預設只顯示提示，並要求伺服器提供明確的起訖標記。
-- Linux 與 Steam Deck 使用單一 JMS 啟動入口，可自動選擇介面，或手動指定桌面版與掌機版。
-
 ### 修正
-- 行動版網頁在觸控操作、選單與全螢幕切換期間維持控制列可用。
-- 手動回看、重複播放事件與模式切換不會反覆觸發自動跳過，提示也不再搶走操作焦點。
+
+- 觸控播放器可點擊背景切換控制列，閒置十秒後收起，暫停畫面也適用；按住互動或開啟選單時保留控制列。
+- 首頁刷新失敗時保留原有內容並允許再次嘗試，避免較舊回應在離開頁面或重新刷新後覆蓋狀態。
+- 修正橫向清單取消捲動或關閉頁面後的動畫例外，並清理清單自身的焦點資源。
 
 ### 已知問題
-- SyncPlay 使用手動章節與片段跳轉，由房間協調，不啟用各裝置的自動跳過。
-- 伺服器未提供可靠片段標記時，不顯示片頭或片尾跳過提示，仍可使用影片章節。
-- SyncPlay 在媒體權限被拒絕後的重新加入復原仍有已知限制。
-- Steam Deck 實機遊戲模式辨識，以及舊版升級後的 KDE 與 Steam 選單快取行為，仍需實機確認。
+
+- 舊版 Android 若開啟包含測試版更新，仍可能被歷史發布缺少更新資料的問題阻擋。
+- Linux Portal 升級、Steam Deck 實機操作與實體觸控裝置仍需相應環境驗收。
+- SyncPlay 仍由房間協調手動章節與段落跳轉，群組播放停用各裝置自動跳過。
 
 ### 更新注意事項
-- 舊 Steam Deck 專用入口改為隱藏，既有 Steam 捷徑與 --handheld 仍可使用，使用者自建捷徑不會被刪除。
-- Linux 與 Steam Deck 保留原有簽署 Flatpak 更新來源，安裝仍由系統確認。
+
+- 此候選保留既有歷史發布與 Linux 簽署更新來源，不會自動切換正式來源。
 
 ## English
 
-### Added
-- Adds Previous Chapter and Next Chapter controls using video chapter metadata, with Steam Deck navigation hints.
-- Adds separate Off, Prompt only and Auto skip choices for opening and ending segments; prompts are the default and require explicit server start and end markers.
-- Uses one JMS launcher on Linux and Steam Deck, with automatic interface selection and manual Desktop or Handheld preferences.
-
 ### Fixed
-- Keeps mobile Web controls available during touch interaction, menus and fullscreen transitions.
-- Prevents repeated automatic skips after manual replay, duplicate playback events or mode changes, and keeps prompts from stealing focus.
+
+- Touch player backgrounds toggle the controls, which hide after ten idle seconds even when paused; held interactions and open menus keep controls available.
+- Failed home refreshes preserve existing content and allow another attempt, while stale responses cannot overwrite state after navigation or a newer refresh.
+- Fixes animation exceptions after horizontal scrolling is cancelled or its page closes, and cleans up focus resources owned by the list.
 
 ### Known issues
-- SyncPlay uses manual chapter and segment seeks coordinated by the room; automatic skipping is disabled for individual participants.
-- Servers without reliable media-segment markers do not show opening or ending prompts; ordinary video chapters remain available.
-- Recovery after a denied SyncPlay media request remains a known limitation.
-- Physical Steam Deck Gaming Mode detection and KDE or Steam menu-cache behavior after upgrading an older version still require device validation.
+
+- Older Android installations that include test releases may still be unable to retrieve updates because historical releases have incomplete update metadata.
+- Linux Portal upgrades, physical Steam Deck operation and touch on physical devices still require validation in the corresponding environments.
+- SyncPlay continues to coordinate manual chapter and segment seeks through the room, with per-device automatic skipping disabled during group playback.
 
 ### Update notes
-- Hides the legacy Steam Deck launcher while preserving existing Steam shortcuts and --handheld activation; user-created shortcuts are not deleted.
-- Linux and Steam Deck retain the existing signed Flatpak update origin, with installation confirmed by the system.
+
+- This candidate preserves historical releases and the existing signed Linux update origin, without automatically changing the production origin.
