@@ -56,11 +56,23 @@ class TvPlayerControls extends ConsumerStatefulWidget {
 class _TvPlayerControlsState extends ConsumerState<TvPlayerControls> {
   final GlobalKey _bottomControlsKey = GlobalKey();
 
-  late final initInputDevice = AdaptiveLayout.inputDeviceOf(context);
+  InputDevice get inputDevice => AdaptiveLayout.inputDeviceOf(context);
+
+  final Set<int> _activePointers = {};
+  bool _routeIsCurrent = true;
 
   late RestartableTimer timer = RestartableTimer(
-    const Duration(seconds: 5),
-    () => mounted ? toggleOverlay(value: false) : null,
+    const Duration(seconds: 10),
+    () {
+      if (!mounted) return;
+      if (AdaptiveLayout.of(context).controllerMode ||
+          _activePointers.isNotEmpty ||
+          !_routeIsCurrent ||
+          ModalRoute.of(context)?.isCurrent == false) {
+        return;
+      }
+      toggleOverlay(value: false);
+    },
   );
 
   double? previousVolume;
@@ -80,10 +92,32 @@ class _TvPlayerControlsState extends ConsumerState<TvPlayerControls> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final routeIsCurrent = ModalRoute.isCurrentOf(context) ?? true;
+    if (_routeIsCurrent != routeIsCurrent) {
+      _routeIsCurrent = routeIsCurrent;
+      resetTimer();
+    }
+  }
+
+  @override
+  void dispose() {
+    timer.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final player = ref.watch(videoPlayerProvider);
     final subtitleOffsetVisible = ref.watch(subtitleOffsetVisibleProvider);
     return Listener(
+      onPointerDown: (event) {
+        _activePointers.add(event.pointer);
+        timer.cancel();
+      },
+      onPointerUp: _endPointerInteraction,
+      onPointerCancel: _endPointerInteraction,
       onPointerSignal: subtitleOffsetVisible ? null : setVolume,
       child: InputHandler(
         autoFocus: true,
@@ -102,16 +136,39 @@ class _TvPlayerControlsState extends ConsumerState<TvPlayerControls> {
           },
           child: MouseRegion(
             cursor: showOverlay || subtitleOffsetVisible ? SystemMouseCursors.basic : SystemMouseCursors.none,
-            onExit: (event) => toggleOverlay(value: false),
-            onEnter: (event) => toggleOverlay(value: true),
-            onHover: AdaptiveLayout.of(context).isDesktop || kIsWeb ? (event) => toggleOverlay(value: true) : null,
+            onExit: (event) {
+              if (_isMouseHover(event) &&
+                  !AdaptiveLayout.of(context).controllerMode &&
+                  _activePointers.isEmpty &&
+                  _routeIsCurrent) {
+                toggleOverlay(value: false);
+              }
+            },
+            onEnter: (event) {
+              if (_isMouseHover(event)) toggleOverlay(value: true);
+            },
+            onHover: (event) {
+              if (_isMouseHover(event)) toggleOverlay(value: true);
+            },
             child: Stack(
               children: [
                 Positioned.fill(
                   child: GestureDetector(
-                    onTap: initInputDevice == InputDevice.pointer ? () => player.playOrPause() : () => toggleOverlay(),
-                    onDoubleTap:
-                        initInputDevice == InputDevice.pointer ? () => fullScreenHelper.toggleFullScreen(ref) : null,
+                    supportedDevices: const {PointerDeviceKind.mouse, PointerDeviceKind.trackpad},
+                    onTap: () => player.playOrPause(),
+                    onDoubleTap: () => fullScreenHelper.toggleFullScreen(ref),
+                    child: GestureDetector(
+                      // The first touch must work before adaptive input mode rebuilds.
+                      supportedDevices: const {
+                        PointerDeviceKind.touch,
+                        PointerDeviceKind.stylus,
+                        PointerDeviceKind.invertedStylus,
+                        PointerDeviceKind.unknown,
+                      },
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => toggleOverlay(),
+                      child: const SizedBox.expand(),
+                    ),
                   ),
                 ),
                 if (AdaptiveLayout.of(context).isDesktop)
@@ -148,22 +205,24 @@ class _TvPlayerControlsState extends ConsumerState<TvPlayerControls> {
   }
 
   Widget playButton(bool playing, bool buffering) {
-    return Align(
-      alignment: Alignment.center,
-      child: AnimatedScale(
-        curve: Curves.easeInOutCubicEmphasized,
-        scale: playing
-            ? 0
-            : buffering
-                ? 0
-                : 1,
-        duration: const Duration(milliseconds: 250),
-        child: IconButton.outlined(
-          onPressed: () => ref.read(videoPlayerProvider).play(),
-          isSelected: true,
-          iconSize: 65,
-          tooltip: "Resume video",
-          icon: const Icon(IconsaxPlusBold.play),
+    return ExcludeFocus(
+      excluding: !showOverlay,
+      child: IgnorePointer(
+        ignoring: !showOverlay,
+        child: Align(
+          alignment: Alignment.center,
+          child: AnimatedScale(
+            curve: Curves.easeInOutCubicEmphasized,
+            scale: playing || buffering || !showOverlay ? 0 : 1,
+            duration: const Duration(milliseconds: 250),
+            child: IconButton.outlined(
+              onPressed: () => ref.read(videoPlayerProvider).play(),
+              isSelected: true,
+              iconSize: 65,
+              tooltip: "Resume video",
+              icon: const Icon(IconsaxPlusBold.play),
+            ),
+          ),
         ),
       ),
     );
@@ -218,7 +277,7 @@ class _TvPlayerControlsState extends ConsumerState<TvPlayerControls> {
                           ],
                         ),
                       ),
-                    if (initInputDevice == InputDevice.touch)
+                    if (inputDevice == InputDevice.touch)
                       Align(
                         alignment: Alignment.centerRight,
                         child: Tooltip(
@@ -307,7 +366,7 @@ class _TvPlayerControlsState extends ConsumerState<TvPlayerControls> {
                       mainAxisAlignment: MainAxisAlignment.end,
                       spacing: 8,
                       children: [
-                        if (initInputDevice == InputDevice.pointer || AdaptiveLayout.of(context).isDesktop)
+                        if (inputDevice == InputDevice.pointer || AdaptiveLayout.of(context).isDesktop)
                           Tooltip(
                             message: context.localized.stop,
                             child: IconButton(
@@ -327,7 +386,7 @@ class _TvPlayerControlsState extends ConsumerState<TvPlayerControls> {
                               ),
                             ),
                         },
-                        if ((initInputDevice == InputDevice.pointer || AdaptiveLayout.of(context).isDesktop) &&
+                        if ((inputDevice == InputDevice.pointer || AdaptiveLayout.of(context).isDesktop) &&
                             AdaptiveLayout.viewSizeOf(context) > ViewSize.phone) ...[
                           VideoVolumeSlider(
                             onChanged: () => resetTimer(),
@@ -435,7 +494,7 @@ class _TvPlayerControlsState extends ConsumerState<TvPlayerControls> {
                 position: displayPosition,
                 buffer: mediaPlayback.buffer,
                 buffering: mediaPlayback.buffering,
-                timerReset: () => timer.reset(),
+                timerReset: resetTimer,
                 onPositionChanged: (position) {
                   //Disable seeking for live TV for now
                   return;
@@ -620,9 +679,14 @@ class _TvPlayerControlsState extends ConsumerState<TvPlayerControls> {
   }
 
   void toggleOverlay({bool? value}) {
-    if (showOverlay == (value ?? !showOverlay)) return;
-    setState(() => showOverlay = (value ?? !showOverlay));
-    resetTimer();
+    final visible = value ?? !showOverlay;
+    if (!visible) timer.cancel();
+    if (showOverlay == visible) {
+      if (visible) resetTimer();
+      return;
+    }
+    setState(() => showOverlay = visible);
+    if (visible) resetTimer();
 
     final desiredMode = showOverlay ? SystemUiMode.edgeToEdge : SystemUiMode.immersiveSticky;
 
@@ -645,7 +709,24 @@ class _TvPlayerControlsState extends ConsumerState<TvPlayerControls> {
     Navigator.of(context).pop();
   }
 
-  void resetTimer() => timer.reset();
+  void resetTimer() {
+    if (!mounted ||
+        !showOverlay ||
+        !_routeIsCurrent ||
+        _activePointers.isNotEmpty ||
+        AdaptiveLayout.of(context).controllerMode) {
+      timer.cancel();
+      return;
+    }
+    timer.reset();
+  }
+
+  bool _isMouseHover(PointerEvent event) => event.kind == PointerDeviceKind.mouse && inputDevice == InputDevice.pointer;
+
+  void _endPointerInteraction(PointerEvent event) {
+    _activePointers.remove(event.pointer);
+    if (_activePointers.isEmpty) resetTimer();
+  }
 
   Future<void> closePlayer() async {
     clearOverlaySettings();
@@ -655,12 +736,15 @@ class _TvPlayerControlsState extends ConsumerState<TvPlayerControls> {
 
   Future<void> clearOverlaySettings() async {
     toggleOverlay(value: true);
-    if (initInputDevice != InputDevice.pointer) {
+    if (kIsWeb) {
+      await fullScreenHelper.closeFullScreen(ref);
+    } else if (inputDevice != InputDevice.pointer) {
       ScreenBrightness().resetApplicationScreenBrightness();
     } else {
       disableFullScreen();
     }
 
+    if (!mounted) return;
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarIconBrightness: ref.read(clientSettingsProvider.select((value) => value.statusBarBrightness(context))),
     ));
@@ -677,6 +761,7 @@ class _TvPlayerControlsState extends ConsumerState<TvPlayerControls> {
 
   void setVolume(PointerEvent event) {
     if (event is PointerScrollEvent) {
+      resetTimer();
       if (event.scrollDelta.dy > 0) {
         ref.read(videoPlayerSettingsProvider.notifier).steppedVolume(-5);
       } else {
@@ -686,6 +771,7 @@ class _TvPlayerControlsState extends ConsumerState<TvPlayerControls> {
   }
 
   bool _onKey(VideoHotKeys value) {
+    resetTimer();
     final mediaSegments = ref.read(playBackModel.select((value) => value?.mediaSegments));
     final position = ref.read(mediaPlaybackProvider).position;
 

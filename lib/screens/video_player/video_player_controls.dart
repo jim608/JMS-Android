@@ -66,16 +66,17 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
   InputDevice get inputDevice => AdaptiveLayout.inputDeviceOf(context);
 
   final Set<int> _activePointers = {};
+  bool _routeIsCurrent = true;
 
   late RestartableTimer timer = RestartableTimer(
-    const Duration(seconds: 5),
+    const Duration(seconds: 10),
     () {
       if (!mounted) return;
       if (AdaptiveLayout.of(context).controllerMode ||
           _activePointers.isNotEmpty ||
-          ModalRoute.of(context)?.isCurrent == false ||
-          !ref.read(mediaPlaybackProvider).playing) {
-        resetTimer();
+          !_routeIsCurrent ||
+          ModalRoute.of(context)?.isCurrent == false) {
+        timer.cancel();
         return;
       }
       toggleOverlay(value: false);
@@ -110,6 +111,17 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
     super.initState();
     timer.reset();
     _lastSelectedSubtitleIndex = null;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final isCurrent = ModalRoute.isCurrentOf(context) ?? true;
+    if (_routeIsCurrent == isCurrent) return;
+    _routeIsCurrent = isCurrent;
+    // A menu or another route owns interaction until the player is current.
+    // Returning starts a full inactivity window rather than a partial one.
+    resetTimer();
   }
 
   @override
@@ -281,22 +293,21 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
   Widget playButton(bool playing, bool buffering) {
     return ExcludeFocus(
       excluding: playing || buffering || !showOverlay,
-      child: Align(
-        alignment: Alignment.center,
-        child: AnimatedScale(
-          curve: Curves.easeInOutCubicEmphasized,
-          scale: playing
-              ? 0
-              : buffering
-                  ? 0
-                  : 1,
-          duration: const Duration(milliseconds: 250),
-          child: IconButton.outlined(
-            onPressed: () => ref.read(videoPlayerProvider).play(),
-            isSelected: true,
-            iconSize: 65,
-            tooltip: "Resume video",
-            icon: const Icon(IconsaxPlusBold.play),
+      child: IgnorePointer(
+        ignoring: playing || buffering || !showOverlay,
+        child: Align(
+          alignment: Alignment.center,
+          child: AnimatedScale(
+            curve: Curves.easeInOutCubicEmphasized,
+            scale: !showOverlay || playing || buffering ? 0 : 1,
+            duration: const Duration(milliseconds: 250),
+            child: IconButton.outlined(
+              onPressed: () => ref.read(videoPlayerProvider).play(),
+              isSelected: true,
+              iconSize: 65,
+              tooltip: "Resume video",
+              icon: const Icon(IconsaxPlusBold.play),
+            ),
           ),
         ),
       ),
@@ -616,7 +627,7 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
                 position: mediaPlayback.position,
                 buffer: mediaPlayback.buffer,
                 buffering: mediaPlayback.buffering,
-                timerReset: () => timer.reset(),
+                timerReset: resetTimer,
                 onPositionChanged: (position) => ref.read(videoPlayerProvider).seek(position),
               ),
             ),
@@ -817,13 +828,14 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
 
   void toggleOverlay({bool? value}) {
     final visible = value ?? !showOverlay;
+    final changed = showOverlay != visible;
+    if (changed) setState(() => showOverlay = visible);
     if (visible) {
       resetTimer();
     } else {
       timer.cancel();
     }
-    if (showOverlay == visible) return;
-    setState(() => showOverlay = visible);
+    if (!changed) return;
 
     final desiredMode = showOverlay ? SystemUiMode.edgeToEdge : SystemUiMode.immersiveSticky;
 
@@ -847,7 +859,13 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
     Navigator.of(context).pop();
   }
 
-  void resetTimer() => timer.reset();
+  void resetTimer() {
+    if (!mounted || !showOverlay || !_routeIsCurrent || _activePointers.isNotEmpty) {
+      timer.cancel();
+      return;
+    }
+    timer.reset();
+  }
 
   bool _isMouseHover(PointerEvent event) => event.kind == PointerDeviceKind.mouse && inputDevice == InputDevice.pointer;
 
@@ -890,6 +908,7 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
 
   void setVolume(PointerEvent event) {
     if (event is PointerScrollEvent) {
+      resetTimer();
       if (event.scrollDelta.dy > 0) {
         ref.read(videoPlayerSettingsProvider.notifier).steppedVolume(-5);
       } else {
@@ -924,6 +943,7 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
   // --- Keyboard Speed Boost Handler (Desktop) ---
 
   KeyEventResult _handleSpacebarEvent(KeyEvent event) {
+    resetTimer();
     if (event is KeyDownEvent) {
       return KeyEventResult.handled;
     } else if (event is KeyRepeatEvent) {
@@ -1099,6 +1119,7 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
   }
 
   bool _onKey(VideoHotKeys value) {
+    resetTimer();
     final mediaSegments = ref.read(playBackModel.select((value) => value?.mediaSegments));
     final position = ref.read(mediaPlaybackProvider).position;
     final playing = ref.read(mediaPlaybackProvider.select((value) => value.playing));
