@@ -15,8 +15,9 @@ http.Response _jsonResponse(String body, int statusCode) => http.Response.bytes(
 );
 
 Future<void> main(List<String> arguments) async {
-  if (arguments.length != 1)
+  if (arguments.length != 1) {
     throw ArgumentError('Exact valid manifest path required');
+  }
   final original = Map<String, dynamic>.from(
     jsonDecode(await File(arguments.single).readAsString()) as Map,
   );
@@ -34,8 +35,9 @@ Future<void> main(List<String> arguments) async {
     final checker = UpdateChecker(
       source: source,
       client: MockClient((request) async {
-        if (request.method != 'GET')
+        if (request.method != 'GET') {
           throw StateError('Only fixture GET is allowed');
+        }
         requests.add(request.url == source.releases ? 'feed' : 'manifest');
         if (request.url == source.releases) {
           final rows = [
