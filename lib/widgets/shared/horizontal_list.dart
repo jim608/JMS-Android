@@ -92,13 +92,22 @@ class _HorizontalListState extends ConsumerState<HorizontalList> with TickerProv
 
   @override
   void dispose() {
-    _scrollAnimation?.dispose();
+    _disposeScrollAnimation();
+    parentNode.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
+  void _disposeScrollAnimation() {
+    final controller = _scrollAnimation;
+    _scrollAnimation = null;
+    controller?.dispose();
+  }
+
   void _measureFirstItem() {
-    if (_firstItemWidth != null) return;
+    if (!mounted || _firstItemWidth != null) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final itemContext = _firstItemKey.currentContext;
       if (itemContext != null) {
         final box = itemContext.findRenderObject() as RenderBox;
@@ -145,11 +154,11 @@ class _HorizontalListState extends ConsumerState<HorizontalList> with TickerProv
   }
 
   Future<void> _scrollToPosition(int index, {Duration? duration, bool instant = false}) async {
-    if (_firstItemWidth == null || !_scrollController.hasClients) return;
+    if (!mounted || _firstItemWidth == null || !_scrollController.hasClients) return;
 
     final target = _cumulativeOffset(index).clamp(0, _scrollController.position.maxScrollExtent);
 
-    _scrollAnimation?.stop();
+    _disposeScrollAnimation();
 
     if (instant) {
       if (_scrollController.hasClients) _scrollController.jumpTo(target.toDouble());
@@ -179,10 +188,17 @@ class _HorizontalListState extends ConsumerState<HorizontalList> with TickerProv
       }
     });
 
-    await controller.forward();
-
-    if (_scrollAnimation == controller) _scrollAnimation = null;
-    controller.dispose();
+    try {
+      await controller.forward().orCancel;
+    } on TickerCanceled {
+      // Replaced scrolls and route disposal cancel the pending animation.
+    } finally {
+      animation.dispose();
+      if (identical(_scrollAnimation, controller)) {
+        _scrollAnimation = null;
+        controller.dispose();
+      }
+    }
   }
 
   void _scrollToStart() {
