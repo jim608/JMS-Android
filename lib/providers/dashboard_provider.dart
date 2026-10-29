@@ -21,10 +21,31 @@ class DashboardNotifier extends StateNotifier<HomeModel> {
   final Ref ref;
 
   late final JellyService api = ref.read(jellyApiProvider);
+  int _refreshGeneration = 0;
 
   Future<void> fetchNextUpAndResume() async {
-    if (state.loading) return;
+    if (!mounted || state.loading) return;
+    final generation = ++_refreshGeneration;
     state = state.copyWith(loading: true);
+    try {
+      final refreshed = await _fetchRows(generation);
+      if (refreshed != null && _isCurrentRefresh(generation)) {
+        state = refreshed.copyWith(loading: false);
+      }
+    } finally {
+      // A retired request must not unlock a newer refresh after clear().
+      if (_isCurrentRefresh(generation) && state.loading) {
+        state = state.copyWith(loading: false);
+      }
+    }
+  }
+
+  bool _isCurrentRefresh(int generation) => mounted && generation == _refreshGeneration;
+
+  Future<HomeModel?> _fetchRows(int generation) async {
+    if (!_isCurrentRefresh(generation)) return null;
+    // Keep the displayed rows intact until every sequential request succeeds.
+    var refreshed = state;
     final viewTypes =
         ref.read(viewsProvider.select((value) => value.dashboardViews)).map((e) => e.collectionType).toSet().toList();
     final limit = 16;
@@ -49,12 +70,9 @@ class DashboardNotifier extends StateNotifier<HomeModel> {
     };
 
     if (viewTypes.containsAny([CollectionType.livetv])) {
-      List<ChannelModel> channels = (await api.liveTvChannelsGet(limit: limit))
-              .body
-              ?.items
-              ?.map((e) => ChannelModel.fromBaseDto(e, ref))
-              .toList() ??
-          [];
+      final response = await api.liveTvChannelsGet(limit: limit);
+      if (!_isCurrentRefresh(generation)) return null;
+      List<ChannelModel> channels = response.body?.items?.map((e) => ChannelModel.fromBaseDto(e, ref)).toList() ?? [];
 
       channels = await Future.wait(
         channels.map(
@@ -66,10 +84,11 @@ class DashboardNotifier extends StateNotifier<HomeModel> {
           },
         ),
       );
+      if (!_isCurrentRefresh(generation)) return null;
 
-      state = state.copyWith(activePrograms: channels);
+      refreshed = refreshed.copyWith(activePrograms: channels);
     } else {
-      state = state.copyWith(activePrograms: []);
+      refreshed = refreshed.copyWith(activePrograms: []);
     }
 
     if (viewTypes.containsAny([CollectionType.movies, CollectionType.tvshows])) {
@@ -80,8 +99,9 @@ class DashboardNotifier extends StateNotifier<HomeModel> {
         enableTotalRecordCount: false,
         limit: limit,
       );
+      if (!_isCurrentRefresh(generation)) return null;
 
-      state = state.copyWith(
+      refreshed = refreshed.copyWith(
         resumeVideo: resumeVideoResponse.body?.items?.map((e) => ItemBaseModel.fromBaseDto(e, ref)).toList(),
       );
     }
@@ -94,8 +114,9 @@ class DashboardNotifier extends StateNotifier<HomeModel> {
         enableTotalRecordCount: false,
         limit: limit,
       );
+      if (!_isCurrentRefresh(generation)) return null;
 
-      state = state.copyWith(
+      refreshed = refreshed.copyWith(
         resumeAudio: resumeAudioResponse.body?.items?.map((e) => ItemBaseModel.fromBaseDto(e, ref)).toList(),
       );
     }
@@ -108,8 +129,9 @@ class DashboardNotifier extends StateNotifier<HomeModel> {
         enableTotalRecordCount: false,
         limit: limit,
       );
+      if (!_isCurrentRefresh(generation)) return null;
 
-      state = state.copyWith(
+      refreshed = refreshed.copyWith(
         resumeBooks: resumeBookResponse.body?.items?.map((e) => ItemBaseModel.fromBaseDto(e, ref)).toList(),
       );
     }
@@ -121,6 +143,7 @@ class DashboardNotifier extends StateNotifier<HomeModel> {
       enableImageTypes: imagesToFetch,
       imageTypeLimit: 1,
     );
+    if (!_isCurrentRefresh(generation)) return null;
 
     final next = nextResponse.body?.items
             ?.map(
@@ -129,10 +152,11 @@ class DashboardNotifier extends StateNotifier<HomeModel> {
             .toList() ??
         [];
 
-    state = state.copyWith(nextUp: next, loading: false);
+    return refreshed.copyWith(nextUp: next);
   }
 
   void clear() {
+    _refreshGeneration++;
     state = HomeModel();
   }
 }
