@@ -1,3 +1,22 @@
+# JMS 0.11.1-jms.56
+
+## Fixed
+
+- Fixes SyncPlay waiting loops after subtitle changes when temporary renderer idle is mistaken for insufficient buffering, while preserving real cache-wait and stale-event protection.
+- Touch player backgrounds toggle the controls, which hide after ten idle seconds; held interactions and open menus keep controls available.
+- Failed home refreshes preserve existing content and allow retry, while stale responses cannot overwrite newer state.
+- Fixes animation and focus-resource cleanup after horizontal scrolling is cancelled or its page closes.
+
+## Known issues
+
+- Physical native decoding, live two-client Jellyfin, Steam Deck and Flatpak Portal acceptance remain incomplete.
+- Android stable releases remain subject to version-specific device and signing acceptance.
+
+## Update notes
+
+- The Windows installer is unsigned; Linux test packages do not change the production Flatpak update origin.
+- SyncPlay continues to coordinate manual chapter and segment seeks through the room, with per-device automatic skipping disabled during group playback.
+
 # JMS 0.11.1-jms.55
 
 ## Fixed
