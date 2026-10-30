@@ -44,14 +44,28 @@ void main() {
     );
   });
 
-  test('native measured time parsing rejects unknown nonfinite negative and overflow', () {
-    for (final value in [null, '', 'unknown', 'NaN', 'Infinity', '-1', '1e100', '5MiB']) {
+  test(
+      'native measured time parsing rejects unknown nonfinite negative and overflow',
+      () {
+    for (final value in [
+      null,
+      '',
+      'unknown',
+      'NaN',
+      'Infinity',
+      '-1',
+      '1e100',
+      '5MiB'
+    ]) {
       expect(syncPlayMeasuredMediaTime(value), isNull);
     }
     expect(syncPlayMeasuredMediaTime('0'), Duration.zero);
-    expect(syncPlayMeasuredMediaTime('100.25'), const Duration(milliseconds: 100250));
+    expect(syncPlayMeasuredMediaTime('100.25'),
+        const Duration(milliseconds: 100250));
   });
-  test('fresh property allowlist copies absolute cache end and only scalar data', () async {
+  test(
+      'fresh property allowlist copies absolute cache end and only scalar data',
+      () async {
     final sample = await probe.sample();
     expect(sample.position, const Duration(milliseconds: 100250));
     expect(sample.bufferEnd, const Duration(milliseconds: 130500));
@@ -67,13 +81,15 @@ void main() {
       'paused-for-cache',
       'demuxer-cache-state/fw-bytes',
       'seeking',
+      'core-idle',
     });
     properties['demuxer-cache-time'] = '200';
     expect(sample.bufferEnd, const Duration(milliseconds: 130500));
     expect((await probe.sample()).bufferEnd, const Duration(seconds: 200));
     expect(writes, isEmpty);
   });
-  test('unknown native metrics remain null, never PlayerState initial zeros', () async {
+  test('unknown native metrics remain null, never PlayerState initial zeros',
+      () async {
     properties['demuxer-cache-time'] = '';
     properties['demuxer-cache-state/fw-bytes'] = 'invalid';
     properties['duration'] = 'NaN';
@@ -86,7 +102,8 @@ void main() {
     expect(unknown.position, lessThan(Duration.zero));
     expect(unknown.buffering, isTrue);
   });
-  test('native HDR, seeking and raw waiting are distinct from buffer capacity', () async {
+  test('native HDR, seeking and raw waiting are distinct from buffer capacity',
+      () async {
     preparing = true;
     expect((await probe.sample()).preparing, isTrue);
     preparing = false;
@@ -99,15 +116,23 @@ void main() {
     buffering = true;
     expect((await probe.sample()).buffering, isTrue);
   });
-  test('one budget write is shared across repeated and concurrent initialization', () async {
-    final result = await Future.wait([probe.configureBudget(), probe.configureBudget(), probe.configureBudget()]);
+  test(
+      'one budget write is shared across repeated and concurrent initialization',
+      () async {
+    final result = await Future.wait([
+      probe.configureBudget(),
+      probe.configureBudget(),
+      probe.configureBudget()
+    ]);
     expect(result, everyElement(157286400));
     expect(writes, ['demuxer-max-bytes=157286400']);
     await probe.sample();
     await probe.sample();
     expect(writes.length, 1);
   });
-  test('a smaller native budget is preserved and unavailable readback is not verified', () async {
+  test(
+      'a smaller native budget is preserved and unavailable readback is not verified',
+      () async {
     properties['demuxer-max-bytes'] = '1024';
     expect(await probe.configureBudget(), 1024);
     expect(writes, ['demuxer-max-bytes=1024']);
@@ -122,10 +147,12 @@ void main() {
     expect(await ignored.configureBudget(), isNull);
   });
   for (final change in ['media epoch', 'player', 'dispose']) {
-    test('late native property replies are rejected after $change changes', () async {
+    test('late native property replies are rejected after $change changes',
+        () async {
       final gate = Completer<String?>();
       final delayed = MpvSyncPlayBufferProbe(
-        read: (name) => name == 'time-pos' ? gate.future : Future.value(properties[name]),
+        read: (name) =>
+            name == 'time-pos' ? gate.future : Future.value(properties[name]),
         write: (_, __) async {},
         isCurrent: () => current,
         generation: () => generation,
@@ -143,7 +170,9 @@ void main() {
       expect(result.bufferEnd, isNull);
     });
   }
-  test('disposing a pending budget cannot report verified support for a replacement', () async {
+  test(
+      'disposing a pending budget cannot report verified support for a replacement',
+      () async {
     final gate = Completer<String?>();
     final delayed = MpvSyncPlayBufferProbe(
       read: (_) => gate.future,
@@ -187,4 +216,75 @@ void main() {
       expect((await stalled.sample()).position, lessThan(Duration.zero));
     },
   );
+
+  test('idle recovery proof is exact and can only be consumed once', () async {
+    buffering = true;
+    properties['core-idle'] = 'yes';
+    final sample = await probe.sample();
+    expect(sample.buffering, isFalse);
+    expect(probe.consumeIdleRecovery(unknownSyncPlayBufferSample()), isFalse);
+    expect(probe.consumeIdleRecovery(sample), isTrue);
+    expect(probe.consumeIdleRecovery(sample), isFalse);
+    final next = await probe.sample();
+    generation++;
+    expect(probe.consumeIdleRecovery(next), isFalse);
+  });
+
+  test('an idle observation expires without clearing any native flag',
+      () async {
+    var clock = now;
+    buffering = true;
+    properties['core-idle'] = 'yes';
+    final observed = MpvSyncPlayBufferProbe(
+      read: (name) async => properties[name],
+      write: (_, __) async => fail('Readiness must not issue native commands'),
+      isCurrent: () => current,
+      generation: () => generation,
+      buffering: () => buffering,
+      preparing: () => preparing,
+      now: () => clock,
+    );
+    final sample = await observed.sample();
+    clock = clock.add(const Duration(seconds: 1));
+    expect(observed.consumeIdleRecovery(sample), isFalse);
+    expect(buffering, isTrue);
+  });
+
+  test('a repeated true native event revokes an in-flight healthy idle reply',
+      () async {
+    buffering = true;
+    properties['core-idle'] = 'yes';
+    final gate = Completer<void>();
+    final observed = MpvSyncPlayBufferProbe(
+      read: (name) async {
+        await gate.future;
+        return properties[name];
+      },
+      write: (_, __) async {},
+      isCurrent: () => current,
+      generation: () => generation,
+      buffering: () => buffering,
+      preparing: () => preparing,
+    );
+    final pending = observed.sample();
+    observed.invalidateIdleRecovery(); // true -> true, not a boolean edge.
+    gate.complete();
+    final late = await pending;
+    expect(late.buffering, isTrue);
+    expect(observed.consumeIdleRecovery(late), isFalse);
+  });
+
+  test('a newer real cache wait invalidates the earlier healthy idle proof',
+      () async {
+    buffering = true;
+    properties['core-idle'] = 'yes';
+    final healthy = await probe.sample();
+    properties['paused-for-cache'] = 'yes';
+    probe.invalidateIdleRecovery();
+    expect(probe.consumeIdleRecovery(healthy), isFalse);
+    final waiting = await probe.sample();
+    expect(waiting.buffering, isTrue);
+    expect(probe.consumeIdleRecovery(waiting), isFalse);
+    expect(writes, isEmpty);
+  });
 }

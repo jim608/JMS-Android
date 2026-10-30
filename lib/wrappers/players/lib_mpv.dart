@@ -62,6 +62,7 @@ class LibMPV extends BasePlayer {
   MpvSyncPlayBufferProbe? _syncPlayBufferProbe;
   mpv.Player? _syncPlayBufferPlayer;
   int _syncPlaySeekEpoch = 0;
+  int _syncPlayBufferSignalEpoch = 0;
   bool _softwareDecodeFallback = false;
   PlaybackAttemptRef? _activeDiagnosticAttempt;
   PlaybackSourceKind _diagnosticSourceKind = PlaybackSourceKind.unknown;
@@ -193,12 +194,38 @@ class LibMPV extends BasePlayer {
               .setProperty(name, value, waitForInitialization: false);
         },
         isCurrent: () => player == _player,
-        generation: () => (_mediaLoadGeneration, _syncPlaySeekEpoch),
+        generation: () => (
+          _mediaLoadGeneration,
+          _syncPlaySeekEpoch,
+          _subtitleGeneration,
+          _syncPlayBufferSignalEpoch
+        ),
         buffering: () => player.state.buffering,
         preparing: () => _hdrPreparing,
       );
     }
     return _syncPlayBufferProbe!;
+  }
+
+  @protected
+  MpvSyncPlayBufferProbe? get syncPlayBufferProbe => _syncPlayBufferProbe;
+
+  void invalidateSyncPlayBufferObservation() {
+    _syncPlayBufferSignalEpoch++;
+    syncPlayBufferProbe?.invalidateIdleRecovery();
+  }
+
+  /// The wrapper calls this only for the same still-active room binding after
+  /// sampling. Publish one real ready edge for the adapter/UI/controller, while
+  /// keeping the native media-kit state and real cache waiting untouched.
+  void reconcileSyncPlayBufferSample(SyncPlayBufferSample sample) {
+    if (lastState.buffering &&
+        !sample.buffering &&
+        !sample.preparing &&
+        !_hdrPreparing &&
+        (syncPlayBufferProbe?.consumeIdleRecovery(sample) ?? false)) {
+      setState(lastState.update(buffering: false));
+    }
   }
 
   Future<int?> configureSyncPlayBufferBudget() async {
@@ -350,9 +377,8 @@ class LibMPV extends BasePlayer {
     } catch (error) {
       final attempt = diagnosticAttempt ??
           PlaybackDiagnostics.instance.startAttempt(
-            backend: kIsWeb
-                ? PlaybackBackend.webVideo
-                : PlaybackBackend.mediaKit,
+            backend:
+                kIsWeb ? PlaybackBackend.webVideo : PlaybackBackend.mediaKit,
           );
       _recordDiagnostic(
         attempt,
@@ -474,6 +500,7 @@ class LibMPV extends BasePlayer {
       final observedPlayer = _player!;
       _hdrToneMapper = _createHdrToneMapper(observedPlayer);
       await nativePlayer.observeProperty('seeking', (String value) async {
+        if (observedPlayer == _player) invalidateSyncPlayBufferObservation();
         final generation = _subtitleGeneration;
         await _subtitleSeekRefresh.onSeekingChanged(
           value,
@@ -625,6 +652,7 @@ class LibMPV extends BasePlayer {
       player.stream.buffering.listen((value) {
         _recordPlaybackTransition(player);
         if (player == _player) {
+          invalidateSyncPlayBufferObservation();
           setState(lastState.update(buffering: _hdrPreparing || value));
         }
       }),

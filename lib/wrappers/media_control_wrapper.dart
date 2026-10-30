@@ -103,7 +103,17 @@ class MediaControlsWrapper extends BaseAudioHandler
 
   Stream<PlayerState> get stateStream => _stateController.stream;
   PlayerState? get lastState => _player?.lastState;
-  SyncPlayPlayerCommands? syncPlayCommands;
+  SyncPlayPlayerCommands? _syncPlayCommands;
+  int _syncPlayBindingEpoch = 0;
+  SyncPlayPlayerCommands? get syncPlayCommands => _syncPlayCommands;
+  set syncPlayCommands(SyncPlayPlayerCommands? commands) {
+    if (identical(commands, _syncPlayCommands)) return;
+    _syncPlayCommands = commands;
+    _syncPlayBindingEpoch++;
+    final player = _player;
+    if (player is LibMPV) player.invalidateSyncPlayBufferObservation();
+  }
+
   bool get syncPlayActive => syncPlayCommands?.active == true;
   bool get supportsSyncPlay =>
       _player is LibMPV || (!kIsWeb && _player is LibMDK);
@@ -118,8 +128,18 @@ class MediaControlsWrapper extends BaseAudioHandler
   Future<SyncPlayBufferSample> readSyncPlayBufferSample() async {
     final player = _player;
     if (player is LibMPV) {
+      final binding = _syncPlayBindingEpoch;
+      final wasActive = syncPlayActive;
       final sample = await player.readSyncPlayBufferSample();
-      return player == _player ? sample : unknownSyncPlayBufferSample();
+      if (player != _player ||
+          binding != _syncPlayBindingEpoch ||
+          (wasActive && !syncPlayActive)) {
+        return unknownSyncPlayBufferSample();
+      }
+      if (wasActive && binding == _syncPlayBindingEpoch && syncPlayActive) {
+        player.reconcileSyncPlayBufferSample(sample);
+      }
+      return sample;
     }
     // Unsupported engines expose no measured buffer contract. Copying their
     // current scalar playback state permits only the labelled unknown fallback.
@@ -957,8 +977,9 @@ class MediaControlsWrapper extends BaseAudioHandler
 
   @override
   Future<void> seek(Duration position) async {
-    ref.read(segmentSkipSessionProvider).manualSeek(
-        ref.read(mediaPlaybackProvider).position, position);
+    ref
+        .read(segmentSkipSessionProvider)
+        .manualSeek(ref.read(mediaPlaybackProvider).position, position);
     return _seekThroughPlaybackRules(position);
   }
 

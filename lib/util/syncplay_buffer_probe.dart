@@ -3,11 +3,17 @@ import 'package:fladder/util/mpv_syncplay_buffer.dart';
 
 Duration? syncPlayMeasuredMediaTime(String? raw) {
   final seconds = double.tryParse(raw?.trim() ?? '');
-  if (seconds == null || !seconds.isFinite || seconds < 0 || seconds > 9000000000) return null;
+  if (seconds == null ||
+      !seconds.isFinite ||
+      seconds < 0 ||
+      seconds > 9000000000) {
+    return null;
+  }
   return Duration(microseconds: (seconds * 1000000).round());
 }
 
-SyncPlayBufferSample unknownSyncPlayBufferSample({DateTime Function()? now, bool preparing = false}) =>
+SyncPlayBufferSample unknownSyncPlayBufferSample(
+        {DateTime Function()? now, bool preparing = false}) =>
     SyncPlayBufferSample(
       position: const Duration(microseconds: -1),
       buffering: true,
@@ -36,9 +42,40 @@ class MpvSyncPlayBufferProbe {
   final Duration timeout;
   bool _disposed = false;
   Future<int?>? _budget;
+  int _sampleSerial = 0;
+  SyncPlayBufferSample? _idleRecovery;
+  Object? _idleRecoveryGeneration;
+
+  /// Native waiting/seek notifications revoke an in-flight observation even
+  /// when media-kit's conflated buffering boolean stays true -> true.
+  void invalidateIdleRecovery() {
+    _sampleSerial++;
+    _idleRecovery = null;
+    _idleRecoveryGeneration = null;
+  }
+
+  /// Consume exactly the fresh, current observation that distinguished a
+  /// subtitle/renderer idle from a real cache wait. This never plays or seeks.
+  bool consumeIdleRecovery(SyncPlayBufferSample sample) {
+    if (!_current ||
+        !identical(sample, _idleRecovery) ||
+        generation() != _idleRecoveryGeneration ||
+        preparing() ||
+        !buffering()) {
+      return false;
+    }
+    final age = now().difference(sample.observedAt);
+    if (age.isNegative || age > timeout) return false;
+    _idleRecovery = null;
+    _idleRecoveryGeneration = null;
+    return true;
+  }
 
   bool get _current => !_disposed && isCurrent();
-  void dispose() => _disposed = true;
+  void dispose() {
+    _disposed = true;
+    invalidateIdleRecovery();
+  }
 
   Future<int?> configureBudget() {
     if (!_current) return Future.value();
@@ -54,11 +91,15 @@ class MpvSyncPlayBufferProbe {
       },
       timeout: timeout,
     );
-    return _current && result.status == MpvSyncPlayBufferSettingStatus.verified ? result.actualBytes : null;
+    return _current && result.status == MpvSyncPlayBufferSettingStatus.verified
+        ? result.actualBytes
+        : null;
   }
 
   Future<SyncPlayBufferSample> sample() async {
     if (!_current) return unknownSyncPlayBufferSample(now: now);
+    invalidateIdleRecovery();
+    final serial = _sampleSerial;
     final epoch = generation();
     final started = now();
     final wasBuffering = buffering();
@@ -71,6 +112,7 @@ class MpvSyncPlayBufferProbe {
         'paused-for-cache',
         'demuxer-cache-state/fw-bytes',
         'seeking',
+        'core-idle',
       ];
       final values = await Future.wait(
         properties.map((name) async {
@@ -81,20 +123,56 @@ class MpvSyncPlayBufferProbe {
           }
         }),
       );
-      if (!_current || generation() != epoch) return unknownSyncPlayBufferSample(now: now);
+      if (!_current || generation() != epoch || serial != _sampleSerial) {
+        return unknownSyncPlayBufferSample(now: now);
+      }
       final position = syncPlayMeasuredMediaTime(values[0]);
-      if (position == null) return unknownSyncPlayBufferSample(now: now, preparing: wasPreparing || preparing());
-      return SyncPlayBufferSample(
+      if (position == null) {
+        return unknownSyncPlayBufferSample(
+            now: now, preparing: wasPreparing || preparing());
+      }
+      final bufferEnd = syncPlayMeasuredMediaTime(values[1]);
+      final cacheWaiting = _nativeFlag(values[3]);
+      final seeking = _nativeFlag(values[5]);
+      final coreIdle = _nativeFlag(values[6]);
+      final isPreparing = wasPreparing || preparing() || seeking == true;
+      // media-kit emits buffering=true for core-idle as well as for actual
+      // paused-for-cache. Changing sid/sub-add can idle the renderer without
+      // starving the demuxer. Requiring that flag to clear before Play creates
+      // a circular wait in SyncPlay. Only explicit native false flags plus a
+      // real forward media range can distinguish this benign idle; unknown,
+      // malformed, seeking, HDR preparation and real cache waits fail closed.
+      final idleRecovery = (wasBuffering || buffering()) &&
+          coreIdle == true &&
+          cacheWaiting == false &&
+          seeking == false &&
+          !isPreparing &&
+          bufferEnd != null &&
+          bufferEnd > position;
+      final result = SyncPlayBufferSample(
         position: position,
-        bufferEnd: syncPlayMeasuredMediaTime(values[1]),
+        bufferEnd: bufferEnd,
         duration: syncPlayMeasuredMediaTime(values[2]),
         forwardBytes: mpvSyncPlayForwardBytes(values[4]),
-        buffering: wasBuffering || buffering() || values[3] == 'yes' || values[3] == 'true' || values[3] == '1',
-        preparing: wasPreparing || preparing() || values[5] == 'yes' || values[5] == 'true' || values[5] == '1',
+        buffering: !idleRecovery &&
+            (wasBuffering || buffering() || cacheWaiting == true),
+        preparing: isPreparing,
         observedAt: started,
       );
+      if (idleRecovery) {
+        _idleRecovery = result;
+        _idleRecoveryGeneration = epoch;
+      }
+      return result;
     } catch (_) {
-      return unknownSyncPlayBufferSample(now: now, preparing: _current && preparing());
+      return unknownSyncPlayBufferSample(
+          now: now, preparing: _current && preparing());
     }
   }
+
+  static bool? _nativeFlag(String? value) => switch (value?.trim()) {
+        'yes' || 'true' || '1' => true,
+        'no' || 'false' || '0' => false,
+        _ => null,
+      };
 }

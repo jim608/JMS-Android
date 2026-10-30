@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/services.dart';
 import 'package:chopper/chopper.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,6 +17,8 @@ import 'package:fladder/models/media_playback_model.dart';
 import 'package:fladder/models/playback/playback_model.dart';
 import 'package:fladder/models/settings/video_player_settings.dart';
 import 'package:fladder/models/settings/subtitle_settings_model.dart';
+import 'package:fladder/models/settings/client_settings_model.dart';
+import 'package:fladder/providers/settings/client_settings_provider.dart';
 import 'package:fladder/profiles/default_profile.dart';
 import 'package:fladder/providers/settings/video_player_settings_provider.dart';
 import 'package:fladder/providers/image_provider.dart';
@@ -29,8 +32,14 @@ import 'package:fladder/services/syncplay/syncplay_player_commands.dart';
 import 'package:fladder/wrappers/media_control_wrapper.dart';
 import 'package:fladder/wrappers/players/player_states.dart';
 import 'package:fladder/wrappers/players/base_player.dart';
+import 'package:fladder/wrappers/players/lib_mpv.dart';
+import 'package:fladder/util/syncplay_buffer_probe.dart';
+import 'package:fladder/services/syncplay/syncplay_prebuffer.dart';
+import 'package:fladder/services/syncplay/syncplay_buffering.dart';
+import 'package:fladder/services/syncplay/syncplay_prebuffer_coordinator.dart';
 
 import 'syncplay_controller_test.dart' as protocol;
+import 'support/syncplay_wait_server.dart' as wait;
 
 class _Smtc extends Fake implements SmtcInternal {}
 
@@ -57,6 +66,8 @@ class _SmtcApi extends Fake implements RustLibApi {
       case #crateApiApiSmtcShuffleRequestEvent:
         return const Stream<bool>.empty();
       case #crateApiApiSmtcUpdateConfig:
+      case #crateApiApiSmtcUpdateTimeline:
+      case #crateApiApiSmtcUpdatePlaybackStatus:
         return Future<void>.value();
       default:
         return super.noSuchMethod(invocation);
@@ -92,6 +103,231 @@ class _ReadyPlayer extends Fake implements BasePlayer {
     rateAndLoadEvents.add('rate:$speed');
     await rateReady?.future;
     rate = speed;
+  }
+}
+
+/// Only native property IO is synthetic. Wrapper binding, idle proof,
+/// reconciliation, state stream and the command adapter are production code.
+class _IdleNativePlayer extends LibMPV {
+  _IdleNativePlayer({this.clock}) {
+    lastState = PlayerState(
+        playing: false, buffering: true, position: const Duration(seconds: 8));
+    probe = MpvSyncPlayBufferProbe(
+      read: (name) async {
+        if (pendingProperties != null) await pendingProperties!.future;
+        if (name == 'time-pos') _progress();
+        return properties[name];
+      },
+      write: (_, __) async {},
+      isCurrent: () => current,
+      generation: () => epoch,
+      buffering: () => nativeWaiting,
+      preparing: () => false,
+      now: clock,
+    );
+  }
+  final properties = <String, String?>{
+    'time-pos': '8',
+    'demuxer-cache-time': '40',
+    'duration': '120',
+    'paused-for-cache': 'no',
+    'demuxer-cache-state/fw-bytes': '10000',
+    'seeking': 'no',
+    'core-idle': 'yes',
+  };
+  late final MpvSyncPlayBufferProbe probe;
+  final DateTime Function()? clock;
+  DateTime? _at;
+  void _progress() {
+    final time = clock?.call();
+    if (time != null && _at != null && lastState.playing) {
+      final elapsed = time.difference(_at!);
+      if (!elapsed.isNegative) lastState.position += elapsed;
+      properties['time-pos'] = '${lastState.position.inMilliseconds / 1000}';
+      setState(lastState);
+    }
+    _at = time;
+  }
+
+  final events = <String>[];
+  bool current = true, nativeWaiting = true;
+  int epoch = 0;
+  Completer<void>? pendingProperties;
+  @override
+  MpvSyncPlayBufferProbe get syncPlayBufferProbe => probe;
+  @override
+  Future<void> init(VideoPlayerSettingsModel settings) async {}
+  @override
+  Future<SyncPlayBufferSample> readSyncPlayBufferSample() => probe.sample();
+  @override
+  Future<int?> configureSyncPlayBufferBudget() async => 150 * 1024 * 1024;
+  @override
+  Future<void> play() async {
+    events.add('native-play');
+    _at = clock?.call();
+    setState(lastState.update(playing: true));
+  }
+
+  @override
+  Future<void> pause() async {
+    events.add('native-pause');
+    _progress();
+    setState(lastState.update(playing: false));
+  }
+
+  @override
+  Future<void> seek(Duration position) async {
+    events.add('native-seek');
+    epoch++;
+    _at = clock?.call();
+    properties['time-pos'] = '${position.inMilliseconds / 1000}';
+    properties['demuxer-cache-time'] = '${position.inMilliseconds / 1000 + 32}';
+    setState(lastState.update(position: position));
+  }
+
+  @override
+  Future<void> setSpeed(double speed) async {}
+  @override
+  Future<int> setSubtitleTrack(
+      SubStreamModel? model, PlaybackModel playbackModel) async {
+    final index = model?.index ?? -1;
+    events.add('native-subtitle:$index');
+    epoch++;
+    nativeWaiting = true;
+    properties['core-idle'] = 'yes';
+    invalidateSyncPlayBufferObservation();
+    setState(lastState.update(buffering: true));
+    return index;
+  }
+
+  @override
+  Future<void> dispose() async {
+    current = false;
+    probe.dispose();
+    await super.dispose();
+  }
+}
+
+/// Extend the existing official Waiting/Ready contract fixture with only the
+/// ordinary user commands exercised here. No real server or account is used.
+class _NativeWaitServer extends wait.WaitServer {
+  _NativeWaitServer(super.clock);
+  @override
+  void handle(wait.WaitApi api, SyncPlayRequest request) {
+    switch (request.type) {
+      case SyncPlayRequestType.pause:
+        applied.add(request.type);
+        pause();
+      case SyncPlayRequestType.unpause:
+        applied.add(request.type);
+        resumePlaying = true;
+        if (!waiting) play('Unpause');
+      case SyncPlayRequestType.seek:
+        applied.add(request.type);
+        resumePlaying = state == 'Playing';
+        anchorPosition = syncPlayPosition(request.body['PositionTicks']);
+        anchorWhen = clock.now;
+        state = 'Waiting';
+        for (final member in members.values) {
+          member.buffering = true;
+        }
+        command('Seek');
+        broadcastState('Seek');
+      default:
+        super.handle(api, request);
+    }
+  }
+}
+
+class _NativeRoomEnd {
+  _NativeRoomEnd(this.time, this.server, String name)
+      : api = wait.WaitApi(server, name),
+        backend = _IdleNativePlayer(clock: () => time.now);
+  final wait.WaitClock time;
+  final _NativeWaitServer server;
+  final wait.WaitApi api;
+  final _IdleNativePlayer backend;
+  final container = ProviderContainer(overrides: [
+    playBackModel.overrideWith((_) => _model(_Api())),
+    clientSettingsProvider.overrideWith((ref) => ClientSettingsNotifier(ref)
+      ..applyRestoredSettings(
+          ClientSettingsModel.defaultModel().copyWith(enableMediaKeys: false))),
+  ]);
+  final commands = _Commands();
+  late final MediaControlsWrapper wrapper;
+  late final SyncPlayPlayerAdapter adapter;
+  late final SyncPlayController controller;
+  late final SyncPlayPrebufferCoordinator prebuffer;
+  late final SyncPlayBufferingReporter reporter;
+  StreamSubscription<PlayerState>? snapshots;
+  StreamSubscription<SyncPlayControllerState>? rooms;
+
+  Future<void> initialize() async {
+    final refProvider = Provider<Ref>((ref) => ref);
+    wrapper = MediaControlsWrapper(ref: container.read(refProvider));
+    await wrapper.setup(backend);
+    backend.nativeWaiting = false;
+    backend.properties['core-idle'] = 'no';
+    backend.properties['duration'] = '600';
+    backend.lastState.buffering = false;
+    await backend.seek(server.anchorPosition);
+    wrapper.syncPlayCommands = commands;
+    final ref = _Ref()..values[videoPlayerProvider] = wrapper;
+    adapter = SyncPlayPlayerAdapter(
+        ref: ref, account: account, api: _Api(), isCurrent: () => true);
+    controller = SyncPlayController(
+        identity: SyncPlayIdentity(
+            sourceId: 'synthetic', userId: api.name, sessionId: api.name),
+        api: api,
+        player: _AdapterCommands(adapter),
+        events: api.events.stream,
+        clock: SyncPlayClock(now: () => time.now),
+        scheduler: time,
+        isPlayerBuffering: () => adapter.isBuffering,
+        cancelPendingPlayerActions: adapter.cancelPendingActions,
+        mediaReadiness: () => prebuffer.ready,
+        bufferedAhead: () => prebuffer.ahead,
+        targetBufferedAhead: () => prebuffer.target);
+    prebuffer = SyncPlayPrebufferCoordinator(
+        isCurrent: () => true,
+        isActive: () => controller.state.isJoined && !controller.isLoading,
+        generation: () => (controller.mediaBufferEpoch, wrapper),
+        readSample: wrapper.readSyncPlayBufferSample,
+        now: () => time.now,
+        scheduler: time,
+        onDecision: (_) => unawaited(controller.notifyMediaReadinessChanged()));
+    reporter = SyncPlayBufferingReporter(
+        isCurrent: () => true,
+        isBuffering: () => adapter.isBuffering,
+        queueKey: () => controller.state.isJoined
+            ? (
+                controller.state.group!.groupId,
+                controller.state.queue?.current?.playlistItemId
+              )
+            : null,
+        scheduler: time,
+        report: (value) => unawaited(controller.reportBuffering(value)));
+    snapshots = wrapper.stateStream.listen((snapshot) {
+      if (!controller.state.isJoined) return;
+      reporter.update(snapshot.buffering);
+      prebuffer.refresh();
+    });
+    rooms = controller.states.listen((_) {
+      reporter.refreshQueue();
+      prebuffer.refresh();
+    });
+  }
+
+  Future<void> close() async {
+    prebuffer.dispose();
+    reporter.dispose();
+    await rooms?.cancel();
+    await snapshots?.cancel();
+    adapter.cancelPendingActions();
+    await controller.dispose();
+    await api.events.close();
+    await wrapper.dispose();
+    container.dispose();
   }
 }
 
@@ -330,7 +566,205 @@ SyncPlayPlaybackModel _model(_Api api,
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  setUpAll(() => RustLib.initMock(api: _SmtcApi()));
+  setUpAll(() {
+    RustLib.initMock(api: _SmtcApi());
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMessageHandler(
+            'dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle',
+            (_) async =>
+                const StandardMessageCodec().encodeMessage(<Object?>[null]));
+  });
+  tearDownAll(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMessageHandler(
+            'dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle',
+            null);
+  });
+
+  for (final subtitle in ['off', 'internal', 'external']) {
+    test('subtitle idle $subtitle releases the real adapter before native play',
+        () async {
+      final container = ProviderContainer();
+      final refProvider = Provider<Ref>((ref) => ref);
+      final wrapper = MediaControlsWrapper(ref: container.read(refProvider));
+      final backend = _IdleNativePlayer();
+      await wrapper.setup(backend);
+      final commands = _Commands();
+      wrapper.syncPlayCommands = commands;
+      final track = subtitle == 'off'
+          ? SubStreamModel.no()
+          : SubStreamModel(
+              name: 'Synthetic subtitle',
+              id: 'synthetic-$subtitle',
+              title: 'Synthetic subtitle',
+              displayTitle: 'Synthetic subtitle',
+              language: 'en',
+              codec: 'srt',
+              index: subtitle == 'internal' ? 1 : 2,
+              isDefault: false,
+              isExternal: subtitle == 'external',
+              url: subtitle == 'external'
+                  ? 'https://media.example.invalid/subtitle.srt'
+                  : null);
+      await _model(_Api()).setSubtitle(track, wrapper);
+      final selection = 'native-subtitle:${track.index}';
+      final ref = _Ref()..values[videoPlayerProvider] = wrapper;
+      final adapter = SyncPlayPlayerAdapter(
+          ref: ref, account: account, api: _Api(), isCurrent: () => true);
+      addTearDown(() async {
+        adapter.cancelPendingActions();
+        await wrapper.dispose();
+        container.dispose();
+      });
+      var resumed = false;
+      final pending = adapter.applyRemote(const SyncPlayPlayerAction(
+          type: SyncPlayPlayerActionType.unpause,
+          position: Duration(seconds: 8)))
+        ..then((_) => resumed = true);
+      await protocol.settle();
+      expect(resumed, isFalse);
+      expect(backend.events, [selection]);
+      await wrapper.readSyncPlayBufferSample();
+      await protocol.settle();
+      expect(wrapper.lastState!.buffering, isFalse,
+          reason:
+              'A verified subtitle idle cannot require play to become ready');
+      await pending;
+      expect(resumed, isTrue);
+      expect(backend.events, [selection, 'native-play']);
+      expect(commands.events, isEmpty);
+      // A later real cache wait must not reuse the earlier idle proof.
+      backend.properties['paused-for-cache'] = 'yes';
+      backend
+          .setState(backend.lastState.update(playing: false, buffering: true));
+      await wrapper.readSyncPlayBufferSample();
+      expect(wrapper.lastState!.buffering, isTrue);
+    });
+  }
+
+  test('subtitle idle sample from a previous room binding cannot clear waiting',
+      () async {
+    final container = ProviderContainer();
+    final refProvider = Provider<Ref>((ref) => ref);
+    final wrapper = MediaControlsWrapper(ref: container.read(refProvider));
+    final backend = _IdleNativePlayer();
+    await wrapper.setup(backend);
+    final commands = _Commands();
+    wrapper.syncPlayCommands = commands;
+    addTearDown(() async {
+      await wrapper.dispose();
+      container.dispose();
+    });
+    backend.pendingProperties = Completer<void>();
+    final oldSample = wrapper.readSyncPlayBufferSample();
+    wrapper.syncPlayCommands = null;
+    wrapper.syncPlayCommands = commands;
+    backend.pendingProperties!.complete();
+    await oldSample;
+    expect(wrapper.lastState!.buffering, isTrue);
+    backend.pendingProperties = null;
+    await wrapper.readSyncPlayBufferSample();
+    expect(wrapper.lastState!.buffering, isFalse);
+  });
+
+  test(
+      'two real adapters preserve seek, pause-play recovery and rejoin after subtitle idle',
+      () async {
+    final time = wait.WaitClock();
+    final server = _NativeWaitServer(time);
+    final first = _NativeRoomEnd(time, server, 'synthetic-first');
+    final second = _NativeRoomEnd(time, server, 'synthetic-second');
+    await first.initialize();
+    await second.initialize();
+    addTearDown(() async {
+      await first.close();
+      await second.close();
+    });
+    await first.controller.createRoom('001234');
+    await second.controller.joinRoom('001234');
+    server.seedQueue();
+    await time.advance(const Duration(seconds: 1));
+    expect(server.state, 'Playing');
+    expect(first.backend.lastState.playing, isTrue);
+    expect(second.backend.lastState.playing, isTrue);
+
+    // Baseline normal seeking remains an authoritative room operation.
+    for (final seconds in [60, 120]) {
+      await first.controller
+          .requestSeek(Duration(seconds: seconds), userInitiated: true);
+      await time.advance(const Duration(seconds: 1));
+      expect(first.backend.lastState.position.inSeconds, seconds);
+      expect(second.backend.lastState.position.inSeconds, seconds);
+      expect(server.state, 'Playing');
+    }
+    final explicitSeeks = server.requests
+        .where((r) => r.$2.type == SyncPlayRequestType.seek)
+        .length;
+    expect(explicitSeeks, 2);
+
+    for (final end in [first, second]) {
+      final before = server.requests.length;
+      await _model(_Api()).setSubtitle(SubStreamModel.no(), end.wrapper);
+      // Pause before the next native sample: the blocked endpoint must catch
+      // up without requiring a local Play to clear its idle flag.
+      await first.controller.requestPause(userInitiated: true);
+      await time.advance(const Duration(seconds: 1));
+      expect(first.backend.lastState.playing, isFalse);
+      expect(second.backend.lastState.playing, isFalse);
+      expect(end.backend.lastState.buffering, isFalse);
+      await first.controller.requestUnpause(userInitiated: true);
+      await time.advance(const Duration(seconds: 1));
+      expect(server.state, 'Playing');
+      expect(first.backend.lastState.playing, isTrue);
+      expect(second.backend.lastState.playing, isTrue);
+      expect(
+          server.requests.skip(before).where((r) =>
+              r.$2.type == SyncPlayRequestType.seek ||
+              r.$2.type == SyncPlayRequestType.buffering),
+          isEmpty);
+    }
+
+    // A true cache wait is still reported and blocks the group. Releasing
+    // that wait with core-idle still true must recover, then a later true wait
+    // must block again rather than reuse the earlier idle proof.
+    for (var cycle = 0; cycle < 2; cycle++) {
+      second.backend.properties['paused-for-cache'] = 'yes';
+      second.backend.nativeWaiting = true;
+      second.backend.invalidateSyncPlayBufferObservation();
+      second.backend.setState(
+          second.backend.lastState.update(buffering: true, playing: false));
+      await time.advance(const Duration(milliseconds: 3500));
+      expect(server.state, 'Waiting');
+      expect(second.backend.lastState.buffering, isTrue);
+      second.backend.properties['paused-for-cache'] = 'no';
+      second.backend.invalidateSyncPlayBufferObservation();
+      await time.advance(const Duration(seconds: 2));
+      expect(server.state, 'Playing');
+      expect(first.backend.lastState.playing, isTrue);
+      expect(second.backend.lastState.playing, isTrue);
+    }
+
+    // The creator leaves and rejoins as a participant. Reuse the same backend
+    // but revoke the old room binding before testing the other endpoint.
+    first.wrapper.syncPlayCommands = null;
+    first.adapter.cancelPendingActions();
+    await first.controller.leaveRoom();
+    first.wrapper.syncPlayCommands = first.commands;
+    await first.controller.joinRoom('001234');
+    await time.advance(const Duration(seconds: 1));
+    await _model(_Api()).setSubtitle(SubStreamModel.no(), first.wrapper);
+    await time.advance(const Duration(seconds: 1));
+    await _model(_Api()).setSubtitle(SubStreamModel.no(), second.wrapper);
+    await time.advance(const Duration(seconds: 1));
+    expect(first.backend.lastState.buffering, isFalse);
+    expect(second.backend.lastState.buffering, isFalse);
+    expect(first.controller.state.canControl, isTrue);
+    expect(second.controller.state.canControl, isTrue);
+    expect(first.commands.events, isEmpty);
+    expect(second.commands.events, isEmpty);
+    expect(server.requests.where((r) => r.$2.type == SyncPlayRequestType.seek),
+        hasLength(2));
+  });
 
   ({_Wrapper wrapper, SyncPlayPlayerAdapter adapter}) realLoadFixture() {
     final ref = _Ref();
