@@ -1,3 +1,21 @@
+# JMS 0.11.1-jms.57
+
+## Fixed
+
+- Keep a failed Web subtitle selection distinct from Off, confirm the applied selection at playback startup, and allow another selection after a failure.
+- Bind video and subtitles to the same media source identifier and stream index to avoid selecting the wrong subtitle when multiple sources arrive in a different order.
+- Confirm a replacement Web subtitle has loaded before removing the previous track, preserve the current subtitle on failure, and guard repeated input, dismissed menus, and stale playback sessions.
+
+## Known issues
+
+- Tesla vehicle and real two-device SyncPlay acceptance remain incomplete; the original Traditional and Simplified Chinese mismatch has not been confirmed on the vehicle.
+- Web text subtitles support SRT and VTT; ASS, SSA, bitmap, burned-in subtitle and HLS limitations remain, while native ASS and SSA paths are unchanged.
+
+## Update notes
+
+- This version updates the Web application and does not include Android, Windows, or Linux installation packages.
+- SyncPlay retains room synchronization and reload guards without independently changing the group stream after a subtitle selection failure.
+
 # JMS 0.11.1-jms.56
 
 ## Fixed
