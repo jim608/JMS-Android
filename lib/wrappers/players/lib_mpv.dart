@@ -29,6 +29,7 @@ import 'package:fladder/util/mpv_subtitle_route.dart';
 import 'package:fladder/util/dual_subtitle.dart';
 import 'package:fladder/util/subtitle_offset.dart';
 import 'package:fladder/util/web_subtitle_timing.dart';
+import 'package:fladder/util/subtitle_selection_failure.dart';
 import 'package:fladder/widgets/dual_subtitle_text.dart';
 import 'package:fladder/util/mpv_subtitle_selection.dart';
 import 'package:fladder/util/mpv_video_configuration.dart';
@@ -1305,12 +1306,12 @@ class LibMPV extends BasePlayer {
   Future<int> setSubtitleTrack(
       SubStreamModel? model, PlaybackModel playbackModel) async {
     final generation = ++_subtitleGeneration;
-    if (kIsWeb) _webSubtitleTiming.clearTrack();
+    if (kIsWeb) _webSubtitleTiming.cancelPendingSelection();
     final result = _subtitleTask.then((_) async {
       try {
         return await _selectSubtitle(model, playbackModel, generation);
       } catch (_) {
-        if (generation == _subtitleGeneration) {
+        if (!kIsWeb && generation == _subtitleGeneration) {
           _subtitleOffsets.setAvailable(primary: false, secondary: false);
         }
         if (generation == _subtitleGeneration &&
@@ -1334,7 +1335,16 @@ class LibMPV extends BasePlayer {
   Future<int> _selectSubtitle(SubStreamModel? model,
       PlaybackModel playbackModel, int generation) async {
     final player = _player;
-    if (player == null || generation != _subtitleGeneration) return -1;
+    if (player == null || generation != _subtitleGeneration) {
+      if (kIsWeb) {
+        throw const SubtitleSelectionFailure(
+            SubtitleSelectionFailureReason.unavailable);
+      }
+      return -1;
+    }
+    if (kIsWeb) {
+      return _selectWebSubtitle(model, playbackModel, generation, player);
+    }
     _subtitleOffsets.setAvailable(primary: false, secondary: false);
     Future<int> unavailable() async {
       if (player == _player && generation == _subtitleGeneration) {
@@ -1444,6 +1454,54 @@ class LibMPV extends BasePlayer {
     _updateSubtitleOffsetAvailability();
     await _refreshSubtitleTexts(player);
     return wantedSubtitle.index;
+  }
+
+  Future<int> _selectWebSubtitle(SubStreamModel? model,
+      PlaybackModel playbackModel, int generation, mpv.Player player) async {
+    bool current() =>
+        generation == _subtitleGeneration && identical(player, _player);
+    const unavailable =
+        SubtitleSelectionFailure(SubtitleSelectionFailureReason.unavailable);
+    final wanted = model ?? playbackModel.defaultSubStream;
+    if (wanted == null || wanted.index < 0) {
+      await player.setSubtitleTrack(mpv.SubtitleTrack.no());
+      if (!current()) throw unavailable;
+      _webSubtitleTiming.clearTrack();
+      _primarySubtitle = null;
+      _subtitleTextReady = false;
+      _subtitleTexts.value = const SubtitleTextPair();
+      _subtitleRoute.value = const MpvSubtitleRoute(sid: 'no');
+      _currentSubtitleCodec = '';
+      _subtitleDelivery = 'off';
+      _subtitleOffsets.setAvailable(primary: false, secondary: false);
+      return -1;
+    }
+    final url = wanted.url;
+    if (url == null ||
+        url.isEmpty ||
+        !(wanted.isExternal || wanted.supportsExternalStream) ||
+        !isPlainTextSubtitle(wanted.codec)) {
+      // HTML video has no selectable native container subtitle inventory or
+      // styled ASS/SSA renderer. Failure must not turn the current track Off.
+      throw unavailable;
+    }
+    if (_primarySubtitle?.index == wanted.index &&
+        _webSubtitleTiming.appliedSourceUrl == url &&
+        _primarySubtitle?.codec == wanted.codec &&
+        _webSubtitleTiming.available) {
+      return wanted.index;
+    }
+    await _webSubtitleTiming.replaceSubtitle(url, isCurrent: current);
+    if (!current()) throw unavailable;
+    _primarySubtitle = wanted;
+    _currentSubtitleCodec = wanted.codec;
+    _subtitleDelivery = wanted.isExternal
+        ? 'external/local subtitle'
+        : 'Jellyfin extracted text subtitle';
+    _subtitleRoute.value = const MpvSubtitleRoute(plainOverlay: true);
+    _subtitleTextReady = true;
+    _updateSubtitleOffsetAvailability();
+    return wanted.index;
   }
 
   Future<void> _clearSecondary(

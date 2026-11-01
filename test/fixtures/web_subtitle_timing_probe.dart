@@ -39,11 +39,7 @@ Future<void> main() async {
   }
 
   Future<void> select(String url) async {
-    final prepared = await timing.prepareSubtitle(url);
-    video.appendChild(web.HTMLTrackElement()
-      ..kind = 'subtitles'
-      ..src = prepared);
-    timing.selectTrack();
+    await timing.replaceSubtitle(url, isCurrent: () => true);
     await until(() => available);
   }
 
@@ -97,6 +93,30 @@ Future<void> main() async {
     await Future<void>.delayed(const Duration(milliseconds: 120));
     check('video keeps advancing after timing changes',
         !video.paused && video.currentTime > before);
+    await timing.write('sub-delay', '0.000');
+    final replacementTime = video.currentTime;
+    await select('replacement.srt');
+    check(
+        'playing subtitle replacement loads before old track is removed',
+        !video.paused &&
+            available &&
+            video.currentTime >= replacementTime &&
+            video.querySelectorAll('track').length == 1 &&
+            timing.appliedSourceUrl == 'replacement.srt');
+    var replacementFailed = false;
+    try {
+      await timing.replaceSubtitle('missing.srt', isCurrent: () => true);
+    } catch (_) {
+      replacementFailed = true;
+    }
+    check(
+        'failed replacement retains loaded source and playback',
+        replacementFailed &&
+            !video.paused &&
+            available &&
+            video.querySelectorAll('track').length == 1 &&
+            timing.appliedSourceUrl == 'replacement.srt');
+    await select('captions.srt');
     video.pause();
     await timing.write('sub-delay', '60.000');
     check('positive 60 second bound is supported',

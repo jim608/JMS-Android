@@ -44,7 +44,9 @@ import 'package:fladder/util/bitrate_helper.dart';
 import 'package:fladder/util/duration_extensions.dart';
 import 'package:fladder/util/localization_helper.dart';
 import 'package:fladder/util/map_bool_helper.dart';
+import 'package:fladder/util/selected_media_source.dart';
 import 'package:fladder/util/streams_selection.dart';
+import 'package:fladder/util/subtitle_selection_failure.dart';
 import 'package:fladder/wrappers/media_control_wrapper.dart';
 
 class Media {
@@ -281,6 +283,21 @@ class PlaybackModelHelper {
   static const _optionalMetadataBudget = Duration(seconds: 3);
 
   JellyService get api => ref.read(jellyApiProvider);
+
+  MediaStreamsModel _streamsForSelectedSource(
+    SelectedPlaybackMediaSource selected, {
+    required int? audioStreamIndex,
+  }) {
+    final streams = MediaStreamsModel.fromMediaStreamsList([selected.source], ref)
+        .copyWith(
+      defaultAudioStreamIndex: audioStreamIndex,
+      defaultSubStreamIndex: selected.subtitleStreamIndex,
+    );
+    for (final subtitle in streams.subStreams) {
+      subtitle.id = selected.subtitleKey(subtitle.index);
+    }
+    return streams;
+  }
 
   Future<PlaybackModel?> loadNewVideo(ItemBaseModel newItem) async {
     if (ref.read(playBackModel)?.serverManagedQueue == true ||
@@ -674,14 +691,30 @@ class PlaybackModelHelper {
       diagnostics.record(attempt, stage,
           event: PlaybackEvent.started, detail: step);
 
-      final mediaSource =
-          playbackInfo.mediaSources?[newStreamModel?.versionStreamIndex ?? 0];
-
-      if (mediaSource == null) {
+      final binding = resolvePlaybackMediaSource(
+        playbackInfo.mediaSources,
+        requestedMediaSourceId: newStreamModel?.currentVersionStream?.id,
+        subtitleStreamIndex: subStreamIndex,
+      );
+      final selectedSource = binding.selection;
+      if (selectedSource == null) {
         diagnostics.record(attempt, stage,
-            event: PlaybackEvent.failed, detail: 'missing_media_source');
+            event: PlaybackEvent.failed,
+            // Fixed short codes survive conservative opaque-ID redaction;
+            // never put source IDs, indexes, or server metadata in this field.
+            detail: switch (binding.issue) {
+              PlaybackSourceBindingIssue.missingSources => 'source_list_missing',
+              PlaybackSourceBindingIssue.missingSourceId => 'source_id_missing',
+              PlaybackSourceBindingIssue.missingRequestedSource => 'source_missing',
+              PlaybackSourceBindingIssue.ambiguousSourceId => 'source_id_duplicate',
+              PlaybackSourceBindingIssue.ambiguousSources => 'source_ambiguous',
+              PlaybackSourceBindingIssue.missingSubtitle => 'subtitle_missing',
+              PlaybackSourceBindingIssue.ambiguousSubtitle => 'subtitle_duplicate',
+              null => 'source_unavailable',
+            });
         return null;
       }
+      final mediaSource = selectedSource.source;
 
       diagnostics.record(attempt, stage,
           detail: 'direct_play=${mediaSource.supportsDirectPlay == true} '
@@ -700,11 +733,9 @@ class PlaybackModelHelper {
         return null;
       }
 
-      final mediaStreamsWithUrls =
-          MediaStreamsModel.fromMediaStreamsList(playbackInfo.mediaSources, ref)
-              .copyWith(
-        defaultAudioStreamIndex: audioStreamIndex,
-        defaultSubStreamIndex: subStreamIndex,
+      final mediaStreamsWithUrls = _streamsForSelectedSource(
+        selectedSource,
+        audioStreamIndex: audioStreamIndex,
       );
 
       // Chapters/preview thumbnails are nullable and must not indefinitely
@@ -897,6 +928,26 @@ class PlaybackModelHelper {
     final userId = ref.read(userProvider)?.id;
     if (userId?.isEmpty == true) return;
 
+    final ownerModel = ref.read(playBackModel);
+    final ownerPlayer = ref.read(videoPlayerProvider);
+    if (!identical(ownerModel, playbackModel) || ownerPlayer.syncPlayActive) {
+      return;
+    }
+    final ownerStopEpoch = ownerPlayer.playbackStopEpoch;
+    final ownerRoom = ownerPlayer.syncPlayCommands;
+    PlaybackModel? authorizedReplacement;
+    bool stillOwnsPlayback({bool allowReplacement = false}) {
+      final currentModel = ref.read(playBackModel);
+      return identical(ref.read(videoPlayerProvider), ownerPlayer) &&
+          ownerPlayer.playbackStopEpoch == ownerStopEpoch &&
+          identical(ownerPlayer.syncPlayCommands, ownerRoom) &&
+          !ownerPlayer.syncPlayActive &&
+          (identical(currentModel, ownerModel) ||
+              (allowReplacement &&
+                  authorizedReplacement != null &&
+                  identical(currentModel, authorizedReplacement)));
+    }
+
     final currentPosition =
         ref.read(mediaPlaybackProvider.select((value) => value.position));
 
@@ -913,6 +964,7 @@ class PlaybackModelHelper {
         playbackModel.subStreams,
         playbackModel.mediaStreams?.defaultSubStreamIndex);
 
+    if (!stillOwnsPlayback()) return;
     Response<PlaybackInfoResponse> response =
         await api.itemsItemIdPlaybackInfoPost(
       itemId: item.id,
@@ -932,18 +984,25 @@ class PlaybackModelHelper {
       ),
     );
 
+    if (!stillOwnsPlayback()) return;
     PlaybackInfoResponse playbackInfo = response.bodyOrThrow;
 
-    final mediaSource = playbackInfo.mediaSources?.first;
-
-    final mediaStreamsWithUrls =
-        MediaStreamsModel.fromMediaStreamsList(playbackInfo.mediaSources, ref)
-            .copyWith(
-      defaultAudioStreamIndex: audioIndex,
-      defaultSubStreamIndex: subIndex,
+    final binding = resolvePlaybackMediaSource(
+      playbackInfo.mediaSources,
+      requestedMediaSourceId:
+          playbackModel.mediaStreams?.currentVersionStream?.id,
+      subtitleStreamIndex: subIndex,
     );
-
-    if (mediaSource == null) return;
+    final selectedSource = binding.selection;
+    if (selectedSource == null) {
+      throw const SubtitleSelectionFailure(
+          SubtitleSelectionFailureReason.unavailable);
+    }
+    final mediaSource = selectedSource.source;
+    final mediaStreamsWithUrls = _streamsForSelectedSource(
+      selectedSource,
+      audioStreamIndex: audioIndex,
+    );
 
     PlaybackModel? newModel;
 
@@ -1002,9 +1061,21 @@ class PlaybackModelHelper {
     if (newModel == null) return;
     if (newModel.runtimeType != playbackModel.runtimeType ||
         newModel is TranscodePlaybackModel) {
-      ref
+      if (!stillOwnsPlayback()) return;
+      // This exact response-owned replacement may publish itself during open.
+      // A menu operation's old-model guard cannot own that handoff, and an
+      // unrelated same-item replacement must never inherit it.
+      authorizedReplacement = newModel;
+      // A pause or seek while negotiation was pending is newer user intent.
+      final reloadPosition =
+          ref.read(mediaPlaybackProvider.select((value) => value.position));
+      final reloadPlaying =
+          ref.read(mediaPlaybackProvider.select((value) => value.playing));
+      await ref
           .read(videoPlayerProvider.notifier)
-          .loadPlaybackItem(newModel, currentPosition);
+          .loadPlaybackItem(newModel, reloadPosition,
+              playWhenReady: reloadPlaying,
+              isCurrent: () => stillOwnsPlayback(allowReplacement: true));
     }
   }
 }

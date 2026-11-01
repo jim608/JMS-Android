@@ -15,6 +15,7 @@ import 'package:fladder/models/playback/playback_model.dart';
 import 'package:fladder/providers/api_provider.dart';
 import 'package:fladder/util/bitrate_helper.dart';
 import 'package:fladder/util/duration_extensions.dart';
+import 'package:fladder/util/subtitle_selection_failure.dart';
 import 'package:fladder/wrappers/media_control_wrapper.dart';
 
 class TranscodePlaybackModel extends PlaybackModel {
@@ -47,7 +48,9 @@ class TranscodePlaybackModel extends PlaybackModel {
   @override
   Future<TranscodePlaybackModel> setSubtitle(
       SubStreamModel? model, MediaControlsWrapper player) async {
+    final wanted = model ?? defaultSubStream;
     final newIndex = await player.setSubtitleTrack(model, this);
+    requireSubtitleSelectionIndex(wanted?.index, newIndex);
     return copyWith(
         mediaStreams: () =>
             mediaStreams?.copyWith(defaultSubStreamIndex: newIndex));

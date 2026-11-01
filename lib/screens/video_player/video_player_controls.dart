@@ -18,6 +18,7 @@ import 'package:fladder/models/media_playback_model.dart';
 import 'package:fladder/models/playback/playback_model.dart';
 import 'package:fladder/models/settings/video_player_settings.dart';
 import 'package:fladder/providers/pip_provider.dart';
+import 'package:fladder/providers/primary_subtitle_selection_provider.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
 import 'package:fladder/providers/settings/video_player_settings_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
@@ -47,7 +48,6 @@ import 'package:fladder/util/duration_extensions.dart';
 import 'package:fladder/util/input_handler.dart';
 import 'package:fladder/util/list_padding.dart';
 import 'package:fladder/util/localization_helper.dart';
-import 'package:fladder/util/local_subtitle_selection.dart';
 import 'package:fladder/util/string_extensions.dart';
 import 'package:fladder/widgets/full_screen_helpers/full_screen_wrapper.dart';
 import 'package:fladder/wrappers/pip_manager.dart';
@@ -464,11 +464,8 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
                           onPressed: () => showSubSelection(context),
                           icon: const Icon(IconsaxPlusLinear.subtitle),
                           label: Text(
-                            ref.watch(playBackModel.select((value) {
-                                  final language = value?.mediaStreams?.currentSubStream?.language;
-                                  return language?.isEmpty == true ? context.localized.off : language;
-                                }))?.capitalize() ??
-                                "",
+                            primarySubtitleLabel(context, ref.watch(playBackModel),
+                                ref.watch(videoPlayerProvider), ref.watch(primarySubtitleSelectionProvider)),
                             maxLines: 1,
                           ),
                         ),
@@ -1066,11 +1063,14 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
     final availableSubtitles = subStreams.where((s) => s.index != -1).toList();
     if (availableSubtitles.isEmpty) return;
 
-    final currentIndex = playbackModel?.mediaStreams?.defaultSubStreamIndex ?? -1;
+    final selection = ref.read(primarySubtitleSelectionProvider);
+    final currentIndex = selection.isFor(playbackModel, player)
+        ? selection.appliedIndex ?? -1
+        : playbackModel?.mediaStreams?.defaultSubStreamIndex ?? -1;
     if (currentIndex != -1) {
       // Subtitles are ON -> Turn OFF and remember this index
       _lastSelectedSubtitleIndex = currentIndex;
-      _setSubtitleTrack(SubStreamModel.no(), playbackModel, player);
+      _setSubtitleTrack(SubStreamModel.no());
     } else {
       // Subtitles are OFF -> Turn ON
       if (_lastSelectedSubtitleIndex != null) {
@@ -1079,13 +1079,14 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
           (s) => s.index == _lastSelectedSubtitleIndex,
           orElse: () => availableSubtitles.first,
         );
-        _setSubtitleTrack(lastSub, playbackModel, player);
+        _setSubtitleTrack(lastSub);
       } else if (availableSubtitles.length == 1) {
         // If only one subtitle is available, just use it
-        _setSubtitleTrack(availableSubtitles.first, playbackModel, player);
+        _setSubtitleTrack(availableSubtitles.first);
       } else {
         // Multiple subtitles and no last selection -> Show selection dialog
         showSubSelection(context).then((_) {
+          if (!mounted) return;
           final newModel = ref.read(playBackModel);
           final selectedIndex = newModel?.mediaStreams?.defaultSubStreamIndex;
           if (selectedIndex != null && selectedIndex != -1) {
@@ -1096,26 +1097,10 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
     }
   }
 
-  void _setSubtitleTrack(SubStreamModel subModel, PlaybackModel? playbackModel, dynamic player) async {
-    if (playbackModel == null) return;
-    final previousSecondary = player.secondarySubtitleState.value.selected;
-    final newModel = await trySelectLocalSubtitle(
-      model: playbackModel,
-      track: subModel,
-      player: player,
-      isCurrent: () =>
-          mounted &&
-          identical(ref.read(playBackModel), playbackModel) &&
-          identical(ref.read(videoPlayerProvider), player),
-      onUnavailable: (_) => ScaffoldMessenger.maybeOf(context)
-          ?.showSnackBar(SnackBar(content: Text(context.localized.jmsSecondaryUnavailable))),
-    );
-    if (newModel == null) return;
-    if (mounted && previousSecondary != null && player.secondarySubtitleState.value.selected == null) {
-      showSecondarySubtitleNotice(context, player.secondarySubtitleState.value);
-    }
-    ref.read(playBackModel.notifier).update((state) => newModel);
-    await ref.read(playbackModelHelper).shouldReload(newModel);
+  void _setSubtitleTrack(SubStreamModel subModel) async {
+    final controller = ref.read(primarySubtitleSelectionProvider.notifier);
+    final result = await controller.select(subModel);
+    if (mounted) showPrimarySubtitleSelectionNotice(context, result);
   }
 
   bool _onKey(VideoHotKeys value) {

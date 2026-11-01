@@ -27,6 +27,7 @@ import 'package:fladder/models/settings/video_player_settings.dart';
 import 'package:fladder/providers/api_provider.dart';
 import 'package:fladder/providers/audio_lyrics_provider.dart';
 import 'package:fladder/providers/live_tv_provider.dart';
+import 'package:fladder/providers/primary_subtitle_selection_provider.dart';
 import 'package:fladder/providers/segment_skip_provider.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
 import 'package:fladder/providers/settings/subtitle_settings_provider.dart';
@@ -39,7 +40,6 @@ import 'package:fladder/services/syncplay/syncplay_prebuffer.dart';
 import 'package:fladder/util/syncplay_buffer_probe.dart';
 import 'package:fladder/src/video_player_helper.g.dart' hide PlaybackState;
 import 'package:fladder/util/localization_helper.dart';
-import 'package:fladder/util/local_subtitle_selection.dart';
 import 'package:fladder/util/dual_subtitle.dart';
 import 'package:fladder/util/subtitle_offset.dart';
 import 'package:fladder/wrappers/players/base_player.dart';
@@ -1056,28 +1056,23 @@ class MediaControlsWrapper extends BaseAudioHandler
 
   @override
   void swapSubtitleTrack(int value) async {
+    if (_stateController.isClosed) return;
     final playbackModel = ref.read(playBackModel);
     if (playbackModel == null) return;
-    final newModel = await trySelectLocalSubtitle(
-      model: playbackModel,
-      track: playbackModel.subStreams
-          ?.firstWhere((element) => element.index == value),
-      player: this,
-      isCurrent: () =>
-          !_stateController.isClosed &&
-          identical(ref.read(playBackModel), playbackModel) &&
-          identical(ref.read(videoPlayerProvider), this),
-      onUnavailable: (_) {
-        final context = ref.read(localizationContextProvider);
-        if (context != null && context.mounted) {
-          ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(
-              content: Text(context.localized.jmsSecondaryUnavailable)));
-        }
-      },
-    );
-    if (newModel == null) return;
-    ref.read(playBackModel.notifier).update((state) => newModel);
-    await ref.read(playbackModelHelper).shouldReload(newModel);
+    final track = playbackModel.subStreams
+        ?.firstWhereOrNull((element) => element.index == value);
+    if (track == null) return;
+    final context = ref.read(localizationContextProvider);
+    final controller = ref.read(primarySubtitleSelectionProvider.notifier);
+    final result = await controller.select(track,
+        expectedModel: playbackModel, expectedPlayer: this);
+    if (result.failure != null &&
+        !_stateController.isClosed &&
+        context != null &&
+        context.mounted) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          SnackBar(content: Text(context.localized.jmsSecondaryUnavailable)));
+    }
   }
 
   @override

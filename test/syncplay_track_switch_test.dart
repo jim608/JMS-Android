@@ -32,6 +32,8 @@ class _Ref extends Fake implements Ref {
 class _Api extends Fake implements JellyfinOpenApi {}
 
 class _Player extends Fake implements MediaControlsWrapper {
+  @override
+  int get playbackStopEpoch => 0;
   final choices = <int>[];
   int? returnedIndex;
   Completer<int>? selectionReady;
@@ -168,7 +170,7 @@ void main() {
     expect(
         find.text(
             'This subtitle track is not available in the current video stream.'),
-        findsOneWidget);
+        findsWidgets);
     expect(container.read(playBackModel), same(model));
     expect(player.choices, isEmpty);
     expect(tester.takeException(), isNull);

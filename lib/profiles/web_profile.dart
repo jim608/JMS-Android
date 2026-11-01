@@ -268,7 +268,7 @@ const DeviceProfile webProfile = DeviceProfile(
     ),
   ],
   subtitleProfiles: [
-    SubtitleProfile(format: 'vtt', method: SubtitleDeliveryMethod.embed),
-    SubtitleProfile(format: 'srt', method: SubtitleDeliveryMethod.embed),
+    SubtitleProfile(format: 'vtt', method: SubtitleDeliveryMethod.$external),
+    SubtitleProfile(format: 'srt', method: SubtitleDeliveryMethod.$external),
   ],
 );

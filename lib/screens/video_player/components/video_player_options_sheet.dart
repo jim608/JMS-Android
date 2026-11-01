@@ -14,6 +14,7 @@ import 'package:fladder/models/playback/playback_model.dart';
 import 'package:fladder/models/playback/transcode_playback_model.dart';
 import 'package:fladder/models/settings/video_player_settings.dart';
 import 'package:fladder/providers/settings/video_player_settings_provider.dart';
+import 'package:fladder/providers/primary_subtitle_selection_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
 import 'package:fladder/screens/video_player/components/sleep_timer_dialog.dart';
@@ -33,7 +34,6 @@ import 'package:fladder/util/dual_subtitle.dart';
 import 'package:fladder/util/device_orientation_extension.dart';
 import 'package:fladder/util/list_padding.dart';
 import 'package:fladder/util/localization_helper.dart';
-import 'package:fladder/util/local_subtitle_selection.dart';
 import 'package:fladder/util/map_bool_helper.dart';
 import 'package:fladder/util/refresh_state.dart';
 import 'package:fladder/util/string_extensions.dart';
@@ -42,6 +42,7 @@ import 'package:fladder/widgets/shared/fladder_slider.dart';
 import 'package:fladder/widgets/shared/item_actions.dart';
 import 'package:fladder/widgets/shared/modal_bottom_sheet.dart';
 import 'package:fladder/widgets/shared/spaced_list_tile.dart';
+import 'package:fladder/wrappers/media_control_wrapper.dart';
 
 Future<void> showVideoPlayerOptions(BuildContext context, Function() minimizePlayer) {
   return showBottomSheetPill(
@@ -155,7 +156,8 @@ class _VideoOptionsMobileState extends ConsumerState<VideoOptions> {
             ),
           SpacedListTile(
             title: Text(context.localized.subtitles),
-            content: Text(currentMediaStreams?.currentSubStream?.label(context) ?? context.localized.off),
+            content: Text(primarySubtitleLabel(context, ref.watch(playBackModel),
+                ref.watch(videoPlayerProvider), ref.watch(primarySubtitleSelectionProvider))),
             onTap: currentMediaStreams?.subStreams.isNotEmpty == true
                 ? () {
                     final navigator = Navigator.of(context);
@@ -439,6 +441,13 @@ Future<void> showSubSelection(BuildContext context) {
         builder: (context, ref, child) {
           final playbackModel = ref.watch(playBackModel);
           final player = ref.watch(videoPlayerProvider);
+          final selection = ref.watch(primarySubtitleSelectionProvider);
+          final controller = ref.read(primarySubtitleSelectionProvider.notifier);
+          final sessionSelection = selection.isFor(playbackModel, player);
+          final appliedIndex = sessionSelection
+              ? selection.appliedIndex
+              : playbackModel?.mediaStreams?.defaultSubStreamIndex;
+          final pending = sessionSelection && selection.pending;
           return SimpleDialog(
             contentPadding: const EdgeInsets.only(top: 8, bottom: 24),
             title: Row(
@@ -462,32 +471,27 @@ Future<void> showSubSelection(BuildContext context) {
               const SubtitleOffsetTile(),
               ...?playbackModel?.subStreams?.mapIndexed(
                 (index, subModel) {
-                  final selected = playbackModel.mediaStreams?.defaultSubStreamIndex == subModel.index;
+                  final selected = appliedIndex == subModel.index;
+                  final failure = sessionSelection && selection.requested?.index == subModel.index
+                      ? selection.error
+                      : null;
                   return ListTile(
+                    enabled: !pending,
                     title: Text(subModel.label(context)),
                     tileColor: selected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.3) : null,
-                    subtitle: subModel.language.isNotEmpty
-                        ? Opacity(opacity: 0.6, child: Text(subModel.language.capitalize()))
+                    subtitle: subModel.language.isNotEmpty || failure != null
+                        ? Opacity(opacity: 0.6, child: Text([
+                            if (subModel.language.isNotEmpty) subModel.language.capitalize(),
+                            if (failure != null) context.localized.jmsSecondaryUnavailable,
+                          ].join('\n')))
                         : null,
-                    onTap: () async {
-                      final previousSecondary = player.secondarySubtitleState.value.selected;
-                      final newModel = await trySelectLocalSubtitle(
-                        model: playbackModel,
-                        track: subModel,
-                        player: player,
-                        isCurrent: () => context.mounted && identical(ref.read(playBackModel), playbackModel) &&
-                            identical(ref.read(videoPlayerProvider), player),
-                        onUnavailable: (_) => ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-                            SnackBar(content: Text(context.localized.jmsSecondaryUnavailable))),
-                      );
-                      if (newModel == null) return;
-                      if (context.mounted &&
-                          previousSecondary != null &&
-                          player.secondarySubtitleState.value.selected == null) {
-                        showSecondarySubtitleNotice(context, player.secondarySubtitleState.value);
-                      }
-                      ref.read(playBackModel.notifier).update((state) => newModel);
-                      await ref.read(playbackModelHelper).shouldReload(newModel);
+                    trailing: pending && selection.requested?.index == subModel.index
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                        : null,
+                    onTap: pending ? null : () async {
+                      final result = await controller.select(subModel,
+                          expectedModel: playbackModel, expectedPlayer: player);
+                      if (context.mounted) showPrimarySubtitleSelectionNotice(context, result);
                     },
                   );
                 },
@@ -498,6 +502,26 @@ Future<void> showSubSelection(BuildContext context) {
       );
     },
   );
+}
+
+String primarySubtitleLabel(BuildContext context, PlaybackModel? model, MediaControlsWrapper player,
+    PrimarySubtitleSelectionState selection) {
+  final index = selection.isFor(model, player)
+      ? selection.appliedIndex
+      : model?.mediaStreams?.defaultSubStreamIndex;
+  if (index == null) return context.localized.subtitle;
+  if (index < 0) return context.localized.off;
+  final track = model?.subStreams?.firstWhereOrNull((track) => track.index == index);
+  return track?.language.isNotEmpty == true ? track!.language.capitalize() : context.localized.subtitle;
+}
+
+void showPrimarySubtitleSelectionNotice(BuildContext context, PrimarySubtitleSelectionResult result) {
+  if (result.failure != null) {
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(content: Text(context.localized.jmsSecondaryUnavailable)));
+  } else if (result.clearedSecondary != null) {
+    showSecondarySubtitleNotice(context, result.clearedSecondary!);
+  }
 }
 
 String secondarySubtitleIssueText(BuildContext context, SecondarySubtitleIssue issue) => switch (issue) {

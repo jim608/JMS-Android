@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,9 +12,11 @@ import 'package:fladder/models/media_playback_model.dart';
 import 'package:fladder/models/playback/playback_model.dart';
 import 'package:fladder/models/playback/playback_queue_state.dart';
 import 'package:fladder/models/settings/video_player_settings.dart';
+import 'package:fladder/providers/primary_subtitle_selection_provider.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
 import 'package:fladder/providers/settings/video_player_settings_provider.dart';
 import 'package:fladder/services/playback_diagnostics.dart';
+import 'package:fladder/util/subtitle_selection_failure.dart';
 import 'package:fladder/wrappers/media_control_wrapper.dart';
 
 final mediaPlaybackProvider =
@@ -27,8 +30,9 @@ final videoPlayerProvider =
   // The first renderer can fail before a video surface exists. Keep the error
   // on the notifier for the next explicit play instead of leaving an
   // unhandled startup future behind.
-  unawaited(videoPlayer.init().then<void>((_) {},
-      onError: (Object error, StackTrace stack) {}));
+  unawaited(videoPlayer
+      .init()
+      .then<void>((_) {}, onError: (Object error, StackTrace stack) {}));
   return videoPlayer;
 });
 
@@ -36,6 +40,11 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
   VideoPlayerNotifier(this.ref) : super(MediaControlsWrapper(ref: ref));
 
   final Ref ref;
+
+  /// Native backends have different automatic-track return conventions. Web
+  /// must confirm the actual choice before its requested label is shown applied.
+  @visibleForTesting
+  bool get confirmsInitialSubtitleSelection => kIsWeb;
 
   List<StreamSubscription> subscriptions = [];
   Future<void> _initialization = Future<void>.value();
@@ -332,6 +341,10 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
 
     var stage = PlaybackStage.playerInit;
     var step = 'wait_for_renderer';
+    PrimarySubtitleSelectionController? subtitleSelections;
+    MediaControlsWrapper? initialSubtitlePlayer;
+    Object? initialSubtitleToken;
+    bool initialSubtitleRecorded = false;
     diagnostics.record(attempt, stage,
         event: PlaybackEvent.started, detail: step);
     try {
@@ -406,6 +419,15 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
 
       if (media != null) {
         ref.read(playBackModel.notifier).update((state) => newPlaybackModel);
+        if (confirmsInitialSubtitleSelection) {
+          final subtitleController =
+              ref.read(primarySubtitleSelectionProvider.notifier);
+          final subtitlePlayer = state;
+          subtitleSelections = subtitleController;
+          initialSubtitlePlayer = subtitlePlayer;
+          initialSubtitleToken =
+              subtitleController.beginInitial(model, subtitlePlayer);
+        }
         // Stop cleared the previous UI position. A paused open has no playing
         // position ticks to restore it, so publish this load's resolved resume
         // point once before opening; later seeks and lifecycle changes win.
@@ -431,8 +453,26 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
         await state.setAudioTrack(null, model);
         if (!stillCurrent()) return false;
         step = 'subtitle_track_setup';
-        await state.setSubtitleTrack(null, model);
-        if (!stillCurrent()) return false;
+        try {
+          final appliedSubtitle = await state.setSubtitleTrack(null, model);
+          if (!stillCurrent()) return false;
+          if (subtitleSelections != null) {
+            requireSubtitleSelectionIndex(
+                model.mediaStreams?.defaultSubStreamIndex, appliedSubtitle);
+            subtitleSelections.recordInitial(model, state,
+                token: initialSubtitleToken!, appliedIndex: appliedSubtitle);
+            initialSubtitleRecorded = true;
+          }
+        } on SubtitleSelectionFailure catch (failure) {
+          if (!stillCurrent()) return false;
+          if (subtitleSelections == null) rethrow;
+          subtitleSelections.recordInitial(model, state,
+              token: initialSubtitleToken!, failure: failure);
+          initialSubtitleRecorded = true;
+          // A failed optional text track does not make the video unplayable.
+          diagnostics.record(attempt, stage,
+              detail: 'subtitle_selection_unavailable');
+        }
 
         ref
             .read(mediaPlaybackProvider.notifier)
@@ -466,6 +506,16 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
           timedOut: error is TimeoutException,
           detail: step);
       rethrow;
+    } finally {
+      if (initialSubtitleToken != null) {
+        if (!initialSubtitleRecorded && initialSubtitlePlayer != null) {
+          subtitleSelections?.recordInitial(model, initialSubtitlePlayer,
+              token: initialSubtitleToken,
+              failure: const SubtitleSelectionFailure(
+                  SubtitleSelectionFailureReason.unavailable));
+        }
+        subtitleSelections?.cancelInitial(initialSubtitleToken);
+      }
     }
   }
 

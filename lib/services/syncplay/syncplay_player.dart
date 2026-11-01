@@ -17,6 +17,7 @@ import 'package:fladder/providers/api_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
 import 'package:fladder/services/syncplay/syncplay_models.dart';
 import 'package:fladder/util/subtitle_delivery.dart';
+import 'package:fladder/util/subtitle_selection_failure.dart';
 import 'package:fladder/util/bitrate_helper.dart';
 import 'package:fladder/wrappers/media_control_wrapper.dart';
 
@@ -393,15 +394,9 @@ MediaStreamsModel _capturedStreams(MediaSourceInfo source, AccountModel account,
       ]);
 }
 
-enum SyncPlayTrackSelectionFailureReason { requiresServerReload, unavailable }
-
-/// A local track choice must never silently replace a room playback session.
-class SyncPlayTrackSelectionFailure implements Exception {
-  const SyncPlayTrackSelectionFailure(this.reason);
-  final SyncPlayTrackSelectionFailureReason reason;
-  @override
-  String toString() => 'SyncPlayTrackSelectionFailure: ${reason.name}';
-}
+// Compatibility names for existing callers; all playback models share failures.
+typedef SyncPlayTrackSelectionFailureReason = SubtitleSelectionFailureReason;
+typedef SyncPlayTrackSelectionFailure = SubtitleSelectionFailure;
 
 /// Session reporting remains bound to the account which joined the room.
 class SyncPlayPlaybackModel extends PlaybackModel {
@@ -566,7 +561,7 @@ class SyncPlayPlaybackModel extends PlaybackModel {
     }
     final index = await player.setSubtitleTrack(model, this);
     if (!isCurrent()) return this;
-    if (wanted != null && wanted.index >= 0 && index != wanted.index) {
+    if (wanted != null && index != wanted.index) {
       if (model == null) return this;
       throw const SyncPlayTrackSelectionFailure(
           SyncPlayTrackSelectionFailureReason.unavailable);
