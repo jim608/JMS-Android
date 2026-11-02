@@ -13,6 +13,7 @@ import 'package:fladder/models/playback/offline_playback_model.dart';
 import 'package:fladder/models/playback/tv_playback_model.dart';
 import 'package:fladder/providers/api_provider.dart';
 import 'package:fladder/providers/connectivity_provider.dart' as connectivity;
+import 'package:fladder/providers/jellyfin_session_socket_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
 import 'package:fladder/services/syncplay/syncplay_controller.dart';
@@ -350,6 +351,10 @@ class SyncPlayNotifier extends StateNotifier<SyncPlayViewState>
         baseUri: Uri.parse(account.credentials.url),
         token: account.credentials.token,
         deviceId: controlDeviceId,
+        socketFactory: kIsWeb
+            ? jellyfinSessionSocketFactoryForAccount(ref, account,
+                isCurrent: current, headers: playbackHeaders)
+            : null,
         socketHeaders: isolateControlSession ? controlHeaders : null,
         traceRestHeaders: isolateControlSession ? controlHeaders : null,
         isCurrent: current,

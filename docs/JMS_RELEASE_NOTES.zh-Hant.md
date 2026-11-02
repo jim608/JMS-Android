@@ -1,37 +1,55 @@
-# JMS 0.11.1-jms.57
+# JMS 0.11.1-jms.58
 
 ## 繁體中文 / Traditional Chinese
 
+### 新增
+
+- 新增同帳號 JMS 裝置遙控，可在手機選擇播放裝置，操作播放、暫停、進度及主字幕。
+- 播放端預設不接收遙控，需明確啟用；關閉遙控面板後仍保留本次啟用狀態，重新啟動應用程式後恢復關閉。
+
+### 調整
+
+- 遙控命令綁定裝置、影片、媒體來源與播放階段，拒絕過期、重複、其他帳號或失效裝置的操作。
+- 分開顯示已送出與播放端確認狀態，逾時保留結果未知，不自動重送可能已執行的操作。
+
 ### 修正
 
-- 修正網頁字幕選軌失敗時被誤標為關閉的狀態，啟播時確認字幕套用結果，失敗後可重新選擇。
-- 影片與字幕使用相同的媒體來源識別碼及串流索引，避免多來源回應順序不同時選錯字幕。
-- 網頁字幕替換先確認新字幕載入成功，再移除原字幕；失敗時保留既有字幕，並防止重複點選、關閉選單或過期播放工作階段回寫。
+- 避免換帳號、換片、停止播放或關閉接收後，舊的非同步操作與進度回報覆蓋新狀態。
 
 ### 已知問題
 
-- 尚未完成 Tesla 車機與真實雙端 SyncPlay 驗收；最初繁簡字幕不一致的車機根因仍未經實機確認。
-- 網頁文字字幕支援 SRT 與 VTT；ASS、SSA、點陣字幕及燒錄字幕與 HLS 限制仍在，原生平台的 ASS 與 SSA 路徑未變。
+- 真實 Jellyfin、實體手機與 Tesla 車機的遙控驗收尚未完成，雙瀏覽器驗證不代表實車驗收。
+- 兩端都需要支援此遙控協定的 JMS，目前只控制已開始播放的影片及主字幕，播放端須保持開啟。
+- 既有 Web ASS、SSA、點陣、燒錄及 HLS 字幕限制仍適用，遙控不會新增格式支援或喚醒休眠瀏覽器。
 
 ### 更新注意事項
 
-- 本版更新範圍為網頁版，不包含 Android、Windows 或 Linux 安裝包更新。
-- SyncPlay 保留房間同步與重新載入保護，不會在字幕選軌失敗時自行變更群組串流。
+- 本次僅更新 Web，不包含 Android、Windows 或 Linux 安裝套件發布。
+- SyncPlay 期間暫停接收遙控，房間同步與遙控維持獨立；帳號設定及既有字幕修正予以保留。
 
 ## English
 
+### Added
+
+- Add same-account JMS device control from a phone, including device selection, play, pause, seeking and primary subtitles.
+- Receiving is off by default and requires explicit opt-in; closing the panel preserves the current opt-in, while restarting the application turns it off.
+
+### Changed
+
+- Bind remote commands to the device, item, media source and playback occurrence, rejecting expired, duplicate, foreign-account and stale-device input.
+- Distinguish sent commands from receiver confirmation, keeping timed-out results unknown without automatically replaying a possibly completed action.
+
 ### Fixed
 
-- Keep a failed Web subtitle selection distinct from Off, confirm the applied selection at playback startup, and allow another selection after a failure.
-- Bind video and subtitles to the same media source identifier and stream index to avoid selecting the wrong subtitle when multiple sources arrive in a different order.
-- Confirm a replacement Web subtitle has loaded before removing the previous track, preserve the current subtitle on failure, and guard repeated input, dismissed menus, and stale playback sessions.
+- Prevent old asynchronous operations and progress reports from overwriting new state after account changes, replacement playback, stopping or disabling receiving.
 
 ### Known issues
 
-- Tesla vehicle and real two-device SyncPlay acceptance remain incomplete; the original Traditional and Simplified Chinese mismatch has not been confirmed on the vehicle.
-- Web text subtitles support SRT and VTT; ASS, SSA, bitmap, burned-in subtitle and HLS limitations remain, while native ASS and SSA paths are unchanged.
+- Remote control acceptance on real Jellyfin, a physical phone and a Tesla browser remains incomplete; two-browser verification is not vehicle acceptance.
+- Both clients need a JMS build supporting this remote protocol; only already-playing video and primary subtitles are controlled, and the receiver must remain open.
+- Existing Web ASS, SSA, bitmap, burned-in and HLS subtitle limitations still apply; remote control does not add format support or wake a suspended browser.
 
 ### Update notes
 
-- This version updates the Web application and does not include Android, Windows, or Linux installation packages.
-- SyncPlay retains room synchronization and reload guards without independently changing the group stream after a subtitle selection failure.
+- This release updates Web only and does not publish Android, Windows or Linux installation packages.
+- Receiving pauses during SyncPlay so room synchronization and remote control remain separate; account settings and existing subtitle fixes are preserved.

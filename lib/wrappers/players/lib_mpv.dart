@@ -1303,6 +1303,12 @@ class LibMPV extends BasePlayer {
   Future<void> setSpeed(double speed) async => _player?.setRate(speed);
 
   @override
+  void cancelPendingSubtitleSelection() {
+    _subtitleGeneration++;
+    if (kIsWeb) _webSubtitleTiming.cancelPendingSelection();
+  }
+
+  @override
   Future<int> setSubtitleTrack(
       SubStreamModel? model, PlaybackModel playbackModel) async {
     final generation = ++_subtitleGeneration;
@@ -1366,9 +1372,11 @@ class LibMPV extends BasePlayer {
         wantedSubtitle.index == SubStreamModel.no().index) {
       _primarySubtitle = null;
       await _clearSecondary(issue: SecondarySubtitleIssue.primaryOff);
+      if (generation != _subtitleGeneration || player != _player) return -1;
       _currentSubtitleCodec = '';
       _subtitleDelivery = 'off';
       await player.setSubtitleTrack(mpv.SubtitleTrack.no());
+      if (generation != _subtitleGeneration || player != _player) return -1;
       _subtitleRoute.value = const MpvSubtitleRoute(sid: 'no');
       return -1;
     }

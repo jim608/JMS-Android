@@ -35,6 +35,7 @@ import 'package:fladder/providers/settings/video_player_settings_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
 import 'package:fladder/providers/window_title_provider.dart';
 import 'package:fladder/services/playback_diagnostics.dart';
+import 'package:fladder/services/remote_control/remote_control_models.dart';
 import 'package:fladder/services/syncplay/syncplay_player_commands.dart';
 import 'package:fladder/services/syncplay/syncplay_prebuffer.dart';
 import 'package:fladder/util/syncplay_buffer_probe.dart';
@@ -52,6 +53,12 @@ import 'package:fladder/providers/sleep_timer_provider.dart';
 import 'package:fladder/util/jms_test_profile_policy.dart';
 
 part 'audio_queue_handler.dart';
+
+class _ScopedPlayerState {
+  const _ScopedPlayerState(this.state, this.isCurrent);
+  final PlayerState state;
+  final bool Function() isCurrent;
+}
 
 class MediaControlsWrapper extends BaseAudioHandler
     implements VideoPlayerControlsCallback {
@@ -74,9 +81,10 @@ class MediaControlsWrapper extends BaseAudioHandler
   bool _internalPlaybackStop = false;
 
   int get playbackStopEpoch => _playbackStopEpoch;
+  int get rendererGeneration => _setupGeneration;
   String _initializationFailure = '';
   BasePlayer? _previousPlayer;
-  final StreamController<PlayerState> _stateController =
+  final StreamController<_ScopedPlayerState> _stateController =
       StreamController.broadcast();
   StreamSubscription<PlayerState>? _playerStateSubscription;
 
@@ -101,7 +109,9 @@ class MediaControlsWrapper extends BaseAudioHandler
         _ => null,
       };
 
-  Stream<PlayerState> get stateStream => _stateController.stream;
+  Stream<PlayerState> get stateStream => _stateController.stream
+      .where((event) => event.isCurrent())
+      .map((event) => event.state);
   PlayerState? get lastState => _player?.lastState;
   SyncPlayPlayerCommands? _syncPlayCommands;
   int _syncPlayBindingEpoch = 0;
@@ -172,6 +182,7 @@ class MediaControlsWrapper extends BaseAudioHandler
 
   List<StreamSubscription> subscriptions = [];
   ProviderSubscription? _subtitleSettingsSubscription;
+  ProviderSubscription<PlaybackModel?>? _playbackModelSubscription;
   SMTCWindows? smtc;
 
   bool initializedWrapper = false;
@@ -239,6 +250,8 @@ class MediaControlsWrapper extends BaseAudioHandler
     try {
       _subtitleSettingsSubscription?.close();
       _subtitleSettingsSubscription = null;
+      _playbackModelSubscription?.close();
+      _playbackModelSubscription = null;
       await _playerStateSubscription?.cancel();
       _playerStateSubscription = null;
       for (final subscription in subscriptions) {
@@ -316,6 +329,7 @@ class MediaControlsWrapper extends BaseAudioHandler
 
   void _initPlayer() {
     _subtitleSettingsSubscription?.close();
+    _playbackModelSubscription?.close();
     for (var element in subscriptions) {
       element.cancel();
     }
@@ -325,6 +339,9 @@ class MediaControlsWrapper extends BaseAudioHandler
         ref.listen(subtitleSettingsProvider, (_, next) {
       _player?.applySubtitleSettings(next);
     });
+    _playbackModelSubscription = ref.listen(playBackModel, (_, __) {
+      _subscribePlayerState();
+    });
   }
 
   void _subscribePlayerState() {
@@ -332,9 +349,25 @@ class MediaControlsWrapper extends BaseAudioHandler
     final player = _player;
     if (player == null) return;
 
+    final generation = _videoLoadGeneration;
+    final renderer = _setupGeneration;
+    final model = ref.read(playBackModel);
+    final scope = model?.reportingScope;
+    bool current() {
+      try {
+        return identical(_player, player) &&
+            generation == _videoLoadGeneration &&
+            renderer == _setupGeneration &&
+            (scope?.isCurrent ?? true) &&
+            _samePlaybackOccurrence(model, ref.read(playBackModel));
+      } catch (_) {
+        return false;
+      }
+    }
+
     _playerStateSubscription = player.stateStream.listen((state) {
       if (identical(_player, player) && !_stateController.isClosed) {
-        _stateController.add(state);
+        if (current()) _stateController.add(_ScopedPlayerState(state, current));
       }
     });
   }
@@ -342,14 +375,20 @@ class MediaControlsWrapper extends BaseAudioHandler
   Future<void> loadVideo(PlaybackModel model, Duration startPosition, bool play,
       {bool Function()? isCurrent}) async {
     if (!(isCurrent?.call() ?? true)) return;
-    final generation = ++_videoLoadGeneration;
-    bool current() =>
-        generation == _videoLoadGeneration && (isCurrent?.call() ?? true);
     final player = _player;
     if (player == null) {
       _markPlayerFailure();
       throw StateError('Video player is not ready');
     }
+    final reportingScope = model.reportingScope;
+    if (reportingScope != null && !reportingScope.isOwned) return;
+    final generation = ++_videoLoadGeneration;
+    bool current() =>
+        generation == _videoLoadGeneration &&
+        (isCurrent?.call() ?? true) &&
+        (reportingScope?.isOwned ?? true);
+    if (reportingScope != null && !reportingScope.activate()) return;
+    _subscribePlayerState();
     ref.read(sleepTimerProvider).bindMedia(model.item.id);
     ref.read(segmentSkipSessionProvider).bindItem(model.item.id);
     if (model.ownsPlaybackResources) _resourceOwningPlaybackModel = model;
@@ -362,6 +401,7 @@ class MediaControlsWrapper extends BaseAudioHandler
         final context = ref.read(localizationContextProvider);
         await (_player as NativePlayer)
             .sendPlaybackDataToNative(context, model, startPosition);
+        if (!current() || !identical(_player, player)) return;
       }
       _isNewPlayback = play;
       _isStopped = false;
@@ -477,7 +517,7 @@ class MediaControlsWrapper extends BaseAudioHandler
       }
     }
 
-    subscriptions.add(_player!.stateStream.listen(_updateStateStream));
+    subscriptions.add(stateStream.listen(_updateStateStream));
   }
 
   Future<void> _updateStateStream(PlayerState value) async {
@@ -594,6 +634,144 @@ class MediaControlsWrapper extends BaseAudioHandler
       _applyWakelock(_shouldKeepScreenOn(_player?.lastState.playing ?? false),
           force: true);
 
+  bool _samePlaybackOccurrence(
+          PlaybackModel? expected, PlaybackModel? actual) =>
+      identical(expected, actual) ||
+      (expected != null &&
+          actual != null &&
+          expected.runtimeType == actual.runtimeType &&
+          expected.item.id == actual.item.id &&
+          expected.playbackInfo?.playSessionId ==
+              actual.playbackInfo?.playSessionId &&
+          expected.mediaStreams?.currentVersionStream?.id ==
+              actual.mediaStreams?.currentVersionStream?.id &&
+          expected.media?.url == actual.media?.url);
+
+  bool Function() _localPlaybackCurrent(
+      PlaybackModel? model, BasePlayer? player) {
+    final renderer = _setupGeneration;
+    final load = _videoLoadGeneration;
+    final stop = _playbackStopEpoch;
+    final scope = model?.reportingScope;
+    return () {
+      try {
+        return renderer == _setupGeneration &&
+            load == _videoLoadGeneration &&
+            stop == _playbackStopEpoch &&
+            identical(player, _player) &&
+            (scope?.isCurrent ?? true) &&
+            _samePlaybackOccurrence(model, ref.read(playBackModel));
+      } catch (_) {
+        return false;
+      }
+    };
+  }
+
+  (BasePlayer, bool Function()) _remoteOperation(bool Function() ownerCurrent) {
+    final player = _player;
+    final model = ref.read(playBackModel);
+    final renderer = _setupGeneration;
+    final load = _videoLoadGeneration;
+    final stop = _playbackStopEpoch;
+    final room = _syncPlayBindingEpoch;
+    bool current() {
+      try {
+        return ownerCurrent() &&
+            !syncPlayActive &&
+            !_isStopped &&
+            player != null &&
+            model != null &&
+            renderer == _setupGeneration &&
+            load == _videoLoadGeneration &&
+            stop == _playbackStopEpoch &&
+            room == _syncPlayBindingEpoch &&
+            identical(player, _player) &&
+            (model.reportingScope?.isCurrent ?? true) &&
+            _samePlaybackOccurrence(model, ref.read(playBackModel));
+      } catch (_) {
+        return false;
+      }
+    }
+
+    _requireRemoteCurrent(current);
+    return (player!, current);
+  }
+
+  void _requireRemoteCurrent(bool Function() current) {
+    if (!current()) throw const RemoteControlFailure(RemoteFailureCode.stale);
+  }
+
+  /// Remote callers revoke the entire operation, including post-backend REST
+  /// and UI work. Ordinary local controls keep their existing entry points.
+  Future<void> playRemotely({required bool Function() isCurrent}) async {
+    final (player, current) = _remoteOperation(isCurrent);
+    final sleepTimer = ref.read(sleepTimerProvider);
+    sleepTimer.manualPlay();
+    sleepTimer.refresh();
+    _requireRemoteCurrent(current);
+    if (!sleepTimer.allowsPlayback) {
+      throw const RemoteControlFailure(RemoteFailureCode.denied);
+    }
+    await player.play();
+    _requireRemoteCurrent(current);
+    unawaited(_applyWakelock(!ref.read(playBackModel)!.isAudioPlayback));
+    final position = await ref.read(playBackModel)?.startDuration();
+    _requireRemoteCurrent(current);
+    if (_isNewPlayback || !playbackState.value.playing) {
+      _isNewPlayback = false;
+      await ref
+          .read(playBackModel)
+          ?.playbackStarted(position ?? Duration.zero, ref);
+      _requireRemoteCurrent(current);
+    }
+    await _refreshMediaControls(
+        model: ref.read(playBackModel), playing: true, isCurrent: current);
+    _requireRemoteCurrent(current);
+    await super.play();
+  }
+
+  Future<void> pauseRemotely({required bool Function() isCurrent}) async {
+    final (player, current) = _remoteOperation(isCurrent);
+    if (!player.lastState.playing) return;
+    await player.pause();
+    _requireRemoteCurrent(current);
+    final position = player.lastState.position;
+    playbackState.add(playbackState.value.copyWith(
+        playing: false,
+        updatePosition: position,
+        controls: [MediaControl.play]));
+    unawaited(_applyWakelock(false));
+    final model = ref.read(playBackModel)!;
+    await model.updatePlaybackPosition(position, false, ref);
+    _requireRemoteCurrent(current);
+    await _refreshMediaControls(
+        model: ref.read(playBackModel), playing: false, isCurrent: current);
+    _requireRemoteCurrent(current);
+    await super.pause();
+  }
+
+  Future<void> seekRemotely(Duration position,
+      {required bool Function() isCurrent}) async {
+    final (player, current) = _remoteOperation(isCurrent);
+    final duration = player.lastState.duration;
+    if (position.isNegative ||
+        duration <= Duration.zero ||
+        position > duration) {
+      throw const RemoteControlFailure(RemoteFailureCode.invalidAction);
+    }
+    ref
+        .read(segmentSkipSessionProvider)
+        .manualSeek(ref.read(mediaPlaybackProvider).position, position);
+    await player.seek(position);
+    _requireRemoteCurrent(current);
+    if (!player.lastState.playing) {
+      ref
+          .read(mediaPlaybackProvider.notifier)
+          .update((state) => state.copyWith(position: position));
+    }
+    await super.seek(position);
+  }
+
   @override
   Future<void> pause() async {
     final commands = syncPlayCommands;
@@ -606,8 +784,10 @@ class MediaControlsWrapper extends BaseAudioHandler
     if (_isStopped) return;
     final model = ref.read(playBackModel);
     if (model == null || !(_player?.lastState.playing == true)) return;
+    final current = _localPlaybackCurrent(model, _player);
+    if (!current()) return;
     await _player?.pause();
-    if (_isStopped) return;
+    if (_isStopped || !current()) return;
     final position = _player?.lastState.position ?? Duration.zero;
     playbackState.add(playbackState.value.copyWith(
       playing: false,
@@ -618,8 +798,9 @@ class MediaControlsWrapper extends BaseAudioHandler
     final playerState = _player;
     if (playerState != null) {
       await _updatePositionWithRetry(model, position, false);
-      if (_isStopped) return;
-      await _refreshMediaControls(model: model, playing: false);
+      if (_isStopped || !current()) return;
+      await _refreshMediaControls(
+          model: model, playing: false, isCurrent: current);
     }
     return super.pause();
   }
@@ -634,6 +815,17 @@ class MediaControlsWrapper extends BaseAudioHandler
   Future<void> playFromSyncPlay() => _playLocally(userInitiated: false);
 
   Future<void> _playLocally({required bool userInitiated}) async {
+    final initialModel = ref.read(playBackModel);
+    final reportScope = initialModel?.reportingScope;
+    // Audio queue opens bypass loadVideo(); accepting an explicit play is its
+    // actual playback commit, not a speculative model/preflight activation.
+    if (reportScope != null &&
+        !reportScope.isCurrent &&
+        !reportScope.activate()) {
+      return;
+    }
+    final current = _localPlaybackCurrent(initialModel, _player);
+    if (!current()) return;
     final sleepTimer = ref.read(sleepTimerProvider);
     if (userInitiated) sleepTimer.manualPlay();
     sleepTimer.refresh();
@@ -645,30 +837,34 @@ class MediaControlsWrapper extends BaseAudioHandler
     unawaited(_applyWakelock(_shouldKeepScreenOn(true)));
 
     await _player?.play();
-    if (_isStopped) return;
+    if (_isStopped || !current()) return;
 
     final currentPosition =
         await ref.read(playBackModel.select((value) => value?.startDuration()));
-    if (_isStopped) return;
+    if (_isStopped || !current()) return;
     if (_isNewPlayback || !playbackState.value.playing) {
       _isNewPlayback = false;
       await ref
           .read(playBackModel)
           ?.playbackStarted(currentPosition ?? Duration.zero, ref);
+      if (_isStopped || !current()) return;
     }
     if (playBackItem == null) return;
 
     final playbackModel = ref.read(playBackModel);
     if (playbackModel != null) {
-      await _refreshMediaControls(model: playbackModel, playing: true);
+      await _refreshMediaControls(
+          model: playbackModel, playing: true, isCurrent: current);
     }
 
     return super.play();
   }
 
   Future<void> _refreshMediaControls(
-      {PlaybackModel? model, required bool playing}) async {
-    if (_isStopped) return;
+      {PlaybackModel? model,
+      required bool playing,
+      bool Function()? isCurrent}) async {
+    if (_isStopped || isCurrent?.call() == false) return;
     if (!ref.read(clientSettingsProvider).enableMediaKeys) return;
     final playbackModel = model ?? ref.read(playBackModel);
     if (playbackModel == null) return;
@@ -681,7 +877,7 @@ class MediaControlsWrapper extends BaseAudioHandler
     final currentPosition = _player?.lastState.position ??
         await playbackModel.startDuration() ??
         Duration.zero;
-    if (_isStopped) return;
+    if (_isStopped || isCurrent?.call() == false) return;
 
     windowSMTCSetup(playBackItem, currentPosition, playing);
 
@@ -848,6 +1044,7 @@ class MediaControlsWrapper extends BaseAudioHandler
 
     final playbackModel = ref.read(playBackModel);
     if (playbackModel == null) return;
+    final reportCapture = playbackModel.reportingScope?.capture;
 
     ref
         .read(mediaPlaybackProvider.notifier)
@@ -866,10 +1063,15 @@ class MediaControlsWrapper extends BaseAudioHandler
       }
       rethrow;
     }
-    ref.read(windowTitleProvider.notifier).setPlayTitle(null);
+    if (stopGeneration == _videoLoadGeneration &&
+        identical(_player, player) &&
+        identical(ref.read(playBackModel), playbackModel) &&
+        (reportCapture?.isCurrent ?? true)) {
+      ref.read(windowTitleProvider.notifier).setPlayTitle(null);
+    }
 
-    final position = _player?.lastState.position;
-    final totalDuration = _player?.lastState.duration;
+    final position = player?.lastState.position;
+    final totalDuration = player?.lastState.duration;
 
     // Small delay so we don't post right after playback/progress update
     await Future.delayed(const Duration(seconds: 1));
@@ -881,7 +1083,12 @@ class MediaControlsWrapper extends BaseAudioHandler
       playbackModel.dispose();
     }
 
-    if (!identical(ref.read(playBackModel), playbackModel)) return;
+    if (!identical(ref.read(playBackModel), playbackModel) ||
+        stopGeneration != _videoLoadGeneration ||
+        !identical(_player, player) ||
+        reportCapture?.isCurrent == false) {
+      return;
+    }
 
     ref.read(playBackModel.notifier).update((_) => null);
 
@@ -966,6 +1173,9 @@ class MediaControlsWrapper extends BaseAudioHandler
           SubStreamModel? model, PlaybackModel playbackModel) async =>
       await _player?.setSubtitleTrack(model, playbackModel) ?? -1;
 
+  void cancelPendingSubtitleSelection() =>
+      _player?.cancelPendingSubtitleSelection();
+
   Future<void> setVolume(double volume) async {
     //Do not set volume on Android/iOS since we use the system volume for that.
     if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
@@ -994,7 +1204,10 @@ class MediaControlsWrapper extends BaseAudioHandler
 
   /// Await the backend seek, so a scheduled resume cannot overtake it.
   Future<void> seekFromSyncPlay(Duration position) async {
+    final current = _localPlaybackCurrent(ref.read(playBackModel), _player);
+    if (!current()) return;
     await _player?.seek(position);
+    if (!current()) return;
     if (_player?.lastState.playing == false) {
       ref
           .read(mediaPlaybackProvider.notifier)

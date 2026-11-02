@@ -30,6 +30,7 @@ import 'package:fladder/screens/video_player/components/player_controller_naviga
 import 'package:fladder/screens/video_player/components/chapter_navigation_controls.dart';
 import 'package:fladder/screens/video_player/components/segment_skip_overlay.dart';
 import 'package:fladder/providers/segment_skip_provider.dart';
+import 'package:fladder/widgets/shared/remote_control_entry.dart';
 import 'package:fladder/providers/syncplay_provider.dart';
 import 'package:fladder/services/playback/segment_skip_policy.dart';
 import 'package:fladder/screens/video_player/components/video_player_brightness_indicator.dart';
@@ -371,6 +372,7 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
                         ),
                       ),
                     const SyncPlayButton(),
+                    const RemoteControlEntry(),
                     if (inputDevice == InputDevice.touch)
                       Align(
                         alignment: Alignment.centerRight,

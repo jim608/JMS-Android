@@ -19,6 +19,7 @@ import 'package:fladder/providers/settings/video_player_settings_provider.dart';
 import 'package:fladder/providers/sync_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
 import 'package:fladder/services/playback_diagnostics.dart';
+import 'package:fladder/services/playback_reporting_scope.dart';
 import 'package:fladder/wrappers/media_control_wrapper.dart';
 
 class _Ref extends Fake implements Ref {
@@ -55,6 +56,9 @@ class _TvModel extends Fake implements TvPlaybackModel {
   _TvModel({this.native = true});
 
   final bool native;
+
+  @override
+  PlaybackReportingScope? get reportingScope => null;
 
   @override
   bool get serverManagedQueue => false;

@@ -3,42 +3,18 @@ import 'dart:convert';
 
 import 'package:chopper/chopper.dart' show Response;
 import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart' as jellyfin;
-import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:fladder/services/jellyfin_session_socket.dart';
 
 import 'syncplay_clock.dart';
 import 'syncplay_models.dart';
-import 'syncplay_socket_connector_stub.dart'
-    if (dart.library.io) 'syncplay_socket_connector_io.dart';
 import 'syncplay_test_trace.dart';
 
-/// Injectable socket boundary; neither socket URLs nor errors may be logged.
-abstract interface class SyncPlaySocket {
-  Future<void> get ready;
-  Stream<Object?> get messages;
-  void send(String message);
-  Future<void> close();
-}
+export 'package:fladder/services/jellyfin_session_socket.dart'
+    show JellyfinSessionSocket, JellyfinSessionSocketFactory;
 
-typedef SyncPlaySocketFactory = SyncPlaySocket Function(Uri uri);
-
-SyncPlaySocketFactory _capturedSocketFactory(Map<String, String>? headers) {
-  final captured = Map<String, String>.unmodifiable(headers ?? const {});
-  return (uri) => _ChannelSocket(uri, captured);
-}
-
-class _ChannelSocket implements SyncPlaySocket {
-  _ChannelSocket(Uri uri, Map<String, String> headers)
-      : _channel = connectSyncPlaySocket(uri, headers);
-  final WebSocketChannel _channel;
-  @override
-  Future<void> get ready => _channel.ready;
-  @override
-  Stream<Object?> get messages => _channel.stream;
-  @override
-  void send(String message) => _channel.sink.add(message);
-  @override
-  Future<void> close() async => _channel.sink.close(1000);
-}
+/// Compatibility names for existing SyncPlay consumers and test doubles.
+typedef SyncPlaySocket = JellyfinSessionSocket;
+typedef SyncPlaySocketFactory = JellyfinSessionSocketFactory;
 
 /// A single captured Jellyfin account's SyncPlay connection.
 ///
@@ -68,7 +44,8 @@ class SyncPlayTransport implements SyncPlayApiPort {
         _isCurrent = isCurrent ?? _alwaysCurrent,
         _ownsApi = ownsApi,
         _scheduler = scheduler,
-        _socketFactory = socketFactory ?? _capturedSocketFactory(socketHeaders),
+        _socketFactory = socketFactory ??
+            capturedJellyfinSessionSocketFactory(socketHeaders),
         _testTrace = testTrace ?? SyncPlayTestTrace.localWindowsTest() {
     _testTrace.controlIdentity(
       restHeaders: traceRestHeaders,

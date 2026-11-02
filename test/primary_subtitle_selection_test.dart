@@ -31,7 +31,11 @@ SubStreamModel _track(int index) => SubStreamModel(
     isDefault: index == 2,
     isExternal: false);
 
-DirectPlaybackModel _model({String id = 'synthetic-item', int index = 2}) =>
+DirectPlaybackModel _model({
+  String id = 'synthetic-item',
+  int index = 2,
+  String sourceId = 'synthetic-source',
+}) =>
     DirectPlaybackModel(
         item: MovieModel.fromBaseDto(
             BaseItemDto(
@@ -48,7 +52,7 @@ DirectPlaybackModel _model({String id = 'synthetic-item', int index = 2}) =>
           VersionStreamModel(
               name: 'Synthetic source',
               index: 0,
-              id: 'synthetic-source',
+              id: sourceId,
               defaultAudioStreamIndex: null,
               defaultSubStreamIndex: index,
               videoStreams: [],
@@ -62,8 +66,17 @@ class _Player extends Fake implements MediaControlsWrapper {
   final secondary = ValueNotifier(const SecondarySubtitleState());
   bool playing = true;
   int stopEpoch = 0;
+  int rendererEpoch = 0;
+  int subtitleCancellations = 0;
   @override
   int get playbackStopEpoch => stopEpoch;
+  @override
+  int get rendererGeneration => rendererEpoch;
+  @override
+  void cancelPendingSubtitleSelection() {
+    subtitleCancellations++;
+  }
+
   @override
   Future<void> dispose() async {}
   @override
@@ -238,6 +251,113 @@ void main() {
     expect(fixture.selected, 3);
   });
 
+  test('revoked or throwing remote owner preserves an existing UI confirmation',
+      () async {
+    for (final ownerCurrent in <bool Function()>[
+      () => false,
+      () => throw StateError('Owner was revoked'),
+    ]) {
+      final fixture = _Fixture();
+      addTearDown(fixture.dispose);
+      fixture.controller
+          .recordInitial(fixture.model, fixture.player, appliedIndex: 2);
+      final confirmed = fixture.selection;
+
+      final result = await fixture.controller.select(_track(3),
+          expectedModel: fixture.model,
+          expectedPlayer: fixture.player,
+          isCurrent: ownerCurrent);
+
+      expect(result.applied, isFalse);
+      expect(fixture.player.choices, isEmpty);
+      expect(fixture.reload.models, isEmpty);
+      expect(fixture.selected, 2);
+      expect(fixture.selection, same(confirmed));
+      expect(fixture.selection.appliedIndex, 2);
+      expect(fixture.selection.error, isNull);
+    }
+  });
+
+  test('remote owner revoked during selection cannot publish and UI can retry',
+      () async {
+    final fixture = _Fixture();
+    addTearDown(fixture.dispose);
+    var ownerCurrent = true;
+    final remote = fixture.controller.select(_track(3),
+        expectedModel: fixture.model,
+        expectedPlayer: fixture.player,
+        isCurrent: () => ownerCurrent);
+    expect(fixture.selection.pending, isTrue);
+    ownerCurrent = false;
+    fixture.player.pending.single.complete(3);
+
+    expect((await remote).applied, isFalse);
+    expect(fixture.container.read(playBackModel), same(fixture.model));
+    expect(fixture.selected, 2);
+    expect(fixture.reload.models, isEmpty);
+    expect(fixture.selection.pending, isFalse);
+    expect(fixture.selection.appliedIndex, isNull);
+    expect(fixture.selection.error?.reason,
+        SubtitleSelectionFailureReason.unavailable);
+
+    final local = fixture.controller.select(_track(3));
+    fixture.player.pending.last.complete(3);
+    expect((await local).applied, isTrue);
+    expect(fixture.selected, 3);
+    expect(fixture.selection.appliedIndex, 3);
+    expect(fixture.selection.error, isNull);
+  });
+
+  test('stale expected model or player cannot replace current UI confirmation',
+      () async {
+    final fixture = _Fixture();
+    addTearDown(fixture.dispose);
+    final stalePlayer = _Player();
+    addTearDown(stalePlayer.secondary.dispose);
+    fixture.controller
+        .recordInitial(fixture.model, fixture.player, appliedIndex: 2);
+    final confirmed = fixture.selection;
+
+    expect(
+        (await fixture.controller.select(_track(3),
+                expectedModel: _model(), expectedPlayer: fixture.player))
+            .applied,
+        isFalse);
+    expect(
+        (await fixture.controller.select(_track(3),
+                expectedModel: fixture.model, expectedPlayer: stalePlayer))
+            .applied,
+        isFalse);
+    expect(fixture.player.choices, isEmpty);
+    expect(fixture.selection, same(confirmed));
+    expect(fixture.reload.models, isEmpty);
+  });
+
+  for (final change in ['same-item replay', 'media source replacement']) {
+    test('$change invalidates a pending remote subtitle completion', () async {
+      final fixture = _Fixture();
+      addTearDown(fixture.dispose);
+      final remote = fixture.controller.select(_track(3),
+          expectedModel: fixture.model,
+          expectedPlayer: fixture.player,
+          isCurrent: () => true);
+      final replacement = change == 'same-item replay'
+          ? fixture.model.copyWith(
+              playbackInfo: const PlaybackInfoResponse(
+                  playSessionId: 'different-occurrence'))
+          : _model(sourceId: 'different-source');
+      fixture.container.read(playBackModel.notifier).state = replacement;
+      fixture.player.pending.single.complete(3);
+
+      expect((await remote).applied, isFalse);
+      expect(fixture.container.read(playBackModel), same(replacement));
+      expect(fixture.selected, 2);
+      expect(fixture.reload.models, isEmpty);
+      expect(fixture.selection.pending, isFalse);
+      expect(fixture.selection.appliedIndex, isNull);
+    });
+  }
+
   test('new item invalidates the old operation and permits a new selection',
       () async {
     final fixture = _Fixture();
@@ -273,6 +393,91 @@ void main() {
     expect((await stopping).applied, isFalse);
     expect(fixture.selected, 2);
     expect(fixture.selection.pending, isFalse);
+  });
+
+  test('same wrapper with a replacement renderer rejects pending completion',
+      () async {
+    final fixture = _Fixture();
+    addTearDown(fixture.dispose);
+    final pending = fixture.controller.select(_track(3),
+        expectedModel: fixture.model,
+        expectedPlayer: fixture.player,
+        isCurrent: () => true);
+    fixture.player.rendererEpoch++;
+    fixture.player.pending.single.complete(3);
+
+    expect((await pending).applied, isFalse);
+    expect(fixture.container.read(playBackModel), same(fixture.model));
+    expect(fixture.selected, 2);
+    expect(fixture.reload.models, isEmpty);
+    expect(fixture.selection.pending, isFalse);
+    expect(fixture.selection.appliedIndex, isNull);
+    expect(fixture.selection.isFor(fixture.model, fixture.player), isFalse);
+  });
+
+  test('a remote owner cannot cancel a normal UI subtitle selection', () async {
+    final fixture = _Fixture();
+    addTearDown(fixture.dispose);
+    final local = fixture.controller.select(_track(3));
+    final pendingState = fixture.selection;
+
+    fixture.controller.cancelOwnedSelection(Object());
+
+    expect(fixture.player.subtitleCancellations, 0);
+    expect(fixture.selection, same(pendingState));
+    expect(fixture.selection.pending, isTrue);
+    fixture.player.pending.single.complete(3);
+    expect((await local).applied, isTrue);
+    expect(fixture.selected, 3);
+  });
+
+  test('only the exact remote owner cancels its pending backend selection',
+      () async {
+    final fixture = _Fixture();
+    addTearDown(fixture.dispose);
+    final owner = Object();
+    final remote = fixture.controller.select(_track(3), owner: owner);
+    final pendingState = fixture.selection;
+
+    fixture.controller.cancelOwnedSelection(Object());
+    expect(fixture.player.subtitleCancellations, 0);
+    expect(fixture.selection, same(pendingState));
+
+    fixture.controller.cancelOwnedSelection(owner);
+    expect(fixture.player.subtitleCancellations, 1);
+    expect(fixture.selection.pending, isFalse);
+    expect(fixture.selection.error?.reason,
+        SubtitleSelectionFailureReason.unavailable);
+    fixture.player.pending.single.complete(3);
+    expect((await remote).applied, isFalse);
+    expect(fixture.selected, 2);
+    expect(fixture.reload.models, isEmpty);
+  });
+
+  test('a cancelled remote owner cannot cancel or overwrite the next UI choice',
+      () async {
+    final fixture = _Fixture();
+    addTearDown(fixture.dispose);
+    final owner = Object();
+    final remote = fixture.controller.select(_track(3), owner: owner);
+    fixture.controller.cancelOwnedSelection(owner);
+    final local = fixture.controller.select(SubStreamModel.no());
+    final localPendingState = fixture.selection;
+
+    fixture.controller.cancelOwnedSelection(owner);
+
+    expect(fixture.player.subtitleCancellations, 1);
+    expect(fixture.selection, same(localPendingState));
+    expect(fixture.selection.pending, isTrue);
+    expect(fixture.player.choices, [3, -1]);
+    fixture.player.pending[1].complete(-1);
+    expect((await local).applied, isTrue);
+    fixture.player.pending[0].complete(3);
+    expect((await remote).applied, isFalse);
+    expect(fixture.selected, -1);
+    expect(fixture.selection.appliedIndex, -1);
+    expect(fixture.selection.error, isNull);
+    expect(fixture.reload.models, hasLength(1));
   });
 
   testWidgets(

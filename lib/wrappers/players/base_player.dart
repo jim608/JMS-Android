@@ -57,6 +57,7 @@ abstract class BasePlayer {
   Future<ui.Image?> captureAmbientFrame(double maxDimension) async => null;
   Object get ambientFrameSource => this;
   Future<int> setSubtitleTrack(SubStreamModel? model, PlaybackModel playbackModel);
+  void cancelPendingSubtitleSelection() {}
   Future<int> setAudioTrack(AudioStreamModel? model, PlaybackModel playbackModel);
   void applySubtitleSettings(SubtitleSettingsModel settings) {}
 

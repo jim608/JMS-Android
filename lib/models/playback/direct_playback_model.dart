@@ -1,6 +1,5 @@
 import 'package:flutter/widgets.dart';
 
-import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart';
@@ -12,7 +11,6 @@ import 'package:fladder/models/items/media_streams_model.dart';
 import 'package:fladder/models/items/trick_play_model.dart';
 import 'package:fladder/models/playback/playback_queue_state.dart';
 import 'package:fladder/models/playback/playback_model.dart';
-import 'package:fladder/providers/api_provider.dart';
 import 'package:fladder/util/bitrate_helper.dart';
 import 'package:fladder/util/duration_extensions.dart';
 import 'package:fladder/util/subtitle_selection_failure.dart';
@@ -23,6 +21,7 @@ class DirectPlaybackModel extends PlaybackModel {
     required super.item,
     required super.media,
     super.playbackInfo,
+    super.reportingScope,
     super.mediaStreams,
     super.mediaSegments,
     super.chapters,
@@ -34,26 +33,33 @@ class DirectPlaybackModel extends PlaybackModel {
   });
 
   @override
-  List<SubStreamModel> get subStreams => [SubStreamModel.no(), ...mediaStreams?.subStreams ?? []];
+  List<SubStreamModel> get subStreams =>
+      [SubStreamModel.no(), ...mediaStreams?.subStreams ?? []];
 
-  List<QueueItem> get itemsInQueue =>
-      queue.mapIndexed((index, element) => QueueItem(id: element.id, playlistItemId: "playlistItem$index")).toList();
+  List<QueueItem> get itemsInQueue => localItemsInQueue;
 
   @override
-  Future<DirectPlaybackModel> setSubtitle(SubStreamModel? model, MediaControlsWrapper player) async {
+  Future<DirectPlaybackModel> setSubtitle(
+      SubStreamModel? model, MediaControlsWrapper player) async {
     final wanted = model ?? defaultSubStream;
     final newIndex = await player.setSubtitleTrack(model, this);
     requireSubtitleSelectionIndex(wanted?.index, newIndex);
-    return copyWith(mediaStreams: () => mediaStreams?.copyWith(defaultSubStreamIndex: newIndex));
+    return copyWith(
+        mediaStreams: () =>
+            mediaStreams?.copyWith(defaultSubStreamIndex: newIndex));
   }
 
   @override
-  List<AudioStreamModel> get audioStreams => [AudioStreamModel.no(), ...mediaStreams?.audioStreams ?? []];
+  List<AudioStreamModel> get audioStreams =>
+      [AudioStreamModel.no(), ...mediaStreams?.audioStreams ?? []];
 
   @override
-  Future<DirectPlaybackModel>? setAudio(AudioStreamModel? model, MediaControlsWrapper player) async {
+  Future<DirectPlaybackModel>? setAudio(
+      AudioStreamModel? model, MediaControlsWrapper player) async {
     final newIndex = await player.setAudioTrack(model, this);
-    return copyWith(mediaStreams: () => mediaStreams?.copyWith(defaultAudioStreamIndex: newIndex));
+    return copyWith(
+        mediaStreams: () =>
+            mediaStreams?.copyWith(defaultAudioStreamIndex: newIndex));
   }
 
   @override
@@ -63,52 +69,65 @@ class DirectPlaybackModel extends PlaybackModel {
 
   @override
   Future<PlaybackModel?> playbackStarted(Duration position, Ref ref) async {
-    await ref.read(jellyApiProvider).sessionsPlayingPost(
-          body: PlaybackStartInfo(
-            canSeek: true,
-            itemId: item.id,
-            mediaSourceId: item.id,
-            playSessionId: playbackInfo?.playSessionId,
-            subtitleStreamIndex: item.streamModel?.defaultSubStreamIndex,
-            audioStreamIndex: item.streamModel?.defaultAudioStreamIndex,
-            volumeLevel: 100,
-            playbackStartTimeTicks: position.toRuntimeTicks,
-            playMethod: PlayMethod.directplay,
-            isMuted: false,
-            isPaused: false,
-            repeatMode: RepeatMode.repeatall,
-          ),
-        );
-    return null;
-  }
-
-  @override
-  Future<PlaybackModel?> playbackStopped(Duration position, Duration? totalDuration, Ref ref) async {
-    final stopPosition = resolvedStopPosition(position, totalDuration);
-
-    await ref.read(jellyApiProvider).sessionsPlayingStoppedPost(
-          body: PlaybackStopInfo(
-            itemId: item.id,
-            mediaSourceId: item.id,
-            playSessionId: playbackInfo?.playSessionId,
-            positionTicks: stopPosition.toRuntimeTicks,
-          ),
-        );
-
-    return null;
-  }
-
-  @override
-  Future<PlaybackModel?> updatePlaybackPosition(Duration position, bool isPlaying, Ref ref) async {
-    final api = ref.read(jellyApiProvider);
-    await api.sessionsPlayingProgressPost(
-      body: PlaybackProgressInfo(
+    final reporting = reportingScope;
+    if (reporting == null || !reporting.isOwned) return null;
+    await reporting.start(
+      PlaybackStartInfo(
         canSeek: true,
         itemId: item.id,
-        mediaSourceId: item.id,
+        mediaSourceId: mediaStreams?.currentVersionStream?.id,
+        playlistItemId: currentPlaylistItemId,
+        nowPlayingQueue: itemsInQueue,
         playSessionId: playbackInfo?.playSessionId,
-        subtitleStreamIndex: item.streamModel?.defaultSubStreamIndex,
-        audioStreamIndex: item.streamModel?.defaultAudioStreamIndex,
+        subtitleStreamIndex: subtitleStreamIndexForReport(ref),
+        audioStreamIndex: mediaStreams?.defaultAudioStreamIndex,
+        volumeLevel: 100,
+        playbackStartTimeTicks: position.toRuntimeTicks,
+        playMethod: PlayMethod.directplay,
+        isMuted: false,
+        isPaused: false,
+        repeatMode: RepeatMode.repeatall,
+      ),
+    );
+    return null;
+  }
+
+  @override
+  Future<PlaybackModel?> playbackStopped(
+      Duration position, Duration? totalDuration, Ref ref) async {
+    final reporting = reportingScope;
+    if (reporting == null || !reporting.isOwned) return null;
+    final stopPosition = resolvedStopPosition(position, totalDuration);
+
+    await reporting.stop(
+      PlaybackStopInfo(
+        itemId: item.id,
+        mediaSourceId: mediaStreams?.currentVersionStream?.id,
+        playlistItemId: currentPlaylistItemId,
+        nowPlayingQueue: itemsInQueue,
+        playSessionId: playbackInfo?.playSessionId,
+        positionTicks: stopPosition.toRuntimeTicks,
+      ),
+    );
+
+    return null;
+  }
+
+  @override
+  Future<PlaybackModel?> updatePlaybackPosition(
+      Duration position, bool isPlaying, Ref ref) async {
+    final reporting = reportingScope;
+    if (reporting == null || !reporting.isCurrent) return null;
+    await reporting.progress(
+      PlaybackProgressInfo(
+        canSeek: true,
+        itemId: item.id,
+        mediaSourceId: mediaStreams?.currentVersionStream?.id,
+        playlistItemId: currentPlaylistItemId,
+        nowPlayingQueue: itemsInQueue,
+        playSessionId: playbackInfo?.playSessionId,
+        subtitleStreamIndex: subtitleStreamIndexForReport(ref),
+        audioStreamIndex: mediaStreams?.defaultAudioStreamIndex,
         volumeLevel: 100,
         playMethod: PlayMethod.directplay,
         isPaused: !isPlaying,
@@ -136,7 +155,8 @@ class DirectPlaybackModel extends PlaybackModel {
   }
 
   @override
-  String toString() => 'DirectPlaybackModel(item: $item, playbackInfo: $playbackInfo)';
+  String toString() =>
+      'DirectPlaybackModel(item: $item, playbackInfo: $playbackInfo)';
 
   @override
   DirectPlaybackModel copyWith({
@@ -153,12 +173,19 @@ class DirectPlaybackModel extends PlaybackModel {
     PlaybackQueueSource? queueSource,
     Map<Bitrate, bool>? bitRateOptions,
   }) {
+    final updatedStreams =
+        mediaStreams != null ? mediaStreams() : this.mediaStreams;
     return DirectPlaybackModel(
+      reportingScope: reportingScopeForCopy(
+          item: item ?? this.item,
+          playbackInfo: playbackInfo ?? this.playbackInfo,
+          mediaStreams: updatedStreams),
       item: item ?? this.item,
       media: media != null ? media() : this.media,
       playbackInfo: playbackInfo ?? this.playbackInfo,
-      mediaStreams: mediaStreams != null ? mediaStreams() : this.mediaStreams,
-      mediaSegments: mediaSegments != null ? mediaSegments() : this.mediaSegments,
+      mediaStreams: updatedStreams,
+      mediaSegments:
+          mediaSegments != null ? mediaSegments() : this.mediaSegments,
       chapters: chapters != null ? chapters() : this.chapters,
       trickPlay: trickPlay != null ? trickPlay() : this.trickPlay,
       queue: queue ?? this.queue,

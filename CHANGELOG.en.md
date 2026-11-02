@@ -1,3 +1,30 @@
+# JMS 0.11.1-jms.58
+
+## Added
+
+- Add same-account JMS device control from a phone, including device selection, play, pause, seeking and primary subtitles.
+- Receiving is off by default and requires explicit opt-in; closing the panel preserves the current opt-in, while restarting the application turns it off.
+
+## Changed
+
+- Bind remote commands to the device, item, media source and playback occurrence, rejecting expired, duplicate, foreign-account and stale-device input.
+- Distinguish sent commands from receiver confirmation, keeping timed-out results unknown without automatically replaying a possibly completed action.
+
+## Fixed
+
+- Prevent old asynchronous operations and progress reports from overwriting new state after account changes, replacement playback, stopping or disabling receiving.
+
+## Known issues
+
+- Remote control acceptance on real Jellyfin, a physical phone and a Tesla browser remains incomplete; two-browser verification is not vehicle acceptance.
+- Both clients need a JMS build supporting this remote protocol; only already-playing video and primary subtitles are controlled, and the receiver must remain open.
+- Existing Web ASS, SSA, bitmap, burned-in and HLS subtitle limitations still apply; remote control does not add format support or wake a suspended browser.
+
+## Update notes
+
+- This release updates Web only and does not publish Android, Windows or Linux installation packages.
+- Receiving pauses during SyncPlay so room synchronization and remote control remain separate; account settings and existing subtitle fixes are preserved.
+
 # JMS 0.11.1-jms.57
 
 ## Fixed

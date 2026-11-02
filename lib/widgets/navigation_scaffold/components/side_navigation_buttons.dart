@@ -22,6 +22,7 @@ import 'package:fladder/widgets/navigation_scaffold/components/navigation_button
 import 'package:fladder/widgets/navigation_scaffold/components/navigation_items.dart';
 import 'package:fladder/widgets/navigation_scaffold/components/syncplay_navigation_button.dart';
 import 'package:fladder/widgets/shared/custom_tooltip.dart';
+import 'package:fladder/widgets/shared/remote_control_entry.dart';
 import 'package:fladder/widgets/shared/simple_overflow_widget.dart';
 
 class SideNavigationButtons extends ConsumerWidget {
@@ -126,6 +127,7 @@ class SideNavigationButtons extends ConsumerWidget {
           expanded: shouldExpand,
           tooltipPosition: tooltipPosition,
         ),
+        RemoteControlEntry(expanded: shouldExpand),
         if (largeBar) ...[
           if (useOverflow)
             Flexible(

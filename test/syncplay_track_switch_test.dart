@@ -34,6 +34,8 @@ class _Api extends Fake implements JellyfinOpenApi {}
 class _Player extends Fake implements MediaControlsWrapper {
   @override
   int get playbackStopEpoch => 0;
+  @override
+  int get rendererGeneration => 0;
   final choices = <int>[];
   int? returnedIndex;
   Completer<int>? selectionReady;

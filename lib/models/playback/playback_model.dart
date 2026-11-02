@@ -34,12 +34,15 @@ import 'package:fladder/models/video_stream_model.dart';
 import 'package:fladder/profiles/default_profile.dart';
 import 'package:fladder/providers/api_provider.dart';
 import 'package:fladder/providers/connectivity_provider.dart';
+import 'package:fladder/providers/captured_playback_reporting_provider.dart';
+import 'package:fladder/providers/primary_subtitle_selection_provider.dart';
 import 'package:fladder/providers/service_provider.dart';
 import 'package:fladder/providers/settings/video_player_settings_provider.dart';
 import 'package:fladder/providers/sync_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
 import 'package:fladder/services/playback_diagnostics.dart';
+import 'package:fladder/services/playback_reporting_scope.dart';
 import 'package:fladder/util/bitrate_helper.dart';
 import 'package:fladder/util/duration_extensions.dart';
 import 'package:fladder/util/localization_helper.dart';
@@ -55,6 +58,25 @@ class Media {
   const Media({
     required this.url,
   });
+}
+
+/// Web subtitle intent is not evidence that the renderer applied the track.
+/// Null preserves an unconfirmed selection; only an acknowledged Off is -1.
+int? playbackSubtitleStreamIndexForReport({
+  required bool web,
+  required PlaybackModel model,
+  PrimarySubtitleSelectionState? selection,
+  MediaControlsWrapper? player,
+}) {
+  if (!web) return model.mediaStreams?.defaultSubStreamIndex;
+  if (selection == null ||
+      player == null ||
+      selection.pending ||
+      selection.error != null ||
+      !selection.isFor(model, player)) {
+    return null;
+  }
+  return selection.appliedIndex;
 }
 
 /// Server permission is separate from source HDR labels or display capability.
@@ -193,6 +215,57 @@ class PlaybackModel {
   final PlaybackQueueSource? queueSource;
   final MediaSegmentsModel? mediaSegments;
   final PlaybackInfoResponse? playbackInfo;
+  final PlaybackReportingScope? reportingScope;
+
+  PlaybackReportingScope? reportingScopeForCopy(
+          {required ItemBaseModel item,
+          required PlaybackInfoResponse? playbackInfo,
+          required MediaStreamsModel? mediaStreams}) =>
+      reportingScope?.rebind(
+          itemId: item.id,
+          mediaSourceId: mediaStreams?.currentVersionStream?.id,
+          playSessionId: playbackInfo?.playSessionId,
+          playlistItemId: _reportingPlaylistItemId(playbackInfo));
+
+  int? subtitleStreamIndexForReport(Ref ref) =>
+      playbackSubtitleStreamIndexForReport(
+        web: kIsWeb,
+        model: this,
+        selection: kIsWeb ? ref.read(primarySubtitleSelectionProvider) : null,
+        player: kIsWeb ? ref.read(videoPlayerProvider) : null,
+      );
+
+  /// The server echoes this occurrence marker to session discovery. A replay
+  /// receives a new PlaySessionId; subtitle/audio copies keep the same marker.
+  /// Group queues, offline playback and live TV retain their own semantics.
+  String? get currentPlaylistItemId {
+    if (serverManagedQueue ||
+        (this is! DirectPlaybackModel && this is! TranscodePlaybackModel)) {
+      return null;
+    }
+    return _reportingPlaylistItemId(playbackInfo);
+  }
+
+  List<QueueItem> get localItemsInQueue {
+    final currentIndex = queue.indexWhere((entry) => entry.id == item.id);
+    final entries = queue
+        .mapIndexed(
+          (index, entry) => QueueItem(
+            id: entry.id,
+            playlistItemId: index == currentIndex
+                ? currentPlaylistItemId
+                : 'playlistItem$index',
+          ),
+        )
+        .toList();
+    if (currentIndex < 0) {
+      entries.insert(
+        0,
+        QueueItem(id: item.id, playlistItemId: currentPlaylistItemId),
+      );
+    }
+    return entries;
+  }
 
   Map<Bitrate, bool> bitRateOptions;
 
@@ -253,6 +326,7 @@ class PlaybackModel {
 
   PlaybackModel({
     required this.playbackInfo,
+    this.reportingScope,
     this.mediaStreams,
     required this.item,
     required this.media,
@@ -271,13 +345,22 @@ class PlaybackModel {
 }
 
 final playbackModelHelper = Provider<PlaybackModelHelper>((ref) {
-  return PlaybackModelHelper(ref: ref);
+  return PlaybackModelHelper(
+      ref: ref,
+      captureReporting: () =>
+          ref.read(capturedPlaybackReportingProvider).capture());
 });
 
+String? _reportingPlaylistItemId(PlaybackInfoResponse? info) {
+  final session = info?.playSessionId;
+  return session == null || session.isEmpty ? null : 'jms-remote-$session';
+}
+
 class PlaybackModelHelper {
-  const PlaybackModelHelper({required this.ref});
+  const PlaybackModelHelper({required this.ref, this.captureReporting});
 
   final Ref ref;
+  final PlaybackReportingCapture? Function()? captureReporting;
   static final _segmentsLoader = PlaybackOptionalMetadataLoader();
   static final _trickPlayLoader = PlaybackOptionalMetadataLoader();
   static const _optionalMetadataBudget = Duration(seconds: 3);
@@ -288,8 +371,8 @@ class PlaybackModelHelper {
     SelectedPlaybackMediaSource selected, {
     required int? audioStreamIndex,
   }) {
-    final streams = MediaStreamsModel.fromMediaStreamsList([selected.source], ref)
-        .copyWith(
+    final streams =
+        MediaStreamsModel.fromMediaStreamsList([selected.source], ref).copyWith(
       defaultAudioStreamIndex: audioStreamIndex,
       defaultSubStreamIndex: selected.subtitleStreamIndex,
     );
@@ -419,6 +502,9 @@ class PlaybackModelHelper {
     Duration? startPosition,
     PlaybackAttemptRef? diagnosticAttempt,
   }) async {
+    // Capture before queue/details/negotiation await. An account ABA cannot
+    // attach this delayed playback attempt to the newly logged-in account.
+    final reportingCapture = captureReporting?.call();
     final diagnostics = PlaybackDiagnostics.instance;
     final attempt = diagnosticAttempt ?? diagnostics.startAttempt();
     var stage = PlaybackStage.itemDetails;
@@ -439,6 +525,7 @@ class PlaybackModelHelper {
       }
 
       final queue = oldModel?.queue ?? libraryQueue ?? await collectQueue(item);
+      if (reportingCapture != null && !reportingCapture.isCurrent) return null;
       final effectiveQueueSource = oldModel?.queueSource ?? queueSource;
 
       final firstItemToPlay = switch (item) {
@@ -459,6 +546,7 @@ class PlaybackModelHelper {
           event: PlaybackEvent.started, detail: step);
       final fullItemResponse =
           await api.usersUserIdItemsItemIdGet(itemId: firstItemToPlay.id);
+      if (reportingCapture != null && !reportingCapture.isCurrent) return null;
 
       final fullItem = fullItemResponse.body;
 
@@ -537,6 +625,7 @@ class PlaybackModelHelper {
             queueSource: effectiveQueueSource,
             startPosition: actualStartPosition,
             diagnosticAttempt: attempt,
+            reportingCapture: reportingCapture,
           );
 
       if (((showPlaybackOptions || firstItemIsSynced) && !isOffline) &&
@@ -586,7 +675,9 @@ class PlaybackModelHelper {
     PlaybackQueueSource? queueSource,
     Duration? startPosition,
     required PlaybackAttemptRef diagnosticAttempt,
+    PlaybackReportingCapture? reportingCapture,
   }) async {
+    if (reportingCapture != null && !reportingCapture.isCurrent) return null;
     final diagnostics = PlaybackDiagnostics.instance;
     final attempt = diagnosticAttempt;
     var stage = PlaybackStage.playbackInfo;
@@ -650,30 +741,34 @@ class PlaybackModelHelper {
           detail:
               'profile=$profileKind pref=${videoPlayerSettings.wantedPlayer.name} '
               'direct_req=${type != PlaybackType.transcode} bitrate=${requestedBitrate ?? 0}');
-      final Response<PlaybackInfoResponse> response =
-          await api.itemsItemIdPlaybackInfoPost(
-        itemId: item.id,
-        body: PlaybackInfoDto(
-          startTimeTicks: startPosition?.toRuntimeTicks,
-          audioStreamIndex: audioStreamIndex,
-          subtitleStreamIndex: subStreamIndex,
-          enableTranscoding: true,
-          autoOpenLiveStream: true,
-          deviceProfile: playbackDeviceProfile(
-            profile: ref.read(videoProfileProvider),
-            player: videoPlayerSettings.wantedPlayer,
-            liveTv: type == PlaybackType.tv,
-          ),
-          userId: userId,
-          enableDirectPlay: type != PlaybackType.transcode,
-          enableDirectStream: type != PlaybackType.transcode,
-          alwaysBurnInSubtitleWhenTranscoding: isNativePlayer && isExternalSub,
-          maxStreamingBitrate: requestedBitrate,
-          mediaSourceId: newStreamModel?.currentVersionStream?.id,
+      final playbackRequest = PlaybackInfoDto(
+        startTimeTicks: startPosition?.toRuntimeTicks,
+        audioStreamIndex: audioStreamIndex,
+        subtitleStreamIndex: subStreamIndex,
+        enableTranscoding: true,
+        autoOpenLiveStream: true,
+        deviceProfile: playbackDeviceProfile(
+          profile: ref.read(videoProfileProvider),
+          player: videoPlayerSettings.wantedPlayer,
+          liveTv: type == PlaybackType.tv,
         ),
+        userId: userId,
+        enableDirectPlay: type != PlaybackType.transcode,
+        enableDirectStream: type != PlaybackType.transcode,
+        alwaysBurnInSubtitleWhenTranscoding: isNativePlayer && isExternalSub,
+        maxStreamingBitrate: requestedBitrate,
+        mediaSourceId: newStreamModel?.currentVersionStream?.id,
       );
+      final Response<PlaybackInfoResponse>? response =
+          reportingCapture == null || type == PlaybackType.tv
+              ? await api.itemsItemIdPlaybackInfoPost(
+                  itemId: item.id, body: playbackRequest)
+              : await reportingCapture.negotiatePlaybackInfo(
+                  itemId: item.id, body: playbackRequest);
+      if (response == null) return null;
 
       PlaybackInfoResponse? playbackInfo = response.body;
+      if (reportingCapture != null && !reportingCapture.isCurrent) return null;
 
       if (playbackInfo == null) {
         diagnostics.record(attempt, stage,
@@ -703,13 +798,17 @@ class PlaybackModelHelper {
             // Fixed short codes survive conservative opaque-ID redaction;
             // never put source IDs, indexes, or server metadata in this field.
             detail: switch (binding.issue) {
-              PlaybackSourceBindingIssue.missingSources => 'source_list_missing',
+              PlaybackSourceBindingIssue.missingSources =>
+                'source_list_missing',
               PlaybackSourceBindingIssue.missingSourceId => 'source_id_missing',
-              PlaybackSourceBindingIssue.missingRequestedSource => 'source_missing',
-              PlaybackSourceBindingIssue.ambiguousSourceId => 'source_id_duplicate',
+              PlaybackSourceBindingIssue.missingRequestedSource =>
+                'source_missing',
+              PlaybackSourceBindingIssue.ambiguousSourceId =>
+                'source_id_duplicate',
               PlaybackSourceBindingIssue.ambiguousSources => 'source_ambiguous',
               PlaybackSourceBindingIssue.missingSubtitle => 'subtitle_missing',
-              PlaybackSourceBindingIssue.ambiguousSubtitle => 'subtitle_duplicate',
+              PlaybackSourceBindingIssue.ambiguousSubtitle =>
+                'subtitle_duplicate',
               null => 'source_unavailable',
             });
         return null;
@@ -765,6 +864,7 @@ class PlaybackModelHelper {
       );
       final mediaSegments = await segmentsFuture;
       final trickPlayResp = await trickPlayFuture;
+      if (reportingCapture != null && !reportingCapture.isCurrent) return null;
       metadataClock.stop();
 
       final trickPlay = trickPlayResp?.body;
@@ -818,6 +918,11 @@ class PlaybackModelHelper {
             detail: 'direct_stream',
             sourceKind: PlaybackSourceKind.networkStream);
         return DirectPlaybackModel(
+          reportingScope: reportingCapture?.bind(
+              itemId: item.id,
+              mediaSourceId: mediaStreamsWithUrls.currentVersionStream?.id,
+              playSessionId: playbackInfo.playSessionId,
+              playlistItemId: _reportingPlaylistItemId(playbackInfo)),
           item: item,
           queue: libraryQueue,
           playbackQueue: oldModel?.playbackQueue,
@@ -837,6 +942,11 @@ class PlaybackModelHelper {
             detail: 'transcode',
             sourceKind: PlaybackSourceKind.networkStream);
         return TranscodePlaybackModel(
+          reportingScope: reportingCapture?.bind(
+              itemId: item.id,
+              mediaSourceId: mediaStreamsWithUrls.currentVersionStream?.id,
+              playSessionId: playbackInfo.playSessionId,
+              playlistItemId: _reportingPlaylistItemId(playbackInfo)),
           item: item,
           queue: libraryQueue,
           playbackQueue: oldModel?.playbackQueue,
@@ -922,6 +1032,8 @@ class PlaybackModelHelper {
     // VOD renegotiation replaces that model and releases the room-owned player
     // session even when only the local subtitle/audio selection changed.
     if (playbackModel.serverManagedQueue) return;
+    final reportingCapture = playbackModel.reportingScope?.capture;
+    if (reportingCapture != null && !reportingCapture.isCurrent) return;
 
     final item = playbackModel.item;
 
@@ -934,11 +1046,16 @@ class PlaybackModelHelper {
       return;
     }
     final ownerStopEpoch = ownerPlayer.playbackStopEpoch;
+    final ownerRenderer =
+        reportingCapture == null ? null : ownerPlayer.rendererGeneration;
     final ownerRoom = ownerPlayer.syncPlayCommands;
     PlaybackModel? authorizedReplacement;
     bool stillOwnsPlayback({bool allowReplacement = false}) {
       final currentModel = ref.read(playBackModel);
       return identical(ref.read(videoPlayerProvider), ownerPlayer) &&
+          (reportingCapture?.isCurrent ?? true) &&
+          (ownerRenderer == null ||
+              ownerPlayer.rendererGeneration == ownerRenderer) &&
           ownerPlayer.playbackStopEpoch == ownerStopEpoch &&
           identical(ownerPlayer.syncPlayCommands, ownerRoom) &&
           !ownerPlayer.syncPlayActive &&
@@ -965,24 +1082,26 @@ class PlaybackModelHelper {
         playbackModel.mediaStreams?.defaultSubStreamIndex);
 
     if (!stillOwnsPlayback()) return;
-    Response<PlaybackInfoResponse> response =
-        await api.itemsItemIdPlaybackInfoPost(
-      itemId: item.id,
-      body: PlaybackInfoDto(
-        startTimeTicks: currentPosition.toRuntimeTicks,
-        audioStreamIndex: audioIndex,
-        enableDirectPlay: true,
-        enableDirectStream: true,
-        subtitleStreamIndex: subIndex,
-        enableTranscoding: true,
-        autoOpenLiveStream: true,
-        deviceProfile: ref.read(videoProfileProvider),
-        userId: userId,
-        maxStreamingBitrate: playbackModel
-            .bitRateOptions.enabledFirst.entries.firstOrNull?.key.bitRate,
-        mediaSourceId: playbackModel.mediaStreams?.currentVersionStream?.id,
-      ),
+    final playbackRequest = PlaybackInfoDto(
+      startTimeTicks: currentPosition.toRuntimeTicks,
+      audioStreamIndex: audioIndex,
+      enableDirectPlay: true,
+      enableDirectStream: true,
+      subtitleStreamIndex: subIndex,
+      enableTranscoding: true,
+      autoOpenLiveStream: true,
+      deviceProfile: ref.read(videoProfileProvider),
+      userId: userId,
+      maxStreamingBitrate: playbackModel
+          .bitRateOptions.enabledFirst.entries.firstOrNull?.key.bitRate,
+      mediaSourceId: playbackModel.mediaStreams?.currentVersionStream?.id,
     );
+    final Response<PlaybackInfoResponse>? response = reportingCapture == null
+        ? await api.itemsItemIdPlaybackInfoPost(
+            itemId: item.id, body: playbackRequest)
+        : await reportingCapture.negotiatePlaybackInfo(
+            itemId: item.id, body: playbackRequest);
+    if (response == null) return;
 
     if (!stillOwnsPlayback()) return;
     PlaybackInfoResponse playbackInfo = response.bodyOrThrow;
@@ -1031,6 +1150,11 @@ class PlaybackModelHelper {
       final mediaPath = isValidVideoUrl(mediaSource.path ?? "");
 
       newModel = DirectPlaybackModel(
+        reportingScope: reportingCapture?.bind(
+            itemId: playbackModel.item.id,
+            mediaSourceId: mediaStreamsWithUrls.currentVersionStream?.id,
+            playSessionId: playbackInfo.playSessionId,
+            playlistItemId: _reportingPlaylistItemId(playbackInfo)),
         item: playbackModel.item,
         queue: playbackModel.queue,
         playbackQueue: playbackModel.playbackQueue,
@@ -1045,6 +1169,11 @@ class PlaybackModelHelper {
     } else if ((mediaSource.supportsTranscoding ?? false) &&
         mediaSource.transcodingUrl != null) {
       newModel = TranscodePlaybackModel(
+        reportingScope: reportingCapture?.bind(
+            itemId: playbackModel.item.id,
+            mediaSourceId: mediaStreamsWithUrls.currentVersionStream?.id,
+            playSessionId: playbackInfo.playSessionId,
+            playlistItemId: _reportingPlaylistItemId(playbackInfo)),
         item: playbackModel.item,
         queue: playbackModel.queue,
         playbackQueue: playbackModel.playbackQueue,
@@ -1071,11 +1200,10 @@ class PlaybackModelHelper {
           ref.read(mediaPlaybackProvider.select((value) => value.position));
       final reloadPlaying =
           ref.read(mediaPlaybackProvider.select((value) => value.playing));
-      await ref
-          .read(videoPlayerProvider.notifier)
-          .loadPlaybackItem(newModel, reloadPosition,
-              playWhenReady: reloadPlaying,
-              isCurrent: () => stillOwnsPlayback(allowReplacement: true));
+      await ref.read(videoPlayerProvider.notifier).loadPlaybackItem(
+          newModel, reloadPosition,
+          playWhenReady: reloadPlaying,
+          isCurrent: () => stillOwnsPlayback(allowReplacement: true));
     }
   }
 }

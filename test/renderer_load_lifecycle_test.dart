@@ -11,6 +11,7 @@ import 'package:fladder/models/playback/playback_model.dart';
 import 'package:fladder/models/item_base_model.dart';
 import 'package:fladder/models/items/media_streams_model.dart';
 import 'package:fladder/services/playback_diagnostics.dart';
+import 'package:fladder/services/playback_reporting_scope.dart';
 import 'package:fladder/models/settings/video_player_settings.dart';
 import 'package:fladder/models/settings/subtitle_settings_model.dart';
 import 'package:fladder/providers/video_player_provider.dart';
@@ -39,6 +40,7 @@ class _SmtcApi extends Fake implements RustLibApi {
       case #crateApiApiSmtcShuffleRequestEvent:
         return const Stream<bool>.empty();
       case #crateApiApiSmtcUpdateConfig:
+      case #crateApiApiSmtcUpdateTimeline:
       case #crateApiApiSmtcUpdatePlaybackStatus:
       case #crateApiApiSmtcClearMetadata:
       case #crateApiApiSmtcDisableSmtc:
@@ -57,6 +59,8 @@ class _Item extends Fake implements ItemBaseModel {
 }
 
 class _Playback extends Fake implements PlaybackModel {
+  @override
+  PlaybackReportingScope? get reportingScope => null;
   @override
   bool get serverManagedQueue => false;
   @override
@@ -348,7 +352,8 @@ void main() {
     ]);
     await expectLater(notifier.init(), throwsA(isA<StateError>()));
 
-    expect(await notifier.loadPlaybackItem(_Playback(), Duration.zero), isFalse);
+    expect(
+        await notifier.loadPlaybackItem(_Playback(), Duration.zero), isFalse);
     expect(wrapper.events.where((event) => event == 'init'), hasLength(2));
     expect(wrapper.events, isNot(contains('open')));
     expect(wrapper.events, isNot(contains('play')));

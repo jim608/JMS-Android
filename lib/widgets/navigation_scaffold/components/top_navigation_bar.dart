@@ -17,6 +17,7 @@ import 'package:fladder/widgets/navigation_scaffold/components/background_image.
 import 'package:fladder/widgets/navigation_scaffold/components/destination_model.dart';
 import 'package:fladder/widgets/navigation_scaffold/components/navigation_button.dart';
 import 'package:fladder/widgets/navigation_scaffold/components/settings_user_icon.dart';
+import 'package:fladder/widgets/shared/remote_control_entry.dart';
 
 final topBarNode = FocusScopeNode(debugLabel: 'topBarScope');
 
@@ -214,6 +215,7 @@ class TopNavigationBar extends ConsumerWidget {
                                 ),
                               ),
                             ),
+                            const RemoteControlEntry(),
                             NavigationButton(
                               label: context.localized.settings,
                               selected: currentLocation.contains(const SettingsRoute().routeName),

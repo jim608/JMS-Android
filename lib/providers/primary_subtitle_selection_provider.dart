@@ -24,6 +24,7 @@ class PrimarySubtitleSelectionState {
     this.model,
     this.player,
     this.stopEpoch,
+    this.rendererGeneration,
     this.pending = false,
     this.requested,
     this.appliedIndex,
@@ -33,6 +34,7 @@ class PrimarySubtitleSelectionState {
   final PlaybackModel? model;
   final MediaControlsWrapper? player;
   final int? stopEpoch;
+  final int? rendererGeneration;
   final bool pending;
   final SubStreamModel? requested;
   // null is unconfirmed; -1 is a successfully applied explicit Off choice.
@@ -42,6 +44,7 @@ class PrimarySubtitleSelectionState {
   bool isFor(PlaybackModel? model, MediaControlsWrapper player) =>
       _sameSession(this.model, model) &&
       identical(this.player, player) &&
+      rendererGeneration == player.rendererGeneration &&
       stopEpoch == player.playbackStopEpoch;
 }
 
@@ -58,11 +61,24 @@ class PrimarySubtitleSelectionResult {
 }
 
 class _Selection {
-  _Selection(this.model, this.player) : stopEpoch = player.playbackStopEpoch;
+  _Selection(this.model, this.player, {this.isCurrent, this.owner})
+      : stopEpoch = player.playbackStopEpoch,
+        rendererGeneration = player.rendererGeneration;
 
   PlaybackModel model;
   final MediaControlsWrapper player;
   final int stopEpoch;
+  final int rendererGeneration;
+  final bool Function()? isCurrent;
+  final Object? owner;
+
+  bool get ownerCurrent {
+    try {
+      return isCurrent?.call() ?? true;
+    } catch (_) {
+      return false;
+    }
+  }
 }
 
 final primarySubtitleSelectionProvider = StateNotifierProvider<
@@ -85,9 +101,11 @@ class PrimarySubtitleSelectionController
 
   bool _current(_Selection operation) =>
       mounted &&
+      operation.ownerCurrent &&
       identical(_active, operation) &&
       identical(ref.read(playBackModel), operation.model) &&
       identical(ref.read(videoPlayerProvider), operation.player) &&
+      operation.rendererGeneration == operation.player.rendererGeneration &&
       operation.player.playbackStopEpoch == operation.stopEpoch;
 
   void modelChanged(PlaybackModel? model) {
@@ -96,6 +114,7 @@ class PrimarySubtitleSelectionController
     if (identical(state.model, model)) return;
     final sameSession = _sameSession(state.model, model) &&
         state.player != null &&
+        state.rendererGeneration == state.player!.rendererGeneration &&
         state.stopEpoch == state.player!.playbackStopEpoch;
     final pending = _active != null || state.pending;
     _active = null;
@@ -104,6 +123,7 @@ class PrimarySubtitleSelectionController
       state = PrimarySubtitleSelectionState(
         model: model,
         player: state.player,
+        rendererGeneration: state.rendererGeneration,
         stopEpoch: state.stopEpoch,
         requested: state.requested,
         appliedIndex: pending ? null : state.appliedIndex,
@@ -132,6 +152,7 @@ class PrimarySubtitleSelectionController
       state = PrimarySubtitleSelectionState(
         model: model,
         player: player,
+        rendererGeneration: player.rendererGeneration,
         stopEpoch: token.stopEpoch,
         pending: true,
         requested: model.mediaStreams?.currentSubStream,
@@ -148,6 +169,7 @@ class PrimarySubtitleSelectionController
     state = PrimarySubtitleSelectionState(
       model: state.model,
       player: state.player,
+      rendererGeneration: state.rendererGeneration,
       stopEpoch: initial.player.playbackStopEpoch,
       requested: state.requested,
       appliedIndex: state.appliedIndex,
@@ -163,6 +185,8 @@ class PrimarySubtitleSelectionController
         (token != null &&
             (!identical(token, _initial) ||
                 _initial!.stopEpoch != player.playbackStopEpoch)) ||
+        (token != null &&
+            _initial!.rendererGeneration != player.rendererGeneration) ||
         !identical(ref.read(playBackModel), model) ||
         !identical(ref.read(videoPlayerProvider), player)) {
       return;
@@ -173,6 +197,7 @@ class PrimarySubtitleSelectionController
     state = PrimarySubtitleSelectionState(
       model: model,
       player: player,
+      rendererGeneration: player.rendererGeneration,
       stopEpoch: player.playbackStopEpoch,
       requested: model.mediaStreams?.currentSubStream,
       appliedIndex: appliedIndex,
@@ -182,8 +207,17 @@ class PrimarySubtitleSelectionController
 
   Future<PrimarySubtitleSelectionResult> select(SubStreamModel? track,
       {PlaybackModel? expectedModel,
-      MediaControlsWrapper? expectedPlayer}) async {
+      MediaControlsWrapper? expectedPlayer,
+      bool Function()? isCurrent,
+      Object? owner}) async {
     if (!mounted || _active != null || _initial != null) {
+      return const PrimarySubtitleSelectionResult();
+    }
+    try {
+      if (isCurrent?.call() == false) {
+        return const PrimarySubtitleSelectionResult();
+      }
+    } catch (_) {
       return const PrimarySubtitleSelectionResult();
     }
     final model = ref.read(playBackModel);
@@ -203,7 +237,8 @@ class PrimarySubtitleSelectionController
             : model.subStreams?.firstWhereOrNull((candidate) =>
                 candidate.index == track.index && candidate.id == track.id);
     if (canonical == null) return const PrimarySubtitleSelectionResult();
-    final operation = _Selection(model, player);
+    final operation =
+        _Selection(model, player, isCurrent: isCurrent, owner: owner);
     _active = operation;
     final requested = canonical;
     var appliedIndex = state.isFor(model, player)
@@ -216,6 +251,7 @@ class PrimarySubtitleSelectionController
       state = PrimarySubtitleSelectionState(
         model: operation.model,
         player: player,
+        rendererGeneration: operation.rendererGeneration,
         stopEpoch: operation.stopEpoch,
         pending: pending,
         requested: requested,
@@ -269,6 +305,7 @@ class PrimarySubtitleSelectionController
           state = PrimarySubtitleSelectionState(
             model: operation.model,
             player: player,
+            rendererGeneration: operation.rendererGeneration,
             stopEpoch: player.playbackStopEpoch,
             requested: requested,
             error: const SubtitleSelectionFailure(
@@ -277,5 +314,31 @@ class PrimarySubtitleSelectionController
         }
       }
     }
+  }
+
+  /// Only the exact caller that started the active selection may revoke it.
+  void cancelOwnedSelection(Object owner) {
+    final operation = _active;
+    if (operation == null || !identical(operation.owner, owner)) return;
+    _active = null;
+    final sameRenderer =
+        operation.rendererGeneration == operation.player.rendererGeneration &&
+            operation.stopEpoch == operation.player.playbackStopEpoch;
+    if (sameRenderer) operation.player.cancelPendingSubtitleSelection();
+    if (!mounted ||
+        !sameRenderer ||
+        !identical(ref.read(playBackModel), operation.model) ||
+        !identical(ref.read(videoPlayerProvider), operation.player)) {
+      return;
+    }
+    state = PrimarySubtitleSelectionState(
+        model: operation.model,
+        player: operation.player,
+        stopEpoch: operation.stopEpoch,
+        rendererGeneration: operation.rendererGeneration,
+        requested: state.requested,
+        appliedIndex: state.appliedIndex,
+        error: const SubtitleSelectionFailure(
+            SubtitleSelectionFailureReason.unavailable));
   }
 }
