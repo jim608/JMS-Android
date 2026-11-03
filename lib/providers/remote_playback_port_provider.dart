@@ -4,6 +4,7 @@ import 'package:fladder/models/account_model.dart';
 import 'package:fladder/models/media_playback_model.dart';
 import 'package:fladder/models/items/media_streams_model.dart';
 import 'package:fladder/models/playback/playback_model.dart';
+import 'package:fladder/models/settings/video_player_settings.dart';
 import 'package:fladder/providers/primary_subtitle_selection_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
@@ -96,6 +97,8 @@ class JmsRemotePlaybackPort implements RemotePlaybackPort {
       return null;
     }
     final player = ref.read(videoPlayerProvider);
+    // Legacy NativeActivity cannot confirm remote subtitle changes or progress.
+    if (player.backend == PlayerOptions.nativePlayer) return null;
     final subtitle = ref.read(primarySubtitleSelectionProvider);
     final applied = subtitle.isFor(model, player) &&
             !subtitle.pending &&

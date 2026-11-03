@@ -21,7 +21,9 @@ import 'package:fladder/providers/primary_subtitle_selection_provider.dart';
 import 'package:fladder/providers/remote_playback_port_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
+import 'package:fladder/services/jellyfin_session_socket.dart';
 import 'package:fladder/services/remote_control/remote_control_models.dart';
+import 'package:fladder/services/remote_control/remote_receiver.dart';
 import 'package:fladder/services/playback_reporting_scope.dart';
 import 'package:fladder/util/dual_subtitle.dart';
 import 'package:fladder/util/subtitle_offset.dart';
@@ -126,7 +128,7 @@ class _Player extends Fake implements MediaControlsWrapper {
   @override
   bool get syncPlayActive => group;
   @override
-  PlayerOptions get backend => PlayerOptions.libMPV;
+  PlayerOptions backend = PlayerOptions.libMPV;
   @override
   bool get supportsSecondarySubtitles => false;
   @override
@@ -292,7 +294,92 @@ Matcher _failure([RemoteFailureCode? code]) => code == null
 
 Future<void> _flush() => Future<void>.delayed(Duration.zero);
 
+class _ReceiverApi implements RemoteReceiverApi {
+  final advertised = <bool>[];
+  final reports = <PlaybackProgressInfo>[];
+  @override
+  Future<String?> ownSessionId() async => 'fixture-receiver';
+  @override
+  Future<void> capabilities(bool enabled) async => advertised.add(enabled);
+  @override
+  Future<void> report(PlaybackProgressInfo progress) async =>
+      reports.add(progress);
+}
+
+class _ReceiverSocket implements JellyfinSessionSocket {
+  final input = StreamController<Object?>.broadcast(sync: true);
+  @override
+  Future<void> get ready async {}
+  @override
+  Stream<Object?> get messages => input.stream;
+  @override
+  void send(String value) {}
+  @override
+  Future<void> close() => input.close();
+}
+
 void main() {
+  test(
+    'legacy NativeActivity cannot advertise mutate or report; LibMPV remains available',
+    () async {
+      final fixture = _Fixture();
+      addTearDown(fixture.dispose);
+      expect(fixture.port.snapshot?.binding, fixture.binding);
+      expect(fixture.model.reportingScope?.isCurrent, isTrue);
+      fixture.player.backend = PlayerOptions.nativePlayer;
+
+      final api = _ReceiverApi();
+      final receiver = RemoteReceiverController(
+        api: api,
+        socketFactory: (_) => _ReceiverSocket(),
+        socketUri: Uri.parse('wss://fixture.invalid/jellyfin/socket'),
+        currentUserId: fixture.account.id,
+        player: fixture.port,
+        isCurrent: () => true,
+      );
+      addTearDown(receiver.close);
+      await receiver.enable();
+      await _flush();
+      expect(fixture.port.snapshot, isNull);
+      expect(api.advertised, [false]);
+      expect(api.reports, isEmpty);
+      for (final action in <Future<void> Function()>[
+        () => fixture.port.play(fixture.binding),
+        () => fixture.port.pause(fixture.binding),
+        () => fixture.port.seek(const Duration(seconds: 45), fixture.binding),
+        () => fixture.port.setSubtitle(8, fixture.binding),
+      ]) {
+        await expectLater(action(), throwsA(_failure(RemoteFailureCode.stale)));
+      }
+      expect(fixture.player.actions, isEmpty);
+      expect(fixture.player.subtitles, isEmpty);
+      expect(
+        fixture.container.read(primarySubtitleSelectionProvider).appliedIndex,
+        isNull,
+      );
+      expect(fixture.container.read(playBackModel), same(fixture.model));
+      expect(api.reports, isEmpty);
+
+      await receiver.disable();
+      fixture.player.backend = PlayerOptions.libMPV;
+      expect(fixture.port.snapshot?.binding, fixture.binding);
+      await fixture.port.play(fixture.binding);
+      await fixture.port.pause(fixture.binding);
+      await fixture.port.seek(const Duration(seconds: 45), fixture.binding);
+      final subtitle = fixture.port.setSubtitle(8, fixture.binding);
+      await _flush();
+      fixture.player.subtitles.single.done.complete(8);
+      await subtitle;
+      expect(fixture.player.actions, ['play', 'pause', 'seek:45000']);
+      expect(fixture.port.snapshot?.subtitleIndex, 8);
+      await receiver.enable();
+      await _flush();
+      expect(api.advertised, [false, true]);
+      expect(api.reports.single.subtitleStreamIndex, 8);
+      expect(api.reports.single.playlistItemId, fixture.binding.playbackId);
+    },
+  );
+
   test(
       'snapshot binds actual source and occurrence without treating unknown subtitles as Off',
       () {

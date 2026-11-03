@@ -8,9 +8,15 @@ plugins {
 
 def keystoreProperties = new Properties()
 def useJmsTestSigning = System.getenv('JMS_TEST_SIGNING') == 'true'
-def keystorePropertiesFile = file('key.properties')
-if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+def useJmsUnsignedCandidate = System.getenv('JMS_UNSIGNED_CANDIDATE') == 'true'
+if (useJmsUnsignedCandidate && useJmsTestSigning) {
+    throw new GradleException('Unsigned candidates cannot use JMS test signing')
+}
+if (!useJmsUnsignedCandidate) {
+    def keystorePropertiesFile = file('key.properties')
+    if (keystorePropertiesFile.exists()) {
+        keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+    }
 }
 
 def localProperties = new Properties()
@@ -74,12 +80,14 @@ android {
         kotlinCompilerExtensionVersion '1.6.4'
     }
 
-    signingConfigs {
-        release {
-            storeFile file('keystore.jks')
-            keyAlias keystoreProperties['keyAlias']
-            keyPassword keystoreProperties['keyPassword']
-            storePassword keystoreProperties['storePassword']
+    if (!useJmsUnsignedCandidate) {
+        signingConfigs {
+            release {
+                storeFile file('keystore.jks')
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+                storePassword keystoreProperties['storePassword']
+            }
         }
     }
     buildTypes {
@@ -87,7 +95,9 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
-            signingConfig = useJmsTestSigning ? signingConfigs.debug : signingConfigs.release
+            if (!useJmsUnsignedCandidate) {
+                signingConfig = useJmsTestSigning ? signingConfigs.debug : signingConfigs.release
+            }
 
             packagingOptions {
                 resources {
@@ -95,6 +105,11 @@ android {
                 }
             }
         }
+    }
+
+    if (useJmsUnsignedCandidate) {
+        // Remove AGP's default debug signing too. No variant may open a keystore.
+        buildTypes.configureEach { signingConfig = null }
     }
 
     flavorDimensions "default"

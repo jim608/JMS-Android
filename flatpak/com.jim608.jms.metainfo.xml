@@ -25,6 +25,16 @@
   </developer>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.11.1-jms.58" date="2026-11-03">
+      <description>
+        <p>Adds same-account JMS device control for playing video, including
+          play, pause, seeking and primary subtitle selection.</p>
+        <p>Receiving requires explicit opt-in while JMS remains open and active.
+          Remote input pauses during SyncPlay and preserves existing subtitle handling.</p>
+        <p>Prepares the native .58 catch-up candidate; physical Steam Deck and
+          formal-origin Portal upgrade acceptance remain incomplete.</p>
+      </description>
+    </release>
     <release version="0.11.1-jms.56" date="2026-10-30">
       <description>
         <p>Avoids SyncPlay waiting loops after subtitle changes while preserving real cache waits.</p>

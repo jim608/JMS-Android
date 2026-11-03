@@ -14,8 +14,8 @@ class RemoteControlStrings {
   String get title => text('遠端遙控', 'Remote control');
   String get receiving =>
       text('接受此帳號的遙控', 'Allow this account to control this device');
-  String get description => text('先在播放裝置開啟此選項，並保持 JMS 分頁開啟。',
-      'Enable this on the playback device and keep its JMS tab open.');
+  String get description => text('先在播放裝置開啟此選項，並讓 JMS 分頁或應用程式保持前景開啟。',
+      'Enable this on the playback device and keep its JMS tab or app in the foreground.');
   String get device => text('播放裝置', 'Playback device');
   String get choose => text('選擇播放裝置', 'Choose a playback device');
   String get empty =>

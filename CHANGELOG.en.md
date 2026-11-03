@@ -17,12 +17,14 @@
 ## Known issues
 
 - Remote control acceptance on real Jellyfin, a physical phone and a Tesla browser remains incomplete; two-browser verification is not vehicle acceptance.
-- Both clients need a JMS build supporting this remote protocol; only already-playing video and primary subtitles are controlled, and the receiver must remain open.
-- Existing Web ASS, SSA, bitmap, burned-in and HLS subtitle limitations still apply; remote control does not add format support or wake a suspended browser.
+- Both clients need a JMS build supporting this remote protocol; only already-playing video and primary subtitles are controlled, and the receiver should remain open and active in the foreground.
+- Existing Web ASS, SSA, bitmap, burned-in and HLS subtitle limitations still apply, while native playback retains its existing subtitle path; remote control adds no format support, background service or ability to wake a suspended app or browser.
+- Physical Android, Windows, Linux and Steam Deck remote control, GPU, audio and real-media acceptance remain incomplete; Flatpak Portal, previous-version upgrades and physical cross-device SyncPlay require separate acceptance.
 
 ## Update notes
 
-- This release updates Web only and does not publish Android, Windows or Linux installation packages.
+- The original .58 release updated Web only, without Android, Windows or Linux packages; native catch-up preparation on 2026-11-03 keeps 0.11.1-jms.58+67, does not redeploy Web, and has not published native candidates.
+- The Android candidate is planned as a test-key prerelease and cannot serve as an upgrade signed with the existing production key; Windows Setup remains unsigned; the Linux candidate is planned as a signed TEST with the formal Flatpak origin and automatic-update feed unchanged, subject to actual signing and publication records.
 - Receiving pauses during SyncPlay so room synchronization and remote control remain separate; account settings and existing subtitle fixes are preserved.
 
 # JMS 0.11.1-jms.57
