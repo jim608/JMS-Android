@@ -12,7 +12,7 @@ JMS 是基於 [Fladder](https://github.com/DonutWare/Fladder) 的跨平台 Jelly
 
 | 平台 | 下載入口 | 2026-11-12 核對的公開版本 |
 |---|---|---|
-| Android ARM64 | [Android Releases](https://github.com/jim608/JMS-Android/releases) | [.58 TEST](https://github.com/jim608/JMS-Android/releases/tag/v0.11.1-jms.58)，測試簽章 APK／Prerelease |
+| Android ARM64 | [Android Releases](https://github.com/jim608/JMS-Android/releases) | [.59 TEST](https://github.com/jim608/JMS-Android/releases/tag/v0.11.1-jms.59)，測試簽章 APK／Prerelease |
 | Windows x64 | [Windows Releases](https://github.com/jim608/JMS-Desktop/releases) | [.58+67](https://github.com/jim608/JMS-Desktop/releases/tag/v0.11.1-jms.58%2B67)，未簽章 Setup |
 | Linux／Steam Deck x86_64 | [Linux Releases](https://github.com/jim608/JMS-Linux/releases) | [.56 TEST1](https://github.com/jim608/JMS-Linux/releases/tag/v0.11.1-jms.56-test.1)，簽署 Flatpak／Prerelease |
 
