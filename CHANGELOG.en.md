@@ -1,3 +1,15 @@
+# JMS 0.11.1-jms.59
+
+## Fixed
+
+- Revoke stale remote control immediately when receiving is disabled or disconnected, preventing unfinished player operations from updating newer state.
+- Reject new commands as temporarily unavailable after re-enabling receiving until an outstanding player operation settles, then restore availability.
+
+## Known issues
+
+- This is a test release; physical Android, Windows, Linux, Steam Deck, Tesla, real Jellyfin and previous-version upgrade acceptance remain incomplete.
+- Automated tests do not establish physical playback, GPU, audio, Flatpak Portal or cross-device acceptance.
+
 # JMS 0.11.1-jms.58
 
 ## Added
