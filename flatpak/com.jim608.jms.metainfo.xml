@@ -25,6 +25,12 @@
   </developer>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.11.1-jms.59" date="2026-11-12">
+      <description>
+        <p>Revoke stale remote control on disconnect and block new commands until outstanding player operations settle.</p>
+        <p>Test release; physical device, Portal and previous-version upgrade acceptance remain incomplete.</p>
+      </description>
+    </release>
     <release version="0.11.1-jms.58" date="2026-11-03">
       <description>
         <p>Adds same-account JMS device control for playing video, including
