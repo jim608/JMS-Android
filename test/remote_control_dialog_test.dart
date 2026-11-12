@@ -133,6 +133,8 @@ class _Controls extends RemoteControlNotifier {
 
   void publish(RemoteControlState next) =>
       state = state.copyWith(controller: next);
+  void publishReceiver(RemoteReceiverState status) =>
+      state = state.copyWith(receivingEnabled: true, receiverStatus: status);
   void publishStatus(RemoteCommandStatus status) {
     final current = state.controller;
     publish(RemoteControlState(
@@ -186,6 +188,22 @@ Future<void> _open(WidgetTester tester, _Fixture fixture) async {
 }
 
 void main() {
+  testWidgets('revoked pending input is shown as unavailable, not receiving',
+      (tester) async {
+    final fixture = _Fixture();
+    await _open(tester, fixture);
+    fixture.controls.publishReceiver(RemoteReceiverState.busy);
+    await tester.pumpAndSettle();
+    expect(
+        find.text(
+            'The player is finishing an earlier operation; remote control is unavailable'),
+        findsOneWidget);
+    expect(find.text('Receiving commands from this account'), findsNothing);
+    fixture.controls.publishReceiver(RemoteReceiverState.enabled);
+    await tester.pumpAndSettle();
+    expect(find.text('Receiving commands from this account'), findsOneWidget);
+  });
+
   testWidgets('logged-out users have no remote control entry', (tester) async {
     final fixture = _Fixture(signedIn: false);
     await _mount(tester, fixture);

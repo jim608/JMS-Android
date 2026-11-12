@@ -42,6 +42,8 @@ class RemoteControlStrings {
           text('已開啟同帳號遙控', 'Receiving commands from this account'),
         RemoteReceiverState.blocked =>
           text('一起看期間暫停遙控', 'Remote control is paused during SyncPlay'),
+        RemoteReceiverState.busy => text('播放器仍在完成上一個操作，遙控暫不可用',
+            'The player is finishing an earlier operation; remote control is unavailable'),
         RemoteReceiverState.disconnected =>
           text('裝置已離線，可重新開啟連線', 'Disconnected; enable again to reconnect'),
         RemoteReceiverState.error => text('無法啟用遙控，請確認連線與權限',

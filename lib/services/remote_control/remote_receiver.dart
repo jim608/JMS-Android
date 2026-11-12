@@ -53,6 +53,11 @@ abstract interface class RemotePlaybackPort {
   Future<void> setSubtitle(int index, RemotePlaybackBinding binding);
 }
 
+/// Revokes unfinished work without invalidating a future explicit opt-in.
+abstract interface class RemotePlaybackCancellation {
+  void cancelPendingInput();
+}
+
 abstract interface class RemoteReceiverApi {
   Future<String?> ownSessionId();
   Future<void> capabilities(bool enabled);
@@ -64,6 +69,7 @@ enum RemoteReceiverState {
   connecting,
   enabled,
   blocked,
+  busy,
   disconnected,
   error,
 }
@@ -107,7 +113,7 @@ class RemoteReceiverController {
   bool _closing = false;
   Future<void>? _closeFuture;
   bool _ready = false;
-  bool _draining = false;
+  int? _drainingGeneration;
   bool _reporting = false;
   bool? _advertised;
   String? _advertisedSessionId;
@@ -133,8 +139,14 @@ class RemoteReceiverController {
       isCurrent();
   bool get _available =>
       _ready &&
+      !_waitingForRevokedInput &&
       !player.blockedBySyncPlay &&
       player.snapshot?.binding.isComplete == true;
+
+  // Revocation suppresses stale commits but does not prove that a native
+  // operation stopped. Keep port calls serialized until its Future settles.
+  bool get _waitingForRevokedInput =>
+      _drainingGeneration != null && _drainingGeneration != _generation;
 
   void _setState(RemoteReceiverState value) {
     if (_closed || _state == value) return;
@@ -199,7 +211,9 @@ class RemoteReceiverController {
     _setState(
       player.blockedBySyncPlay
           ? RemoteReceiverState.blocked
-          : RemoteReceiverState.enabled,
+          : _waitingForRevokedInput
+              ? RemoteReceiverState.busy
+              : RemoteReceiverState.enabled,
     );
     _capabilities(_available, generation);
   }
@@ -310,7 +324,7 @@ class RemoteReceiverController {
     final category = _category(command.action.type);
     _pending.removeWhere((entry) => _category(entry.action.type) == category);
     _pending.add(command); // At most one transport, seek, and subtitle command.
-    if (!_draining) unawaited(_drain(generation));
+    if (_drainingGeneration == null) unawaited(_drain(generation));
   }
 
   int _category(RemoteActionType type) => switch (type) {
@@ -320,7 +334,7 @@ class RemoteReceiverController {
       };
 
   Future<void> _drain(int generation) async {
-    _draining = true;
+    _drainingGeneration = generation;
     try {
       while (_valid(generation) && _pending.isNotEmpty) {
         final command = _pending.removeAt(0);
@@ -362,9 +376,15 @@ class RemoteReceiverController {
         }
       }
     } finally {
-      _draining = false;
+      if (_drainingGeneration == generation) {
+        _drainingGeneration = null;
+        _refresh(_generation);
+      }
       // A new opt-in can arrive while an old player's callback finishes.
-      if (_valid(_generation) && _pending.isNotEmpty) {
+      // A synchronous state listener may already have started its drain.
+      if (_drainingGeneration == null &&
+          _valid(_generation) &&
+          _pending.isNotEmpty) {
         unawaited(_drain(_generation));
       }
     }
@@ -412,6 +432,11 @@ class RemoteReceiverController {
   }
 
   Future<void> _release(int generation) async {
+    // Revoke before the first await: socket cleanup can outlive this lease,
+    // and a late old cleanup must not cancel a new lease's input.
+    if (player case RemotePlaybackCancellation cancellation) {
+      cancellation.cancelPendingInput();
+    }
     _ready = false;
     _sessionId = null;
     _pending.clear();

@@ -23,6 +23,7 @@ import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
 import 'package:fladder/services/jellyfin_session_socket.dart';
 import 'package:fladder/services/remote_control/remote_control_models.dart';
+import 'package:fladder/services/remote_control/remote_control_protocol.dart';
 import 'package:fladder/services/remote_control/remote_receiver.dart';
 import 'package:fladder/services/playback_reporting_scope.dart';
 import 'package:fladder/util/dual_subtitle.dart';
@@ -308,6 +309,7 @@ class _ReceiverApi implements RemoteReceiverApi {
 
 class _ReceiverSocket implements JellyfinSessionSocket {
   final input = StreamController<Object?>.broadcast(sync: true);
+  Completer<void>? closeGate;
   @override
   Future<void> get ready async {}
   @override
@@ -315,10 +317,160 @@ class _ReceiverSocket implements JellyfinSessionSocket {
   @override
   void send(String value) {}
   @override
-  Future<void> close() => input.close();
+  Future<void> close() async {
+    await closeGate?.future;
+    await input.close();
+  }
 }
 
 void main() {
+  for (final disconnect in ['error', 'done', 'disable', 'close']) {
+    test('socket $disconnect revokes a pending remote subtitle selection',
+        () async {
+      final fixture = _Fixture();
+      addTearDown(fixture.dispose);
+      final api = _ReceiverApi();
+      var socket = _ReceiverSocket();
+      final receiver = RemoteReceiverController(
+        api: api,
+        socketFactory: (_) => socket,
+        socketUri: Uri.parse('wss://fixture.invalid/jellyfin/socket'),
+        currentUserId: fixture.account.id,
+        player: fixture.port,
+        isCurrent: () => true,
+      );
+      addTearDown(receiver.close);
+      await receiver.enable();
+      expect(
+          fixture.container.read(primarySubtitleSelectionProvider).appliedIndex,
+          isNull);
+      socket.input.add(RemoteControlProtocol.encode(
+        userId: fixture.account.id,
+        sessionId: 'fixture-receiver',
+        binding: fixture.binding,
+        action: const RemoteAction.subtitle(8),
+        controllerId: 'fixture-controller',
+        requestId: 'pending-subtitle',
+        sequence: 1,
+        now: DateTime.now(),
+      ).toJson());
+      await _flush();
+      expect(fixture.player.subtitles, hasLength(1));
+      expect(fixture.container.read(primarySubtitleSelectionProvider).pending,
+          isTrue);
+
+      if (disconnect == 'error') {
+        socket.input.addError(StateError('synthetic disconnect'));
+      } else if (disconnect == 'done') {
+        await socket.input.close();
+      } else if (disconnect == 'disable') {
+        await receiver.disable();
+      } else {
+        await receiver.close();
+      }
+      await _flush();
+      expect(receiver.enabled, isFalse);
+      fixture.player.subtitles.single.done.complete(8);
+      await _flush();
+      await _flush();
+
+      expect(
+          fixture.container
+              .read(playBackModel)
+              ?.mediaStreams
+              ?.defaultSubStreamIndex,
+          2);
+      expect(
+          fixture.container.read(primarySubtitleSelectionProvider).appliedIndex,
+          2);
+      expect(api.reports.where((report) => report.subtitleStreamIndex == 8),
+          isEmpty);
+
+      if (disconnect != 'close') {
+        socket = _ReceiverSocket();
+        await receiver.enable();
+        final fresh = fixture.port.setSubtitle(-1, fixture.binding);
+        await _flush();
+        fixture.player.subtitles.last.done.complete(-1);
+        await fresh;
+        expect(receiver.enabled, isTrue);
+        expect(
+            fixture.container
+                .read(primarySubtitleSelectionProvider)
+                .appliedIndex,
+            -1);
+      }
+    });
+  }
+
+  test('old socket cleanup cannot revoke a new lease subtitle command',
+      () async {
+    final fixture = _Fixture();
+    addTearDown(fixture.dispose);
+    final api = _ReceiverApi();
+    final oldSocket = _ReceiverSocket()..closeGate = Completer<void>();
+    var socket = oldSocket;
+    final receiver = RemoteReceiverController(
+      api: api,
+      socketFactory: (_) => socket,
+      socketUri: Uri.parse('wss://fixture.invalid/jellyfin/socket'),
+      currentUserId: fixture.account.id,
+      player: fixture.port,
+      isCurrent: () => true,
+    );
+    addTearDown(() async {
+      if (!oldSocket.closeGate!.isCompleted) oldSocket.closeGate!.complete();
+      await receiver.close();
+    });
+    void send(int index, int sequence) {
+      socket.input.add(RemoteControlProtocol.encode(
+        userId: fixture.account.id,
+        sessionId: 'fixture-receiver',
+        binding: fixture.binding,
+        action: RemoteAction.subtitle(index),
+        controllerId: 'fixture-controller',
+        requestId: 'request-$sequence',
+        sequence: sequence,
+        now: DateTime.now(),
+      ).toJson());
+    }
+
+    await receiver.enable();
+    send(8, 1);
+    await _flush();
+    expect(fixture.player.subtitles, hasLength(1));
+    oldSocket.input.addError(StateError('synthetic disconnect'));
+    await _flush();
+    expect(receiver.enabled, isFalse);
+    socket = _ReceiverSocket();
+    await receiver.enable();
+    expect(receiver.state, RemoteReceiverState.busy);
+    fixture.player.subtitles.first.done.complete(8);
+    await _flush();
+    await _flush();
+    expect(receiver.state, RemoteReceiverState.enabled);
+    send(-1, 2);
+    await _flush();
+    expect(fixture.player.subtitles, hasLength(2));
+    expect(fixture.player.subtitles.last.index, -1);
+
+    oldSocket.closeGate!.complete();
+    await _flush();
+    fixture.player.subtitles.last.done.complete(-1);
+    await _flush();
+    await _flush();
+    expect(receiver.enabled, isTrue);
+    expect(
+        fixture.container.read(primarySubtitleSelectionProvider).appliedIndex,
+        -1);
+    expect(
+        fixture.container
+            .read(playBackModel)
+            ?.mediaStreams
+            ?.defaultSubStreamIndex,
+        -1);
+  });
+
   test(
     'legacy NativeActivity cannot advertise mutate or report; LibMPV remains available',
     () async {

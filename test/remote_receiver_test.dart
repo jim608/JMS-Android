@@ -358,6 +358,143 @@ void main() {
     },
   );
 
+  for (final fails in [false, true]) {
+    testWidgets(
+      'new opt-ins stay unavailable until revoked work settles (fails: $fails)',
+      (tester) async {
+        final h = _Harness();
+        await h.start(tester);
+        final reportsBefore = h.api.reports.length;
+        final gate = h.player.gate = Completer<void>();
+        h.send(const RemoteAction.play(), 1);
+        expect(h.player.calls, ['play']);
+
+        for (var attempt = 0; attempt < 2; attempt++) {
+          await h.disable(tester);
+          await _settle(tester, h.controller.enable());
+          expect(h.controller.state, RemoteReceiverState.busy);
+          expect(h.api.advertised, [true, false]);
+          h.send(const RemoteAction.pause(), 2);
+          h.send(const RemoteAction.seek(Duration(seconds: 2)), 3);
+          h.send(const RemoteAction.subtitle(-1), 4);
+          await _flush(tester);
+          await tester.pump(const Duration(seconds: 2));
+          expect(h.player.calls, ['play']);
+          expect(h.api.reports.length, reportsBefore);
+          expect(h.api.advertised, [true, false]);
+        }
+
+        h.player.gate = null;
+        if (fails) {
+          gate.completeError(StateError('old native operation failed'));
+        } else {
+          gate.complete();
+        }
+        await _flush(tester);
+        expect(h.controller.state, RemoteReceiverState.enabled);
+        expect(h.api.advertised, [true, false, true]);
+        expect(h.player.calls, ['play'],
+            reason: 'Commands received while unavailable must not replay');
+        expect(h.api.reports.length, reportsBefore,
+            reason: 'Revoked work must not publish a success report');
+
+        h.send(const RemoteAction.pause(), 2);
+        await _flush(tester);
+        expect(h.player.calls, ['play', 'pause']);
+        expect(h.api.reports.length, reportsBefore + 1);
+        expect(h.api.reports.last.isPaused, isTrue);
+        await h.close(tester);
+      },
+    );
+  }
+
+  for (final ending in ['disable', 'close', 'account']) {
+    testWidgets('settled revoked work cannot revive receiver after $ending',
+        (tester) async {
+      final h = _Harness();
+      await h.start(tester);
+      final reportsBefore = h.api.reports.length;
+      final gate = h.player.gate = Completer<void>();
+      h.send(const RemoteAction.play(), 1);
+      await h.disable(tester);
+      await _settle(tester, h.controller.enable());
+      expect(h.controller.state, RemoteReceiverState.busy);
+      if (ending == 'disable') {
+        await h.disable(tester);
+      } else if (ending == 'close') {
+        await h.close(tester);
+      } else {
+        h.current = false;
+      }
+      gate.complete();
+      await _flush(tester);
+      await tester.pump(const Duration(seconds: 2));
+      await _flush(tester);
+      expect(h.controller.state, isNot(RemoteReceiverState.enabled));
+      expect(h.api.advertised, [true, false]);
+      expect(h.api.reports.length, reportsBefore);
+      expect(h.player.calls, ['play']);
+      await h.close(tester);
+    });
+  }
+
+  testWidgets('restored-state listener cannot start overlapping drains',
+      (tester) async {
+    final h = _Harness();
+    await h.start(tester);
+    final oldGate = h.player.gate = Completer<void>();
+    h.send(const RemoteAction.play(), 1);
+    await h.disable(tester);
+    await _settle(tester, h.controller.enable());
+    final newGate = Completer<void>();
+    final listener = h.controller.states.listen((state) {
+      if (state == RemoteReceiverState.enabled) {
+        h.player.gate = newGate;
+        h.send(const RemoteAction.pause(), 2);
+        h.send(const RemoteAction.seek(Duration(seconds: 2)), 3);
+      }
+    });
+    oldGate.complete();
+    await _flush(tester);
+    expect(h.player.calls, ['play', 'pause']);
+    await tester.runAsync(listener.cancel);
+    h.player.gate = null;
+    newGate.complete();
+    await _flush(tester);
+    expect(h.player.calls, ['play', 'pause', 'seek:20000000']);
+    await h.close(tester);
+  });
+
+  testWidgets('busy gate rejects input even while old capabilities are pending',
+      (tester) async {
+    final h = _Harness();
+    final capability = h.api.capabilityGate = Completer<void>();
+    await h.start(tester);
+    final gate = h.player.gate = Completer<void>();
+    h.send(const RemoteAction.play(), 1);
+    final disabling = h.controller.disable();
+    await _flush(tester);
+    await tester.pump(const Duration(seconds: 2));
+    await _settle(tester, disabling);
+    await _settle(tester, h.controller.enable());
+    expect(h.controller.state, RemoteReceiverState.busy);
+    h.send(const RemoteAction.pause(), 2);
+    await _flush(tester);
+    expect(h.player.calls, ['play']);
+    expect(h.api.advertised, [true]);
+    h.api.capabilityGate = null;
+    capability.complete();
+    await _flush(tester);
+    expect(h.api.advertised, [true, false]);
+    h.player.gate = null;
+    gate.complete();
+    await _flush(tester);
+    expect(h.controller.state, RemoteReceiverState.enabled);
+    expect(h.api.advertised, [true, false, true]);
+    expect(h.player.calls, ['play']);
+    await h.close(tester);
+  });
+
   testWidgets('seek respects duration and nonseekable media', (tester) async {
     final h = _Harness();
     await h.start(tester);

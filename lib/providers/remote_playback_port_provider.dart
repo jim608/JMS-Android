@@ -20,7 +20,8 @@ final remotePlaybackPortProvider = Provider<RemotePlaybackPort>((ref) {
 });
 
 /// Keeps remote input on the same player, subtitle owner and seek rules as UI.
-class JmsRemotePlaybackPort implements RemotePlaybackPort {
+class JmsRemotePlaybackPort
+    implements RemotePlaybackPort, RemotePlaybackCancellation {
   JmsRemotePlaybackPort(this.ref, this.owner);
   final Ref ref;
   final AccountModel? owner;
@@ -49,6 +50,7 @@ class JmsRemotePlaybackPort implements RemotePlaybackPort {
     cancelPendingInput();
   }
 
+  @override
   void cancelPendingInput() {
     _inputEpoch++;
     final owner = _pendingSubtitleOwner;
