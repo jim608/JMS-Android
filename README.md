@@ -8,7 +8,20 @@ JMS 是基於 [Fladder](https://github.com/DonutWare/Fladder) 的跨平台 Jelly
 
 ## 下載 JMS
 
-目前公開測試版為 **`0.11.1-jms.44+46`（Prerelease）**。請從對應平台的版本頁選擇附件，並核對同版 SHA256 校驗清單。
+各平台獨立發布，版本號與驗收狀態不一定同步。請先選平台，再閱讀該版說明並核對同版 SHA256；**原始碼提交、草稿 PR 或 CI 成功不等於已有可下載發布**。
+
+| 平台 | 下載入口 | 2026-11-12 核對的公開版本 |
+|---|---|---|
+| Android ARM64 | [Android Releases](https://github.com/jim608/JMS-Android/releases) | [.58 TEST](https://github.com/jim608/JMS-Android/releases/tag/v0.11.1-jms.58)，測試簽章 APK／Prerelease |
+| Windows x64 | [Windows Releases](https://github.com/jim608/JMS-Desktop/releases) | [.58+67](https://github.com/jim608/JMS-Desktop/releases/tag/v0.11.1-jms.58%2B67)，未簽章 Setup |
+| Linux／Steam Deck x86_64 | [Linux Releases](https://github.com/jim608/JMS-Linux/releases) | [.56 TEST1](https://github.com/jim608/JMS-Linux/releases/tag/v0.11.1-jms.56-test.1)，簽署 Flatpak／Prerelease |
+
+Linux TEST 套件不會自動取代正式 Flatpak origin 或一般更新來源；簽署不代表 Portal、升級、Steam Deck／GPU／音訊及跨裝置播放均已驗收。Android 測試簽章不應當作正式簽章升級包；各版限制以版本說明與實際附件為準。Web 由管理者部署，本專案不提供公開媒體站台。
+
+<details>
+<summary>歷史版本 .44 的下載與套件說明（非目前版本）</summary>
+
+當時的公開測試版為 **`0.11.1-jms.44+46`（Prerelease）**。請從對應平台的版本頁選擇附件，並核對同版 SHA256 校驗清單。
 
 | 裝置 | 下載入口 | 提供內容 |
 |---|---|---|
@@ -19,6 +32,8 @@ JMS 是基於 [Fladder](https://github.com/DonutWare/Fladder) 的跨平台 Jelly
 Linux 本版沒有 Flatpak；本機配方尚未刊登 AUR，不能使用 `yay -S jms-bin`。Web 由管理者部署，本專案不提供公開媒體站台。各平台的安裝方式與限制見[桌面版指南](docs/JMS_DESKTOP.md)及對應版本說明。
 
 Android 沿用測試簽章；Windows／Linux 尚未提供正式發行者簽章。Prerelease 不代表本人裝置、覆蓋安裝與所有播放情境皆已驗收。
+
+</details>
 
 ## 可以用 JMS 做什麼？
 
