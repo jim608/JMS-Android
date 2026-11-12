@@ -95,6 +95,17 @@ class FeedPreflightTests(unittest.TestCase):
         harness.parent.mkdir()
         harness.write_text('synthetic harness bytes')
 
+    def test_hash_pinned_frozen_record_accepts_utf8_bom_without_mutation(self):
+        baseline = self.root / self.policy['baselineBuildRecord']
+        raw = b'\xef\xbb\xbf' + baseline.read_bytes()
+        baseline.write_bytes(raw)
+        self.policy['baselineBuildRecordSha256'] = feed.sha256(baseline)
+        (self.root / 'config/jms_publication.json').write_bytes(encoded(self.policy))
+        packages = {'installed8': self.root / 'artifacts/publication/legacy-checker/package_config.json',
+                    'current': self.root / '.dart_tool/package_config.json'}
+        feed.checker_tool_bindings(self.root, packages, self.root / 'scripts/check_jms_legacy_feed.dart')
+        self.assertEqual(baseline.read_bytes(), raw)
+
     def manual_release(self, tag=MANUAL_TAG):
         return {'id': 46, 'tag_name': tag, 'name': 'Historical manual TEST', 'body': 'Preserve history',
                 'draft': False, 'prerelease': True, 'published_at': '2026-10-24T00:00:00Z',

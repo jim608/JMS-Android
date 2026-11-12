@@ -274,7 +274,9 @@ def checker_tool_bindings(root, packages, harness):
     require(record_path.resolve().is_relative_to(root.resolve())
             and sha256(record_path) == policy['baselineBuildRecordSha256'],
             'Frozen baseline source record changed')
-    baseline = json_bytes(record_path.read_bytes())
+    # The hash-pinned Windows-produced legacy record includes a UTF-8 BOM.
+    # Keep its original bytes/hash immutable; public feed JSON remains strict.
+    baseline = json_bytes(record_path.read_bytes().removeprefix(b'\xef\xbb\xbf'))
     require(baseline.get('version') == '0.11.1-jms.8' and baseline.get('baseVersionCode') == 8,
             'Frozen source record is not installed8')
     expected = {row['path']: row['sha256'] for row in baseline['inputs']}
