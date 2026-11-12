@@ -14,7 +14,7 @@ JMS 是基於 [Fladder](https://github.com/DonutWare/Fladder) 的跨平台 Jelly
 |---|---|---|
 | Android ARM64 | [Android Releases](https://github.com/jim608/JMS-Android/releases) | [.59 TEST](https://github.com/jim608/JMS-Android/releases/tag/v0.11.1-jms.59)，測試簽章 APK／Prerelease |
 | Windows x64 | [Windows Releases](https://github.com/jim608/JMS-Desktop/releases) | [.59+68 TEST](https://github.com/jim608/JMS-Desktop/releases/tag/v0.11.1-jms.59%2B68)，未簽章 Setup／Prerelease |
-| Linux／Steam Deck x86_64 | [Linux Releases](https://github.com/jim608/JMS-Linux/releases) | [.56 TEST1](https://github.com/jim608/JMS-Linux/releases/tag/v0.11.1-jms.56-test.1)，簽署 Flatpak／Prerelease |
+| Linux／Steam Deck x86_64 | [Linux Releases](https://github.com/jim608/JMS-Linux/releases) | [.59 TEST1](https://github.com/jim608/JMS-Linux/releases/tag/v0.11.1-jms.59-test.1)，簽署 Flatpak／Prerelease |
 
 Linux TEST 套件不會自動取代正式 Flatpak origin 或一般更新來源；簽署不代表 Portal、升級、Steam Deck／GPU／音訊及跨裝置播放均已驗收。Android 測試簽章不應當作正式簽章升級包；各版限制以版本說明與實際附件為準。Web 由管理者部署，本專案不提供公開媒體站台。
 
