@@ -831,8 +831,8 @@ class SyncPlayStrings {
         SyncPlayFailureCode.invalidCode =>
           zh ? '請輸入 6 位數字房間碼。' : 'Enter a six-digit room code.',
         SyncPlayFailureCode.noGroup => zh
-            ? '找不到這個房間，請確認房間碼與 Jellyfin 伺服器。'
-            : 'Room not found. Check the code and Jellyfin server.',
+            ? '找不到這個房間。請確認房間碼、兩端使用同一台 Jellyfin 伺服器，以及你的帳號能播放房間裡的影片。若無法播放，請房主改用雙方都能播放的影片建房。'
+            : 'Room not found. Check the code, that both devices use the same Jellyfin server, and that your account can play the room video. If it cannot, ask the host to create a room with a video you can both play.',
         SyncPlayFailureCode.ambiguousCode => zh
             ? '房間碼重複，請房間建立者更換房間碼。'
             : 'Multiple rooms use this code. Ask the creator to choose another code.',

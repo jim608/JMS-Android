@@ -64,6 +64,20 @@ void main() {
     expect(find.textContaining('not a password'), findsOneWidget);
   });
 
+  testWidgets('missing room tells the joiner to check video access',
+      (tester) async {
+    await showPanel(
+      tester,
+      state: const SyncPlayViewState(
+        failure: SyncPlayFailure(SyncPlayFailureCode.noGroup),
+      ),
+    );
+
+    expect(find.textContaining('your account can play the room video'),
+        findsOneWidget);
+    expect(find.byType(TextField), findsOneWidget);
+  });
+
   testWidgets(
       'diagnostics are collapsed, signed and describe local estimates only',
       (tester) async {
