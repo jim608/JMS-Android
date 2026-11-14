@@ -142,13 +142,17 @@ class MpvHdrToneMapper {
   }) : delay = delay ?? Future<void>.delayed;
 
   static const label = 'jms_hdr10_sdr_v1';
+  static const _referenceWhiteNits = 100;
+
   static String filterForPeak(double peakNits) {
-    if (!peakNits.isFinite || peakNits <= 0 || peakNits > 10000) throw ArgumentError.value(peakNits, 'peakNits');
+    if (!peakNits.isFinite || peakNits < _referenceWhiteNits || peakNits > 10000) {
+      throw ArgumentError.value(peakNits, 'peakNits');
+    }
     // zscale removes color-dependent AVFrame side data before tonemap. Capture
     // the physical peak first; FFmpeg's auto fallback is not the source peak.
-    final peak = peakNits / 100;
+    final peak = peakNits / _referenceWhiteNits;
     return '@$label:lavfi=['
-        'zscale=pin=2020:tin=smpte2084:min=2020_ncl:rin=limited:t=linear:npl=100,'
+        'zscale=pin=2020:tin=smpte2084:min=2020_ncl:rin=limited:t=linear:npl=$_referenceWhiteNits,'
         'format=gbrpf32le,zscale=p=709,tonemap=tonemap=hable:desat=0:peak=$peak,'
         'zscale=t=709:m=709:r=limited,format=yuv420p]';
   }
@@ -264,7 +268,8 @@ class MpvHdrToneMapper {
                 ...metadata,
                 'HDR filter label': label,
                 'HDR peak policy': '${metadata['max-cll']} max-cll / ${metadata['max-luma']} max-luma; '
-                    'selected $peakNits nit / npl=100 = ${peakNits / 100}; explicit before linearization',
+                    'selected $peakNits nit / npl=$_referenceWhiteNits = ${peakNits / _referenceWhiteNits}; '
+                    'explicit before linearization',
                 'HDR output': 'BT.709 / BT.1886 / limited, 8-bit YUV before software RGB texture',
               };
               return const MpvHdrDecision('HDR10/PQ to SDR applied', applied: true);
@@ -326,10 +331,14 @@ class MpvHdrToneMapper {
   double? _peak(Map<String, String> metadata) {
     final cllText = metadata['max-cll'] ?? '';
     final cll = double.tryParse(cllText);
-    if (cll != null && cll != 0) return cll.isFinite && cll > 0 && cll <= 10000 ? cll : null;
+    if (cll != null && (!cll.isFinite || cll < 0 || cll > 10000)) return null;
+    if (cll != null && cll >= _referenceWhiteNits) return cll;
     if (cll == null && cllText.isNotEmpty && cllText != 'unknown' && cllText != 'auto') return null;
+    // A peak below reference white makes Hable amplify the HDR signal.
     final mastering = double.tryParse(metadata['max-luma'] ?? '');
-    return mastering != null && mastering.isFinite && mastering > 0 && mastering <= 10000 ? mastering : null;
+    return mastering != null && mastering.isFinite && mastering >= _referenceWhiteNits && mastering <= 10000
+        ? mastering
+        : null;
   }
 
   String? _filterSkip(String filters) {

@@ -132,12 +132,39 @@ void main() {
   });
 
   test('MaxCLL takes priority over mastering max-luma; missing or zero CLL uses reliable mastering metadata', () async {
-    for (final entry in [('', 4000.0), ('0', 4000.0), ('600', 600.0)]) {
+    for (final entry in [('', 4000.0), ('0', 4000.0), ('100', 100.0), ('600', 600.0)]) {
       final native = FakeNative()..input['max-cll'] = entry.$1;
       final mapper = native.mapper();
       expect((await mapper.prepare(mapper.begin(), hdr)).applied, isTrue);
       expect(native.filters.first, MpvHdrToneMapper.filterForPeak(entry.$2));
     }
+  });
+
+  test('sub-reference MaxCLL uses the mastering peak for PQ-to-SDR conversion', () async {
+    for (final cll in ['1.000000', '99.999999']) {
+      final native = FakeNative()
+        ..input['max-cll'] = cll
+        ..input['max-luma'] = '1000.000000';
+      final mapper = native.mapper();
+      expect((await mapper.prepare(mapper.begin(), hdr)).applied, isTrue);
+      expect(native.filters.first, contains('tonemap=tonemap=hable:desat=0:peak=10.0'));
+      expect(mapper.diagnostics['HDR peak policy'], contains('selected 1000.0 nit'));
+    }
+  });
+
+  test('sub-reference metadata cannot install a filter without a usable mastering peak', () async {
+    for (final mastering in ['', '0', '99.999999']) {
+      final native = FakeNative()
+        ..input['max-cll'] = '1'
+        ..input['max-luma'] = mastering;
+      final mapper = native.mapper();
+      expect((await mapper.prepare(mapper.begin(), hdr)).applied, isFalse, reason: mastering);
+      expect(native.commands, isEmpty);
+    }
+  });
+
+  test('filter builder rejects an explicit peak below the SDR reference white', () {
+    expect(() => MpvHdrToneMapper.filterForPeak(1), throwsArgumentError);
   });
 
   test('unknown, nonfinite, negative or impossible physical peak never falls back to hardcoded1000nit', () async {
@@ -149,6 +176,15 @@ void main() {
       expect((await mapper.prepare(mapper.begin(), hdr)).applied, isFalse, reason: peak);
       expect(native.commands, isEmpty);
       expect(mapper.diagnostics['HDR SDR policy'], contains('peak'));
+    }
+  });
+
+  test('invalid MaxCLL does not use valid mastering metadata', () async {
+    for (final cll in ['-1', 'NaN', 'Infinity', '10001', 'invalid']) {
+      final native = FakeNative()..input['max-cll'] = cll;
+      final mapper = native.mapper();
+      expect((await mapper.prepare(mapper.begin(), hdr)).applied, isFalse, reason: cll);
+      expect(native.commands, isEmpty);
     }
   });
 
