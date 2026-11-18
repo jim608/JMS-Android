@@ -19,7 +19,7 @@ import 'package:fladder/wrappers/media_control_wrapper.dart';
 import 'package:fladder/wrappers/players/player_states.dart';
 import 'package:fladder/widgets/shared/fladder_slider.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';

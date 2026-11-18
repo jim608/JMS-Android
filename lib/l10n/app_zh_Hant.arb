@@ -1580,7 +1580,7 @@
     "username": "使用者名稱",
     "ok": "確定",
   "seerr": "點片",
-    "seerrNotConfigured": "未設置",
+    "seerrNotConfigured": "尚未完成設定",
     "seerrLoadingUser": "正在載入使用者",
     "seerrUnknownUser": "未知使用者",
     "loggedInAs": "已登入為 {displayName}",
@@ -2113,5 +2113,54 @@
   "jmsInterfaceModeTitle": "介面模式",
   "jmsInterfaceModeAuto": "自動",
   "jmsInterfaceModeDesktop": "桌面版",
-  "jmsInterfaceModeHandheld": "掌機版"
+  "jmsInterfaceModeHandheld": "掌機版",
+  "impellerRendererTitle": "Impeller 渲染器",
+  "impellerRendererDesc": "使用 Flutter 的 Impeller 渲染器。如果 GPU 顯示的漸層或特效不正確，可關閉此選項以改用 Skia。變更後需要重新啟動應用程式。",
+  "appLockPattern": "圖形",
+  "enterPin": "輸入 PIN 碼",
+  "confirmPin": "確認 PIN 碼",
+  "drawPattern": "繪製圖形",
+  "confirmPattern": "再次繪製圖形",
+  "incorrectPatternTryAgain": "圖形不正確，請再試一次。",
+  "patternTooShort": "請連接至少 4 個點",
+  "codeMismatch": "兩次輸入不符，請再試一次。",
+  "unreadableAccountsLogInAgain": "部分已儲存的帳號無法載入。請重新登入以恢復這些帳號。",
+  "sideBar": "側邊欄",
+  "musicSideBar": "音樂側邊欄",
+  "refreshRateSwitchingTitle": "更新率配對",
+  "refreshRateSwitchingDesc": "讓螢幕更新率配合影片幀率",
+  "subtitleOffsetBackward": "字幕向後移",
+  "subtitleOffsetForward": "字幕向前移",
+  "subtitleOffset": "字幕時間偏移",
+  "settingsServerUrlSetDesc": "變更連線至 Jellyfin 的網址。新網址必須指向同一台伺服器。",
+  "showOnDashboard": "顯示於首頁",
+  "libraryFilters": "媒體庫篩選",
+  "editYourLibraryFilters": "編輯媒體庫篩選條件",
+  "libraryFiltersTitle": "媒體庫篩選",
+  "libraryFiltersDesc": "依篩選條件建立自訂的媒體庫檢視。",
+  "libraryNoFiltersSaved": "尚未儲存媒體庫篩選",
+  "addTo": "加入",
+  "deepLinkSwitchUserTitle": "要切換帳號嗎？",
+  "deepLinkSwitchUserDesc": "{user} 無法開啟這個項目。請選擇可開啟此項目的帳號。",
+  "@deepLinkSwitchUserDesc": {
+    "description": "Shown when a link points to an item the current user cannot access, followed by a list of accounts that can",
+    "placeholders": {
+      "user": {
+        "type": "String"
+      }
+    }
+  },
+  "deepLinkSwitchAccountDesc": "此連結屬於 {user}。要切換到這個帳號嗎？",
+  "@deepLinkSwitchAccountDesc": {
+    "description": "Shown when a notification link was created for another saved account",
+    "placeholders": {
+      "user": {
+        "type": "String"
+      }
+    }
+  },
+  "deepLinkItemNotFound": "您儲存的帳號都無法開啟這個項目。",
+  "lowResourceModeTitle": "低資源模式",
+  "lowResourceModeDesc": "減少快取與緩衝區用量，並停用耗用資源的視覺特效，以降低記憶體用量。選擇「自動」時，記憶體為 3 GB 或以下的裝置會啟用此模式。",
+  "lowResourceModeAuto": "自動"
 }

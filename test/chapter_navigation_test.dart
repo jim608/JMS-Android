@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart' as dto;
@@ -15,13 +16,31 @@ import 'package:fladder/services/syncplay/syncplay_models.dart';
 import 'package:fladder/wrappers/media_control_wrapper.dart';
 import 'package:fladder/wrappers/players/player_states.dart';
 
-class _Ref extends Fake implements Ref {
-  _Ref() {
-    values[syncPlayProvider] = const SyncPlayViewState();
-  }
-  final values = <Object, Object?>{};
+import 'support/playback_test_ref.dart';
+
+class _Room extends StateNotifier<SyncPlayViewState> implements SyncPlayNotifier {
+  _Room() : super(const SyncPlayViewState());
+
+  void show(SyncPlayViewState view) => state = view;
+
   @override
-  T read<T>(ProviderListenable<T> provider) => values[provider] as T;
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _Video extends StateNotifier<MediaControlsWrapper> implements VideoPlayerNotifier {
+  _Video(super.state);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+ProviderContainer _chapterContainer(_Player player, _Playback playback, {_Room? room}) {
+  return ProviderContainer.test(overrides: [
+    videoPlayerProvider.overrideWith((ref) => _Video(player)),
+    syncPlayProvider.overrideWith((ref) => room ?? _Room()),
+    playBackModel.overrideWith((ref) => playback),
+    mediaPlaybackProvider.overrideWith((ref) => MediaPlaybackModel(duration: const Duration(seconds: 60))),
+  ]);
 }
 
 class _Images extends Fake implements ImageNotifier {
@@ -128,7 +147,10 @@ void main() {
   test(
       'server timestamps must exist and be nonnegative; original thumbnail index is retained',
       () {
-    final ref = _Ref()..values[imageUtilityProvider] = _Images();
+    final container = ProviderContainer.test(overrides: [
+      imageUtilityProvider.overrideWithValue(_Images()),
+    ]);
+    final ref = playbackTestRef(container);
     final chapters = Chapter.chaptersFromInfo(
         'item',
         [
@@ -147,19 +169,15 @@ void main() {
       'provider seeks through wrapper once while pending and can navigate after completion',
       () async {
     final player = _Player()..pending = Completer<void>();
-    final ref = _Ref()
-      ..values[videoPlayerProvider] = player
-      ..values[playBackModel] = _Playback([
+    final container = _chapterContainer(player, _Playback([
         chapter(30),
         chapter(0),
         chapter(10),
         chapter(10),
         chapter(-1),
         chapter(60)
-      ])
-      ..values[mediaPlaybackProvider] =
-          MediaPlaybackModel(duration: const Duration(seconds: 60));
-    final settings = VideoPlayerSettingsProviderNotifier(ref);
+      ]));
+    final settings = VideoPlayerSettingsProviderNotifier(playbackTestRef(container));
     addTearDown(settings.dispose);
     final first = settings.nextChapter();
     await settings.nextChapter();
@@ -180,16 +198,12 @@ void main() {
   test('provider no-ops with no valid chapter or unavailable direction',
       () async {
     final player = _Player();
-    final ref = _Ref()
-      ..values[videoPlayerProvider] = player
-      ..values[playBackModel] = _Playback([])
-      ..values[mediaPlaybackProvider] =
-          MediaPlaybackModel(duration: const Duration(seconds: 60));
-    final settings = VideoPlayerSettingsProviderNotifier(ref);
+    final container = _chapterContainer(player, _Playback([]));
+    final settings = VideoPlayerSettingsProviderNotifier(playbackTestRef(container));
     addTearDown(settings.dispose);
     await settings.nextChapter();
     await settings.prevChapter();
-    ref.values[playBackModel] =
+    container.read(playBackModel.notifier).state =
         _Playback([chapter(0), chapter(-1), chapter(60)]);
     await settings.nextChapter();
     await settings.prevChapter();
@@ -198,12 +212,8 @@ void main() {
 
   test('failed seek releases the repeated-input guard', () async {
     final player = _Player()..pending = Completer<void>();
-    final ref = _Ref()
-      ..values[videoPlayerProvider] = player
-      ..values[playBackModel] = _Playback([chapter(0), chapter(10)])
-      ..values[mediaPlaybackProvider] =
-          MediaPlaybackModel(duration: const Duration(seconds: 60));
-    final settings = VideoPlayerSettingsProviderNotifier(ref);
+    final container = _chapterContainer(player, _Playback([chapter(0), chapter(10)]));
+    final settings = VideoPlayerSettingsProviderNotifier(playbackTestRef(container));
     addTearDown(settings.dispose);
     final failed = expectLater(settings.nextChapter(), throwsStateError);
     player.pending!.completeError(StateError('synthetic seek failure'));
@@ -216,12 +226,9 @@ void main() {
 
   test('room transitions cannot fall back to a local chapter seek', () async {
     final player = _Player();
-    final ref = _Ref()
-      ..values[videoPlayerProvider] = player
-      ..values[playBackModel] = _Playback([chapter(0), chapter(10)])
-      ..values[mediaPlaybackProvider] =
-          MediaPlaybackModel(duration: const Duration(seconds: 60));
-    final settings = VideoPlayerSettingsProviderNotifier(ref);
+    final room = _Room();
+    final container = _chapterContainer(player, _Playback([chapter(0), chapter(10)]), room: room);
+    final settings = VideoPlayerSettingsProviderNotifier(playbackTestRef(container));
     addTearDown(settings.dispose);
     for (final view in [
       const SyncPlayViewState(busy: true),
@@ -235,7 +242,7 @@ void main() {
       const SyncPlayViewState(
           room: SyncPlayControllerState(status: SyncPlayStatus.disconnected)),
     ]) {
-      ref.values[syncPlayProvider] = view;
+      room.show(view);
       for (final active in [false, true]) {
         player.roomActive = active;
         await settings.nextChapter();
@@ -244,7 +251,7 @@ void main() {
     }
     expect(player.seeks, isEmpty);
     player.roomActive = true;
-    ref.values[syncPlayProvider] = SyncPlayViewState(
+    room.show(SyncPlayViewState(
         room: SyncPlayControllerState(
       status: SyncPlayStatus.joined,
       clockSynchronized: true,
@@ -252,7 +259,7 @@ void main() {
           groupId: 'group',
           groupName: 'room',
           lastUpdatedAt: DateTime.utc(2026)),
-    ));
+    )));
     await settings.nextChapter();
     expect(player.seeks, [const Duration(seconds: 10)]);
   });

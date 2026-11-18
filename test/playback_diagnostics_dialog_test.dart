@@ -1,35 +1,36 @@
 import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:fladder/l10n/generated/app_localizations.dart';
 import 'package:fladder/screens/shared/playback_diagnostics_dialog.dart';
 
-class _Picker extends FilePicker {
-  String? result;
+class _Picker extends FilePickerPlatform {
+  Uri? result;
   Object? error;
   int calls = 0;
   Uint8List? exportedBytes;
 
   @override
-  Future<String?> saveFile({
+  Future<Uri?> saveFile({
+    required String fileName,
+    required Uint8List bytes,
+    required String mimeType,
     String? dialogTitle,
-    String? fileName,
     String? initialDirectory,
-    FileType type = FileType.any,
-    List<String>? allowedExtensions,
-    Uint8List? bytes,
-    bool lockParentWindow = false,
+    Function(FilePickerStatus)? onFileSaving,
+    WindowsOptions windowsOptions = const WindowsOptions(),
+    LinuxOptions linuxOptions = const LinuxOptions(),
+    WebOptions webOptions = const WebOptions(),
   }) async {
     calls++;
     exportedBytes = bytes;
     expect(initialDirectory, isNull);
     expect(fileName, 'JMS-playback-diagnostics.txt');
-    expect(type, FileType.custom);
-    expect(allowedExtensions, ['txt']);
+    expect(mimeType, 'text/plain');
     if (error != null) throw error!;
     return result;
   }
@@ -57,12 +58,14 @@ String _preview(WidgetTester tester) => tester
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  late FilePickerPlatform originalPicker;
   late _Picker picker;
   late List<String> copied;
 
   setUp(() {
+    originalPicker = FilePickerPlatform.instance;
     picker = _Picker();
-    FilePicker.platform = picker;
+    FilePickerPlatform.instance = picker;
     copied = [];
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(SystemChannels.platform, (call) async {
@@ -74,6 +77,7 @@ void main() {
   });
 
   tearDown(() {
+    FilePickerPlatform.instance = originalPicker;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(SystemChannels.platform, null);
   });
@@ -136,7 +140,7 @@ void main() {
     expect(find.textContaining('synthetic private exception'), findsNothing);
     expect(tester.takeException(), isNull);
     picker.error = null;
-    picker.result = '/synthetic/JMS-playback-diagnostics.txt';
+    picker.result = Uri.parse('file:///synthetic/JMS-playback-diagnostics.txt');
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
     expect(picker.calls, 2);

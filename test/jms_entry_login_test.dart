@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:chopper/chopper.dart';
 import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart';
 import 'package:fladder/l10n/generated/app_localizations.dart';
+import 'package:fladder/localization_delegates.dart';
 import 'package:fladder/models/account_model.dart';
 import 'package:fladder/models/credentials_model.dart';
 import 'package:fladder/models/login_screen_model.dart';
@@ -23,7 +24,7 @@ import 'package:fladder/services/jms_entry_discovery.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
 import 'package:fladder/util/fladder_config.dart';
 import 'package:fladder/util/jms_service_config.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -49,7 +50,7 @@ AccountModel _publicAccount(String url) => AccountModel(
       id: 'fixture-public-user',
       avatar: '',
       lastUsed: DateTime.utc(2026),
-      credentials: CredentialsModel.internal(url: url),
+      credentials: CredentialsModel(url: url),
     );
 
 JmsServiceConfig _config(String media, String seerr) =>
@@ -280,7 +281,7 @@ Future<void> _pumpLogin(WidgetTester tester, _Fixture fixture) async {
     child: AdaptiveLayoutBuilder(
       child: (_) => const MaterialApp(
         locale: Locale('en'),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        localizationsDelegates: FladderLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: SingleChildScrollView(

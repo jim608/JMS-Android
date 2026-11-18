@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   test('media reset invalidates both input revisions even for unchanged zero',
       () async {
-    final controller = SubtitleOffsetController(write: (_, __) async {});
+    final controller = SubtitleOffsetController(write: (_, _) async {});
     addTearDown(controller.dispose);
     controller.setAvailable(primary: true, secondary: true);
     final primary = controller.editRevision();
@@ -31,7 +31,7 @@ void main() {
 
   test('coalesced availability changes invalidate only their channel drafts',
       () {
-    final controller = SubtitleOffsetController(write: (_, __) async {});
+    final controller = SubtitleOffsetController(write: (_, _) async {});
     addTearDown(controller.dispose);
     controller.setAvailable(primary: true, secondary: true);
     final primary = controller.editRevision();
@@ -56,7 +56,7 @@ void main() {
 
   test('secondary capabilities invalidate only the secondary input revision',
       () {
-    final controller = SubtitleOffsetController(write: (_, __) async {});
+    final controller = SubtitleOffsetController(write: (_, _) async {});
     addTearDown(controller.dispose);
     controller.setAvailable(primary: true, secondary: true);
     final primary = controller.editRevision();
@@ -77,7 +77,7 @@ void main() {
       () async {
     final pending = Completer<void>();
     final controller =
-        SubtitleOffsetController(write: (_, __) => pending.future);
+        SubtitleOffsetController(write: (_, _) => pending.future);
     addTearDown(controller.dispose);
     controller.setAvailable(primary: true, secondary: true);
     final primary = controller.editRevision();
@@ -209,7 +209,7 @@ void main() {
       () async {
     var readback = '0.010';
     final controller = SubtitleOffsetController(
-      write: (_, __) async {},
+      write: (_, _) async {},
       read: (_) async => readback,
     );
     addTearDown(controller.dispose);
@@ -326,7 +326,7 @@ void main() {
   test('native failures preserve the previous offset and allow retry',
       () async {
     var fail = false;
-    final controller = SubtitleOffsetController(write: (_, __) async {
+    final controller = SubtitleOffsetController(write: (_, _) async {
       if (fail) throw StateError('synthetic failure');
     });
     addTearDown(controller.dispose);
@@ -383,7 +383,7 @@ void main() {
   test('a silent native write failure is rejected by exact property readback',
       () async {
     final controller = SubtitleOffsetController(
-      write: (_, __) async {},
+      write: (_, _) async {},
       read: (_) async => '0.000000',
     );
     addTearDown(controller.dispose);
@@ -397,7 +397,7 @@ void main() {
 
   test('a missing native property cannot be reported as applied', () async {
     final controller = SubtitleOffsetController(
-      write: (_, __) async {},
+      write: (_, _) async {},
       read: (_) async => '',
     );
     addTearDown(controller.dispose);
@@ -409,7 +409,7 @@ void main() {
       () async {
     final blocked = Completer<void>();
     var writes = 0;
-    final controller = SubtitleOffsetController(write: (_, __) async {
+    final controller = SubtitleOffsetController(write: (_, _) async {
       writes++;
       await blocked.future;
     });
@@ -430,7 +430,7 @@ void main() {
       () async {
     final blocked = Completer<void>();
     final controller =
-        SubtitleOffsetController(write: (_, __) => blocked.future);
+        SubtitleOffsetController(write: (_, _) => blocked.future);
     final pending = controller.setOffset(const Duration(seconds: 1));
     await Future<void>.delayed(Duration.zero);
     controller.dispose();

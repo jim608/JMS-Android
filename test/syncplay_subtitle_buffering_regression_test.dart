@@ -27,7 +27,7 @@ void main() {
     };
     probe = MpvSyncPlayBufferProbe(
       read: (name) async => properties[name],
-      write: (_, __) async => fail('Readiness must not write native options'),
+      write: (_, _) async => fail('Readiness must not write native options'),
       isCurrent: () => current,
       generation: () => generation,
       buffering: () => rawWaiting,
@@ -119,7 +119,7 @@ void main() {
       final delayed = MpvSyncPlayBufferProbe(
         read: (name) =>
             name == 'time-pos' ? gate.future : Future.value(properties[name]),
-        write: (_, __) async => fail('No native writes'),
+        write: (_, _) async => fail('No native writes'),
         isCurrent: () => current,
         generation: () => generation,
         buffering: () => rawWaiting,

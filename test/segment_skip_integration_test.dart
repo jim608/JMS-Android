@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -141,7 +141,7 @@ class _Harness {
             ),
             ValueListenableBuilder<bool>(
               valueListenable: controlsVisible,
-              builder: (_, visible, __) => Align(
+              builder: (_, visible, _) => Align(
                 alignment: Alignment.bottomLeft,
                 child: IgnorePointer(
                   ignoring: !visible,

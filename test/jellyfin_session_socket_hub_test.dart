@@ -76,7 +76,7 @@ AccountModel _account(String id) => AccountModel(
       id: id,
       avatar: '',
       lastUsed: DateTime(2026),
-      credentials: CredentialsModel.internal(
+      credentials: CredentialsModel(
         token: 'synthetic',
         deviceId: 'demo',
         url: 'https://synthetic.invalid/jellyfin',
@@ -529,7 +529,7 @@ void main() {
 
   test('connector failure exposes no credential/error details', () async {
     final hub = JellyfinSessionSocketHub(
-      connector: (_, __) {
+      connector: (_, _) {
         throw StateError('synthetic secret');
       },
     );
@@ -543,7 +543,7 @@ void main() {
       final physical = _Socket(pending: true);
       late final JellyfinSessionSocketHub hub;
       hub = JellyfinSessionSocketHub(
-        connector: (_, __) {
+        connector: (_, _) {
           unawaited(hub.dispose());
           return physical;
         },
@@ -559,7 +559,7 @@ void main() {
     'listen failure still observes and sanitizes a late handshake error',
     () async {
       final physical = _FailListenSocket();
-      final hub = JellyfinSessionSocketHub(connector: (_, __) => physical);
+      final hub = JellyfinSessionSocketHub(connector: (_, _) => physical);
       addTearDown(hub.dispose);
       final lease = hub.factory(isCurrent: () => true)(_uri);
       await expectLater(lease.ready, throwsA(_closed));

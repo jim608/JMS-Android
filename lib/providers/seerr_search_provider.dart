@@ -65,6 +65,7 @@ class SeerrSearch extends _$SeerrSearch {
     } else if (mode == SeerrSearchMode.discoverTv) {
       currentFilters = await _fetchTvData();
     }
+    if (!ref.mounted) return;
 
     if (generation != _generation) return;
     state = state.copyWith(
@@ -404,7 +405,7 @@ class SeerrSearch extends _$SeerrSearch {
         state = state.copyWith(isLoading: false);
       }
     } catch (error) {
-      state = state.copyWith(isLoading: false);
+      if (ref.mounted) state = state.copyWith(isLoading: false);
     }
   }
 

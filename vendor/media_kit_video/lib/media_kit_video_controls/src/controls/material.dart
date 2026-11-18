@@ -6,6 +6,8 @@
 // ignore_for_file: non_constant_identifier_names
 import 'dart:async';
 
+// Retain Flutter Material types used by the public controls theme.
+// ignore: deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:media_kit_video/media_kit_video_controls/src/controls/extensions/duration.dart';

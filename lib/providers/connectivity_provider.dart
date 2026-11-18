@@ -4,6 +4,7 @@ import 'dart:developer';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -45,6 +46,7 @@ class ConnectivityStatus extends _$ConnectivityStatus {
   int _probeId = 0;
   Completer<void>? _probeCompleter;
   String? _probeTargetUrl;
+  DateTime? _lastProbe;
   bool _active = true;
   final _pendingConnectivityChecks = <void Function()>{};
 
@@ -57,6 +59,7 @@ class ConnectivityStatus extends _$ConnectivityStatus {
       if (previous != next) {
         _debounceTimer?.cancel();
         _probeId++;
+        _lastProbe = null;
         _resolveProbe();
         checkConnectivity(immediate: true);
       }
@@ -94,6 +97,12 @@ class ConnectivityStatus extends _$ConnectivityStatus {
     checkConnectivity(immediate: true);
 
     return ConnectionState.mobile;
+  }
+
+  Future<void> checkConnectivityThrottled() async {
+    final lastProbe = _lastProbe;
+    if (lastProbe != null && DateTime.now().difference(lastProbe) < const Duration(seconds: 30)) return;
+    await checkConnectivity(immediate: true);
   }
 
   Future<void> checkConnectivity({bool immediate = false}) {
@@ -214,6 +223,7 @@ class ConnectivityStatus extends _$ConnectivityStatus {
 
       final remoteUrl = user.credentials.url;
       if (remoteUrl.isNotEmpty) {
+        _lastProbe = DateTime.now();
         final checkServer = await fetchSystemInfoDynamic(
           normalizeUrl(remoteUrl),
         );

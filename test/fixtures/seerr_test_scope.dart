@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:chopper/chopper.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,7 +24,7 @@ AccountModel seerrFixtureAccount({String id = 'aabbcc', bool bound = true}) =>
       id: id,
       avatar: '',
       lastUsed: DateTime(2026),
-      credentials: CredentialsModel.internal(
+      credentials: CredentialsModel(
           serverId: 'fixture-server', url: 'https://example.invalid/jellyfin'),
       seerrCredentials: SeerrCredentialsModel(
           serverUrl: jmsSeerrSource,

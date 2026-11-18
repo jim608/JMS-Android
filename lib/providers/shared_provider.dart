@@ -88,7 +88,7 @@ class SharedKeys {
   static final SharedKeys instance = SharedKeys._();
 
   static const String _loginCredentialsKey = 'loginCredentialsKey';
-  static const String _clientSettingsKey = 'clientSettings';
+  static const String clientSettingsKey = 'clientSettings';
   static const String _homeSettingsKey = 'homeSettings';
   static const String _videoPlayerSettingsKey = 'videoPlayerSettings';
   static const String _subtitleSettingsKey = 'subtitleSettings';
@@ -114,16 +114,7 @@ class SharedHelper {
 
     List<AccountModel> accounts = getAccounts().toList();
     if (accounts.any((element) => element.sameIdentity(newAccount))) {
-      accounts = accounts
-          .map(
-            (e) => e.sameIdentity(newAccount)
-                ? e.copyWith(
-                    credentials: newAccount.credentials,
-                    lastUsed: newAccount.lastUsed,
-                  )
-                : e,
-          )
-          .toList();
+      accounts = accounts.map((e) => e.sameIdentity(newAccount) ? newAccount : e).toList();
     } else {
       accounts = [
         ...accounts,
@@ -268,7 +259,7 @@ class SharedHelper {
       return ClientSettingsModel.fromJson(
           SettingsBundleStore(sharedPreferences).section('client') ??
               jsonDecode(
-                  sharedPreferences.getString(SharedKeys._clientSettingsKey) ??
+                  sharedPreferences.getString(SharedKeys.clientSettingsKey) ??
                       ""));
     } catch (e) {
       log('Unable to load client settings');
@@ -278,7 +269,7 @@ class SharedHelper {
 
   Future<bool> saveClientSettings(ClientSettingsModel settings) =>
       SettingsBundleStore(sharedPreferences).writeSection(
-          'client', settings.toJson(), SharedKeys._clientSettingsKey);
+          'client', settings.toJson(), SharedKeys.clientSettingsKey);
 
   set clientSettings(ClientSettingsModel settings) =>
       unawaited(saveClientSettings(settings));

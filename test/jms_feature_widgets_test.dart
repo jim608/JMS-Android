@@ -3,15 +3,15 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fladder/l10n/generated/app_localizations.dart';
+import 'package:fladder/localization_delegates.dart';
 import 'package:fladder/models/item_base_model.dart';
 import 'package:fladder/models/playback/playback_model.dart';
 import 'package:fladder/models/settings/video_player_settings.dart';
@@ -124,12 +124,7 @@ void main() {
         child: MaterialApp(
           theme: ThemeData(fontFamily: 'JmsTestCjk', colorSchemeSeed: Colors.teal),
           locale: const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
-          localizationsDelegates: const [
-            AppLocalizations.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate
-          ],
+          localizationsDelegates: FladderLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(body: body),
         ),

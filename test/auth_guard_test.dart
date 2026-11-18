@@ -4,7 +4,7 @@ import 'package:fladder/models/credentials_model.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/routes/auto_router.dart';
 import 'package:fladder/routes/auto_router.gr.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -151,7 +151,7 @@ void main() {
       id: 'fixture',
       avatar: '',
       lastUsed: DateTime.utc(2026),
-      credentials: CredentialsModel.internal(),
+      credentials: CredentialsModel(),
     );
     await tester.pumpWidget(ProviderScope(
       overrides: [userProvider.overrideWith(() => _FixtureUser(account))],
@@ -201,7 +201,7 @@ void main() {
           id: 'fixture',
           avatar: '',
           lastUsed: DateTime.utc(2026),
-          credentials: CredentialsModel.internal(),
+          credentials: CredentialsModel(),
         ));
     router.replace(const PageRouteInfo<void>('ProtectedRoute'));
     await tester.pumpAndSettle();

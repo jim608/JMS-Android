@@ -62,7 +62,7 @@ void main() {
   test('offline discovery returns empty and closes the socket once', () async {
     final socket = _SyntheticSocket();
     final container = _container(() async => socket);
-    final subscription = container.listen(serverDiscoveryProvider, (_, __) {});
+    final subscription = container.listen(serverDiscoveryProvider, (_, _) {});
     expect(await container.read(serverDiscoveryProvider.future), isEmpty);
     expect(socket.sends, 1);
     expect(socket.closes, 1);
@@ -84,7 +84,7 @@ void main() {
       final offline = _container(bind);
       final offlineSubscription = offline.listen(
         serverDiscoveryProvider,
-        (_, __) {},
+        (_, _) {},
       );
       expect(await offline.read(serverDiscoveryProvider.future), isEmpty);
       expect(binds, 1);
@@ -97,7 +97,7 @@ void main() {
       );
       final deniedSubscription = denied.listen(
         serverDiscoveryProvider,
-        (_, __) {},
+        (_, _) {},
       );
       await expectLater(
         denied.read(serverDiscoveryProvider.future),
@@ -117,7 +117,7 @@ void main() {
       binds++;
       return pending.future;
     });
-    container.listen(serverDiscoveryProvider, (_, __) {});
+    container.listen(serverDiscoveryProvider, (_, _) {});
     await Future<void>.delayed(Duration.zero);
     expect(binds, 1);
     container.dispose();

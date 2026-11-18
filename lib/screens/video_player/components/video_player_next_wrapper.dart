@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,11 +27,11 @@ import 'package:fladder/widgets/shared/progress_floating_button.dart';
 
 class VideoPlayerNextWrapper extends ConsumerStatefulWidget {
   final Widget video;
-  final Widget controls;
+  final Widget Function(bool nextUpVisible) controlsBuilder;
   final List<Widget> overlays;
   const VideoPlayerNextWrapper({
     required this.video,
-    required this.controls,
+    required this.controlsBuilder,
     this.overlays = const [],
     super.key,
   });
@@ -133,7 +133,8 @@ class _VideoPlayerNextWrapperState extends ConsumerState<VideoPlayerNextWrapper>
   Future<void> closePlayer() async {
     clearOverlaySettings();
     ref.read(videoPlayerProvider).stop();
-    Navigator.of(context).pop();
+    await WidgetsBinding.instance.endOfFrame;
+    if (context.mounted) Navigator.of(context).pop();
   }
 
   Future<void> clearOverlaySettings() async {
@@ -308,14 +309,7 @@ class _VideoPlayerNextWrapperState extends ConsumerState<VideoPlayerNextWrapper>
                             ),
                             child: widget.video,
                           ),
-                          IgnorePointer(
-                            ignoring: show,
-                            child: AnimatedOpacity(
-                              opacity: show ? 0 : 1,
-                              duration: animSpeed,
-                              child: widget.controls,
-                            ),
-                          ),
+                          widget.controlsBuilder(show),
                         ],
                       ),
                     ),

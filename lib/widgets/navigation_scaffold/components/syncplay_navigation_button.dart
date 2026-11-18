@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:fladder/screens/video_player/components/syncplay_dialog.dart';
 import 'package:fladder/widgets/navigation_scaffold/components/navigation_button.dart';

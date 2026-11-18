@@ -52,5 +52,11 @@ Source: "{#JMS_BUNDLE}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 Name: "{autoprograms}\JMS"; Filename: "{app}\jms.exe"
 Name: "{autodesktop}\JMS"; Filename: "{app}\jms.exe"; Tasks: desktopicon
 
+[Registry]
+Root: HKA; Subkey: "Software\Classes\jms"; ValueType: string; ValueName: ""; ValueData: "URL:JMS"; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\jms"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""
+Root: HKA; Subkey: "Software\Classes\jms\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: """{app}\jms.exe"",0"
+Root: HKA; Subkey: "Software\Classes\jms\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\jms.exe"" ""%1"""
+
 [Run]
 Filename: "{app}\jms.exe"; Description: "{cm:LaunchProgram,JMS}"; Flags: nowait postinstall skipifsilent

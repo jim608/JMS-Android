@@ -138,7 +138,7 @@ void main() {
     expect(writes, ['demuxer-max-bytes=1024']);
     final ignored = MpvSyncPlayBufferProbe(
       read: (_) async => null,
-      write: (_, __) async {},
+      write: (_, _) async {},
       isCurrent: () => true,
       generation: () => 1,
       buffering: () => false,
@@ -153,7 +153,7 @@ void main() {
       final delayed = MpvSyncPlayBufferProbe(
         read: (name) =>
             name == 'time-pos' ? gate.future : Future.value(properties[name]),
-        write: (_, __) async {},
+        write: (_, _) async {},
         isCurrent: () => current,
         generation: () => generation,
         buffering: () => false,
@@ -176,7 +176,7 @@ void main() {
     final gate = Completer<String?>();
     final delayed = MpvSyncPlayBufferProbe(
       read: (_) => gate.future,
-      write: (_, __) async {},
+      write: (_, _) async {},
       isCurrent: () => current,
       generation: () => generation,
       buffering: () => false,
@@ -195,7 +195,7 @@ void main() {
           if (name == 'time-pos') return '10';
           throw StateError('synthetic unsupported property');
         },
-        write: (_, __) async {},
+        write: (_, _) async {},
         isCurrent: () => true,
         generation: () => 1,
         buffering: () => false,
@@ -206,7 +206,7 @@ void main() {
       expect(sample.bufferEnd, isNull);
       final stalled = MpvSyncPlayBufferProbe(
         read: (_) => Completer<String?>().future,
-        write: (_, __) async {},
+        write: (_, _) async {},
         isCurrent: () => true,
         generation: () => 1,
         buffering: () => false,
@@ -237,7 +237,7 @@ void main() {
     properties['core-idle'] = 'yes';
     final observed = MpvSyncPlayBufferProbe(
       read: (name) async => properties[name],
-      write: (_, __) async => fail('Readiness must not issue native commands'),
+      write: (_, _) async => fail('Readiness must not issue native commands'),
       isCurrent: () => current,
       generation: () => generation,
       buffering: () => buffering,
@@ -260,7 +260,7 @@ void main() {
         await gate.future;
         return properties[name];
       },
-      write: (_, __) async {},
+      write: (_, _) async {},
       isCurrent: () => current,
       generation: () => generation,
       buffering: () => buffering,

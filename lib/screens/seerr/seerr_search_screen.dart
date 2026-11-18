@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:fladder/screens/seerr/seerr_link_panel.dart';
 import 'package:fladder/screens/seerr/seerr_support_text.dart';
 import 'package:fladder/seerr/seerr_connection.dart';

@@ -3,11 +3,14 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
+import 'package:app_links/app_links.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:workmanager/workmanager.dart';
 
+import 'package:fladder/providers/low_resource_provider.dart';
+import 'package:fladder/providers/deep_link_provider.dart';
 import 'package:fladder/background/update_notifications_worker.dart' as update_worker;
 import 'package:fladder/models/account_model.dart';
 import 'package:fladder/providers/arguments_provider.dart';
@@ -24,13 +27,15 @@ import 'package:fladder/routes/auto_router.dart';
 import 'package:fladder/routes/auto_router.gr.dart';
 import 'package:fladder/screens/login/lock_screen.dart';
 import 'package:fladder/services/notification_service.dart';
-import 'package:fladder/util/deep_link_helper.dart';
 import 'package:fladder/wrappers/players/native_player.dart';
 
 typedef PlatformAppBuilder = Widget Function(
   BuildContext context,
   AutoRouter autoRouter,
 );
+
+const _defaultImageCacheBytes = 100 << 20;
+const _lowResourceImageCacheBytes = 48 << 20;
 
 abstract class BaseAppWrapper extends ConsumerStatefulWidget {
   const BaseAppWrapper({super.key, required this.builder});
@@ -46,8 +51,14 @@ abstract class BaseAppWrapperState<T extends BaseAppWrapper> extends ConsumerSta
   int _discordRouteGeneration = 0;
 
   StreamSubscription<String?>? _notificationSub;
+  StreamSubscription<Uri>? _appLinkSub;
   late final DiscordPresenceSettings _discordPresence;
   bool get enableNotifications => true;
+
+  bool get enableAppLinks => true;
+
+  late final DeepLinkNotifier _deepLinks = ref.read(deepLinkProvider.notifier);
+  bool _platformReady = false;
 
   @override
   void initState() {
@@ -55,10 +66,19 @@ abstract class BaseAppWrapperState<T extends BaseAppWrapper> extends ConsumerSta
     _discordPresence = ref.read(discordPresenceSettingsProvider);
     autoRouter.addListener(_updateDiscordBrowsing);
     WidgetsBinding.instance.addObserver(this);
+    _deepLinks.attach(autoRouter, ref);
+    _initializeAppLinks();
+    ref.listenManual(
+      lowResourceModeProvider,
+      (_, lowResourceMode) => PaintingBinding.instance.imageCache.maximumSizeBytes =
+          lowResourceMode ? _lowResourceImageCacheBytes : _defaultImageCacheBytes,
+      fireImmediately: true,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       _updateDiscordBrowsing();
       ref.read(sharedUtilityProvider).loadSettings();
       await platformInit();
+      _platformReady = true;
       await _initializeNotifications();
     });
   }
@@ -103,6 +123,27 @@ abstract class BaseAppWrapperState<T extends BaseAppWrapper> extends ConsumerSta
 
   Future<void> platformInit() async {}
 
+  Future<void> onAppLinkReceived() async {}
+
+  void _initializeAppLinks() {
+    if (!enableAppLinks) return;
+    try {
+      _appLinkSub = AppLinks().uriLinkStream.listen(
+        (uri) {
+          if (_platformReady) onAppLinkReceived();
+          _deepLinks.handle(uri);
+        },
+        onError: (Object e) => log('App link error: $e'),
+      );
+      final launchLink = ref.read(argumentsStateProvider).launchLink;
+      if (!kIsWeb && Platform.isLinux && launchLink != null) {
+        _deepLinks.handleLink(launchLink);
+      }
+    } catch (e) {
+      log('Failed to initialize app links: $e');
+    }
+  }
+
   Future<void> _initializeNotifications() async {
     if (!enableNotifications) return;
 
@@ -118,17 +159,9 @@ abstract class BaseAppWrapperState<T extends BaseAppWrapper> extends ConsumerSta
       }
     }
 
-    _notificationSub = NotificationService.notificationTapStream.listen((payload) {
-      if (payload == null || payload.isEmpty) return;
-      final route = payloadToRoute(Uri.parse(payload));
-      if (route != null) autoRouter.push(route);
-    });
+    _notificationSub = NotificationService.notificationTapStream.listen(_deepLinks.handleLink);
 
-    NotificationService.getInitialNotificationPayload().then((payload) {
-      if (payload == null || payload.isEmpty) return;
-      final route = payloadToRoute(Uri.parse(payload));
-      if (route != null) autoRouter.push(route);
-    });
+    NotificationService.getInitialNotificationPayload().then(_deepLinks.handleLink);
 
     try {
       await ref.read(updateNotificationsProvider).registerBackgroundTask();
@@ -187,6 +220,8 @@ abstract class BaseAppWrapperState<T extends BaseAppWrapper> extends ConsumerSta
     autoRouter.removeListener(_updateDiscordBrowsing);
     _discordPresence.suspend();
     _notificationSub?.cancel();
+    _appLinkSub?.cancel();
+    _deepLinks.detach(autoRouter);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }

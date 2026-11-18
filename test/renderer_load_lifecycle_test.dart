@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/services.dart';
@@ -196,7 +196,8 @@ class _StatePlayer extends Fake implements BasePlayer {
   @override
   void applySubtitleSettings(SubtitleSettingsModel settings) {}
   @override
-  Future<void> init(VideoPlayerSettingsModel settings) async {}
+  Future<void> init(VideoPlayerSettingsModel settings,
+      {bool lowResourceMode = false}) async {}
   @override
   Future<void> dispose() async {}
   @override

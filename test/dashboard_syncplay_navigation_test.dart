@@ -14,6 +14,7 @@ import 'package:fladder/providers/api_provider.dart';
 import 'package:fladder/providers/connectivity_provider.dart';
 import 'package:fladder/providers/dashboard_mode_provider.dart';
 import 'package:fladder/providers/dashboard_provider.dart';
+import 'package:fladder/providers/jellyfin_websocket_provider.dart';
 import 'package:fladder/providers/music_dashboard_provider.dart';
 import 'package:fladder/providers/playlist_provider.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
@@ -38,7 +39,7 @@ import 'package:fladder/widgets/navigation_scaffold/components/syncplay_navigati
 import 'package:fladder/widgets/navigation_scaffold/navigation_scaffold.dart';
 import 'package:fladder/widgets/shared/controller_navigation.dart';
 import 'package:fladder/widgets/shared/syncplay_home_entry.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -49,7 +50,7 @@ final _account = AccountModel(
   id: '44444444444444444444444444444444',
   avatar: '',
   lastUsed: DateTime.utc(2026),
-  credentials: CredentialsModel.internal(
+  credentials: CredentialsModel(
     url: 'https://fixture.example.invalid',
     token: 'synthetic-only',
     serverId: '55555555555555555555555555555555',
@@ -81,12 +82,15 @@ class _Dashboard extends DashboardNotifier {
   _Dashboard(super.ref);
   @override
   Future<void> fetchNextUpAndResume() async {}
+
+  @override
+  Future<void> refreshDashboard() async {}
 }
 
 class _Music extends MusicDashboardNotifier {
   _Music(super.ref);
   @override
-  Future<void> fetchMusicHome() async {}
+  Future<void> fetchMusicHome({bool silent = false}) async {}
 }
 
 class _Playlist extends PlaylistNotifier {
@@ -178,6 +182,7 @@ void main() {
         const MethodChannel('window_manager'), null));
     final container = ProviderContainer(overrides: [
       userProvider.overrideWith(() => _User(signedIn)),
+      jellyfinWebSocketProvider.overrideWith((_) => const Stream.empty()),
       viewsProvider.overrideWith((ref) => _Views(ref)),
       dashboardProvider.overrideWith((ref) => _Dashboard(ref)),
       musicDashboardProvider.overrideWith((ref) => _Music(ref)),
@@ -440,13 +445,13 @@ void main() {
     expect(room.ticket, isNull);
     room.lateReady(ticket);
     await tester.pump();
-    expect(container.exists(videoPlayerProvider), isFalse);
+    expect(container.read(videoPlayerProvider.exists), isFalse);
     room.cancelGate!.complete();
     await tester.pumpAndSettle();
     expect(find.byType(SyncPlayDialog), findsNothing);
     room.lateReady(ticket);
     await tester.pumpAndSettle();
-    expect(container.exists(videoPlayerProvider), isFalse);
+    expect(container.read(videoPlayerProvider.exists), isFalse);
     expect(entry(), findsOneWidget);
     expect(opener.hasFocus, isTrue);
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);

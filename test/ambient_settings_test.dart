@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:fladder/l10n/generated/app_localizations.dart';
+import 'package:fladder/localization_delegates.dart';
 import 'package:fladder/models/settings/video_player_settings.dart';
 import 'package:fladder/providers/settings/video_player_settings_provider.dart';
 import 'package:fladder/providers/shared_provider.dart';
@@ -9,7 +10,7 @@ import 'package:fladder/util/adaptive_layout/adaptive_layout_model.dart';
 import 'package:fladder/util/poster_defaults.dart';
 import 'package:fladder/util/ambient_interval.dart';
 import 'package:fladder/widgets/shared/ambient_controls.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -114,7 +115,7 @@ void main() {
       container: container,
       child: const MaterialApp(
         locale: Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        localizationsDelegates: FladderLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: AdaptiveLayout(
           data: AdaptiveLayoutModel(

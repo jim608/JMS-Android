@@ -1,10 +1,11 @@
 import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:volume_controller/volume_controller.dart';
 
@@ -21,6 +22,8 @@ final videoPlayerSettingsProvider =
     StateNotifierProvider<VideoPlayerSettingsProviderNotifier, VideoPlayerSettingsModel>((ref) {
   return VideoPlayerSettingsProviderNotifier(ref);
 });
+
+final subtitleTimingOffsetProvider = StateProvider<Duration>((ref) => Duration.zero);
 
 final playbackRateProvider = StateProvider<double>((ref) => 1.0);
 
@@ -185,6 +188,8 @@ class VideoPlayerSettingsProviderNotifier extends StateNotifier<VideoPlayerSetti
   }
 
   void setCrossfadeDurationMs(int value) => state = state.copyWith(crossfadeDurationMs: value);
+
+  void setRefreshRateSwitching(bool value) => state = state.copyWith(refreshRateSwitching: value);
 
   static VideoPlayerSettingsModel _sanitizeCrossfade(VideoPlayerSettingsModel value) {
     if (!value.canUseCrossfade && value.enableCrossfade) {

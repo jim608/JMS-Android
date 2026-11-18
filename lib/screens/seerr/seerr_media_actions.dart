@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fladder/models/item_base_model.dart';
 import 'package:fladder/providers/api_provider.dart';
@@ -51,7 +51,7 @@ class SeerrMediaActions extends ConsumerWidget {
       {super.key, required this.tmdbId, required this.isTv});
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final playable = ref.watch(_playableProvider((tmdbId, isTv))).valueOrNull;
+    final playable = ref.watch(_playableProvider((tmdbId, isTv))).value;
     return Wrap(spacing: 8, children: [
       OutlinedButton.icon(
           icon: const Icon(Icons.report_problem_outlined),

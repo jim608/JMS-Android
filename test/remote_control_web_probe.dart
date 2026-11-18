@@ -18,7 +18,7 @@ import 'package:fladder/services/remote_control/remote_control_models.dart';
 import 'package:fladder/services/remote_control/remote_receiver.dart';
 import 'package:fladder/util/application_info.dart';
 import 'package:fladder/widgets/shared/remote_control_entry.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -93,7 +93,7 @@ class _ProbeUser extends User {
           enableMediaPlayback: true,
           isDisabled: false,
         ),
-        credentials: CredentialsModel.internal(
+        credentials: CredentialsModel(
           url: '${origin.origin}/',
           serverId: 'remote-fixture-server',
           serverName: 'Loopback remote fixture',

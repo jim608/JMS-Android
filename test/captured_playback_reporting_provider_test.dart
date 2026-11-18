@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:chopper/chopper.dart' as chopper;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -39,7 +40,7 @@ AccountModel _account(
         id: id,
         avatar: '',
         lastUsed: DateTime.utc(2026),
-        credentials: CredentialsModel.internal(
+        credentials: CredentialsModel(
             token: token,
             url: 'https://$host/jellyfin',
             serverId: server,

@@ -26,7 +26,7 @@ import 'package:fladder/util/application_info.dart';
 import 'package:fladder/util/sleep_timer.dart';
 import 'package:fladder/wrappers/media_control_wrapper.dart';
 import 'package:fladder/wrappers/players/player_states.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -464,7 +464,7 @@ class _Scope {
       id: '44444444444444444444444444444444',
       avatar: '',
       lastUsed: DateTime.utc(2026),
-      credentials: CredentialsModel.internal(
+      credentials: CredentialsModel(
           url: server.uri.toString(),
           token: 'synthetic-user-a',
           serverId: '55555555555555555555555555555555',
@@ -507,11 +507,11 @@ class _Scope {
   void dispose() {
     if (disposed) return;
     disposed = true;
-    final models = container.exists(videoPlayerProvider)
+    final models = container.read(videoPlayerProvider.exists)
         ? video.loaded
         : <PlaybackModel>[];
     final snapshots =
-        container.exists(videoPlayerProvider) ? wrapper.snapshots : null;
+        container.read(videoPlayerProvider.exists) ? wrapper.snapshots : null;
     container.dispose();
     for (final model in models) {
       model.dispose();
@@ -746,7 +746,7 @@ void main() {
       ..name = 'JMS-123456'
       ..queue = homeQueue();
     final scope = await homeScope(server);
-    expect(scope.container.exists(videoPlayerProvider), isFalse);
+    expect(scope.container.read(videoPlayerProvider.exists), isFalse);
     expect(scope.notifier.canJoinFromHome, isTrue);
     final ticket = scope.notifier.beginHomeJoin('123456');
     expect(ticket, isNotNull);
@@ -800,7 +800,7 @@ void main() {
     server.listGate!.complete();
     await _until(() => !scope.state.busy, 'lookup cancelled');
     expect(server.requests.where((e) => e == 'Join'), isEmpty);
-    expect(scope.container.exists(videoPlayerProvider), isFalse);
+    expect(scope.container.read(videoPlayerProvider.exists), isFalse);
     expect(scope.state.readyHomeJoin, isNull);
   });
 
@@ -816,7 +816,7 @@ void main() {
     final cancelled = scope.notifier.cancelHomeJoin(ticket);
     await cancelled.timeout(const Duration(seconds: 3));
     expect(scope.state.room.status, SyncPlayStatus.idle);
-    expect(scope.container.exists(videoPlayerProvider), isFalse);
+    expect(scope.container.read(videoPlayerProvider.exists), isFalse);
     expect(server.requests.where((e) => e == 'Leave'), isEmpty);
     server.joinGate!.complete();
     await server.leaveStarted.future.timeout(const Duration(seconds: 3));
@@ -825,7 +825,7 @@ void main() {
     expect(server.requests.where((e) => e == 'Leave'), hasLength(1));
     expect(server.memberships, isEmpty);
     expect(server.requests.where((e) => e == 'Ready'), isEmpty);
-    expect(scope.container.exists(videoPlayerProvider), isFalse);
+    expect(scope.container.read(videoPlayerProvider.exists), isFalse);
     expect(scope.state.room.status, SyncPlayStatus.idle);
   });
 
@@ -835,14 +835,14 @@ void main() {
     final first = scope.notifier.beginHomeJoin('123456')!;
     await _until(() => scope.state.room.failure != null, 'missing room');
     expect(scope.state.room.failure!.code, SyncPlayFailureCode.noGroup);
-    expect(scope.container.exists(videoPlayerProvider), isFalse);
+    expect(scope.container.read(videoPlayerProvider.exists), isFalse);
     await scope.notifier.cancelHomeJoin(first);
     server.name = 'JMS-123456';
     final second = scope.notifier.beginHomeJoin('123456')!;
     await _until(() => scope.state.room.isJoined, 'empty room joined');
     expect(scope.state.preparingPlayback, isTrue);
     expect(scope.state.readyHomeJoin, isNull);
-    expect(scope.container.exists(videoPlayerProvider), isFalse);
+    expect(scope.container.read(videoPlayerProvider.exists), isFalse);
     await scope.notifier.cancelHomeJoin(second);
   });
 
@@ -858,7 +858,7 @@ void main() {
     await _until(
         () => scope.state.room.failure?.code == SyncPlayFailureCode.player,
         'own media denied');
-    expect(scope.container.exists(videoPlayerProvider), isFalse);
+    expect(scope.container.read(videoPlayerProvider.exists), isFalse);
     expect(server.requests.where((e) => e == 'PlaybackInfo'), isEmpty);
     expect(scope.notifier.beginHomeJoin('123456'), isNull);
     await scope.notifier.cancelHomeJoin(first);
@@ -913,7 +913,7 @@ void main() {
     await _until(() => !scope.state.busy, 'logout detached');
     expect(scope.notifier.canJoinFromHome, isFalse);
     expect(scope.notifier.consumeHomeJoin(ticket), isFalse);
-    expect(scope.container.exists(videoPlayerProvider), isFalse);
+    expect(scope.container.read(videoPlayerProvider.exists), isFalse);
   });
 
   test(
@@ -935,7 +935,7 @@ void main() {
     expect(scope.state.leavePending, false);
     expect(scope.state.failure, isNull);
     expect(scope.notifier.consumeHomeJoin(ticket), isFalse);
-    expect(scope.container.exists(videoPlayerProvider), isFalse);
+    expect(scope.container.read(videoPlayerProvider.exists), isFalse);
     await _until(() => server.closedSockets == 1, 'cleanup session closed');
   });
 
@@ -953,7 +953,7 @@ void main() {
     await _until(
         () => server.closedSockets == 1, 'cancelled home socket closed');
     expect(server.requests.where((e) => e == 'Join'), isEmpty);
-    expect(scope.container.exists(videoPlayerProvider), isFalse);
+    expect(scope.container.read(videoPlayerProvider.exists), isFalse);
     expect(scope.state.readyHomeJoin, isNull);
   });
 

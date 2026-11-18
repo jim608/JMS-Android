@@ -13,7 +13,9 @@ import 'package:fladder/services/local_network_permission.dart';
 part 'discovery_provider.g.dart';
 part 'discovery_provider.mapper.dart';
 
-@riverpod
+Duration? _retryDiscovery(int retryCount, Object error) => null;
+
+@Riverpod(retry: _retryDiscovery)
 class ServerDiscovery extends _$ServerDiscovery {
   ServerDiscovery({
     Future<RawDatagramSocket> Function()? bindSocket,

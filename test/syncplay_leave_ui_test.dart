@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -20,7 +20,7 @@ class _FixtureUser extends User {
         id: '44444444444444444444444444444444',
         avatar: '',
         lastUsed: DateTime.utc(2026),
-        credentials: CredentialsModel.internal(
+        credentials: CredentialsModel(
           url: 'https://fixture.example.invalid',
           token: 'synthetic-only',
           serverId: '55555555555555555555555555555555',

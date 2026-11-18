@@ -21,6 +21,11 @@ if ($BuildNumber -gt 0) { $versionCode = $BuildNumber }
 if ($versionCode -lt 1 -or $versionCode -gt 65535) { throw 'Windows build number must be 1..65535' }
 $flutterPath = Join-Path $projectRoot '.jms-tools\flutter\bin\flutter.bat'
 if (-not (Test-Path -LiteralPath $flutterPath)) { throw 'Pinned Flutter SDK is missing' }
+$enginePath = Join-Path (Split-Path -Parent $flutterPath) 'cache/artifacts/engine/windows-x64-release'
+$engineLicense = Join-Path $enginePath 'license.windows_flutter.md'
+if (-not (Test-Path -LiteralPath $engineLicense -PathType Leaf)) {
+    throw 'The pinned Flutter SDK is missing the Windows x64 release engine license'
+}
 
 if ($SourceCommit -ne '') {
     if ($SourceCommit -cnotmatch '^[a-f0-9]{40}$') { throw 'SourceCommit must be a full lowercase Git SHA-1' }
@@ -77,6 +82,21 @@ if ($PrivateConfig) {
 }
 & rtk proxy $flutterPath pub get --enforce-lockfile
 if ($LASTEXITCODE -ne 0) { throw 'Dependency lock validation failed' }
+$packageConfigPath = (Resolve-Path -LiteralPath '.dart_tool/package_config.json').Path
+$packageConfig = Get-Content -LiteralPath $packageConfigPath -Raw | ConvertFrom-Json
+$sqlitePackage = @($packageConfig.packages | Where-Object { $_.name -ceq 'sqlite3' })
+if ($sqlitePackage.Count -ne 1 -or -not $sqlitePackage[0].rootUri) {
+    throw 'The locked sqlite3 Dart package is missing'
+}
+$sqlitePackageUri = [Uri]::new([Uri]::new($packageConfigPath), [string]$sqlitePackage[0].rootUri)
+$sqliteAssetHashes = Join-Path $sqlitePackageUri.LocalPath 'lib/src/hook/asset_hashes.dart'
+if (-not $sqlitePackageUri.IsFile -or -not (Test-Path -LiteralPath $sqliteAssetHashes -PathType Leaf)) {
+    throw 'The locked sqlite3 Dart package is missing its native asset pins'
+}
+$sqlitePin = [regex]::Match((Get-Content -LiteralPath $sqliteAssetHashes -Raw),
+    "(?m)^[ \t]*'sqlite3\.x64\.windows\.dll':[ \t]*'([a-f0-9]{64})',[ \t]*\r?$")
+if (-not $sqlitePin.Success) { throw 'The locked sqlite3 package has no Windows x64 native asset pin' }
+
 . (Join-Path $PSScriptRoot 'jms_windows_rust_flags.ps1')
 $previousRustFlags = $env:CARGO_ENCODED_RUSTFLAGS
 try {
@@ -87,11 +107,18 @@ try {
     $env:CARGO_ENCODED_RUSTFLAGS = $previousRustFlags
 }
 
-foreach ($required in @('jms.exe', 'flutter_windows.dll', 'data\flutter_assets')) {
+foreach ($required in @('jms.exe', 'flutter_windows.dll', 'sqlite3.dll', 'data\flutter_assets')) {
     if (-not (Test-Path -LiteralPath (Join-Path $bundleDir $required))) {
         throw "Windows build bundle is incomplete: $required"
     }
 }
+$sqliteHash = (Get-FileHash -LiteralPath (Join-Path $bundleDir 'sqlite3.dll') -Algorithm SHA256).Hash
+if ($sqliteHash.ToLowerInvariant() -cne $sqlitePin.Groups[1].Value) {
+    throw 'Windows sqlite3.dll does not match the locked sqlite3 package'
+}
+$engineHash = (Get-FileHash -LiteralPath (Join-Path $enginePath 'flutter_windows.dll') -Algorithm SHA256).Hash
+$bundleEngineHash = (Get-FileHash -LiteralPath (Join-Path $bundleDir 'flutter_windows.dll') -Algorithm SHA256).Hash
+if ($bundleEngineHash -cne $engineHash) { throw 'Windows Flutter engine does not match the pinned SDK' }
 
 & rtk proxy (Join-Path $projectRoot '.jms-tools/python/Scripts/python.exe') 'scripts/jms_windows_bundle.py' --bundle $bundleDir
 if ($LASTEXITCODE -ne 0) {
@@ -111,6 +138,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Windows native material verification failed' }
 Copy-Item -LiteralPath (Join-Path $projectRoot 'LICENSE') -Destination (Join-Path $stageDir 'LICENSE')
 $licenseDir = Join-Path $stageDir 'licenses'
 New-Item -ItemType Directory -Path $licenseDir -Force | Out-Null
+Copy-Item -LiteralPath $engineLicense -Destination (Join-Path $licenseDir 'flutter-windows-engine-LICENSE.md')
 Copy-Item -LiteralPath (Join-Path $projectRoot 'third_party\fvp\LICENSE') -Destination (Join-Path $licenseDir 'fvp-LICENSE.txt')
 Copy-Item -LiteralPath (Join-Path $projectRoot 'third_party\screen_brightness_windows\LICENSE') -Destination (Join-Path $licenseDir 'screen_brightness_windows-LICENSE.txt')
 

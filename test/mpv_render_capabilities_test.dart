@@ -81,14 +81,14 @@ void main() {
       final result = await queryMpvRenderCapabilities(
         playerHandle: () async => 42,
         platform: TargetPlatform.linux,
-        invoke: (_, __) async => throw error,
+        invoke: (_, _) async => throw error,
       );
       expect(result.softwareSdr, isFalse);
     }
     final stalled = await queryMpvRenderCapabilities(
       playerHandle: () async => 42,
       platform: TargetPlatform.linux,
-      invoke: (_, __) => Completer<Object?>().future,
+      invoke: (_, _) => Completer<Object?>().future,
       timeout: const Duration(milliseconds: 1),
     );
     expect(stalled.softwareSdr, isFalse);
@@ -104,7 +104,7 @@ void main() {
           return 42;
         },
         platform: platform,
-        invoke: (_, __) async {
+        invoke: (_, _) async {
           calls++;
           return reply();
         },

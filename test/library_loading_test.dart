@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:chopper/chopper.dart';
 import 'package:fladder/fake/fake_jellyfin_open_api.dart';
 import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart';
+import 'package:fladder/models/account_model.dart';
+import 'package:fladder/models/credentials_model.dart';
 import 'package:fladder/models/items/movie_model.dart';
 import 'package:fladder/models/library_filter_model.dart';
 import 'package:fladder/models/library_search/library_search_model.dart';
@@ -11,13 +13,16 @@ import 'package:fladder/models/syncing/sync_item.dart';
 import 'package:fladder/models/syncing/sync_settings_model.dart';
 import 'package:fladder/providers/api_provider.dart';
 import 'package:fladder/providers/connectivity_provider.dart';
+import 'package:fladder/providers/jellyfin_websocket_provider.dart';
 import 'package:fladder/providers/library_screen_provider.dart';
 import 'package:fladder/providers/library_search_provider.dart';
 import 'package:fladder/providers/service_provider.dart';
 import 'package:fladder/providers/sync_provider.dart';
+import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/providers/views_provider.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 
@@ -33,6 +38,17 @@ class _Api extends JellyApi {
 
   @override
   JellyService build() => create(ref);
+}
+
+class _SignedIn extends User {
+  @override
+  AccountModel build() => AccountModel(
+        name: 'Account',
+        id: 'account',
+        avatar: '',
+        lastUsed: DateTime.utc(2026),
+        credentials: CredentialsModel(),
+      );
 }
 
 class _Service implements JellyService {
@@ -116,7 +132,7 @@ void main() {
       final container = ProviderContainer(overrides: [jellyApiProvider.overrideWith(() => _Api((_) => api))]);
       addTearDown(container.dispose);
       final provider = librarySearchProvider(_search);
-      container.listen(provider, (_, __) {});
+      container.listen(provider, (_, _) {});
       final notifier = container.read(provider.notifier);
 
       final first = notifier.initRefresh(
@@ -145,7 +161,7 @@ void main() {
     final container = ProviderContainer(overrides: [jellyApiProvider.overrideWith(() => _Api((_) => api))]);
     addTearDown(container.dispose);
     final provider = librarySearchProvider(_search);
-    container.listen(provider, (_, __) {});
+    container.listen(provider, (_, _) {});
     final notifier = container.read(provider.notifier);
     final older = notifier.initRefresh(parentIds: [], filters: const LibraryFilterModel(searchQuery: 'old'));
     await _nextTurn();
@@ -164,7 +180,7 @@ void main() {
     final container = ProviderContainer(overrides: [jellyApiProvider.overrideWith(() => _Api((_) => api))]);
     addTearDown(container.dispose);
     final provider = librarySearchProvider(_search);
-    container.listen(provider, (_, __) {});
+    container.listen(provider, (_, _) {});
     final notifier = container.read(provider.notifier);
     final first = notifier.initRefresh(
       parentIds: [],
@@ -207,7 +223,10 @@ void main() {
 
   test('library entry reuses already loaded views, and switching fetches only the selected library', () async {
     final api = _Service();
-    final container = ProviderContainer(overrides: [jellyApiProvider.overrideWith(() => _Api((_) => api))]);
+    final container = ProviderContainer(overrides: [
+      jellyApiProvider.overrideWith(() => _Api((_) => api)),
+      jellyfinWebSocketProvider.overrideWith((_) => const Stream.empty()),
+    ]);
     addTearDown(container.dispose);
     await container.read(viewsProvider.notifier).fetchViews();
 
@@ -218,30 +237,37 @@ void main() {
     await library.selectLibrary(shows);
 
     expect(api.viewRequests, 1);
-    expect(api.latestRequests, 2);
+    expect(api.latestRequests, 0);
     expect(api.libraryContent.map((entry) => entry.view), List.filled(4, 'shows'));
 
     await library.fetchAllLibraries(refreshViews: true);
     expect(api.viewRequests, 2);
-    expect(api.latestRequests, 2);
+    expect(api.latestRequests, 0);
     expect(container.read(libraryScreenProvider).selectedViewModel?.id, 'shows');
   });
 
   test('pending dashboard and library metadata cannot publish after signing out', () async {
     final api = _Service()..heldLatest = Completer();
-    final container = ProviderContainer(overrides: [jellyApiProvider.overrideWith(() => _Api((_) => api))]);
+    final container = ProviderContainer(overrides: [
+      jellyApiProvider.overrideWith(() => _Api((_) => api)),
+      jellyfinWebSocketProvider.overrideWith((_) => const Stream.empty()),
+      userProvider.overrideWith(_SignedIn.new),
+    ]);
     addTearDown(container.dispose);
     final views = container.read(viewsProvider.notifier);
     final library = container.read(libraryScreenProvider.notifier);
-    final dashboard = views.fetchViews();
+    await views.fetchViews();
+    final dashboard = views.fetchRecentlyAdded();
     await _nextTurn();
     expect(api.latestRequests, 2);
     api.heldViews = Completer();
-    final picker = library.fetchAllLibraries();
+    final picker = library.fetchAllLibraries(refreshViews: true);
     views.clear();
     library.clear();
 
-    api.heldLatest!.complete(_ok(<BaseItemDto>[]));
+    api.heldLatest!.complete(_ok(const [
+      BaseItemDto(id: 'old-latest', name: 'Old account latest', type: BaseItemKind.movie),
+    ]));
     api.heldViews!.complete(_ok(const BaseItemDtoQueryResult(items: [
       BaseItemDto(id: 'old', name: 'Old account', collectionType: CollectionType.movies),
     ])));

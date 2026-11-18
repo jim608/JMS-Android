@@ -1,5 +1,13 @@
 # JMS 對應原始碼與授權材料
 
+## Android `0.12.0-jms.60` 來源與授權資料
+
+- Flutter 3.50.0 stable／Dart 3.14.0，Flutter 提交 `ab2912035e160d9cad6306df307576da6128ebdb`，Android engine `371f77202a73e8dff57a8b3bff75bca55c090aee`。新增官方 sky_engine 綜合授權與 Android arm64-release JAR 的來源說明。 [Flutter SDK archive](https://docs.flutter.dev/install/archive) · [Flutter engine materials](https://storage.googleapis.com/flutter_infra_release/flutter/371f77202a73e8dff57a8b3bff75bca55c090aee/sky_engine.zip)
+- AndroidX Media3 1.11.1 對應 `8c6678b657ede1e7883fc164ef73ed483c7796c3`。`org.jellyfin.media3:media3-ffmpeg-decoder:1.9.0+1` 對應 Jellyfin 提交 `af9ee4e26b2045e3ea6f2ebf4a18ac8ebfeae396`，其 JNI 來源 `7cc1056f840ce226598d3b990d4a6f7cd17e2831` 與 FFmpeg 6.0.2 提交 `37c90f55d8b6c3948c79449b04755527b4ae1351` 分別保存。 [Media3 1.11.1](https://github.com/androidx/media/tree/8c6678b657ede1e7883fc164ef73ed483c7796c3) · [Jellyfin decoder sources](https://github.com/jellyfin/jellyfin-androidx-media/tree/af9ee4e26b2045e3ea6f2ebf4a18ac8ebfeae396)
+- ASS `ass-media`／`ass-kt` 0.5.1 對應 wrapper 提交 `504f64a325059ab5188c4c9d0eddc99c9356a23a`。其 libass-cmake gitlink 仍指向 `d3f00a43ca66e42a2c34de964b1a7dbbfa9dbc8b`，可使用同一修訂的遞迴原始碼。新版 Android 建置使用 NDK `28.2.13676358`，對應 notices 已加入；APK 中 C++ runtime 的來源仍以實際 Gradle 原生檔案與 ELF 核對為準。 [ASS 0.5.1 sources](https://github.com/peerless2012/libass-android/tree/504f64a325059ab5188c4c9d0eddc99c9356a23a)
+
+App 內的授權文字與來源檔雜湊見 `docs/native-notices/android-manifest.json`。發布前依據候選 APK 的 Gradle 解析依賴及 native 合併／strip 來源，核對每個非 App ELF、授權文字及相應來源。當版審查完成後，發布設定才可以指向當版的 hash-bound native review。
+
 ## Linux Flatpak `.35`
 
 GitHub Flatpak 使用 GNOME 50 runtime，App 另打包固定來源的 MPV、FFmpeg、libass、libplacebo 與 uchardet。完整 JMS source ZIP 保存同版共用來源與建置配方；`flatpak-native-sources.json` 逐項記錄原生來源網址、固定提交或 SHA256，`JMS-Linux-版本-flatpak-native-materials.tar.gz` 保存相應來源及未變動 Flutter／原生 plugin 的既有材料。

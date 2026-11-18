@@ -10,7 +10,7 @@ import 'package:fladder/screens/video_player/components/syncplay_dialog.dart';
 import 'package:fladder/services/syncplay/syncplay_models.dart';
 import 'package:fladder/widgets/shared/controller_navigation.dart';
 import 'package:fladder/widgets/shared/syncplay_home_entry.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,7 +22,7 @@ final _fixtureAccount = AccountModel(
   id: '44444444444444444444444444444444',
   avatar: '',
   lastUsed: DateTime.utc(2026),
-  credentials: CredentialsModel.internal(
+  credentials: CredentialsModel(
     url: 'https://cross-platform.example.invalid',
     token: 'synthetic-only',
     serverId: '55555555555555555555555555555555',

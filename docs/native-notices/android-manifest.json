@@ -460,7 +460,90 @@
       "origin": "Flutter engine 035316565ad77281a75305515e4682e6c4c6f7ca",
       "entry": "LICENSE",
       "sha256": "ef0973379d881edb3688e98bc55d2185881eda7cfb343806e5dc21ca8ce4ec1b"
+    },
+    {
+      "origin": "ass-android-504f64a32505.zip",
+      "entry": "libass-android-504f64a325059ab5188c4c9d0eddc99c9356a23a/LICENSE",
+      "sha256": "eede2bf250a8d39c3d25f1af6cabd310ca0322c4fb160bc0cd8538682dba49de",
+      "release": "0.12.0-jms.60"
+    },
+    {
+      "origin": "jellyfin-media3-af9ee4e26b20.zip",
+      "entry": "jellyfin-androidx-media-af9ee4e26b2045e3ea6f2ebf4a18ac8ebfeae396/LICENSE",
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "release": "0.12.0-jms.60"
+    },
+    {
+      "origin": "jellyfin-ffmpeg-37c90f55d8b6.zip",
+      "entry": "FFmpeg-37c90f55d8b6c3948c79449b04755527b4ae1351/COPYING.GPLv2",
+      "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
+      "release": "0.12.0-jms.60"
+    },
+    {
+      "origin": "jellyfin-ffmpeg-37c90f55d8b6.zip",
+      "entry": "FFmpeg-37c90f55d8b6c3948c79449b04755527b4ae1351/COPYING.GPLv3",
+      "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+      "release": "0.12.0-jms.60"
+    },
+    {
+      "origin": "jellyfin-ffmpeg-37c90f55d8b6.zip",
+      "entry": "FFmpeg-37c90f55d8b6c3948c79449b04755527b4ae1351/COPYING.LGPLv2.1",
+      "sha256": "246041b6ecf9bc32d718a62c57877c78b5eb397b6467e74ed7ae2626ab189c30",
+      "release": "0.12.0-jms.60",
+      "bundledTextSha256": "9dbeb0f8568e2aa001500a3b7f4102deb2fcdaa4fb8eaa275b9a8810ef7b26db"
+    },
+    {
+      "origin": "jellyfin-ffmpeg-37c90f55d8b6.zip",
+      "entry": "FFmpeg-37c90f55d8b6c3948c79449b04755527b4ae1351/COPYING.LGPLv3",
+      "sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768",
+      "release": "0.12.0-jms.60"
+    },
+    {
+      "origin": "jellyfin-ffmpeg-37c90f55d8b6.zip",
+      "entry": "FFmpeg-37c90f55d8b6c3948c79449b04755527b4ae1351/LICENSE.md",
+      "sha256": "cb48bf09a11f5fb576cddb0431c8f5ed0a60157a9ec942adffc13907cbe083f2",
+      "release": "0.12.0-jms.60"
+    },
+    {
+      "origin": "sky-engine-371f77202a73.zip",
+      "entry": "sky_engine/LICENSE",
+      "sha256": "0d5050142d6b4605704d8844fcd5656ac23e718cf8f7d1e41149950da5edb4ef",
+      "release": "0.12.0-jms.60",
+      "bundledTextSha256": "a46f8100add3b325555d7c76e39831130e528abac6342a097d4bcf5fa1742a27"
+    },
+    {
+      "origin": "Flutter engine 371f77202a73e8dff57a8b3bff75bca55c090aee",
+      "entry": "license.flutter_jar_zip.md",
+      "sha256": "b3a1a2960106899695d302c6c321b7540741f2232003b82d2d0b48abbb8a1bb8",
+      "release": "0.12.0-jms.60",
+      "bundledTextSha256": "d48fd6fe2f1db62b0f472d4f5be14e99f1655a9c99ec22b91b6f309bb9b7e950"
+    },
+    {
+      "origin": "AndroidX Media3 1.11.1 / 8c6678b657ede1e7883fc164ef73ed483c7796c3",
+      "entry": "androidx-media-1.11.1-LICENSE.txt",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "release": "0.12.0-jms.60"
+    },
+    {
+      "origin": "AndroidX FFmpeg JNI source 7cc1056f840ce226598d3b990d4a6f7cd17e2831",
+      "entry": "androidx-media-1.9.0-jellyfin-jni-LICENSE.txt",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "release": "0.12.0-jms.60"
+    },
+    {
+      "origin": "Android NDK 28.2.13676358",
+      "entry": "NDK-28.2.13676358-NOTICE.txt",
+      "sha256": "faf0dc52cf6ce9ab09a04b0c074a378dd2565ee1ed9bc1179d83793bcdba012e",
+      "release": "0.12.0-jms.60",
+      "bundledTextSha256": "431f00ecb912bd0e5e65c661828fdae1f15f9a261f354ac91c35cd4aa9e1acf8"
+    },
+    {
+      "origin": "Android NDK 28.2.13676358",
+      "entry": "NDK-28.2.13676358-NOTICE.toolchain.txt",
+      "sha256": "789714a9076571c580cf531bdcebec776a4d889c12c3c1108adafc6e4338710a",
+      "release": "0.12.0-jms.60",
+      "bundledTextSha256": "9a65a5736b9ffa916297907761958b12a7844968094fc8a8a024a6d34bd45230"
     }
   ],
-  "assetSha256": "3d19adf03572a4ea675d3ca0f4ed20bf4f682a8aa0fded6edeaeb156ec865097"
+  "assetSha256": "e3a884ab5c1e3732669fc8ff22a47314b07bf74b18ffb0662056248813a0eb77"
 }

@@ -59,7 +59,7 @@ void main() {
     var reads = 0;
     final ignored = await capMpvSyncPlayForwardBuffer(
       read: (_) async => ++reads == 1 ? null : '999999999',
-      write: (_, __) async {},
+      write: (_, _) async {},
     );
     expect(ignored.status, MpvSyncPlayBufferSettingStatus.unverified);
     expect(ignored.requestedBytes, maximumMpvSyncPlayForwardBytes);
@@ -75,16 +75,16 @@ void main() {
     );
     expect(verified.status, MpvSyncPlayBufferSettingStatus.verified);
     expect(verified.actualBytes, maximumMpvSyncPlayForwardBytes);
-    final unknown = await capMpvSyncPlayForwardBuffer(read: (_) async => null, write: (_, __) async {});
+    final unknown = await capMpvSyncPlayForwardBuffer(read: (_) async => null, write: (_, _) async {});
     expect(unknown.status, MpvSyncPlayBufferSettingStatus.unverified);
     final failed = await capMpvSyncPlayForwardBuffer(
       read: (_) async => throw StateError('synthetic unsupported'),
-      write: (_, __) async {},
+      write: (_, _) async {},
     );
     expect(failed.status, MpvSyncPlayBufferSettingStatus.failed);
     final timed = await capMpvSyncPlayForwardBuffer(
       read: (_) => Completer<String?>().future,
-      write: (_, __) async {},
+      write: (_, _) async {},
       timeout: const Duration(milliseconds: 1),
     );
     expect(timed.status, MpvSyncPlayBufferSettingStatus.failed);

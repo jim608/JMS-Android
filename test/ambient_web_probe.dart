@@ -5,7 +5,7 @@ import 'package:fladder/models/settings/video_player_settings.dart';
 import 'package:fladder/widgets/shared/ambient_blur.dart';
 import 'package:fladder/wrappers/players/lib_mpv.dart';
 import 'package:fladder/wrappers/players/player_states.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/semantics.dart';
 
 // Browser acceptance harness only. It uses the production player and ambient

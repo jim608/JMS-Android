@@ -19,7 +19,7 @@ void main() {
             condition.property == ProfileConditionValue.videorangetype,
       );
       expect(range.condition, ProfileConditionType.equalsany, reason: codec);
-      expect(range.$Value, 'SDR', reason: codec);
+      expect(range.toJson(), containsPair('Value', 'SDR'), reason: codec);
     }
   });
 
@@ -30,7 +30,7 @@ void main() {
     final range = h264.conditions!.singleWhere(
       (condition) => condition.property == ProfileConditionValue.videorangetype,
     );
-    expect(range.$Value, 'SDR');
+    expect(range.value, 'SDR');
     expect(
         webProfile.directPlayProfiles!
             .where((profile) => profile.type == DlnaProfileType.video),

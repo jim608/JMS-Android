@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
 import 'package:fladder/models/media_playback_model.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
@@ -98,7 +99,7 @@ final flatpakUpdateProvider =
 
   refreshActivity();
   ref.listen(mediaPlaybackProvider.select((value) => value.state),
-      (_, __) => refreshActivity());
-  ref.listen(syncPlayProvider, (_, __) => refreshActivity());
+      (_, _) => refreshActivity());
+  ref.listen(syncPlayProvider, (_, _) => refreshActivity());
   return controller;
 });

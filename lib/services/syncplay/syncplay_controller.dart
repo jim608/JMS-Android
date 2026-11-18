@@ -1451,7 +1451,7 @@ class SyncPlayController {
         final owned = request;
         unawaited(request.then<void>((_) {
           if (identical(_participantRequest, owned)) _participantRequest = null;
-        }, onError: (Object _, StackTrace __) {
+        }, onError: (Object _, StackTrace _) {
           if (identical(_participantRequest, owned)) _participantRequest = null;
         }));
       }

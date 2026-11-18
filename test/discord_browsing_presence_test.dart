@@ -36,7 +36,7 @@ AccountModel _account(String id) => AccountModel(
       id: id,
       avatar: '',
       lastUsed: DateTime(2026),
-      credentials: CredentialsModel.internal(
+      credentials: CredentialsModel(
         serverId: 'synthetic-server',
         url: 'https://media.example.invalid',
       ),

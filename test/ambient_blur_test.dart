@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:fladder/widgets/shared/ambient_blur.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -206,7 +206,7 @@ void main() {
     expect(painter.image.width, lessThanOrEqualTo(192));
     expect(painter.image.height, lessThanOrEqualTo(192));
     expect(find.byType(Opacity), findsNothing);
-    expect(find.byType(FadeTransition), findsNothing);
+    expect(find.descendant(of: find.byType(AmbientBlur), matching: find.byType(FadeTransition)), findsNothing);
     final buildsAfterCapture = videoBuilds;
     await tester.pump(const Duration(seconds: 1));
     expect(videoBuilds, buildsAfterCapture);

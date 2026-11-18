@@ -4,13 +4,12 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:smtc_windows/smtc_windows.dart'
-    if (dart.library.html) 'package:fladder/stubs/web/smtc_web.dart';
+import 'package:smtc_windows/smtc_windows.dart' if (dart.library.js_interop) 'package:fladder/stubs/web/smtc_web.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import 'package:fladder/models/item_base_model.dart';
@@ -19,7 +18,6 @@ import 'package:fladder/models/items/channel_model.dart';
 import 'package:fladder/models/items/item_stream_model.dart';
 import 'package:fladder/models/items/media_streams_model.dart';
 import 'package:fladder/models/media_playback_model.dart';
-import 'package:fladder/models/playback/audio_prefetch_buffer.dart';
 import 'package:fladder/models/playback/audio_url_resolver.dart';
 import 'package:fladder/models/playback/playback_model.dart';
 import 'package:fladder/models/playback/playback_queue_state.dart';
@@ -27,6 +25,7 @@ import 'package:fladder/models/settings/video_player_settings.dart';
 import 'package:fladder/providers/api_provider.dart';
 import 'package:fladder/providers/audio_lyrics_provider.dart';
 import 'package:fladder/providers/live_tv_provider.dart';
+import 'package:fladder/providers/low_resource_provider.dart';
 import 'package:fladder/providers/primary_subtitle_selection_provider.dart';
 import 'package:fladder/providers/segment_skip_provider.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
@@ -45,7 +44,8 @@ import 'package:fladder/util/dual_subtitle.dart';
 import 'package:fladder/util/subtitle_offset.dart';
 import 'package:fladder/wrappers/players/base_player.dart';
 import 'package:fladder/wrappers/players/lib_mdk.dart'
-    if (dart.library.html) 'package:fladder/stubs/web/lib_mdk_web.dart';
+    if (dart.library.js_interop) 'package:fladder/stubs/web/lib_mdk_web.dart';
+import 'package:fladder/wrappers/multi_window_media_session.dart';
 import 'package:fladder/wrappers/players/lib_mpv.dart';
 import 'package:fladder/wrappers/players/native_player.dart';
 import 'package:fladder/wrappers/players/player_states.dart';
@@ -190,17 +190,20 @@ class MediaControlsWrapper extends BaseAudioHandler
   Future<void>? _pendingStop;
   bool _isNewPlayback = false;
   bool _isAudioQueueMode = false;
-  bool _audioQueueTransitioning = false;
-  bool _audioQueueCompletionPending = false;
   bool _wakelockEnabled = false;
+  bool _lastCompleted = false;
+  int _skipSteps = 0;
+  bool _skipQueued = false;
+  bool _skipHardCut = false;
+  int _skipPauseMark = 0;
+  DateTime _lastSkipAt = DateTime(0);
 
-  AudioPrefetchBuffer? _prefetchBuffer;
-  List<ItemBaseModel> _mpvPlaylistItems = [];
-  int _mpvPlaylistCurrentIndex = 0;
+  Future<void> _queueOps = Future.value();
+  int _pendingQueueOps = 0;
+  ItemBaseModel? _mpvNext;
+  int _mpvCurrentIndex = 0;
+  int _mpvGeneration = 0;
   StreamSubscription<int>? _playlistIndexSub;
-  bool _syncingPlaylist = false;
-  bool _syncPlaylistPending = false;
-  bool _audioQueueRefillInProgress = false;
   bool _audioQueueSourceDepleted = false;
   int _audioQueueNextStartIndex = 0;
 
@@ -211,21 +214,24 @@ class MediaControlsWrapper extends BaseAudioHandler
         if (!kIsWeb && Platform.isAndroid) {
           VideoPlayerControlsCallback.setUp(this);
         }
-        await AudioService.init(
-          builder: () => this,
-          config: const AudioServiceConfig(
-            androidNotificationChannelId:
-                'nl.jknaapen.fladder.channel.playback',
-            androidNotificationChannelName: 'Media playback',
-            androidNotificationIcon: 'drawable/ic_notification',
-            androidNotificationOngoing: true,
-            androidStopForegroundOnPause: true,
-            rewindInterval: Duration(seconds: 10),
-            fastForwardInterval: Duration(seconds: 15),
-            androidNotificationChannelDescription: "Playback",
-            androidShowNotificationBadge: true,
-          ),
-        );
+        if (MultiWindowMediaSession.supported) {
+          MultiWindowMediaSession.instance.attach(this);
+        } else {
+          await AudioService.init(
+            builder: () => this,
+            config: const AudioServiceConfig(
+              androidNotificationChannelId: 'nl.jknaapen.fladder.channel.playback',
+              androidNotificationChannelName: 'Media playback',
+              androidNotificationIcon: 'drawable/ic_notification',
+              androidNotificationOngoing: true,
+              androidStopForegroundOnPause: true,
+              rewindInterval: Duration(seconds: 10),
+              fastForwardInterval: Duration(seconds: 15),
+              androidNotificationChannelDescription: "Playback",
+              androidShowNotificationBadge: true,
+            ),
+          );
+        }
       }
     }
 
@@ -285,7 +291,10 @@ class MediaControlsWrapper extends BaseAudioHandler
           _previousPlayer != oldPlayer) {
         await oldPlayer.dispose();
       }
-      await newPlayer.init(ref.read(videoPlayerSettingsProvider));
+      await newPlayer.init(
+        ref.read(videoPlayerSettingsProvider),
+        lowResourceMode: ref.read(lowResourceModeProvider),
+      );
       if (generation != _setupGeneration) {
         await newPlayer.dispose();
         return;
@@ -339,7 +348,7 @@ class MediaControlsWrapper extends BaseAudioHandler
         ref.listen(subtitleSettingsProvider, (_, next) {
       _player?.applySubtitleSettings(next);
     });
-    _playbackModelSubscription = ref.listen(playBackModel, (_, __) {
+    _playbackModelSubscription = ref.listen(playBackModel, (_, _) {
       _subscribePlayerState();
     });
   }
@@ -467,7 +476,7 @@ class MediaControlsWrapper extends BaseAudioHandler
   }
 
   void _subscribePlayer() {
-    if (!JmsTestProfilePolicy.enabled && !kIsWeb && Platform.isWindows) {
+    if (!JmsTestProfilePolicy.enabled && !kIsWeb && Platform.isWindows && !MultiWindowMediaSession.supported) {
       smtc = SMTCWindows(
         config: const SMTCConfig(
           fastForwardEnabled: true,
@@ -522,24 +531,17 @@ class MediaControlsWrapper extends BaseAudioHandler
 
   Future<void> _updateStateStream(PlayerState value) async {
     if (_isStopped) return;
-    if (value.completed && !_isAudioQueueMode) {
-      ref.read(segmentSkipSessionProvider).markCompleted();
-      ref.read(sleepTimerProvider).completed();
+    final completedEdge = value.completed && !_lastCompleted;
+    _lastCompleted = value.completed;
+    if (completedEdge) {
+      if (_isAudioQueueMode) {
+        _onAudioTrackCompleted();
+      } else {
+        ref.read(segmentSkipSessionProvider).markCompleted();
+        ref.read(sleepTimerProvider).completed();
+      }
     }
-
-    if (value.completed &&
-        _isAudioQueueMode &&
-        !_audioQueueTransitioning &&
-        !_audioQueueCompletionPending) {
-      _audioQueueCompletionPending = true;
-      unawaited(_onAudioTrackCompleted()
-          .whenComplete(() => _audioQueueCompletionPending = false));
-    }
-
-    final keepForegroundAlive = value.playing ||
-        value.buffering ||
-        _audioQueueTransitioning ||
-        _audioQueueCompletionPending;
+    final keepForegroundAlive = value.playing || value.buffering || _pendingQueueOps > 0;
 
     playbackState.add(playbackState.value.copyWith(
       bufferedPosition: value.buffer,
@@ -559,26 +561,7 @@ class MediaControlsWrapper extends BaseAudioHandler
 
   @override
   Future<void> skipToNext() async {
-    if (syncPlayActive) return;
-    if (_isAudioQueueMode) {
-      final wasRepeatOne = await _disableRepeatOneForSkip();
-      if (!wasRepeatOne &&
-          _player is LibMPV &&
-          _isMpvPlaylistInSync() &&
-          _mpvPlaylistItems.length > _mpvPlaylistCurrentIndex + 1) {
-        final current = _mpvPlaylistItems[_mpvPlaylistCurrentIndex];
-        final next = _mpvPlaylistItems[_mpvPlaylistCurrentIndex + 1];
-        if (!_shouldCrossfade(current, next, manual: true)) {
-          await (_player as LibMPV).playerNext();
-          await Future.delayed(const Duration(milliseconds: 125));
-          await _player?.play();
-          return;
-        }
-      }
-      await _playNextQueueItem(manual: true);
-      await _player?.play();
-      return;
-    }
+    if (_isAudioQueueMode) return _skipQueue(1);
     return loadNextVideo();
   }
 
@@ -586,29 +569,13 @@ class MediaControlsWrapper extends BaseAudioHandler
   Future<void> skipToPrevious() async {
     if (syncPlayActive) return;
     if (_isAudioQueueMode) {
-      if (_player?.lastState.position != null &&
-          _player!.lastState.position >= const Duration(seconds: 3)) {
+      if (!_skipQueued && (_player?.lastState.position ?? Duration.zero) >= const Duration(seconds: 3)) {
         await _player?.seek(Duration.zero);
         await Future.delayed(const Duration(milliseconds: 125));
         await _player?.play();
         return;
       }
-      final wasRepeatOne = await _disableRepeatOneForSkip();
-      if (!wasRepeatOne &&
-          _player is LibMPV &&
-          _isMpvPlaylistInSync() &&
-          _mpvPlaylistCurrentIndex > 0) {
-        final current = _mpvPlaylistItems[_mpvPlaylistCurrentIndex];
-        final previous = _mpvPlaylistItems[_mpvPlaylistCurrentIndex - 1];
-        if (!_shouldCrossfade(current, previous, manual: true)) {
-          await (_player as LibMPV).playerPrevious();
-          await Future.delayed(const Duration(milliseconds: 125));
-          await _player?.play();
-          return;
-        }
-      }
-      await _playPreviousQueueItem();
-      return;
+      return _skipQueue(-1);
     }
     return loadPreviousVideo();
   }
@@ -847,14 +814,10 @@ class MediaControlsWrapper extends BaseAudioHandler
     await _player?.play();
     if (_isStopped || !current()) return;
 
-    final currentPosition =
-        await ref.read(playBackModel.select((value) => value?.startDuration()));
-    if (_isStopped || !current()) return;
     if (_isNewPlayback || !playbackState.value.playing) {
       _isNewPlayback = false;
-      await ref
-          .read(playBackModel)
-          ?.playbackStarted(currentPosition ?? Duration.zero, ref);
+      await ref.read(playBackModel)?.playbackStarted(
+          _player?.lastState.position ?? ref.read(mediaPlaybackProvider).position, ref);
       if (_isStopped || !current()) return;
     }
     if (playBackItem == null) return;
@@ -1038,6 +1001,7 @@ class MediaControlsWrapper extends BaseAudioHandler
       (_player as LibMPV).setMusicPlaybackMode(false);
     }
 
+    _lastCompleted = false;
     smtc?.setPlaybackStatus(PlaybackStatus.stopped);
     smtc?.clearMetadata();
     smtc?.disableSmtc();
@@ -1105,19 +1069,18 @@ class MediaControlsWrapper extends BaseAudioHandler
         .update((state) => state.copyWith(position: Duration.zero));
 
     if (_isAudioQueueMode) {
-      _isAudioQueueMode = false;
-      _playlistIndexSub?.cancel();
-      _playlistIndexSub = null;
-      _prefetchBuffer?.invalidate();
-      _prefetchBuffer = null;
-      _mpvPlaylistItems = [];
-      _mpvPlaylistCurrentIndex = 0;
-      _syncingPlaylist = false;
-      _syncPlaylistPending = false;
-      await _restorePreviousPlayer();
+      await _serial(() async {
+        _isAudioQueueMode = false;
+        await _playlistIndexSub?.cancel();
+        _playlistIndexSub = null;
+        _mpvNext = null;
+        _mpvCurrentIndex = 0;
+        _mpvGeneration++;
+        await _restorePreviousPlayer();
+      });
     }
 
-    return super.stop();
+    await super.stop();
   }
 
   Future<void> playOrPause() async {
@@ -1161,28 +1124,23 @@ class MediaControlsWrapper extends BaseAudioHandler
     return Uri.file(path);
   }
 
-  bool _isMpvPlaylistInSync() {
-    final playbackModel = ref.read(playBackModel);
-    if (playbackModel == null) return false;
-    if (_mpvPlaylistItems.isEmpty) return false;
-    if (_mpvPlaylistCurrentIndex < 0 ||
-        _mpvPlaylistCurrentIndex >= _mpvPlaylistItems.length) {
-      return false;
-    }
-    return _mpvPlaylistItems[_mpvPlaylistCurrentIndex].id ==
-        playbackModel.item.id;
-  }
-
-  Future<int> setAudioTrack(
-          AudioStreamModel? model, PlaybackModel playbackModel) async =>
+  Future<int> setAudioTrack(AudioStreamModel? model, PlaybackModel playbackModel) async =>
       await _player?.setAudioTrack(model, playbackModel) ?? -1;
 
   Future<int> setSubtitleTrack(
           SubStreamModel? model, PlaybackModel playbackModel) async =>
       await _player?.setSubtitleTrack(model, playbackModel) ?? -1;
 
-  void cancelPendingSubtitleSelection() =>
-      _player?.cancelPendingSubtitleSelection();
+  void cancelPendingSubtitleSelection() => _player?.cancelPendingSubtitleSelection();
+
+  Future<void> shiftSubtitleOffset(Duration offset) async {
+    final player = _player;
+    final offsets = player?.subtitleOffsets;
+    if (offsets == null) return;
+    final current = _localPlaybackCurrent(ref.read(playBackModel), player);
+    await player?.shiftSubtitleOffset(offset);
+    if (current()) ref.read(subtitleTimingOffsetProvider.notifier).state = offsets.primary;
+  }
 
   Future<void> setVolume(double volume) async {
     //Do not set volume on Android/iOS since we use the system volume for that.
@@ -1260,10 +1218,10 @@ class MediaControlsWrapper extends BaseAudioHandler
   }
 
   @override
-  void onStop() => stop();
+  Future<void> onStop() async => stop();
 
   @override
-  void swapAudioTrack(int value) async {
+  Future<void> swapAudioTrack(int value) async {
     final playbackModel = ref.read(playBackModel);
     final newModel = await playbackModel?.setAudio(
         playbackModel.audioStreams
@@ -1276,7 +1234,7 @@ class MediaControlsWrapper extends BaseAudioHandler
   }
 
   @override
-  void swapSubtitleTrack(int value) async {
+  Future<void> swapSubtitleTrack(int value) async {
     if (_stateController.isClosed) return;
     final playbackModel = ref.read(playBackModel);
     if (playbackModel == null) return;

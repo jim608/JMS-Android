@@ -67,6 +67,7 @@ class SeerrDetails extends _$SeerrDetails {
     final isTv = currentMediaType == SeerrMediaType.tvshow;
     if (isTv) {
       final tvDetailsResponse = await api.tvDetails(tvId: poster.tmdbId);
+      if (!ref.mounted) return;
       if (tvDetailsResponse.isSuccessful && tvDetailsResponse.body != null) {
         final details = tvDetailsResponse.body!;
 
@@ -247,6 +248,7 @@ class SeerrDetails extends _$SeerrDetails {
       tvId: poster.tmdbId,
       seasonNumber: seasonNumber,
     );
+    if (!ref.mounted) return;
 
     if (response.isSuccessful && response.body != null) {
       final episodes = response.body!.episodes ?? [];
@@ -259,6 +261,7 @@ class SeerrDetails extends _$SeerrDetails {
 
   Future<void> approveRequest(int requestId) async {
     final response = await api.approveRequest(requestId: requestId);
+    if (!ref.mounted) return;
     if (response.isSuccessful) {
       await fetch();
     }
@@ -266,6 +269,7 @@ class SeerrDetails extends _$SeerrDetails {
 
   Future<void> declineRequest(int requestId) async {
     final response = await api.deleteRequest(requestId: requestId);
+    if (!ref.mounted) return;
     if (response.isSuccessful) {
       await fetch();
     }

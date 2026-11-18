@@ -8,9 +8,11 @@ import 'package:fladder/models/view_model.dart';
 import 'package:fladder/models/views_model.dart';
 import 'package:fladder/providers/api_provider.dart';
 import 'package:fladder/providers/dashboard_provider.dart';
+import 'package:fladder/providers/jellyfin_websocket_provider.dart';
 import 'package:fladder/providers/service_provider.dart';
 import 'package:fladder/providers/views_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show ProviderException;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 
@@ -97,6 +99,7 @@ void main() {
     );
     container = ProviderContainer(overrides: [
       jellyApiProvider.overrideWith(() => _Api(service)),
+      jellyfinWebSocketProvider.overrideWith((_) => const Stream.empty()),
       viewsProvider.overrideWith((ref) => _Views(ref)),
       dashboardProvider.overrideWith((ref) => _SeededDashboard(ref, initial)),
     ]);
@@ -236,12 +239,13 @@ void main() {
     final failure = StateError('synthetic unavailable views');
     final failingContainer = ProviderContainer(overrides: [
       jellyApiProvider.overrideWith(() => _Api(service)),
+      jellyfinWebSocketProvider.overrideWith((_) => const Stream.empty()),
       viewsProvider.overrideWith((ref) => throw failure),
     ]);
     addTearDown(failingContainer.dispose);
     await expectLater(
       failingContainer.read(dashboardProvider.notifier).fetchNextUpAndResume(),
-      throwsA(same(failure)),
+      throwsA(isA<ProviderException>().having((error) => error.exception, 'cause', same(failure))),
     );
     expect(failingContainer.read(dashboardProvider).loading, isFalse);
     expect(service.resumes, isEmpty);

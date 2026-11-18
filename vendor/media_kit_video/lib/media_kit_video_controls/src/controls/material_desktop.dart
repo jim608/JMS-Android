@@ -5,6 +5,8 @@
 /// Use of this source code is governed by MIT license that can be found in the LICENSE file.
 // ignore_for_file: non_constant_identifier_names
 import 'dart:async';
+// Retain Flutter Material types used by the public desktop controls theme.
+// ignore: deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';

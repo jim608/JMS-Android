@@ -211,7 +211,7 @@ class TransportFlatpakUpdatePortal implements FlatpakUpdatePortal {
     _opening = operation;
     operation.then<void>((_) {
       if (identical(_opening, operation)) _opening = null;
-    }, onError: (Object _, StackTrace __) {
+    }, onError: (Object _, StackTrace _) {
       if (identical(_opening, operation)) _opening = null;
     });
     return operation;

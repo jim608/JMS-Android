@@ -1,7 +1,8 @@
 import 'package:fladder/l10n/generated/app_localizations.dart';
+import 'package:fladder/localization_delegates.dart';
 import 'package:fladder/providers/discord_presence_provider.dart';
 import 'package:fladder/screens/settings/widgets/settings_discord_presence.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -87,7 +88,7 @@ void main() {
       ],
       child: MaterialApp(
         locale: locale,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        localizationsDelegates: FladderLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: const Scaffold(body: SettingsDiscordPresence()),
       ),

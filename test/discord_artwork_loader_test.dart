@@ -74,7 +74,7 @@ AccountModel _account(_ArtworkServer server, String suffix) => AccountModel(
       id: 'synthetic-account-$suffix',
       avatar: '',
       lastUsed: DateTime(2026),
-      credentials: CredentialsModel.internal(
+      credentials: CredentialsModel(
         serverId: 'synthetic-server-$suffix',
         token: 'synthetic-artwork-token-$suffix',
         deviceId: 'synthetic-device-$suffix',

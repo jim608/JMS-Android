@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
@@ -14,7 +15,6 @@ import 'package:fladder/util/list_padding.dart';
 import 'package:fladder/util/sticky_header_text.dart';
 import 'package:fladder/widgets/navigation_scaffold/components/navigation_body.dart';
 import 'package:fladder/widgets/navigation_scaffold/components/side_navigation_bar.dart';
-import 'package:fladder/widgets/shared/ensure_visible.dart';
 import 'package:fladder/widgets/shared/focus_row.dart';
 
 class HorizontalList<T> extends ConsumerStatefulWidget {
@@ -35,6 +35,9 @@ class HorizontalList<T> extends ConsumerStatefulWidget {
   final bool shrinkWrap;
   final double Function(int index)? itemWidthBuilder;
   final ValueChanged<bool>? onFocusChange;
+  final BuildContext? revealContext;
+  final double trailingSpace;
+  final double revealAlignment;
 
   const HorizontalList({
     this.autoFocus = false,
@@ -54,6 +57,9 @@ class HorizontalList<T> extends ConsumerStatefulWidget {
     this.dominantRatio,
     this.itemWidthBuilder,
     this.onFocusChange,
+    this.revealContext,
+    this.trailingSpace = 0,
+    this.revealAlignment = 0.5,
     super.key,
   });
 
@@ -62,7 +68,7 @@ class HorizontalList<T> extends ConsumerStatefulWidget {
 }
 
 class _HorizontalListState extends ConsumerState<HorizontalList> with TickerProviderStateMixin {
-  final FocusNode parentNode = FocusNode();
+  final FocusNode parentNode = RailFocusNode();
   FocusNode? lastFocused;
   final GlobalKey _firstItemKey = GlobalKey();
   final GlobalKey _listViewKey = GlobalKey();
@@ -71,6 +77,7 @@ class _HorizontalListState extends ConsumerState<HorizontalList> with TickerProv
   double? contentWidth;
   double? _firstItemWidth;
   bool hasFocus = false;
+  static _HorizontalListState? _lastRevealed;
 
   AnimationController? _scrollAnimation;
 
@@ -92,6 +99,7 @@ class _HorizontalListState extends ConsumerState<HorizontalList> with TickerProv
 
   @override
   void dispose() {
+    if (_lastRevealed == this) _lastRevealed = null;
     _disposeScrollAnimation();
     parentNode.dispose();
     _scrollController.dispose();
@@ -102,6 +110,36 @@ class _HorizontalListState extends ConsumerState<HorizontalList> with TickerProv
     final controller = _scrollAnimation;
     _scrollAnimation = null;
     controller?.dispose();
+  }
+
+  void _revealVertically(Duration duration) {
+    final previous = _lastRevealed;
+    _lastRevealed = this;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !hasFocus) return;
+      final revealContext = widget.revealContext ?? context;
+      final box = revealContext.findRenderObject();
+      if (box is! RenderBox || !box.attached) return;
+      final scrollable = Scrollable.maybeOf(revealContext, axis: Axis.vertical);
+      final viewport = RenderAbstractViewport.maybeOf(box);
+      if (scrollable == null || viewport == null) return;
+      final collapse = previous != null && previous != this && previous.mounted ? previous._pendingCollapse(box) : 0.0;
+      final position = scrollable.position;
+      final target = viewport.getOffsetToReveal(box, widget.revealAlignment).offset - collapse;
+      position.animateTo(
+        target.clamp(position.minScrollExtent, math.max(position.minScrollExtent, position.maxScrollExtent - collapse)),
+        duration: duration,
+        curve: Curves.fastOutSlowIn,
+      );
+    });
+  }
+
+  double _pendingCollapse(RenderBox below) {
+    final revealBox = widget.revealContext?.findRenderObject();
+    final railBox = context.findRenderObject();
+    if (revealBox is! RenderBox || railBox is! RenderBox || !revealBox.attached || !railBox.attached) return 0;
+    if (revealBox.localToGlobal(Offset.zero).dy >= below.localToGlobal(Offset.zero).dy) return 0;
+    return math.max(0, revealBox.size.height - railBox.size.height);
   }
 
   void _measureFirstItem() {
@@ -349,10 +387,9 @@ class _HorizontalListState extends ConsumerState<HorizontalList> with TickerProv
                     if (correctIndex != -1) {
                       widget.onFocused!(correctIndex);
                     }
-                  } else {
-                    context.ensureVisible();
                   }
                   currentNode.requestFocus();
+                  _revealVertically(_durationForInterval(null));
                 }
               } else {
                 hasFocus = false;
@@ -368,10 +405,9 @@ class _HorizontalListState extends ConsumerState<HorizontalList> with TickerProv
                 final correctIndex = _getCorrectIndexForNode(currentNode);
                 if (widget.onFocused != null) {
                   if (correctIndex != -1) widget.onFocused!(correctIndex);
-                } else {
-                  context.ensureVisible();
                 }
                 currentNode.requestFocus();
+                _revealVertically(_durationForInterval(null));
               }
             },
             child: SizedBox(
@@ -385,8 +421,8 @@ class _HorizontalListState extends ConsumerState<HorizontalList> with TickerProv
                 controller: _scrollController,
                 clipBehavior: Clip.none,
                 scrollDirection: Axis.horizontal,
-                padding: widget.contentPadding,
-                cacheExtent: _firstItemWidth ?? 250,
+                padding: widget.contentPadding.add(EdgeInsetsDirectional.only(end: widget.trailingSpace)),
+                scrollCacheExtent: ScrollCacheExtent.pixels(_firstItemWidth ?? 250),
                 itemBuilder: (context, index) => index == widget.items.length
                     ? PosterPlaceHolder(
                         onTap: widget.onLabelClick ?? () {},
@@ -494,6 +530,28 @@ List<FocusNode> _nodesInRow(FocusNode parentNode) {
     ..sort((a, b) => a.rect.center.dx.compareTo(b.rect.center.dx));
 }
 
+class RailFocusNode extends FocusNode {}
+
+void railAwareRequestFocus(
+  FocusNode node, {
+  ScrollPositionAlignmentPolicy? alignmentPolicy,
+  double? alignment,
+  Duration? duration,
+  Curve? curve,
+}) {
+  if (node is RailFocusNode || node.ancestors.any((n) => n is RailFocusNode)) {
+    node.requestFocus();
+    return;
+  }
+  FocusTraversalPolicy.defaultTraversalRequestFocusCallback(
+    node,
+    alignmentPolicy: alignmentPolicy,
+    alignment: alignment,
+    duration: duration,
+    curve: curve,
+  );
+}
+
 class HorizontalRailFocus extends WidgetOrderTraversalPolicy {
   final FocusNode parentNode;
   final void Function(FocusNode node, {int? intervalMillis}) onFocused;
@@ -507,7 +565,7 @@ class HorizontalRailFocus extends WidgetOrderTraversalPolicy {
     required this.onFocused,
     required this.scrollController,
     required this.firstItemWidth,
-  });
+  }) : super(requestFocusCallback: railAwareRequestFocus);
 
   @override
   bool inDirection(FocusNode currentNode, TraversalDirection direction) {

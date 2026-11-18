@@ -1,6 +1,7 @@
 import 'package:chopper/chopper.dart';
 import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart';
 import 'package:fladder/l10n/generated/app_localizations.dart';
+import 'package:fladder/localization_delegates.dart';
 import 'package:fladder/models/account_model.dart';
 import 'package:fladder/models/credentials_model.dart';
 import 'package:fladder/models/seerr_credentials_model.dart';
@@ -20,7 +21,7 @@ import 'package:fladder/screens/settings/widgets/settings_discord_presence.dart'
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout_model.dart';
 import 'package:fladder/util/poster_defaults.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -135,7 +136,7 @@ void main() {
         id: 'synthetic-user',
         avatar: '',
         lastUsed: DateTime.utc(2026),
-        credentials: CredentialsModel.internal(url: 'https://media.example.invalid'),
+        credentials: CredentialsModel(url: 'https://media.example.invalid'),
         userConfiguration: original,
         seerrCredentials: serviceCredentials,
         seerrRequestsEnabled: true,
@@ -160,7 +161,7 @@ void main() {
       container: container,
       child: MaterialApp(
         locale: locale,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        localizationsDelegates: FladderLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: AdaptiveLayout(
           data: const AdaptiveLayoutModel(

@@ -36,7 +36,7 @@ class Node {
     def propertyMissing(String name) {
         if (name == 'fixture') return this.@fixture
         if (name == 'flutter') return fixture.flutter
-        if (name == 'JavaVersion') return [VERSION_1_8: 'java8-sentinel']
+        if (name == 'JavaVersion') return [VERSION_17: 'java17-sentinel']
         if (name == 'signingConfigs') return fixture.signingAccess('resolve')
         if (name == 'buildTypes') return fixture.buildTypes
         if (values.containsKey(name)) return values[name]
@@ -89,6 +89,7 @@ class Fixture {
     int configureEachCalls = 0
     Node android
     Node flutter
+    Node kotlin
     Node signingConfigs
     BuildTypes buildTypes
 
@@ -114,6 +115,7 @@ class Fixture {
         buildTypes.children.release = new Node(fixture: this, path: 'buildTypes/release',
                                                values: [signingConfig: null])
         android = new Node(fixture: this, path: 'android')
+        kotlin = new Node(fixture: this, path: 'kotlin')
     }
 
     Node signingAccess(String kind) {
@@ -140,8 +142,10 @@ abstract class FakeGradleScript extends Script {
     def dependencies(Closure ignored) { /* Never resolve dependencies. */ }
     def android(Closure block) { Node.configure(fixture.android, block) }
     def flutter(Closure block) { Node.configure(fixture.flutter, block) }
+    def kotlin(Closure block) { Node.configure(fixture.kotlin, block) }
     Node getFlutter() { fixture.flutter }
-    def getJavaVersion() { [VERSION_1_8: 'java8-sentinel'] }
+    def getJavaVersion() { [VERSION_17: 'java17-sentinel'] }
+    def getOrg() { [jetbrains: [kotlin: [gradle: [dsl: [JvmTarget: [JVM_17: 'jvm17-sentinel']]]]]] }
     def getRootProject() { this }
     File file(String relative) { fixture.file(relative) }
 }
@@ -173,6 +177,7 @@ if (scenario == 'conflict') {
 
 shell.evaluate(actualSource)
 assert fixture.android.children.defaultConfig.values.applicationId == 'com.jim608.jms'
+assert fixture.kotlin.children.compilerOptions.values.jvmTarget == 'jvm17-sentinel'
 if (scenario == 'unsigned') {
     assert fixture.filePaths == ['local.properties'] : fixture.filePaths
     assert fixture.signingAccesses.empty : fixture.signingAccesses

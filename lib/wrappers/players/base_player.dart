@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:fladder/models/items/media_streams_model.dart';
 import 'package:fladder/models/playback/playback_model.dart';
@@ -32,7 +32,7 @@ abstract class BasePlayer {
   Stream<PlayerState> get stateStream;
   PlayerState lastState = PlayerState();
 
-  Future<void> init(VideoPlayerSettingsModel settings);
+  Future<void> init(VideoPlayerSettingsModel settings, {bool lowResourceMode = false});
   Widget? videoWidget(Key key, BoxFit fit);
   Widget? subtitles(bool showOverlay, {GlobalKey? controlsKey});
   Future<void> dispose();
@@ -59,6 +59,7 @@ abstract class BasePlayer {
   Future<int> setSubtitleTrack(SubStreamModel? model, PlaybackModel playbackModel);
   void cancelPendingSubtitleSelection() {}
   Future<int> setAudioTrack(AudioStreamModel? model, PlaybackModel playbackModel);
+  Future<void> shiftSubtitleOffset(Duration offset) async {}
   void applySubtitleSettings(SubtitleSettingsModel settings) {}
 
   Future<Map<String, String>> playbackDiagnostics() async => {

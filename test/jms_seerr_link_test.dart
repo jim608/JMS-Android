@@ -662,7 +662,7 @@ void main() {
         .read(seerrApiProvider)
         .fetchDashboardPosterFromIds(
             tmdbId: 42, mediaType: SeerrMediaType.tvshow);
-    final subscription = container.listen(seerrRequestProvider, (_, __) {});
+    final subscription = container.listen(seerrRequestProvider, (_, _) {});
     addTearDown(subscription.close);
     final notifier = container.read(seerrRequestProvider.notifier);
     await notifier.initialize(poster!);

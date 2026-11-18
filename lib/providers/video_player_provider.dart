@@ -2,9 +2,10 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:fladder/models/item_base_model.dart';
@@ -12,6 +13,7 @@ import 'package:fladder/models/media_playback_model.dart';
 import 'package:fladder/models/playback/playback_model.dart';
 import 'package:fladder/models/playback/playback_queue_state.dart';
 import 'package:fladder/models/settings/video_player_settings.dart';
+import 'package:fladder/providers/low_resource_provider.dart';
 import 'package:fladder/providers/primary_subtitle_selection_provider.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
 import 'package:fladder/providers/settings/video_player_settings_provider.dart';
@@ -169,6 +171,14 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
   }
 
   ProviderSubscription<VideoPlayerSettingsModel>? settingsChanged;
+
+  void applySettingsChanged(VideoPlayerSettingsModel settings) {
+    final currentItem = ref.read(playBackModel)?.item;
+    if (currentItem != null) {
+      unawaited(state.applyReplayGain(currentItem, settings: settings));
+    }
+  }
+
   @override
   void dispose() {
     _invalidatePlaybackAttempt();
@@ -222,15 +232,7 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
 
     settingsChanged = ref.listen(
       videoPlayerSettingsProvider,
-      (previous, next) {
-        final currentItem = ref.read(playBackModel)?.item;
-        if (currentItem != null) {
-          state.applyReplayGain(
-            currentItem,
-            settings: next,
-          );
-        }
-      },
+      (_, next) => applySettingsChanged(next),
     );
 
     final subscription = state.stateStream.listen((value) {
@@ -391,6 +393,7 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
       previousModel?.dispose();
       if (!stillCurrent()) return false;
       ref.read(playbackRateProvider.notifier).state = 1.0;
+      ref.read(subtitleTimingOffsetProvider.notifier).state = Duration.zero;
 
       final useMinimizedPlayer = model.item.type == FladderItemType.audio ||
           model.mediaStreams?.videoStreams.isEmpty == true;
@@ -582,6 +585,12 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
   }
 
   Future<void> addToTemporaryQueue(List<ItemBaseModel> items) async {
+    if (items.isEmpty) return;
+    if (ref.read(playBackModel) == null) {
+      final model = await ref.read(playbackModelHelper).createPlaybackModel(null, items.first, libraryQueue: items);
+      if (model != null) await loadAudioPlaybackItem(model, items, 0, Duration.zero);
+      return;
+    }
     await state.addToTemporaryQueue(items);
   }
 
@@ -605,8 +614,10 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
     await state.jumpToQueueItem(item);
   }
 
-  Future<void> openPlayer(BuildContext context) async =>
-      state.openPlayer(context);
+  Future<void> openPlayer(BuildContext context) async {
+    if (ref.read(lowResourceModeProvider)) PaintingBinding.instance.imageCache.clear();
+    return state.openPlayer(context);
+  }
 
   Future<void> openPlaybackAttempt(
       BuildContext context, PlaybackAttemptRef attempt,
@@ -616,7 +627,7 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
     if (!current()) return;
     await _waitForStableInitialization();
     if (!current() || !state.hasPlayer) return;
-    await state.openPlayer(context);
+    await openPlayer(context);
   }
 
   Future<bool> takeScreenshot() async {

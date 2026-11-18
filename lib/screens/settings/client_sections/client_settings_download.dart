@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 
@@ -44,7 +43,7 @@ List<Widget> buildClientSettingsDownload(BuildContext context, WidgetRef ref, Fu
                           actions: [
                             ElevatedButton(
                               onPressed: () async {
-                                String? selectedDirectory = await FilePicker.platform.getDirectoryPath(
+                                final selectedDirectory = await pickSyncDirectory(
                                     dialogTitle: context.localized.pathEditSelect, initialDirectory: currentFolder);
                                 if (selectedDirectory != null) {
                                   await ref.read(clientSettingsProvider.notifier).setSyncPath(selectedDirectory);
@@ -57,7 +56,7 @@ List<Widget> buildClientSettingsDownload(BuildContext context, WidgetRef ref, Fu
                         ),
                       )
                   : () async {
-                      String? selectedDirectory = await FilePicker.platform.getDirectoryPath(
+                      final selectedDirectory = await pickSyncDirectory(
                           dialogTitle: context.localized.pathEditSelect, initialDirectory: currentFolder);
                       if (selectedDirectory != null) {
                         ref.read(clientSettingsProvider.notifier).setSyncPath(selectedDirectory);

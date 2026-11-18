@@ -5,6 +5,8 @@
 /// Use of this source code is governed by MIT license that can be found in the LICENSE file.
 import 'dart:async';
 import 'dart:math';
+// Retain the vendored subtitle view's Flutter Material text defaults.
+// ignore: deprecated_member_use
 import 'package:flutter/material.dart';
 
 import 'package:media_kit_video/src/video_controller/video_controller.dart';

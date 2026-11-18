@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:async/async.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smtc_windows/src/rust/api/api.dart';
@@ -28,7 +28,8 @@ class _Player extends Fake implements BasePlayer {
   @override
   PlaybackAttemptRef? diagnosticAttempt;
   @override
-  Future<void> init(VideoPlayerSettingsModel settings) => ready;
+  Future<void> init(VideoPlayerSettingsModel settings,
+      {bool lowResourceMode = false}) => ready;
   @override
   Future<void> dispose() async {}
   @override

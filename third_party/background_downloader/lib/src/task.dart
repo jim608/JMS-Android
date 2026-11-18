@@ -748,16 +748,17 @@ final class DownloadTask extends Task {
       Future<DownloadTask> Function(
               DownloadTask task, Map<String, String> headers, bool unique)
           taskWithFilenameBuilder = taskWithSuggestedFilename}) async {
+    Map<String, String> responseHeaders = const {};
     try {
       final response = await DesktopDownloader.httpClient
           .head(Uri.parse(url), headers: headers);
       if ([200, 201, 202, 203, 204, 205, 206].contains(response.statusCode)) {
-        return taskWithFilenameBuilder(this, response.headers, unique);
+        responseHeaders = response.headers;
       }
     } catch (e) {
       _log.finer('Error connecting to server');
     }
-    return taskWithFilenameBuilder(this, {}, unique);
+    return taskWithFilenameBuilder(this, responseHeaders, unique);
   }
 
   /// Return the expected file size for this task, or -1 if unknown

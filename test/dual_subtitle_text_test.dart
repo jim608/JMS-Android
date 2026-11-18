@@ -1,6 +1,6 @@
 import 'package:fladder/models/settings/subtitle_settings_model.dart';
 import 'package:fladder/widgets/dual_subtitle_text.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const _primaryKey = Key('primary-subtitle');

@@ -90,7 +90,7 @@ AccountModel _account(String id, List<LibraryFiltersModel> filters) => AccountMo
       id: id,
       avatar: '',
       lastUsed: DateTime(2026),
-      credentials: CredentialsModel.internal(token: id, url: 'https://fixture.invalid'),
+      credentials: CredentialsModel(token: id, url: 'https://fixture.invalid'),
       libraryFilters: filters,
     );
 
@@ -122,12 +122,35 @@ void main() {
     expect(LibraryFiltersModel.fromJson(legacy).toJson()['showOnHome'], isFalse);
   });
 
+  test('legacy local pins and server placements resolve together in the requested order', () {
+    final legacy = _preset().copyWith(id: 'legacy', showInSideBar: true);
+    final server = _preset(pinned: false).copyWith(
+      id: 'server',
+      showInSideBar: false,
+      sortKeys: {FilterSortKey.dashboard: true},
+    );
+    final user = _account('account-a', [legacy]).copyWith(
+      userSettings: UserSettings(
+        libraryFilters: [server],
+        filterSortOrder: {
+          FilterSortKey.dashboard: ['legacy', 'server'],
+        },
+      ),
+    );
+    final filters = user.userSettings!.copyWith(libraryFilters: user.savedLibraryFilters);
+    expect(filters.getFilterSortOrder(FilterSortKey.dashboard).map((item) => item.id), ['legacy', 'server']);
+    expect(filters.getFilterSortOrder(FilterSortKey.sideBar).single.id, 'legacy');
+    final unpinned = legacy.copyWith(sortKeys: {FilterSortKey.dashboard: false});
+    expect(unpinned.placements[FilterSortKey.dashboard], isFalse);
+    expect(unpinned.placements[FilterSortKey.sideBar], isTrue);
+  });
+
   test('home preview keeps the saved predicates, parent, and display limit', () async {
     final service = _Service();
     final container = _container(service, [_preset(parents: ['saved-library'])]);
     addTearDown(container.dispose);
     final provider = homeSavedFilterPreviewProvider('animation');
-    final subscription = container.listen(provider, (_, __) {});
+    final subscription = container.listen(provider, (_, _) {});
     addTearDown(subscription.close);
 
     final preview = container.read(provider.future);
@@ -156,7 +179,7 @@ void main() {
     final container = _container(service, [_preset(parents: ['gone'])]);
     addTearDown(container.dispose);
     final provider = homeSavedFilterPreviewProvider('animation');
-    final subscription = container.listen(provider, (_, __) {});
+    final subscription = container.listen(provider, (_, _) {});
     addTearDown(subscription.close);
 
     final preview = container.read(provider.future);
@@ -171,7 +194,7 @@ void main() {
     final container = _container(service, [_preset()]);
     addTearDown(container.dispose);
     final provider = homeSavedFilterPreviewProvider('animation');
-    final subscription = container.listen(provider, (_, __) {});
+    final subscription = container.listen(provider, (_, _) {});
     addTearDown(subscription.close);
     final old = container.read(provider.future);
     unawaited(old.then<void>((_) {}, onError: (Object _) {}));
@@ -192,7 +215,7 @@ void main() {
     final container = _container(service, [_preset()]);
     addTearDown(container.dispose);
     final provider = librarySearchProvider(const ValueKey('explicit-saved-filter'));
-    final subscription = container.listen(provider, (_, __) {});
+    final subscription = container.listen(provider, (_, _) {});
     addTearDown(subscription.close);
 
     final load = container.read(provider.notifier).initRefresh(parentIds: [], filters: _filter, savedFilter: true);

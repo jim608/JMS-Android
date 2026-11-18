@@ -21,33 +21,21 @@ final class _$SeerrChopperService extends SeerrChopperService {
   @override
   Future<Response<SeerrStatus>> getStatus() {
     final Uri $url = Uri.parse('/api/v1/status');
-    final Request $request = Request(
-      'GET',
-      $url,
-      client.baseUrl,
-    );
+    final Request $request = Request('GET', $url, client.baseUrl);
     return client.send<SeerrStatus, SeerrStatus>($request);
   }
 
   @override
   Future<Response<Map<String, dynamic>>> publicSettings() {
     final Uri $url = Uri.parse('/api/v1/settings/public');
-    final Request $request = Request(
-      'GET',
-      $url,
-      client.baseUrl,
-    );
+    final Request $request = Request('GET', $url, client.baseUrl);
     return client.send<Map<String, dynamic>, Map<String, dynamic>>($request);
   }
 
   @override
   Future<Response<Map<String, dynamic>>> initiateLink() {
     final Uri $url = Uri.parse('/api/v1/auth/jellyfin/quickconnect/initiate');
-    final Request $request = Request(
-      'POST',
-      $url,
-      client.baseUrl,
-    );
+    final Request $request = Request('POST', $url, client.baseUrl);
     return client.send<Map<String, dynamic>, Map<String, dynamic>>($request);
   }
 
@@ -66,15 +54,11 @@ final class _$SeerrChopperService extends SeerrChopperService {
 
   @override
   Future<Response<SeerrUserModel>> finishLink(Map<String, dynamic> body) {
-    final Uri $url =
-        Uri.parse('/api/v1/auth/jellyfin/quickconnect/authenticate');
-    final $body = body;
-    final Request $request = Request(
-      'POST',
-      $url,
-      client.baseUrl,
-      body: $body,
+    final Uri $url = Uri.parse(
+      '/api/v1/auth/jellyfin/quickconnect/authenticate',
     );
+    final $body = body;
+    final Request $request = Request('POST', $url, client.baseUrl, body: $body);
     return client.send<SeerrUserModel, SeerrUserModel>($request);
   }
 
@@ -106,11 +90,7 @@ final class _$SeerrChopperService extends SeerrChopperService {
   @override
   Future<Response<SeerrIssue>> getIssue(int issueId) {
     final Uri $url = Uri.parse('/api/v1/issue/${issueId}');
-    final Request $request = Request(
-      'GET',
-      $url,
-      client.baseUrl,
-    );
+    final Request $request = Request('GET', $url, client.baseUrl);
     return client.send<SeerrIssue, SeerrIssue>($request);
   }
 
@@ -118,12 +98,7 @@ final class _$SeerrChopperService extends SeerrChopperService {
   Future<Response<SeerrIssue>> createIssue(Map<String, dynamic> body) {
     final Uri $url = Uri.parse('/api/v1/issue');
     final $body = body;
-    final Request $request = Request(
-      'POST',
-      $url,
-      client.baseUrl,
-      body: $body,
-    );
+    final Request $request = Request('POST', $url, client.baseUrl, body: $body);
     return client.send<SeerrIssue, SeerrIssue>($request);
   }
 
@@ -134,46 +109,28 @@ final class _$SeerrChopperService extends SeerrChopperService {
   ) {
     final Uri $url = Uri.parse('/api/v1/issue/${issueId}/comment');
     final $body = body;
-    final Request $request = Request(
-      'POST',
-      $url,
-      client.baseUrl,
-      body: $body,
-    );
+    final Request $request = Request('POST', $url, client.baseUrl, body: $body);
     return client.send<SeerrIssue, SeerrIssue>($request);
   }
 
   @override
-  Future<Response<SeerrIssue>> setIssueStatus(
-    int issueId,
-    String status,
-  ) {
+  Future<Response<SeerrIssue>> setIssueStatus(int issueId, String status) {
     final Uri $url = Uri.parse('/api/v1/issue/${issueId}/${status}');
-    final Request $request = Request(
-      'POST',
-      $url,
-      client.baseUrl,
-    );
+    final Request $request = Request('POST', $url, client.baseUrl);
     return client.send<SeerrIssue, SeerrIssue>($request);
   }
 
   @override
   Future<Response<SeerrUserModel>> getMe() {
     final Uri $url = Uri.parse('/api/v1/auth/me');
-    final Request $request = Request(
-      'GET',
-      $url,
-      client.baseUrl,
-    );
+    final Request $request = Request('GET', $url, client.baseUrl);
     return client.send<SeerrUserModel, SeerrUserModel>($request);
   }
 
   @override
   Future<Response<SeerrUserModel>> verifyLinkedCookie(String cookie) {
     final Uri $url = Uri.parse('/api/v1/auth/me');
-    final Map<String, String> $headers = {
-      'Cookie': cookie,
-    };
+    final Map<String, String> $headers = {'Cookie': cookie};
     final Request $request = Request(
       'GET',
       $url,
@@ -190,12 +147,7 @@ final class _$SeerrChopperService extends SeerrChopperService {
   }) {
     final Uri $url = Uri.parse('/api/v1/auth/local');
     final $body = body;
-    final Request $request = Request(
-      'POST',
-      $url,
-      client.baseUrl,
-      body: $body,
-    );
+    final Request $request = Request('POST', $url, client.baseUrl, body: $body);
     return client.send<SeerrUserModel, SeerrUserModel>($request);
   }
 
@@ -206,70 +158,47 @@ final class _$SeerrChopperService extends SeerrChopperService {
   }) {
     final Uri $url = Uri.parse('/api/v1/auth/jellyfin');
     final $body = body;
-    final Request $request = Request(
-      'POST',
-      $url,
-      client.baseUrl,
-      body: $body,
-    );
+    final Request $request = Request('POST', $url, client.baseUrl, body: $body);
     return client.send<SeerrUserModel, SeerrUserModel>($request);
   }
 
   @override
   Future<Response<dynamic>> logout() {
     final Uri $url = Uri.parse('/api/v1/auth/logout');
-    final Request $request = Request(
-      'POST',
-      $url,
-      client.baseUrl,
-    );
+    final Request $request = Request('POST', $url, client.baseUrl);
     return client.send<dynamic, dynamic>($request);
   }
 
   @override
   Future<Response<List<SeerrSonarrServer>>> getSonarrServers() {
     final Uri $url = Uri.parse('/api/v1/service/sonarr');
-    final Request $request = Request(
-      'GET',
-      $url,
-      client.baseUrl,
-    );
+    final Request $request = Request('GET', $url, client.baseUrl);
     return client.send<List<SeerrSonarrServer>, SeerrSonarrServer>($request);
   }
 
   @override
   Future<Response<SeerrSonarrServerResponse>> getSonarrServer(int sonarrId) {
     final Uri $url = Uri.parse('/api/v1/service/sonarr/${sonarrId}');
-    final Request $request = Request(
-      'GET',
-      $url,
-      client.baseUrl,
+    final Request $request = Request('GET', $url, client.baseUrl);
+    return client.send<SeerrSonarrServerResponse, SeerrSonarrServerResponse>(
+      $request,
     );
-    return client
-        .send<SeerrSonarrServerResponse, SeerrSonarrServerResponse>($request);
   }
 
   @override
   Future<Response<List<SeerrRadarrServer>>> getRadarrServers() {
     final Uri $url = Uri.parse('/api/v1/service/radarr');
-    final Request $request = Request(
-      'GET',
-      $url,
-      client.baseUrl,
-    );
+    final Request $request = Request('GET', $url, client.baseUrl);
     return client.send<List<SeerrRadarrServer>, SeerrRadarrServer>($request);
   }
 
   @override
   Future<Response<SeerrRadarrServerResponse>> getRadarrServer(int radarrId) {
     final Uri $url = Uri.parse('/api/v1/service/radarr/${radarrId}');
-    final Request $request = Request(
-      'GET',
-      $url,
-      client.baseUrl,
+    final Request $request = Request('GET', $url, client.baseUrl);
+    return client.send<SeerrRadarrServerResponse, SeerrRadarrServerResponse>(
+      $request,
     );
-    return client
-        .send<SeerrRadarrServerResponse, SeerrRadarrServerResponse>($request);
   }
 
   @override
@@ -300,7 +229,7 @@ final class _$SeerrChopperService extends SeerrChopperService {
   }) {
     final Uri $url = Uri.parse('/api/v1/movie/${movieId}');
     final Map<String, dynamic> $params = <String, dynamic>{
-      'language': language
+      'language': language,
     };
     final Request $request = Request(
       'GET',
@@ -312,13 +241,10 @@ final class _$SeerrChopperService extends SeerrChopperService {
   }
 
   @override
-  Future<Response<SeerrTvDetails>> getTvDetails(
-    int tvId, {
-    String? language,
-  }) {
+  Future<Response<SeerrTvDetails>> getTvDetails(int tvId, {String? language}) {
     final Uri $url = Uri.parse('/api/v1/tv/${tvId}');
     final Map<String, dynamic> $params = <String, dynamic>{
-      'language': language
+      'language': language,
     };
     final Request $request = Request(
       'GET',
@@ -337,7 +263,7 @@ final class _$SeerrChopperService extends SeerrChopperService {
   }) {
     final Uri $url = Uri.parse('/api/v1/tv/${tvId}/season/${seasonNumber}');
     final Map<String, dynamic> $params = <String, dynamic>{
-      'language': language
+      'language': language,
     };
     final Request $request = Request(
       'GET',
@@ -398,47 +324,31 @@ final class _$SeerrChopperService extends SeerrChopperService {
   @override
   Future<Response<SeerrUserQuota>> getUserQuota(int userId) {
     final Uri $url = Uri.parse('/api/v1/user/${userId}/quota');
-    final Request $request = Request(
-      'GET',
-      $url,
-      client.baseUrl,
-    );
+    final Request $request = Request('GET', $url, client.baseUrl);
     return client.send<SeerrUserQuota, SeerrUserQuota>($request);
   }
 
   @override
   Future<Response<SeerrMediaRequest>> createRequest(
-      SeerrCreateRequestBody body) {
+    SeerrCreateRequestBody body,
+  ) {
     final Uri $url = Uri.parse('/api/v1/request');
     final $body = body;
-    final Request $request = Request(
-      'POST',
-      $url,
-      client.baseUrl,
-      body: $body,
-    );
+    final Request $request = Request('POST', $url, client.baseUrl, body: $body);
     return client.send<SeerrMediaRequest, SeerrMediaRequest>($request);
   }
 
   @override
   Future<Response<SeerrMediaRequest>> approveRequest(int requestId) {
     final Uri $url = Uri.parse('/api/v1/request/${requestId}/approve');
-    final Request $request = Request(
-      'POST',
-      $url,
-      client.baseUrl,
-    );
+    final Request $request = Request('POST', $url, client.baseUrl);
     return client.send<SeerrMediaRequest, SeerrMediaRequest>($request);
   }
 
   @override
   Future<Response<dynamic>> deleteRequest(int requestId) {
     final Uri $url = Uri.parse('/api/v1/request/${requestId}');
-    final Request $request = Request(
-      'DELETE',
-      $url,
-      client.baseUrl,
-    );
+    final Request $request = Request('DELETE', $url, client.baseUrl);
     return client.send<dynamic, dynamic>($request);
   }
 
@@ -468,19 +378,12 @@ final class _$SeerrChopperService extends SeerrChopperService {
   @override
   Future<Response<dynamic>> deleteMedia(int mediaId) {
     final Uri $url = Uri.parse('/api/v1/media/${mediaId}');
-    final Request $request = Request(
-      'DELETE',
-      $url,
-      client.baseUrl,
-    );
+    final Request $request = Request('DELETE', $url, client.baseUrl);
     return client.send<dynamic, dynamic>($request);
   }
 
   @override
-  Future<Response<dynamic>> deleteMediaFile(
-    int mediaId, {
-    bool? is4k,
-  }) {
+  Future<Response<dynamic>> deleteMediaFile(int mediaId, {bool? is4k}) {
     final Uri $url = Uri.parse('/api/v1/media/${mediaId}/file');
     final Map<String, dynamic> $params = <String, dynamic>{'is4k': is4k};
     final Request $request = Request(
@@ -500,12 +403,7 @@ final class _$SeerrChopperService extends SeerrChopperService {
   }) {
     final Uri $url = Uri.parse('/api/v1/media/${mediaId}/${status}');
     final $body = body;
-    final Request $request = Request(
-      'POST',
-      $url,
-      client.baseUrl,
-      body: $body,
-    );
+    final Request $request = Request('POST', $url, client.baseUrl, body: $body);
     return client.send<SeerrMediaInfo, SeerrMediaInfo>($request);
   }
 
@@ -675,7 +573,7 @@ final class _$SeerrChopperService extends SeerrChopperService {
   }) {
     final Uri $url = Uri.parse('/api/v1/movie/${movieId}/similar');
     final Map<String, dynamic> $params = <String, dynamic>{
-      'language': language
+      'language': language,
     };
     final Request $request = Request(
       'GET',
@@ -693,7 +591,7 @@ final class _$SeerrChopperService extends SeerrChopperService {
   }) {
     final Uri $url = Uri.parse('/api/v1/tv/${tvId}/similar');
     final Map<String, dynamic> $params = <String, dynamic>{
-      'language': language
+      'language': language,
     };
     final Request $request = Request(
       'GET',
@@ -711,7 +609,7 @@ final class _$SeerrChopperService extends SeerrChopperService {
   }) {
     final Uri $url = Uri.parse('/api/v1/movie/${movieId}/recommendations');
     final Map<String, dynamic> $params = <String, dynamic>{
-      'language': language
+      'language': language,
     };
     final Request $request = Request(
       'GET',
@@ -725,22 +623,14 @@ final class _$SeerrChopperService extends SeerrChopperService {
   @override
   Future<Response<SeerrRatingsResponse>> getMovieRatings(int movieId) {
     final Uri $url = Uri.parse('/api/v1/movie/${movieId}/ratingscombined');
-    final Request $request = Request(
-      'GET',
-      $url,
-      client.baseUrl,
-    );
+    final Request $request = Request('GET', $url, client.baseUrl);
     return client.send<SeerrRatingsResponse, SeerrRatingsResponse>($request);
   }
 
   @override
   Future<Response<SeerrRtRating>> getTvRatings(int tvId) {
     final Uri $url = Uri.parse('/api/v1/tv/${tvId}/ratings');
-    final Request $request = Request(
-      'GET',
-      $url,
-      client.baseUrl,
-    );
+    final Request $request = Request('GET', $url, client.baseUrl);
     return client.send<SeerrRtRating, SeerrRtRating>($request);
   }
 
@@ -751,7 +641,7 @@ final class _$SeerrChopperService extends SeerrChopperService {
   }) {
     final Uri $url = Uri.parse('/api/v1/tv/${tvId}/recommendations');
     final Map<String, dynamic> $params = <String, dynamic>{
-      'language': language
+      'language': language,
     };
     final Request $request = Request(
       'GET',
@@ -769,7 +659,7 @@ final class _$SeerrChopperService extends SeerrChopperService {
   }) {
     final Uri $url = Uri.parse('/api/v1/person/${personId}/combined_credits');
     final Map<String, dynamic> $params = <String, dynamic>{
-      'language': language
+      'language': language,
     };
     final Request $request = Request(
       'GET',
@@ -777,8 +667,10 @@ final class _$SeerrChopperService extends SeerrChopperService {
       client.baseUrl,
       parameters: $params,
     );
-    return client.send<SeerrCombinedCreditsResponse,
-        SeerrCombinedCreditsResponse>($request);
+    return client
+        .send<SeerrCombinedCreditsResponse, SeerrCombinedCreditsResponse>(
+          $request,
+        );
   }
 
   @override
@@ -818,38 +710,32 @@ final class _$SeerrChopperService extends SeerrChopperService {
       client.baseUrl,
       parameters: $params,
     );
-    return client
-        .send<SeerrSearchCompanyResponse, SeerrSearchCompanyResponse>($request);
+    return client.send<SeerrSearchCompanyResponse, SeerrSearchCompanyResponse>(
+      $request,
+    );
   }
 
   @override
   Future<Response<List<SeerrGenre>>> getMovieGenres() {
     final Uri $url = Uri.parse('/api/v1/genres/movie');
-    final Request $request = Request(
-      'GET',
-      $url,
-      client.baseUrl,
-    );
+    final Request $request = Request('GET', $url, client.baseUrl);
     return client.send<List<SeerrGenre>, SeerrGenre>($request);
   }
 
   @override
   Future<Response<List<SeerrGenre>>> getTvGenres() {
     final Uri $url = Uri.parse('/api/v1/genres/tv');
-    final Request $request = Request(
-      'GET',
-      $url,
-      client.baseUrl,
-    );
+    final Request $request = Request('GET', $url, client.baseUrl);
     return client.send<List<SeerrGenre>, SeerrGenre>($request);
   }
 
   @override
-  Future<Response<List<SeerrWatchProvider>>> getMovieWatchProviders(
-      {String? watchRegion}) {
+  Future<Response<List<SeerrWatchProvider>>> getMovieWatchProviders({
+    String? watchRegion,
+  }) {
     final Uri $url = Uri.parse('/api/v1/watchproviders/movies');
     final Map<String, dynamic> $params = <String, dynamic>{
-      'watchRegion': watchRegion
+      'watchRegion': watchRegion,
     };
     final Request $request = Request(
       'GET',
@@ -861,11 +747,12 @@ final class _$SeerrChopperService extends SeerrChopperService {
   }
 
   @override
-  Future<Response<List<SeerrWatchProvider>>> getTvWatchProviders(
-      {String? watchRegion}) {
+  Future<Response<List<SeerrWatchProvider>>> getTvWatchProviders({
+    String? watchRegion,
+  }) {
     final Uri $url = Uri.parse('/api/v1/watchproviders/tv');
     final Map<String, dynamic> $params = <String, dynamic>{
-      'watchRegion': watchRegion
+      'watchRegion': watchRegion,
     };
     final Request $request = Request(
       'GET',
@@ -879,36 +766,30 @@ final class _$SeerrChopperService extends SeerrChopperService {
   @override
   Future<Response<List<SeerrWatchProviderRegion>>> getWatchProviderRegions() {
     final Uri $url = Uri.parse('/api/v1/watchproviders/regions');
-    final Request $request = Request(
-      'GET',
-      $url,
-      client.baseUrl,
-    );
-    return client.send<List<SeerrWatchProviderRegion>,
-        SeerrWatchProviderRegion>($request);
+    final Request $request = Request('GET', $url, client.baseUrl);
+    return client
+        .send<List<SeerrWatchProviderRegion>, SeerrWatchProviderRegion>(
+          $request,
+        );
   }
 
   @override
   Future<Response<SeerrCertificationsResponse>> getMovieCertifications() {
     final Uri $url = Uri.parse('/api/v1/certifications/movie');
-    final Request $request = Request(
-      'GET',
-      $url,
-      client.baseUrl,
-    );
-    return client.send<SeerrCertificationsResponse,
-        SeerrCertificationsResponse>($request);
+    final Request $request = Request('GET', $url, client.baseUrl);
+    return client
+        .send<SeerrCertificationsResponse, SeerrCertificationsResponse>(
+          $request,
+        );
   }
 
   @override
   Future<Response<SeerrCertificationsResponse>> getTvCertifications() {
     final Uri $url = Uri.parse('/api/v1/certifications/tv');
-    final Request $request = Request(
-      'GET',
-      $url,
-      client.baseUrl,
-    );
-    return client.send<SeerrCertificationsResponse,
-        SeerrCertificationsResponse>($request);
+    final Request $request = Request('GET', $url, client.baseUrl);
+    return client
+        .send<SeerrCertificationsResponse, SeerrCertificationsResponse>(
+          $request,
+        );
   }
 }

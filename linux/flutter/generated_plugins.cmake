@@ -3,15 +3,15 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  app_links_linux
   desktop_drop
   desktop_multi_window
   dynamic_color
   media_kit_libs_linux
-  media_kit_video
   screen_retriever_linux
-  sqlite3_flutter_libs
   url_launcher_linux
   volume_controller
+  media_kit_video
   window_manager
 )
 

@@ -1,4 +1,6 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
+
+import 'package:material_ui/material_ui.dart';
 
 import 'package:collection/collection.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -12,7 +14,9 @@ import 'package:fladder/models/items/item_shared_models.dart';
 import 'package:fladder/models/recommended_model.dart';
 import 'package:fladder/models/view_model.dart';
 import 'package:fladder/providers/api_provider.dart';
+import 'package:fladder/providers/jellyfin_websocket_provider.dart';
 import 'package:fladder/providers/service_provider.dart';
+import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/providers/views_provider.dart';
 import 'package:fladder/util/localization_helper.dart';
 
@@ -62,10 +66,33 @@ class LibraryScreen extends _$LibraryScreen {
   late final JellyService api = ref.read(jellyApiProvider);
   int _generation = 0;
 
+  Timer? _refreshTimer;
+
   @override
   LibraryScreenModel build() {
-    ref.onDispose(() => _generation++);
+    ref.onDispose(() {
+      _generation++;
+      _refreshTimer?.cancel();
+    });
+    ref.listen(jellyfinWebSocketProvider, (previous, next) {
+      next.whenData(_handleWebSocketEvent);
+    });
     return LibraryScreenModel();
+  }
+
+  void _handleWebSocketEvent(JellyfinWebSocketEvent event) {
+    final selectedView = state.selectedViewModel;
+    if (selectedView == null) return;
+    final affected = switch (event) {
+      JellyfinUserDataChanged() => event.isForUser(ref.read(userProvider)?.id),
+      JellyfinLibraryChanged() => event.libraryIds.isEmpty || event.libraryIds.contains(selectedView.id),
+      JellyfinWebSocketReconnected() => true,
+    };
+    if (!affected) return;
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer(const Duration(milliseconds: 750), () {
+      if (state.selectedViewModel?.id == selectedView.id) unawaited(selectLibrary(selectedView));
+    });
   }
 
   Future<void> fetchAllLibraries({bool refreshViews = false}) async {
@@ -277,6 +304,7 @@ class LibraryScreen extends _$LibraryScreen {
 
   void clear() {
     _generation++;
+    _refreshTimer?.cancel();
     state = LibraryScreenModel();
   }
 }

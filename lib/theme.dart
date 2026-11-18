@@ -1,10 +1,12 @@
+import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:chinese_font_library/chinese_font_library.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 
 import 'package:fladder/theme/fonts.dart';
+import 'package:fladder/theme/rounded_predictive_back.dart';
 import 'package:fladder/util/custom_color_themes.dart';
 
 ColorScheme? generateDynamicColourSchemes(ColorScheme? theme, DynamicSchemeVariant dynamicSchemeVariant) {
@@ -61,6 +63,15 @@ class FladderTheme {
     );
     return ThemeData(
       useMaterial3: true,
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: RoundedPredictiveBackPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: ZoomPageTransitionsBuilder(),
+          TargetPlatform.linux: ZoomPageTransitionsBuilder(),
+        },
+      ),
       colorScheme: scheme,
       fontFamily: textTheme.bodyMedium?.fontFamily,
       primaryTextTheme: FladderFonts.interfaceTextTheme(typography.primaryTextTheme, locale: locale),
@@ -239,6 +250,8 @@ class FladderTheme {
         'sans-serif',
       ]);
     }
-    return textTheme.useSystemChineseFont(brightness);
+    final typography = Typography.material2021();
+    final base = brightness == Brightness.dark ? typography.white : typography.black;
+    return base.apply(fontFamilyFallback: SystemChineseFont.fontFamilyFallback).merge(textTheme);
   }
 }

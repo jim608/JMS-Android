@@ -3,7 +3,7 @@ import 'package:fladder/l10n/generated/app_localizations.dart';
 import 'package:fladder/providers/sync/background_download_provider.dart';
 import 'package:fladder/util/localization_helper.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -33,7 +33,7 @@ void main() {
         ),
       ));
       await tester.pumpAndSettle();
-      expect(container.exists(backgroundDownloaderProvider), isFalse);
+      expect(container.read(backgroundDownloaderProvider.exists), isFalse);
       expect(container.read(localizationContextProvider), isNotNull);
       expect(tester.takeException(), isNull);
     } else {

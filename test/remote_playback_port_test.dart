@@ -48,7 +48,7 @@ AccountModel _account(String id) => AccountModel(
       id: id,
       avatar: '',
       lastUsed: DateTime.utc(2026),
-      credentials: CredentialsModel.internal(
+      credentials: CredentialsModel(
           token: 'synthetic-$id',
           url: 'https://fixture.invalid/jellyfin',
           serverId: 'fixture',

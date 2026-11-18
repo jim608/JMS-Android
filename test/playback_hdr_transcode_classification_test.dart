@@ -8,7 +8,7 @@ import 'package:fladder/services/syncplay/syncplay_models.dart';
 import 'package:fladder/services/syncplay/syncplay_player.dart';
 import 'package:fladder/util/mpv_hdr_tonemap.dart';
 import 'package:fladder/l10n/generated/app_localizations.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _UnusedApi extends Fake implements JellyfinOpenApi {}

@@ -4,7 +4,7 @@ import 'package:fladder/util/poster_defaults.dart';
 import 'package:fladder/widgets/shared/focus_row.dart';
 import 'package:fladder/widgets/shared/horizontal_list.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -149,7 +149,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 10));
 
     navigator.currentState!.pushReplacement(PageRouteBuilder<void>(
-      pageBuilder: (_, __, ___) => const Scaffold(body: Text('Left rail')),
+      pageBuilder: (_, _, _) => const Scaffold(body: Text('Left rail')),
       transitionDuration: Duration.zero,
     ));
     await tester.pumpAndSettle();

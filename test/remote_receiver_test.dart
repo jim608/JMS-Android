@@ -194,7 +194,7 @@ Future<void> _settle(WidgetTester tester, Future<void> pending) async {
   var completed = false;
   pending.then<void>((_) {
     completed = true;
-  }, onError: (Object _, StackTrace __) {
+  }, onError: (Object _, StackTrace _) {
     completed = true;
   });
   for (var count = 0; count < 10 && !completed; count++) {

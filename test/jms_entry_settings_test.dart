@@ -36,7 +36,7 @@ AccountModel _account({
       id: id,
       avatar: '',
       lastUsed: DateTime.utc(2026, 1, 1),
-      credentials: CredentialsModel.internal(
+      credentials: CredentialsModel(
         url: url,
         serverId: serverId,
         token: 'fixture-jellyfin-value',

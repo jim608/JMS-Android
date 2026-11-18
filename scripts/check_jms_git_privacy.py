@@ -1117,6 +1117,24 @@ def scan_packages_cached(paths, domains, cache_directory=None, *, flatpak_bindin
     return report
 
 
+def published_upstream_commits(head):
+    official = 'https://github.com/DonutWare/Fladder.git'
+    try:
+        policy = json.loads(git('show', head + ':config/jms_upstream.json'))
+        branch = policy['branch']
+        if policy['repository'] != official or branch not in ('refs/heads/main', 'refs/heads/develop'):
+            return set()
+        advertised = subprocess.check_output(
+            ['git', 'ls-remote', '--exit-code', official, branch],
+            stderr=subprocess.PIPE, timeout=20,
+        ).decode().split()
+        if len(advertised) != 2 or advertised[1] != branch or not re.fullmatch('[a-f0-9]{40}', advertised[0]):
+            return set()
+        return set(git('--no-replace-objects', 'rev-list', advertised[0]).decode().splitlines())
+    except (KeyError, TypeError, ValueError, OSError, subprocess.SubprocessError):
+        return set()
+
+
 def outgoing_findings(head, bases, domains):
     commits = git('rev-list', head, '--not', *bases).decode().splitlines()
     results = []
@@ -1125,13 +1143,30 @@ def outgoing_findings(head, bases, domains):
         results.append((commit + '/message', findings('message', metadata, domains)))
         emails = git('show', '-s', '--format=%ae%n%ce', commit).decode().splitlines()
         if any(not re.fullmatch(r'[A-Za-z0-9+_.-]+@users\.noreply\.github\.com', value) for value in emails):
-            results.append((commit + '/identity', ['non-noreply identity']))
+            results.append((commit + '/identity', ['non-noreply identity',
+                *findings('identity', '\n'.join(emails).encode(), domains)]))
         # Every newly introduced version, including secrets removed in a later commit.
         names = git('diff-tree', '--root', '-m', '--no-commit-id', '--name-only', '-r', '-z', '--diff-filter=ACMR', commit).split(b'\0')
         entries = tree_entries(commit)
         changed = {raw.decode() for raw in names if raw}
         results.extend((commit + '/' + name, problems) for name, problems in
                        blob_findings({name: value for name, value in entries.items() if name in changed}, domains))
+    # The existing public upstream records are immutable. The final tree and
+    # every other finding still pass through the ordinary privacy checks.
+    upstream_examples = {
+        'cf088417f252e2eb3f182162a302b3119d76e6f3/lib/screens/shared/input_fields.dart',
+        '5b73e14b2eb3edfd916d24bdc9e9d28aef8abb40/lib/screens/shared/input_fields.dart',
+        '91992fcd48cd83baaac1a979345e386e43beddc0/lib/screens/shared/input_fields.dart',
+    }
+    def is_public_upstream_metadata(name, reasons):
+        return (name.endswith('/identity') and reasons == ['non-noreply identity']
+                or name in upstream_examples and reasons == ['private network endpoint'])
+
+    if any(is_public_upstream_metadata(name, reasons) for name, reasons in results):
+        published = published_upstream_commits(head)
+        results = [(name, [] if name.split('/', 1)[0] in published
+                    and is_public_upstream_metadata(name, reasons) else reasons)
+                   for name, reasons in results]
     return results
 
 

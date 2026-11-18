@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fladder/models/items/media_segments_model.dart';
@@ -120,10 +120,10 @@ class _SegmentSkipOverlayState extends ConsumerState<SegmentSkipOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(mediaPlaybackProvider, (_, __) => _schedule());
-    ref.listen(playBackModel, (_, __) => _schedule());
-    ref.listen(videoPlayerSettingsProvider.select((value) => value.segmentSkipSettings), (_, __) => _schedule());
-    ref.listen(syncPlayProvider, (_, __) => _schedule());
+    ref.listen(mediaPlaybackProvider, (_, _) => _schedule());
+    ref.listen(playBackModel, (_, _) => _schedule());
+    ref.listen(videoPlayerSettingsProvider.select((value) => value.segmentSkipSettings), (_, _) => _schedule());
+    ref.listen(syncPlayProvider, (_, _) => _schedule());
     _schedule();
     final sync = ref.watch(syncPlayProvider);
     final active = ref.watch(videoPlayerProvider).syncPlayActive;

@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fladder/models/item_base_model.dart';
+import 'package:fladder/models/library_filters_model.dart';
 import 'package:fladder/models/library_search/library_search_options.dart';
 import 'package:fladder/providers/api_provider.dart';
 import 'package:fladder/providers/connectivity_provider.dart';
@@ -14,7 +15,8 @@ final homeSavedFilterPreviewProvider = FutureProvider.autoDispose.family<List<It
   final accountAndFilter = ref.watch(userProvider.select((account) => (
         account?.id,
         account?.credentials,
-        account?.libraryFilters.firstWhereOrNull((saved) => saved.id == id && saved.showOnHome),
+        account?.savedLibraryFilters.firstWhereOrNull((saved) => saved.id == id &&
+            saved.placements[FilterSortKey.dashboard] == true),
       )));
   final (_, _, saved) = accountAndFilter;
   ref.watch(serverUrlProvider);

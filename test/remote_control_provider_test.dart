@@ -32,7 +32,7 @@ AccountModel _account({String id = _userA, bool knownPolicy = true}) =>
       id: id,
       avatar: '',
       lastUsed: DateTime.utc(2026),
-      credentials: CredentialsModel.internal(
+      credentials: CredentialsModel(
           url: 'https://fixture.example.invalid/jellyfin',
           token: 'synthetic-$id',
           serverId: 'fixture-server',

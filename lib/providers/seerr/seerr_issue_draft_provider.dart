@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:fladder/providers/user_provider.dart';
 
 final seerrIssueDraftProvider = StateProvider<Map<String, String>>((ref) {

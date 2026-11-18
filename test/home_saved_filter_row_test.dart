@@ -8,7 +8,7 @@ import 'package:fladder/providers/connectivity_provider.dart';
 import 'package:fladder/providers/home_saved_filters_provider.dart';
 import 'package:fladder/routes/auto_router.gr.dart';
 import 'package:fladder/screens/dashboard/dashboard_screen.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -84,7 +84,7 @@ void main() {
       NamedRouteDef(
         name: 'SavedFiltersHomeTest',
         path: '/',
-        builder: (_, __) => Scaffold(
+        builder: (_, _) => Scaffold(
           body: HomeSavedFilterRow(filter: filter, contentPadding: EdgeInsets.zero, tvMode: false),
         ),
       ),

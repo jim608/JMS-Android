@@ -170,7 +170,7 @@ class _SharedSocket {
             lease.receive(message);
           }
         },
-        onError: (Object _, StackTrace __) => unawaited(end(error: true)),
+        onError: (Object _, StackTrace _) => unawaited(end(error: true)),
         onDone: () => unawaited(end(error: true)),
       );
       if (_ended) {
@@ -253,7 +253,7 @@ class _SocketLease implements JellyfinSessionSocket {
     // A lease can end before a consumer observes ready. Keep that safe while
     // retaining the same failure for a later await of the original future.
     unawaited(
-      _ready.future.then<void>((_) {}, onError: (Object _, StackTrace __) {}),
+      _ready.future.then<void>((_) {}, onError: (Object _, StackTrace _) {}),
     );
   }
   final _SharedSocket _owner;

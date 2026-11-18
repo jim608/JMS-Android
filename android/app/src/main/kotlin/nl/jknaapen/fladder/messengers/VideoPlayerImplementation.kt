@@ -8,6 +8,7 @@ import android.os.Handler
 import android.os.Looper
 import androidx.core.net.toUri
 import androidx.core.os.postDelayed
+import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import nl.jknaapen.fladder.objects.PlayerSettingsObject
 import nl.jknaapen.fladder.objects.VideoPlayerObject
 import nl.jknaapen.fladder.utility.clearAudioTrack
@@ -37,6 +39,7 @@ class VideoPlayerImplementation(
     private var occurrenceItemId: String? = null
     private var occurrencePlayer: ExoPlayer? = null
     private var stoppedByUser = true
+    private var openRequestId = 0L
 
     internal fun beginPlaybackOccurrence() {
         playbackOccurrence.value += 1
@@ -84,6 +87,7 @@ class VideoPlayerImplementation(
     }
 
     override fun open(url: String, play: Boolean, callback: (Result<Boolean>) -> Unit) {
+        val requestId = ++openRequestId
         Handler(Looper.getMainLooper()).postDelayed(delayInMillis = 1.seconds.inWholeMilliseconds) {
             try {
                 playbackData.value?.let {
@@ -122,6 +126,7 @@ class VideoPlayerImplementation(
                 val newOccurrence = player !== occurrencePlayer || itemId != occurrenceItemId ||
                     player?.playbackState == Player.STATE_ENDED ||
                     (stoppedByUser && (playbackData.value?.startPosition ?: 0L) == 0L)
+                player?.playWhenReady = false
                 player?.stop()
                 player?.clearMediaItems()
                 player?.setMediaItem(mediaItem)
@@ -135,9 +140,28 @@ class VideoPlayerImplementation(
                 if (startPosition > 0L) {
                     player?.seekTo(startPosition)
                 }
-                player?.playWhenReady = play
                 callback(Result.success(true))
                 subsInitialized = false
+
+                // Apply refresh rate before starting playback so the mode switch doesn't interrupt video
+                val activity = VideoPlayerObject.currentActivity
+                if (PlayerSettingsObject.settings.value?.refreshRateSwitching == true && activity != null) {
+                    val data = playbackData.value
+                    val w = data?.videoWidth?.toInt()
+                    val h = data?.videoHeight?.toInt()
+                    val fps = data?.videoFrameRate?.toFloat()
+                    if (w != null && w > 0 && h != null && h > 0 && fps != null && fps > 0f) {
+                        val openingPlayer = player
+                        activity.lifecycleScope.launch {
+                            activity.applyVideoRefreshRate(w, h, fps)
+                            if (requestId == openRequestId && player === openingPlayer && !stoppedByUser) {
+                                openingPlayer?.playWhenReady = play
+                            }
+                        }
+                        return@postDelayed
+                    }
+                }
+                player?.playWhenReady = play
                 return@postDelayed
             } catch (e: Exception) {
                 println("Error playing video $e")

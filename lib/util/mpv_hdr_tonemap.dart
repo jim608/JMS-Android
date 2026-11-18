@@ -177,7 +177,7 @@ class MpvHdrToneMapper {
 
   Future<T> _serial<T>(Future<T> Function() action) {
     final result = _mutations.then((_) => action());
-    _mutations = result.then<void>((_) {}, onError: (Object _, StackTrace __) {});
+    _mutations = result.then<void>((_) {}, onError: (Object _, StackTrace _) {});
     return result;
   }
 

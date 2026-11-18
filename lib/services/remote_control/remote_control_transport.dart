@@ -371,7 +371,7 @@ class RemoteControlTransport
           // replacement command while that original request is still pending.
           unawaited(request.then<void>((_) {
             _commandOutstanding = false;
-          }, onError: (Object _, StackTrace __) {
+          }, onError: (Object _, StackTrace _) {
             _commandOutstanding = false;
           }));
           return request;

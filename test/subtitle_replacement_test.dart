@@ -17,7 +17,7 @@ void main() {
 
   Future<void> apply(_Track track) => replacement.replace(
         prepare: (_) async => track,
-        load: (_, __) async {},
+        load: (_, _) async {},
         isCurrent: () => true,
       );
 
@@ -41,7 +41,7 @@ void main() {
             }
             throw StateError('Request failed');
           },
-          load: (_, __) async {},
+          load: (_, _) async {},
           isCurrent: () => true,
         ),
         throwsA(failure == 'parse' ? isFormatException : isStateError),
@@ -61,7 +61,7 @@ void main() {
       await expectLater(
         replacement.replace(
           prepare: (_) async => candidate,
-          load: (_, __) async => throw const SubtitleSelectionFailure(
+          load: (_, _) async => throw const SubtitleSelectionFailure(
               SubtitleSelectionFailureReason.unavailable),
           isCurrent: () => true,
         ),
@@ -82,7 +82,7 @@ void main() {
     await apply(previous);
     final pending = replacement.replace(
       prepare: (_) async => candidate,
-      load: (_, __) => loaded.future,
+      load: (_, _) => loaded.future,
       isCurrent: () => true,
     );
     await Future<void>.delayed(Duration.zero);
@@ -105,7 +105,7 @@ void main() {
     await apply(previous);
     final pending = replacement.replace(
       prepare: (_) async => cancelled,
-      load: (_, __) => loaded.future,
+      load: (_, _) => loaded.future,
       isCurrent: () => true,
     );
     final rejected =
@@ -130,7 +130,7 @@ void main() {
     await apply(previous);
     final pending = replacement.replace(
       prepare: (_) async => candidate,
-      load: (_, __) => loaded.future,
+      load: (_, _) => loaded.future,
       isCurrent: () => true,
     );
     final rejected =
@@ -152,7 +152,7 @@ void main() {
     final fetched = Completer<_Track>();
     final pending = replacement.replace(
       prepare: (_) => fetched.future,
-      load: (_, __) async {},
+      load: (_, _) async {},
       isCurrent: () => true,
     );
     final rejected =
@@ -175,7 +175,7 @@ void main() {
     await apply(previous);
     final pending = replacement.replace(
       prepare: (_) async => candidate,
-      load: (_, __) => loaded.future,
+      load: (_, _) => loaded.future,
       isCurrent: () => current,
     );
     final rejected =

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:fladder/models/account_model.dart';
 import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart';
 import 'package:fladder/providers/api_provider.dart';
@@ -229,8 +230,9 @@ class SeerrLink extends StateNotifier<String> {
       state = 'connected';
     }
 
+    // Keep the account-scoped client observed while this async link is active.
+    final apiSubscription = ref.container.listen(seerrApiProvider, (_, _) {});
     try {
-      var service = ref.read(seerrApiProvider);
       final store = ref.read(seerrSessionStoreProvider);
       final meUri = seerrRequestUri(
           account.seerrCredentials!.serverUrl, Uri.parse('/api/v1/auth/me'));
@@ -238,6 +240,7 @@ class SeerrLink extends StateNotifier<String> {
           ? kBrowserManagedCookie
           : await store.readForRequest(account, meUri);
       if (!current(account)) return;
+      var service = apiSubscription.read();
       if (stored?.isNotEmpty == true) {
         cookieRestored = true;
         cookieAttached = true;
@@ -265,7 +268,7 @@ class SeerrLink extends StateNotifier<String> {
           await ref
               .read(userProvider.notifier)
               .setSeerrSessionCookie('', persist: false);
-          service = ref.read(seerrApiProvider);
+          service = apiSubscription.read();
         }
       }
       final capabilities = await service.linkCapabilities();
@@ -401,6 +404,8 @@ class SeerrLink extends StateNotifier<String> {
         report('service_unavailable');
         state = 'service_unavailable';
       }
+    } finally {
+      apiSubscription.close();
     }
   }
 }

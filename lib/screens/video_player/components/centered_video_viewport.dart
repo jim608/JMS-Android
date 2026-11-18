@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Re-evaluates the usable viewport on every layout, including rotation.
 /// Video uses the whole viewport; only the separate controls need safe insets.

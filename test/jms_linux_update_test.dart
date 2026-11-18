@@ -168,7 +168,7 @@ void main() {
       ProcessResult(1, 0, <int>[1, 2, 3], ''),
     ]) {
       var calls = 0;
-      final bridge = LinuxUpdateBridge(processRunner: (_, __) async {
+      final bridge = LinuxUpdateBridge(processRunner: (_, _) async {
         calls++;
         return result;
       });
@@ -181,18 +181,18 @@ void main() {
   test('Linux returns unknown when neither supported package is installed',
       () async {
     final bridge = LinuxUpdateBridge(
-        processRunner: (_, __) async =>
+        processRunner: (_, _) async =>
             ProcessResult(1, 1, '', 'package not found'));
     expect(await bridge.currentPackageChannel(), UpdatePackageChannel.unknown);
   });
 
   test('Linux package queries fail closed on missing pacman or timeouts',
       () async {
-    final missing = LinuxUpdateBridge(processRunner: (_, __) async {
+    final missing = LinuxUpdateBridge(processRunner: (_, _) async {
       throw const ProcessException('/usr/bin/pacman', ['-Q', 'jms-bin']);
     });
     final timeout = LinuxUpdateBridge(
-        processRunner: (_, __) => Completer<ProcessResult>().future,
+        processRunner: (_, _) => Completer<ProcessResult>().future,
         packageQueryTimeout: Duration.zero);
     expect(await missing.currentPackageChannel(), UpdatePackageChannel.unknown);
     expect(await timeout.currentPackageChannel(), UpdatePackageChannel.unknown);

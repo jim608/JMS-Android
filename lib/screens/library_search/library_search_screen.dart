@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:fladder/providers/seerr_search_provider.dart';
 import 'package:fladder/seerr/seerr_models.dart';
 import 'package:fladder/screens/seerr/seerr_support_text.dart';
@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 
 import 'package:fladder/jellyfin/jellyfin_open_api.enums.swagger.dart';
@@ -103,7 +104,7 @@ class _LibrarySearchScreenState extends ConsumerState<LibrarySearchScreen> {
   Key get uniqueKey => Key(widget.savedFilterId == null
       ? widget.parentId?.join(',') ?? 'EmptySearch'
       : 'saved-filter-${widget.savedFilterId}');
-  AutoDisposeStateNotifierProvider<LibrarySearchNotifier, LibrarySearchModel> get providerKey =>
+  StateNotifierProvider<LibrarySearchNotifier, LibrarySearchModel> get providerKey =>
       librarySearchProvider(uniqueKey);
   LibrarySearchNotifier get libraryProvider => ref.read(librarySearchProvider(uniqueKey).notifier);
 

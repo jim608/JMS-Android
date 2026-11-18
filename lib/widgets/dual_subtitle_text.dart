@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:fladder/models/settings/subtitle_settings_model.dart';
 
 /// Independent bottom-anchored slots keep asynchronous cue changes from moving

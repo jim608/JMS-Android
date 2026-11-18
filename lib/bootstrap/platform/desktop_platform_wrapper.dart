@@ -9,6 +9,7 @@ import 'package:smtc_windows/smtc_windows.dart'
     if (dart.library.html) 'package:fladder/stubs/web/smtc_web.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'package:fladder/wrappers/multi_window_media_session.dart';
 import 'package:fladder/bootstrap/platform/base_app_wrapper.dart';
 import 'package:fladder/logic/application_menu.dart';
 import 'package:fladder/providers/arguments_provider.dart';
@@ -30,6 +31,20 @@ class DesktopAppWrapper extends BaseAppWrapper {
 class _DesktopAppWrapperState extends BaseAppWrapperState<DesktopAppWrapper>
     with WindowListener {
   @override
+  bool get enableAppLinks =>
+      !JmsTestProfilePolicy.enabled && !ref.read(argumentsStateProvider).newWindow;
+
+  @override
+  bool get enableNotifications => !JmsTestProfilePolicy.enabled;
+
+  @override
+  Future<void> onAppLinkReceived() async {
+    if (await windowManager.isMinimized()) await windowManager.restore();
+    await windowManager.show();
+    await windowManager.focus();
+  }
+
+  @override
   Future<void> platformInit() async {
     if (defaultTargetPlatform == TargetPlatform.windows &&
         !JmsTestProfilePolicy.enabled) {
@@ -41,17 +56,17 @@ class _DesktopAppWrapperState extends BaseAppWrapperState<DesktopAppWrapper>
 
     ApplicationMenu.setUp(ApplicationMenuImp());
 
+    if (!JmsTestProfilePolicy.enabled) {
+      await MultiWindowMediaSession.instance.init(isHub: !ref.read(argumentsStateProvider).newWindow);
+    }
+
     await WindowManager.instance.ensureInitialized();
     windowManager.addListener(this);
 
     final packageInfo = await PackageInfo.fromPlatform();
     final clientSettings = ref.read(clientSettingsProvider);
     final startupArguments = ref.read(argumentsStateProvider);
-    await windowManager.setupFladderWindowChrome(
-      startupArguments,
-      clientSettings,
-      packageInfo,
-    );
+    await windowManager.setupFladderWindowChrome(startupArguments, clientSettings, packageInfo);
     await toggleMacTrafficLights(await windowManager.isFullScreen());
   }
 

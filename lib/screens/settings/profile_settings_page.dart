@@ -1,18 +1,20 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fladder/jellyfin/jellyfin_open_api.enums.swagger.dart' as enums;
+import 'package:fladder/models/settings/home_settings_model.dart';
 import 'package:fladder/providers/cultures_provider.dart';
 import 'package:fladder/providers/home_preferences_provider.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
 import 'package:fladder/providers/update_notifications_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
+import 'package:fladder/screens/settings/filters/filters_dialog_popup.dart';
 import 'package:fladder/screens/settings/settings_list_tile.dart';
 import 'package:fladder/screens/settings/settings_scaffold.dart';
 import 'package:fladder/screens/settings/widgets/home_preferences_editors.dart';
@@ -26,8 +28,10 @@ import 'package:fladder/services/battery_optimization.dart';
 import 'package:fladder/services/notification_service.dart';
 import 'package:fladder/util/jellyfin_extension.dart';
 import 'package:fladder/util/localization_helper.dart';
+import 'package:fladder/util/map_bool_helper.dart';
 import 'package:fladder/util/simple_duration_picker.dart';
 import 'package:fladder/widgets/shared/item_actions.dart';
+import 'package:fladder/widgets/shared/sortable_item_list.dart';
 
 @RoutePage()
 class ProfileSettingsPage extends ConsumerStatefulWidget {
@@ -78,6 +82,7 @@ class _UserSettingsPageState extends ConsumerState<ProfileSettingsPage> with Wid
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(userProvider);
+    final dashboardSorting = user?.userSettings?.dashboardSorting ?? DashboardSorting.defaultSorting;
     final cultures = ref.watch(culturesProvider);
     final clientSettings = ref.watch(clientSettingsProvider);
     final lastUpdateAt = ref.watch(notificationsProvider).updatedAt;
@@ -92,6 +97,30 @@ class _UserSettingsPageState extends ConsumerState<ProfileSettingsPage> with Wid
     return SettingsScaffold(
       label: context.localized.settingsProfileTitle,
       items: [
+        ...settingsListGroup(
+          context,
+          SettingsLabelDivider(label: context.localized.general),
+          [
+            SortableItemList<DashboardSorting>(
+              items: dashboardSorting.keys.toList(),
+              included: dashboardSorting.included,
+              itemBuilder: (filter) => Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(
+                  filter.label(context),
+                ),
+              ),
+              onReorder: (reordered) => ref.read(userProvider.notifier).setDashboardSorting(reordered),
+              onIncludeChange: (items) => ref.read(userProvider.notifier).setDashboardEnabled(items),
+            ),
+            SettingsListTile(
+              label: Text(context.localized.libraryFilters),
+              subLabel: Text(context.localized.editYourLibraryFilters),
+              onTap: () => showFiltersDialogue(context),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
         ...settingsListGroup(
           context,
           SettingsLabelDivider(label: context.localized.settingsSecurity),

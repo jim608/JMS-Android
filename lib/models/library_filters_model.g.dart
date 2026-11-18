@@ -13,9 +13,17 @@ _LibraryFiltersModel _$LibraryFiltersModelFromJson(Map<String, dynamic> json) =>
       isFavourite: json['isFavourite'] as bool,
       showInSideBar: json['showInSideBar'] as bool? ?? false,
       showOnHome: json['showOnHome'] as bool? ?? false,
-      ids: (json['ids'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+      sortKeys:
+          (json['sortKeys'] as Map<String, dynamic>?)?.map(
+            (k, e) =>
+                MapEntry($enumDecode(_$FilterSortKeyEnumMap, k), e as bool),
+          ) ??
+          const {},
+      ids:
+          (json['ids'] as List<dynamic>?)?.map((e) => e as String).toList() ??
           const [],
-      viewNames: (json['viewNames'] as List<dynamic>?)
+      viewNames:
+          (json['viewNames'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
           const [],
@@ -25,14 +33,24 @@ _LibraryFiltersModel _$LibraryFiltersModelFromJson(Map<String, dynamic> json) =>
     );
 
 Map<String, dynamic> _$LibraryFiltersModelToJson(
-        _LibraryFiltersModel instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'name': instance.name,
-      'isFavourite': instance.isFavourite,
-      'showInSideBar': instance.showInSideBar,
-      'showOnHome': instance.showOnHome,
-      'ids': instance.ids,
-      'viewNames': instance.viewNames,
-      'filter': instance.filter,
-    };
+  _LibraryFiltersModel instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'name': instance.name,
+  'isFavourite': instance.isFavourite,
+  'showInSideBar': instance.showInSideBar,
+  'showOnHome': instance.showOnHome,
+  'sortKeys': instance.sortKeys.map(
+    (k, e) => MapEntry(_$FilterSortKeyEnumMap[k]!, e),
+  ),
+  'ids': instance.ids,
+  'viewNames': instance.viewNames,
+  'filter': instance.filter,
+};
+
+const _$FilterSortKeyEnumMap = {
+  FilterSortKey.dashboard: 'dashboard',
+  FilterSortKey.musicDashboard: 'musicDashboard',
+  FilterSortKey.sideBar: 'sideBar',
+  FilterSortKey.musicSideBar: 'musicSideBar',
+};

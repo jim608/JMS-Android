@@ -2,15 +2,15 @@ import 'dart:io';
 import 'dart:async';
 import 'dart:ui' as ui;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fladder/l10n/generated/app_localizations.dart';
+import 'package:fladder/localization_delegates.dart';
 import 'package:fladder/providers/update_provider.dart';
 import 'package:fladder/screens/settings/widgets/settings_update_information.dart';
 import 'package:fladder/services/flatpak_update_portal.dart';
@@ -71,12 +71,7 @@ Future<void> mountUpdateUi(WidgetTester tester, UpdateController controller,
       ],
       child: const MaterialApp(
         locale: Locale('en'),
-        localizationsDelegates: [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
+        localizationsDelegates: FladderLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
             body: SingleChildScrollView(child: SettingsUpdateInformation())),
@@ -307,12 +302,7 @@ void main() {
       overrides: [updateProvider.overrideWith((ref) => controller)],
       child: const MaterialApp(
         locale: Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
-        localizationsDelegates: [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate
-        ],
+        localizationsDelegates: FladderLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
             body: SingleChildScrollView(child: SettingsUpdateInformation())),
@@ -351,12 +341,7 @@ void main() {
             ThemeData(fontFamily: 'JmsTestCjk', colorSchemeSeed: Colors.teal),
         locale:
             const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate
-        ],
+        localizationsDelegates: FladderLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: RepaintBoundary(
             key: key,
@@ -400,12 +385,7 @@ void main() {
         overrides: [updateProvider.overrideWith((ref) => controller)],
         child: const MaterialApp(
           locale: Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
-          localizationsDelegates: [
-            AppLocalizations.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
+          localizationsDelegates: FladderLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
               body: SingleChildScrollView(child: SettingsUpdateInformation())),

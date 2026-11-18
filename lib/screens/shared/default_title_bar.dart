@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:fladder/util/brand.dart';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart' hide ConnectionState;
+import 'package:material_ui/material_ui.dart' hide ConnectionState;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';

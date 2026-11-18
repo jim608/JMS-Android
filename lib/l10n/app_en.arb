@@ -3029,5 +3029,63 @@
   "jmsInterfaceModeTitle": "Interface mode",
   "jmsInterfaceModeAuto": "Auto",
   "jmsInterfaceModeDesktop": "Desktop",
-  "jmsInterfaceModeHandheld": "Handheld"
+  "jmsInterfaceModeHandheld": "Handheld",
+  "appLockPattern": "Pattern",
+  "@appLockPattern": {},
+  "enterPin": "Enter PIN",
+  "@enterPin": {},
+  "confirmPin": "Confirm PIN",
+  "@confirmPin": {},
+  "drawPattern": "Draw pattern",
+  "@drawPattern": {},
+  "confirmPattern": "Draw pattern again",
+  "@confirmPattern": {},
+  "incorrectPatternTryAgain": "Incorrect pattern. Try again.",
+  "@incorrectPatternTryAgain": {},
+  "patternTooShort": "Connect at least 4 dots",
+  "@patternTooShort": {},
+  "codeMismatch": "Doesn't match. Try again.",
+  "@codeMismatch": {},
+  "unreadableAccountsLogInAgain": "Some saved accounts could not be loaded. Log in again to restore them.",
+  "@unreadableAccountsLogInAgain": {},
+  "sideBar": "Sidebar",
+  "musicSideBar": "Music sidebar",
+  "refreshRateSwitchingTitle": "Refresh Rate Matching",
+  "refreshRateSwitchingDesc": "Match display refresh rate to video frame rate",
+  "subtitleOffsetBackward": "Subtitle backward",
+  "subtitleOffsetForward": "Subtitle forward",
+  "subtitleOffset": "Subtitle offset",
+  "settingsServerUrlSetDesc": "Change the address used to connect to your Jellyfin server. The new URL must point to the same server.",
+  "showOnDashboard": "Show on dashboard",
+  "libraryFilters": "Library filters",
+  "editYourLibraryFilters": "Edit your library filters",
+  "libraryFiltersTitle": "Library filters",
+  "libraryFiltersDesc": "Library filters allow you to create custom views of your libraries based",
+  "libraryNoFiltersSaved": "No library filters saved",
+  "addTo": "Add to",
+  "deepLinkSwitchUserTitle": "Switch user?",
+  "deepLinkSwitchUserDesc": "This item isn't available for {user}. Open it as:",
+  "@deepLinkSwitchUserDesc": {
+    "description": "Shown when a link points to an item the current user cannot access, followed by a list of accounts that can",
+    "placeholders": {
+      "user": {
+        "type": "String"
+      }
+    }
+  },
+  "deepLinkSwitchAccountDesc": "This link belongs to {user}. Switch to this account?",
+  "@deepLinkSwitchAccountDesc": {
+    "description": "Shown when a notification link was created for another saved account",
+    "placeholders": {
+      "user": {
+        "type": "String"
+      }
+    }
+  },
+  "deepLinkItemNotFound": "This item isn't available for any of your accounts",
+  "lowResourceModeTitle": "Low resource mode",
+  "lowResourceModeDesc": "Uses less memory on devices with limited RAM by lowering caches and buffers and turning off heavy visual effects. Automatic enables it on devices with 3 GB of RAM or less.",
+  "lowResourceModeAuto": "Automatic",
+  "impellerRendererTitle": "Impeller renderer",
+  "impellerRendererDesc": "Use Flutter's Impeller renderer. Turn off to use Skia if gradients or effects render incorrectly on your GPU. Requires a restart."
 }

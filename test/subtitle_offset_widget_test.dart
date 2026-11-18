@@ -1,11 +1,12 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:fladder/l10n/generated/app_localizations.dart';
+import 'package:fladder/localization_delegates.dart';
 import 'package:fladder/providers/video_player_provider.dart';
 import 'package:fladder/screens/video_player/components/subtitle_offset_dialog.dart';
 import 'package:fladder/util/input_handler.dart';
@@ -34,7 +35,7 @@ Future<void> _pumpControls(
   await tester.pumpWidget(MaterialApp(
     locale: locale,
     supportedLocales: AppLocalizations.supportedLocales,
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    localizationsDelegates: FladderLocalizations.localizationsDelegates,
     builder: (context, child) => MediaQuery(
       data: MediaQuery.of(context)
           .copyWith(textScaler: TextScaler.linear(textScale)),
@@ -254,7 +255,7 @@ class _EmbeddedFixture {
       child: MaterialApp(
         locale: const Locale('en'),
         supportedLocales: AppLocalizations.supportedLocales,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        localizationsDelegates: FladderLocalizations.localizationsDelegates,
         navigatorObservers: [routes],
         builder: (context, child) => MediaQuery(
           data: MediaQuery.of(context)
@@ -406,7 +407,7 @@ void main() {
 
   testWidgets('fields follow confirmed changes, reset and media replacement',
       (tester) async {
-    final controller = SubtitleOffsetController(write: (_, __) async {});
+    final controller = SubtitleOffsetController(write: (_, _) async {});
     addTearDown(controller.dispose);
     await _pumpControls(tester, controller);
 
@@ -430,7 +431,7 @@ void main() {
   testWidgets('failed numeric update restores confirmed fields and slider',
       (tester) async {
     var fail = false;
-    final controller = SubtitleOffsetController(write: (_, __) async {
+    final controller = SubtitleOffsetController(write: (_, _) async {
       if (fail) throw StateError('private native engine detail');
     });
     addTearDown(controller.dispose);
@@ -451,7 +452,7 @@ void main() {
   testWidgets('rejected engine readback keeps the last confirmed seconds',
       (tester) async {
     final controller = SubtitleOffsetController(
-      write: (_, __) async {},
+      write: (_, _) async {},
       read: (_) async => '0.050',
     );
     addTearDown(controller.dispose);
@@ -547,7 +548,7 @@ void main() {
   testWidgets(
       'inactive primary is disabled and no secondary row appears without a track',
       (tester) async {
-    final controller = SubtitleOffsetController(write: (_, __) async {});
+    final controller = SubtitleOffsetController(write: (_, _) async {});
     addTearDown(controller.dispose);
     await _pumpControls(tester, controller,
         primaryEnabled: false, secondaryEnabled: false);
@@ -577,7 +578,7 @@ void main() {
       (tester) async {
     final pending = Completer<void>();
     final controller =
-        SubtitleOffsetController(write: (_, __) => pending.future);
+        SubtitleOffsetController(write: (_, _) => pending.future);
     addTearDown(controller.dispose);
     await _pumpControls(tester, controller);
 
@@ -614,7 +615,7 @@ void main() {
       'failed update keeps confirmed value and displays safe Traditional Chinese feedback',
       (tester) async {
     var fail = false;
-    final controller = SubtitleOffsetController(write: (_, __) async {
+    final controller = SubtitleOffsetController(write: (_, _) async {
       if (fail) throw StateError('private native engine detail');
     });
     addTearDown(controller.dispose);
@@ -638,7 +639,7 @@ void main() {
 
   testWidgets('limit buttons cannot increase beyond plus or minus 60 seconds',
       (tester) async {
-    final controller = SubtitleOffsetController(write: (_, __) async {});
+    final controller = SubtitleOffsetController(write: (_, _) async {});
     addTearDown(controller.dispose);
     await controller.setOffset(SubtitleOffsetController.limit);
     await controller.setOffset(-SubtitleOffsetController.limit,
@@ -661,7 +662,7 @@ void main() {
 
   testWidgets('narrow dialog wraps and scrolls controls with large text',
       (tester) async {
-    final controller = SubtitleOffsetController(write: (_, __) async {});
+    final controller = SubtitleOffsetController(write: (_, _) async {});
     addTearDown(controller.dispose);
     await _pumpControls(
       tester,
@@ -689,7 +690,7 @@ void main() {
   testWidgets(
       'direct panel remains interactive after toolbar hides without interrupting playback',
       (tester) async {
-    final controller = SubtitleOffsetController(write: (_, __) async {})
+    final controller = SubtitleOffsetController(write: (_, _) async {})
       ..setAvailable(primary: true, secondary: true);
     final fixture = _EmbeddedFixture(controller: controller);
     await fixture.mount(tester);
@@ -727,7 +728,7 @@ void main() {
   testWidgets(
       'embedded panel and outside dismissal block pointer events from the player',
       (tester) async {
-    final controller = SubtitleOffsetController(write: (_, __) async {})
+    final controller = SubtitleOffsetController(write: (_, _) async {})
       ..setAvailable(primary: true, secondary: false);
     final fixture = _EmbeddedFixture(controller: controller);
     await fixture.mount(tester);
@@ -751,7 +752,7 @@ void main() {
   testWidgets(
       'Escape from the focused numeric field closes only the embedded panel',
       (tester) async {
-    final controller = SubtitleOffsetController(write: (_, __) async {})
+    final controller = SubtitleOffsetController(write: (_, _) async {})
       ..setAvailable(primary: true, secondary: false);
     final fixture = _EmbeddedFixture(controller: controller);
     await fixture.mount(tester);
@@ -770,7 +771,7 @@ void main() {
 
   testWidgets('subtitle menu tile closes its menu and opens the embedded panel',
       (tester) async {
-    final controller = SubtitleOffsetController(write: (_, __) async {})
+    final controller = SubtitleOffsetController(write: (_, _) async {})
       ..setAvailable(primary: true, secondary: false);
     final fixture = _EmbeddedFixture(controller: controller);
     await fixture.mount(tester);
@@ -790,7 +791,7 @@ void main() {
 
   testWidgets('actual embedded panel fits a narrow viewport with large text',
       (tester) async {
-    final controller = SubtitleOffsetController(write: (_, __) async {})
+    final controller = SubtitleOffsetController(write: (_, _) async {})
       ..setAvailable(primary: true, secondary: true);
     final fixture = _EmbeddedFixture(controller: controller);
     await fixture.mount(tester, viewport: const Size(320, 568), textScale: 2);
@@ -819,7 +820,7 @@ void main() {
     expect(find.byKey(const Key('subtitle-offset-open')), findsNothing);
     expect(find.byKey(const Key('subtitle-offset-panel')), findsNothing);
 
-    final controller = SubtitleOffsetController(write: (_, __) async {});
+    final controller = SubtitleOffsetController(write: (_, _) async {});
     final fixture = _EmbeddedFixture(controller: controller);
     await fixture.mount(tester);
     expect(
@@ -840,7 +841,7 @@ void main() {
   testWidgets(
       'numeric input and slider remain usable at 320 pixels with keyboard and large text',
       (tester) async {
-    final controller = SubtitleOffsetController(write: (_, __) async {})
+    final controller = SubtitleOffsetController(write: (_, _) async {})
       ..setAvailable(primary: true, secondary: true);
     final fixture = _EmbeddedFixture(controller: controller);
     await fixture.mount(tester, viewport: const Size(320, 568), textScale: 2);

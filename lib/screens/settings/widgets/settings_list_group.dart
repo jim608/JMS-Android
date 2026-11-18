@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:dynamic_color/dynamic_color.dart';
 
@@ -57,9 +57,9 @@ class SettingsListChild extends StatelessWidget {
     final radius = BorderRadius.circular(24);
     final radiusSmall = const Radius.circular(6);
     final color = Theme.of(context).colorScheme.surfaceContainerLow.harmonizeWith(Colors.red);
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-      decoration: BoxDecoration(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+      child: Material(
         color: color,
         borderRadius: radius.copyWith(
           topLeft: isFirst ? null : radiusSmall,
@@ -67,8 +67,8 @@ class SettingsListChild extends StatelessWidget {
           bottomLeft: isLast ? null : radiusSmall,
           bottomRight: isLast ? null : radiusSmall,
         ),
+        child: child,
       ),
-      child: child,
     );
   }
 }

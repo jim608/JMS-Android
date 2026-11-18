@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -12,6 +12,7 @@ import 'package:fladder/models/playback/playback_model.dart';
 import 'package:fladder/models/settings/video_player_settings.dart';
 import 'package:fladder/l10n/generated/app_localizations.dart';
 import 'package:fladder/providers/video_player_provider.dart';
+import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/screens/video_player/components/video_player_options_sheet.dart';
 import 'package:fladder/services/syncplay/syncplay_models.dart';
 import 'package:fladder/services/syncplay/syncplay_player.dart';
@@ -20,14 +21,7 @@ import 'package:fladder/util/dual_subtitle.dart';
 import 'package:fladder/util/subtitle_offset.dart';
 import 'package:fladder/wrappers/media_control_wrapper.dart';
 
-class _Ref extends Fake implements Ref {
-  final reads = <Object>[];
-  @override
-  T read<T>(ProviderListenable<T> provider) {
-    reads.add(provider);
-    throw StateError('Must not renegotiate room playback');
-  }
-}
+import 'support/playback_test_ref.dart';
 
 class _Api extends Fake implements JellyfinOpenApi {}
 
@@ -202,7 +196,11 @@ void main() {
   for (final method in [PlayMethod.directstream, PlayMethod.transcode]) {
     test('$method local subtitle choices keep the room model and playback',
         () async {
-      final ref = _Ref();
+      final container = ProviderContainer.test(overrides: [
+        userProvider.overrideWithBuild(
+            (ref, notifier) => throw StateError('Must not renegotiate room playback')),
+      ]);
+      final ref = playbackTestRef(container);
       final player = _Player();
       PlaybackModel model = _model(method);
       expect(model.isServerTranscoded, method == PlayMethod.transcode);
@@ -225,7 +223,6 @@ void main() {
         expect(player.playing, isTrue);
         expect(player.position, const Duration(minutes: 3));
       }
-      expect(ref.reads, isEmpty);
       expect(player.choices, [2, 3, 4, -1]);
     });
   }

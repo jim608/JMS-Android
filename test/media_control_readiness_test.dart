@@ -20,7 +20,8 @@ class _Player extends Fake implements BasePlayer {
   int disposeCalls = 0;
 
   @override
-  Future<void> init(VideoPlayerSettingsModel settings) async {
+  Future<void> init(VideoPlayerSettingsModel settings,
+      {bool lowResourceMode = false}) async {
     initCalls++;
     await ready;
   }

@@ -3,7 +3,7 @@ import 'package:fladder/screens/shared/media/poster_grid.dart';
 import 'package:fladder/util/debouncer.dart';
 import 'package:fladder/util/string_extensions.dart';
 import 'package:fladder/util/localization_helper.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:fladder/routes/auto_router.gr.dart';

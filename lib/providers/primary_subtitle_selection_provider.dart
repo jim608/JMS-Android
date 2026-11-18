@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:collection/collection.dart';
 
 import 'package:fladder/models/items/media_streams_model.dart';
@@ -85,7 +86,14 @@ final primarySubtitleSelectionProvider = StateNotifierProvider<
     PrimarySubtitleSelectionController, PrimarySubtitleSelectionState>((ref) {
   final controller = PrimarySubtitleSelectionController(ref);
   ref.listen(playBackModel, (_, next) => controller.modelChanged(next));
-  ref.listen(videoPlayerProvider, (_, next) => controller.playerChanged(next));
+  // The player also uses the controller to confirm an initial selection.
+  // Observe replacement without making the controller a player dependency.
+  final playerChanges = ref.container.listen(
+    videoPlayerProvider,
+    (_, next) => controller.playerChanged(next),
+    weak: true,
+  );
+  ref.onDispose(playerChanges.close);
   return controller;
 });
 

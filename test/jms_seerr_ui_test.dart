@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
 import 'dart:ui' as ui;
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -68,12 +68,6 @@ void main() {
           .readAsBytes()
           .then((bytes) => ByteData.sublistView(bytes)));
     await font.load();
-    final material = FontLoader('MaterialIcons')
-      ..addFont(File(
-              '.jms-tools/flutter/bin/cache/artifacts/material_fonts/materialicons-regular.otf')
-          .readAsBytes()
-          .then((bytes) => ByteData.sublistView(bytes)));
-    await material.load();
     final fonts = jsonDecode(await rootBundle.loadString('FontManifest.json'))
         as List<dynamic>;
     for (final entry in fonts) {
@@ -167,12 +161,14 @@ void main() {
         seerrCredentials: SeerrCredentialsModel(
             serverUrl: 'https://saved-service.example.invalid',
             linkedServerId: account.credentials.serverId));
+    await container.pump();
     await show(tester, const Scaffold(body: SeerrConnectionDialog()),
         size: const Size(1280, 720));
     expect(find.textContaining('https://saved-service.example.invalid'),
         findsOneWidget);
     expect(find.text('登出點片服務'), findsOneWidget);
     final verify = find.widgetWithText(FilledButton, '重新驗證');
+    expect(verify, findsOneWidget, reason: container.read(seerrLinkProvider));
     expect(tester.widget<FilledButton>(verify).onPressed, isNull);
     await tester.enterText(find.byType(TextField).first, 'TEST_ONLY');
     await tester.pump();

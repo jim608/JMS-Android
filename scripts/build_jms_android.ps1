@@ -69,7 +69,7 @@ try {
     $destination = Join-Path $projectRoot "artifacts\JMS-Android-$Version-$Mode-arm64-$signingLabel.apk"
     if (Test-Path -LiteralPath $destination) { throw 'This APK version already exists; refusing to overwrite a delivered build' }
     $flutterPath = Join-Path $projectRoot '.jms-tools\flutter\bin\flutter.bat'
-    if (-not (Test-Path -LiteralPath $flutterPath)) { throw 'Flutter 3.35.7 is required in .jms-tools/flutter' }
+    if (-not (Test-Path -LiteralPath $flutterPath)) { throw 'The Flutter SDK pinned in .fvmrc is required in .jms-tools/flutter' }
     $env:ANDROID_HOME = Join-Path $projectRoot '.jms-tools\android-sdk'
     $env:ANDROID_SDK_ROOT = $env:ANDROID_HOME
     $env:FLUTTER_SUPPRESS_ANALYTICS = 'true'

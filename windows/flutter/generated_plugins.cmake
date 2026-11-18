@@ -3,20 +3,20 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  app_links
   connectivity_plus
   desktop_drop
   desktop_multi_window
   dynamic_color
   local_auth_windows
   media_kit_libs_windows_video
-  media_kit_video
   permission_handler_windows
   screen_brightness_windows
   screen_retriever_windows
-  share_plus
-  sqlite3_flutter_libs
   url_launcher_windows
+  share_plus
   volume_controller
+  media_kit_video
   window_manager
 )
 

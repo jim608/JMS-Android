@@ -7,23 +7,24 @@ part of 'seerr_credentials_model.dart';
 // **************************************************************************
 
 _SeerrCredentialsModel _$SeerrCredentialsModelFromJson(
-        Map<String, dynamic> json) =>
-    _SeerrCredentialsModel(
-      serverUrl: json['serverUrl'] as String? ?? "",
-      apiKey: json['apiKey'] as String? ?? "",
-      sessionCookie: json['sessionCookie'] as String? ?? "",
-      linkedServerId: json['linkedServerId'] as String? ?? "",
-      customHeaders: (json['customHeaders'] as Map<String, dynamic>?)?.map(
-            (k, e) => MapEntry(k, e as String),
-          ) ??
-          const {},
-    );
+  Map<String, dynamic> json,
+) => _SeerrCredentialsModel(
+  serverUrl: json['serverUrl'] as String? ?? "",
+  apiKey: json['apiKey'] as String? ?? "",
+  sessionCookie: json['sessionCookie'] as String? ?? "",
+  linkedServerId: json['linkedServerId'] as String? ?? "",
+  customHeaders:
+      (json['customHeaders'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(k, e as String),
+      ) ??
+      const {},
+);
 
 Map<String, dynamic> _$SeerrCredentialsModelToJson(
-        _SeerrCredentialsModel instance) =>
-    <String, dynamic>{
-      'serverUrl': instance.serverUrl,
-      'apiKey': instance.apiKey,
-      'linkedServerId': instance.linkedServerId,
-      'customHeaders': instance.customHeaders,
-    };
+  _SeerrCredentialsModel instance,
+) => <String, dynamic>{
+  'serverUrl': instance.serverUrl,
+  'apiKey': instance.apiKey,
+  'linkedServerId': instance.linkedServerId,
+  'customHeaders': instance.customHeaders,
+};

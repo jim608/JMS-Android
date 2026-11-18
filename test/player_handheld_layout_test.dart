@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 
 import 'package:fladder/l10n/generated/app_localizations.dart';
+import 'package:fladder/localization_delegates.dart';
 import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart';
 import 'package:fladder/models/items/movie_model.dart';
 import 'package:fladder/models/playback/playback_model.dart';
@@ -51,13 +52,16 @@ class _IdleNotifier extends VideoPlayerNotifier {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(() async {
+    // Load the app font before widgets subscribe to system font changes.
+    final font = FontLoader('OpenSans')..addFont(rootBundle.load('assets/fonts/opensans/OpenSans.ttf'));
+    await font.load();
+  });
+
   for (final textScale in [1.0, 1.8]) {
     testWidgets('hovered actual player menu keeps controller focus after Enter and Escape at text scale $textScale',
         (tester) async {
-      // Match the real app's bundled font when checking long titles and large
-      // text, instead of measuring every letter as an Ahem square glyph.
-      final font = FontLoader('OpenSans')..addFont(rootBundle.load('assets/fonts/opensans/OpenSans.ttf'));
-      await font.load();
       tester.view.devicePixelRatio = 1;
       tester.view.physicalSize = const Size(1280, 800);
       addTearDown(tester.view.resetPhysicalSize);
@@ -117,7 +121,7 @@ void main() {
             navigatorKey: navigator,
             navigatorObservers: [focusObserver],
             supportedLocales: AppLocalizations.supportedLocales,
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            localizationsDelegates: FladderLocalizations.localizationsDelegates,
             locale: const Locale('en'),
             builder: (context, child) => MediaQuery(
               data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(textScale)),
@@ -206,7 +210,7 @@ void main() {
           ],
           child: MaterialApp(
             supportedLocales: AppLocalizations.supportedLocales,
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            localizationsDelegates: FladderLocalizations.localizationsDelegates,
             locale: const Locale('en'),
             home: AdaptiveLayout(
               data: AdaptiveLayoutModel(

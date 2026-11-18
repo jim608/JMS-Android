@@ -4,6 +4,8 @@
 /// All rights reserved.
 /// Use of this source code is governed by MIT license that can be found in the LICENSE file.
 // ignore_for_file: non_constant_identifier_names
+// Resolve platform overrides from the vendored controls' Flutter Theme.
+// ignore_for_file: deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 

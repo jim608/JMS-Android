@@ -1,3 +1,26 @@
+# JMS 0.12.0-jms.60
+
+## Added
+
+- Pin a saved library filter to Home. Each row previews up to 12 items and opens the complete list when selected.
+
+## Changed
+
+- Integrate the Fladder 0.12.0 upstream baseline and Flutter 3.50.0.
+- Load favourites by media type and include favourites from libraries hidden in Home's latest-items section.
+- Page global search and favourites results. Load the selected library when switching libraries.
+
+## Fixed
+
+- Replay offline viewing data only to its original account and server. An older acknowledgement cannot overwrite a newer local update.
+- Preserve paused download data across restarts. Queue media before fetching optional thumbnails and store same-named subtitle tracks separately.
+- Wait for a timeline seek to finish before resuming, and discard stale callbacks after leaving playback or a room.
+
+## Known issues
+
+- This is a prerelease. Physical-device resume, in-place upgrades and cross-device playback still need acceptance testing. Older offline records without a verified source remain pending.
+
+
 # JMS 0.11.1-jms.59
 
 ## Fixed

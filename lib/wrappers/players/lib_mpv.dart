@@ -7,7 +7,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:audio_session/audio_session.dart';
 import 'package:collection/collection.dart';
@@ -325,6 +325,7 @@ class LibMPV extends BasePlayer {
 
   bool _replayGainFallbackLogged = false;
   VideoPlayerSettingsModel _settings = VideoPlayerSettingsModel();
+  bool _lowResourceMode = false;
 
   MpvPendingLoadMonitor? _retryTimer;
   DateTime _firstLoadAttempt = DateTime.now();
@@ -339,6 +340,10 @@ class LibMPV extends BasePlayer {
   AudioSession? _audioSession;
 
   bool _musicPaused = false;
+  bool _loopFile = false;
+  bool _finishCrossfade = false;
+  int pauseCount = 0;
+  final StreamController<int> _playlistIndexController = StreamController.broadcast();
   bool _musicPlaybackMode = false;
 
   void setMusicPlaybackMode(bool enabled) {
@@ -357,8 +362,9 @@ class LibMPV extends BasePlayer {
   }
 
   @override
-  Future<void> init(VideoPlayerSettingsModel settings) async {
+  Future<void> init(VideoPlayerSettingsModel settings, {bool lowResourceMode = false}) async {
     _settings = settings;
+    _lowResourceMode = lowResourceMode;
     _recordDiagnostic(
       diagnosticAttempt,
       PlaybackStage.playerInit,
@@ -404,16 +410,7 @@ class LibMPV extends BasePlayer {
     _initializationPhase = 'player_construct';
     mpv.MediaKit.ensureInitialized();
 
-    _player = mpv.Player(
-      configuration: mpv.PlayerConfiguration(
-        title: Brand.name,
-        libassAndroidFont: libassFallbackFont,
-        libassAndroidFontName: libassFallbackFontName,
-        libass: !kIsWeb,
-        bufferSize:
-            settings.bufferSize * 1024 * 1024, // MPV uses buffer size in bytes
-      ),
-    );
+    _player = _createPlayer();
 
     if (_player != null) {
       configureAmbientVideoCapture(_player!.platform);
@@ -448,7 +445,7 @@ class LibMPV extends BasePlayer {
             await controller.platform.future
                 .timeout(const Duration(seconds: 10));
             if (!currentController()) return const MpvRenderCapabilities();
-            return queryMpvRenderCapabilities(
+            return await queryMpvRenderCapabilities(
                 playerHandle: () => player.handle);
           } catch (_) {
             return const MpvRenderCapabilities(
@@ -485,10 +482,11 @@ class LibMPV extends BasePlayer {
       await nativePlayer.setProperty('force-seekable', 'yes');
       await nativePlayer.setProperty('gapless-audio', 'yes');
       await nativePlayer.setProperty('cache', 'yes');
-      await nativePlayer.setProperty('demuxer-max-bytes', '150M');
+      await nativePlayer.setProperty('demuxer-max-bytes', _lowResourceMode ? '64M' : '150M');
       await nativePlayer.setProperty('network-timeout', '60');
       await nativePlayer.setProperty('stream-buffer-size', '4M');
       await nativePlayer.setProperty('prefetch-playlist', 'yes');
+      await nativePlayer.setProperty('loop-file', _loopFile ? 'inf' : 'no');
       await nativePlayer.setProperty('sub-ass-override', 'no');
       await nativePlayer.setProperty('embeddedfonts', 'yes');
       // Pinned Android libmpv supports primary delay but predates independent
@@ -525,6 +523,27 @@ class LibMPV extends BasePlayer {
 
     await _applyReplayGainSettings();
     _initializationPhase = 'ready';
+  }
+
+  mpv.Player _createPlayer() => mpv.Player(
+        configuration: mpv.PlayerConfiguration(
+          title: Brand.name,
+          libassAndroidFont: libassFallbackFont,
+          libassAndroidFontName: libassFallbackFontName,
+          libass: !kIsWeb,
+          bufferSize: _settings.bufferSize * 1024 * 1024,
+        ),
+      );
+
+  void finishCrossfade() => _finishCrossfade = true;
+
+  Future<void> setLoopFile(bool enabled) async {
+    if (_loopFile == enabled) return;
+    _loopFile = enabled;
+    final player = _player;
+    if (player?.platform is mpv.NativePlayer) {
+      await (player!.platform as dynamic).setProperty('loop-file', enabled ? 'inf' : 'no');
+    }
   }
 
   @override
@@ -657,33 +676,28 @@ class LibMPV extends BasePlayer {
           setState(lastState.update(buffering: _hdrPreparing || value));
         }
       }),
-      player.stream.position.listen(
-        (value) {
-          if (player == _player) setState(lastState.update(position: value));
-        },
-      ),
-      player.stream.duration.listen(
-        (value) {
-          if (player == _player) setState(lastState.update(duration: value));
-        },
-      ),
+      player.stream.position.listen((value) {
+        if (player == _player) setState(lastState.update(position: value));
+      }),
+      player.stream.duration.listen((value) {
+        if (player == _player) setState(lastState.update(duration: value));
+      }),
       player.stream.volume.listen((value) {
         if (player == _player) setState(lastState.update(volume: value));
       }),
-      player.stream.rate.listen(
-        (value) {
-          if (player == _player) setState(lastState.update(rate: value));
-        },
-      ),
+      player.stream.rate.listen((value) {
+        if (player == _player) setState(lastState.update(rate: value));
+      }),
       player.stream.buffer.listen((value) {
         _recordPlaybackTransition(player);
         if (player == _player) setState(lastState.update(buffer: value));
       }),
-      player.stream.completed.listen(
-        (value) {
-          if (player == _player) setState(lastState.update(completed: value));
-        },
-      ),
+      player.stream.completed.listen((value) {
+        if (player == _player) setState(lastState.update(completed: value));
+      }),
+      player.stream.playlist.listen((value) {
+        if (player == _player) _playlistIndexController.add(value.index);
+      }),
     ]);
   }
 
@@ -723,24 +737,19 @@ class LibMPV extends BasePlayer {
       await loadVideo(url, true, startPosition: startPosition);
       return;
     }
+    _finishCrossfade = false;
 
     const stepMs = 16;
     final steps = math.max(1, _settings.crossfadeDurationMs ~/ stepMs);
 
-    final incomingPlayer = mpv.Player(
-      configuration: mpv.PlayerConfiguration(
-        title: Brand.name,
-        libassAndroidFont: libassFallbackFont,
-        libassAndroidFontName: libassFallbackFontName,
-        libass: !kIsWeb,
-        bufferSize: _settings.bufferSize * 1024 * 1024,
-      ),
-    );
+    final incomingPlayer = _createPlayer();
 
     if (incomingPlayer.platform is mpv.NativePlayer) {
       final native = incomingPlayer.platform as dynamic;
       await native.setProperty('force-seekable', 'yes');
       await native.setProperty('gapless-audio', 'weak');
+      await native.setProperty('demuxer-max-bytes', _lowResourceMode ? '64M' : '150M');
+      await native.setProperty('loop-file', _loopFile ? 'inf' : 'no');
       if (defaultTargetPlatform == TargetPlatform.android) {
         await native.setProperty('ao', 'audiotrack');
       }
@@ -764,6 +773,7 @@ class LibMPV extends BasePlayer {
         aborted = true;
         break;
       }
+      if (_musicPaused || _finishCrossfade) break;
       final progress = i / steps;
       await oldPlayer.setVolume(fromVolume * (1.0 - progress));
       await incomingPlayer.setVolume(_preferredVolume * progress);
@@ -792,6 +802,14 @@ class LibMPV extends BasePlayer {
 
     oldPlayer.stop();
     oldPlayer.dispose();
+
+    if (_musicPaused) {
+      _fadeTimer?.cancel();
+      _fadeTimer = null;
+      await incomingPlayer.pause();
+    } else {
+      await incomingPlayer.setVolume(_preferredVolume);
+    }
 
     setState(lastState.update(
       playing: incomingPlayer.state.playing,
@@ -925,6 +943,7 @@ class LibMPV extends BasePlayer {
 
     _retryTimer?.cancel();
     _retryTimer = null;
+    if (_player == null) return;
 
     void stopPendingLoad(Object error) {
       if (generation != _mediaLoadGeneration || player != _player) return;
@@ -1063,14 +1082,8 @@ class LibMPV extends BasePlayer {
   /// Apply ReplayGain normalization for the given [item] before loading it.
   /// Call this before [loadVideo] when starting an audio queue item.
   Future<void> applyReplayGainForItem(ItemBaseModel? item) async {
-    double? gainDb;
-    if (item is AudioModel) {
-      final gain = item.normalizationGain;
-      if (gain != null && !gain.isNaN && !gain.isInfinite) {
-        gainDb = gain.clamp(-60.0, 0).toDouble();
-      }
-    }
-    await _applyReplayGainSettings(trackGainDb: gainDb);
+    final gain = item is AudioModel ? item.normalizationGain : null;
+    await _applyReplayGainSettings(trackGainDb: gain != null && gain.isFinite ? gain : null);
   }
 
   double get _replayGainVolumeOffsetDb {
@@ -1219,6 +1232,7 @@ class LibMPV extends BasePlayer {
   @override
   Future<void> pause() async {
     _desiredPlaying = false;
+    pauseCount++;
     _musicPaused = true;
     setState(lastState.update(playing: false));
     unawaited(_audioSession?.setActive(false));
@@ -1857,8 +1871,9 @@ class LibMPV extends BasePlayer {
   Future<void> playerPrevious() async => _player?.previous();
 
   @override
-  Stream<int> get playlistIndexStream =>
-      _player?.stream.playlist.map((p) => p.index) ?? const Stream<int>.empty();
+  Stream<int> get playlistIndexStream => _playlistIndexController.stream;
+
+  int get playlistIndex => _player?.state.playlist.index ?? 0;
 
   @override
   Future<void> stop() async {
@@ -1962,6 +1977,12 @@ class LibMPV extends BasePlayer {
                   : const SizedBox.shrink(),
             )
           : null;
+
+  @override
+  Future<void> shiftSubtitleOffset(Duration offset) async {
+    if (!_subtitleOffsets.primaryAvailable) return;
+    await _subtitleOffsets.setOffset(_subtitleOffsets.primary + offset);
+  }
 
   @override
   Future<void> setVolume(double volume) async {

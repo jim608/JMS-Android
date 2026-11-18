@@ -21,9 +21,15 @@ DiscordIpcTransport openWindowsDiscordPipe(String path,
   var handle = INVALID_HANDLE_VALUE;
   try {
     handle = CreateFile(
-        name, GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, 0);
+        PCWSTR(name),
+        GENERIC_READ | GENERIC_WRITE,
+        FILE_SHARE_NONE,
+        null,
+        OPEN_EXISTING,
+        const FILE_FLAGS_AND_ATTRIBUTES(0),
+        null).value;
     if (handle == INVALID_HANDLE_VALUE ||
-        SetNamedPipeHandleState(handle, mode, nullptr, nullptr) == 0) {
+        !SetNamedPipeHandleState(handle, mode, null, null).value) {
       throw const DiscordIpcException(DiscordIpcFailure.unavailable);
     }
     return _WindowsDiscordTransport(handle, timeout);
@@ -47,7 +53,7 @@ class _WindowsDiscordTransport implements DiscordIpcTransport {
     });
   }
 
-  final int _handle;
+  final HANDLE _handle;
   final Duration _writeTimeout;
   late final StreamController<Uint8List> _incoming;
   Timer? _poll;
@@ -64,15 +70,15 @@ class _WindowsDiscordTransport implements DiscordIpcTransport {
     try {
       // Bounded work per tick. PIPE_NOWAIT also protects the read/peek race.
       for (var batch = 0; batch < 4 && !_closed; batch++) {
-        if (PeekNamedPipe(_handle, nullptr, 0, nullptr, available, nullptr) ==
-            0) {
+        if (!PeekNamedPipe(_handle, null, 0, null, available, null).value) {
           _fail();
           return;
         }
         if (available.value == 0) return;
         final length = available.value < 4096 ? available.value : 4096;
-        if (ReadFile(_handle, buffer, length, count, nullptr) == 0) {
-          if (GetLastError() == ERROR_NO_DATA) return;
+        final read = ReadFile(_handle, buffer, length, count, null);
+        if (!read.value) {
+          if (read.error == ERROR_NO_DATA) return;
           _fail();
           return;
         }
@@ -110,8 +116,7 @@ class _WindowsDiscordTransport implements DiscordIpcTransport {
         written.value = 0;
         final remaining = bytes.length - offset;
         final length = remaining < 4096 ? remaining : 4096;
-        if (WriteFile(_handle, buffer + offset, length, written, nullptr) ==
-            0) {
+        if (!WriteFile(_handle, buffer + offset, length, written, null).value) {
           throw const DiscordIpcException(DiscordIpcFailure.unavailable);
         }
         // A nonblocking byte pipe may accept a partial write, including zero.

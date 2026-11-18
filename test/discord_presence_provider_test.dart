@@ -29,7 +29,7 @@ AccountModel _account({
       id: id,
       avatar: '',
       lastUsed: DateTime(2026),
-      credentials: CredentialsModel.internal(
+      credentials: CredentialsModel(
           serverId: server, url: 'https://media.example.invalid'),
       incognitoMode: incognito,
     );

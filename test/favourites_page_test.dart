@@ -10,6 +10,7 @@ import 'package:fladder/models/view_model.dart';
 import 'package:fladder/models/views_model.dart';
 import 'package:fladder/providers/api_provider.dart';
 import 'package:fladder/providers/favourites_provider.dart';
+import 'package:fladder/providers/jellyfin_websocket_provider.dart';
 import 'package:fladder/providers/service_provider.dart';
 import 'package:fladder/providers/views_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -100,6 +101,7 @@ class _Service implements JellyService {
 
 ProviderContainer _container(_Service service, int libraries) => ProviderContainer(overrides: [
       jellyApiProvider.overrideWith(() => _Api(service)),
+      jellyfinWebSocketProvider.overrideWith((_) => const Stream.empty()),
       viewsProvider.overrideWith((ref) => _Views(ref, libraries)),
     ]);
 

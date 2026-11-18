@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:chopper/chopper.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 
@@ -10,6 +11,7 @@ import 'package:fladder/models/account_model.dart';
 import 'package:fladder/models/credentials_model.dart';
 import 'package:fladder/models/item_base_model.dart';
 import 'package:fladder/models/items/item_shared_models.dart';
+import 'package:fladder/models/media_playback_model.dart';
 import 'package:fladder/models/items/media_segments_model.dart';
 import 'package:fladder/models/items/media_streams_model.dart';
 import 'package:fladder/models/items/movie_model.dart';
@@ -20,6 +22,7 @@ import 'package:fladder/models/playback/playback_model.dart';
 import 'package:fladder/models/playback/transcode_playback_model.dart';
 import 'package:fladder/models/settings/video_player_settings.dart';
 import 'package:fladder/models/syncing/sync_item.dart';
+import 'package:fladder/models/syncing/sync_settings_model.dart';
 import 'package:fladder/profiles/default_profile.dart';
 import 'package:fladder/providers/api_provider.dart';
 import 'package:fladder/providers/connectivity_provider.dart' as connectivity;
@@ -34,25 +37,18 @@ import 'package:fladder/util/selected_media_source.dart';
 import 'package:fladder/util/subtitle_selection_failure.dart';
 import 'package:fladder/wrappers/media_control_wrapper.dart';
 
+import 'support/playback_test_ref.dart';
+
 // These execute the real orchestration/model conversion with fake providers and
 // an in-memory JellyService. No HTTP, player, media, or hardware is involved.
-class _Ref extends Fake implements Ref {
-  final values = <Object, Object?>{};
-  bool boolSelectors = true;
-  Duration position = const Duration(seconds: 5);
+class _NoOfflineItem extends StateNotifier<SyncSettingsModel>
+    implements SyncNotifier {
+  _NoOfflineItem() : super(SyncSettingsModel());
 
   @override
-  T read<T>(ProviderListenable<T> provider) {
-    if (values.containsKey(provider)) return values[provider] as T;
-    // Selectors used here are rememberAudio/SubtitleSelections and playback
-    // position/playing. Named providers are handled above.
-    if (T == bool) return boolSelectors as T;
-    if (T == Duration) return position as T;
-    throw StateError('Unexpected fixture provider: $provider');
-  }
-}
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 
-class _NoOfflineItem extends Fake implements SyncNotifier {
+
   @override
   Future<SyncedItem?> getSyncedItem(String? id) async => null;
 }
@@ -112,7 +108,14 @@ class _Api extends Fake implements JellyService {
       null;
 }
 
-class _Loader extends Fake implements VideoPlayerNotifier {
+class _Loader extends VideoPlayerNotifier {
+  _Loader(super.ref, _Wrapper wrapper) {
+    state = wrapper;
+  }
+
+  set wrapper(_Wrapper wrapper) => state = wrapper;
+
+
   final loaded = <PlaybackModel>[];
   bool Function()? ownership;
   bool? playWhenReady;
@@ -131,6 +134,9 @@ class _Loader extends Fake implements VideoPlayerNotifier {
 }
 
 class _Wrapper extends Fake implements MediaControlsWrapper {
+  @override
+  Future<void> dispose() async {}
+
   int stopEpoch = 0;
   bool roomActive = false;
   @override
@@ -176,7 +182,8 @@ MediaSourceInfo source(String id, String script,
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  late _Ref ref;
+  late Ref ref;
+  late ProviderContainer container;
   late _Api api;
   late _Loader loader;
   late _Wrapper wrapper;
@@ -185,31 +192,36 @@ void main() {
   late MediaSourceInfo sourceB;
 
   setUp(() {
-    ref = _Ref();
     api = _Api();
-    loader = _Loader();
     wrapper = _Wrapper();
     sourceA = source('A', 'Hans');
     sourceB = source('B', 'Hant');
-    ref.values[jellyApiProvider] = api;
-    ref.values[userProvider] = AccountModel(
+    final account = AccountModel(
         name: 'Synthetic',
         id: 'user',
         avatar: '',
         lastUsed: DateTime(2026),
-        credentials: CredentialsModel.internal(
+        credentials: CredentialsModel(
             token: 'synthetic', url: 'https://fixture.invalid'));
-    ref.values[serverUrlProvider] = 'https://fixture.invalid';
-    ref.values[syncProvider.notifier] = _NoOfflineItem();
-    ref.values[connectivity.offlineStateProvider] = false;
-    ref.values[connectivity.connectivityStatusProvider] =
-        connectivity.ConnectionState.wifi;
-    ref.values[videoPlayerSettingsProvider] =
-        VideoPlayerSettingsModel(playerOptions: PlayerOptions.libMPV);
-    ref.values[videoProfileProvider] = defaultProfile(PlayerOptions.libMPV);
-    ref.values[videoPlayerProvider.notifier] = loader;
-    ref.values[videoPlayerProvider] = wrapper;
-    ref.values[playBackModel] = null;
+    container = ProviderContainer.test(overrides: [
+      jellyApiProvider.overrideWithValue(api),
+      userProvider.overrideWithValue(account),
+      serverUrlProvider.overrideWith((ref) => 'https://fixture.invalid'),
+      syncProvider.overrideWith((ref) => _NoOfflineItem()),
+      connectivity.offlineStateProvider.overrideWithValue(false),
+      connectivity.connectivityStatusProvider.overrideWithValue(
+          connectivity.ConnectionState.wifi),
+      videoPlayerSettingsProvider.overrideWith((ref) =>
+          VideoPlayerSettingsProviderNotifier(ref)..applyRestoredSettings(
+            VideoPlayerSettingsModel(playerOptions: PlayerOptions.libMPV),
+          )),
+      videoProfileProvider.overrideWith((ref) => defaultProfile(PlayerOptions.libMPV)),
+      videoPlayerProvider.overrideWith((ref) => _Loader(ref, wrapper)),
+      mediaPlaybackProvider.overrideWith((ref) => MediaPlaybackModel(
+        position: const Duration(seconds: 5), playing: true)),
+    ]);
+    ref = playbackTestRef(container);
+    loader = container.read(videoPlayerProvider.notifier) as _Loader;
     final preplay =
         MediaStreamsModel.fromMediaStreamsList([sourceA, sourceB], ref)
             .copyWith(versionStreamIndex: 1);
@@ -255,7 +267,7 @@ void main() {
       () async {
     api.sources = [sourceB, sourceA];
     final model = (await initial())!;
-    ref.values[playBackModel] = model;
+    container.read(playBackModel.notifier).state = model;
     api.sources = [sourceA, source('B', 'Hant', transcode: true)];
     await helper.shouldReload(model);
     expect(loader.loaded.single, isA<TranscodePlaybackModel>());
@@ -297,7 +309,7 @@ void main() {
       () async {
     api.sources = [sourceB];
     final model = (await initial())!;
-    ref.values[playBackModel] = model;
+    container.read(playBackModel.notifier).state = model;
     api.sources = [sourceA];
     await expectLater(
         helper.shouldReload(model),
@@ -314,7 +326,7 @@ void main() {
     api.item = _Item(preplay);
     api.sources = [sourceB, sourceA];
     final model = (await initial())!;
-    ref.values[playBackModel] = model;
+    container.read(playBackModel.notifier).state = model;
     expect(model.defaultSubStream?.index, -1);
     api.sources = [sourceA, source('B', 'Hant', transcode: true)];
     await helper.shouldReload(model);
@@ -330,7 +342,7 @@ void main() {
         item: api.item,
         media: const Media(url: 'https://fixture.invalid/old'),
         mediaStreams: MediaStreamsModel.fromMediaStreamsList([sourceA], ref));
-    ref.values[playBackModel] = unrelated;
+    container.read(playBackModel.notifier).state = unrelated;
     api.sources = [sourceA, sourceB];
     final model = (await initial())!;
     expectTraditional(model);
@@ -342,15 +354,15 @@ void main() {
         () async {
       api.sources = [sourceB];
       final model = (await initial())!;
-      ref.values[playBackModel] = model;
+      container.read(playBackModel.notifier).state = model;
       api.pending = Completer<Response<PlaybackInfoResponse>>();
       final pendingReload = helper.shouldReload(model);
       switch (invalidation) {
         case 'model':
-          ref.values[playBackModel] = (model as DirectPlaybackModel).copyWith();
+          container.read(playBackModel.notifier).state = (model as DirectPlaybackModel).copyWith();
           break;
         case 'player':
-          ref.values[videoPlayerProvider] = _Wrapper();
+          loader.wrapper = _Wrapper();
           break;
         case 'stop':
           wrapper.stopEpoch++;
@@ -372,14 +384,14 @@ void main() {
       () async {
     api.sources = [sourceB];
     final model = (await initial())!;
-    ref.values[playBackModel] = model;
+    container.read(playBackModel.notifier).state = model;
     api.sources = [source('B', 'Hant', transcode: true)];
     await helper.shouldReload(model);
     final authorized = loader.loaded.single as TranscodePlaybackModel;
     expect(loader.ownership!(), isTrue);
-    ref.values[playBackModel] = authorized;
+    container.read(playBackModel.notifier).state = authorized;
     expect(loader.ownership!(), isTrue);
-    ref.values[playBackModel] = authorized.copyWith();
+    container.read(playBackModel.notifier).state = authorized.copyWith();
     expect(loader.ownership!(), isFalse);
   });
 
@@ -387,8 +399,8 @@ void main() {
       () async {
     api.sources = [sourceB];
     final model = (await initial())!;
-    ref.values[playBackModel] = model;
-    ref.boolSelectors = false;
+    container.read(playBackModel.notifier).state = model;
+    container.read(mediaPlaybackProvider.notifier).update((state) => state.copyWith(playing: false));
     api.sources = [source('B', 'Hant', transcode: true)];
     await helper.shouldReload(model);
     expect(loader.loaded.single, isA<TranscodePlaybackModel>());
@@ -399,11 +411,13 @@ void main() {
       () async {
     api.sources = [sourceB];
     final model = (await initial())!;
-    ref.values[playBackModel] = model;
+    container.read(playBackModel.notifier).state = model;
     api.pending = Completer<Response<PlaybackInfoResponse>>();
     final pendingReload = helper.shouldReload(model);
-    ref.boolSelectors = false;
-    ref.position = const Duration(seconds: 42);
+    container.read(mediaPlaybackProvider.notifier).update((state) => state.copyWith(
+      playing: false,
+      position: const Duration(seconds: 42),
+    ));
     api.pending!.complete(Response(
         http.Response('', 200),
         PlaybackInfoResponse(

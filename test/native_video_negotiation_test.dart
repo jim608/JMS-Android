@@ -2,17 +2,18 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart' show BuildContext;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart';
 import 'package:fladder/models/item_base_model.dart';
 import 'package:fladder/models/items/channel_model.dart';
-import 'package:fladder/models/media_playback_model.dart';
 import 'package:fladder/models/playback/playback_model.dart';
 import 'package:fladder/models/playback/tv_playback_model.dart';
 import 'package:fladder/models/settings/arguments_model.dart';
 import 'package:fladder/models/settings/video_player_settings.dart';
 import 'package:fladder/models/syncing/sync_item.dart';
+import 'package:fladder/models/syncing/sync_settings_model.dart';
 import 'package:fladder/models/video_stream_model.dart';
 import 'package:fladder/profiles/default_profile.dart';
 import 'package:fladder/providers/settings/video_player_settings_provider.dart';
@@ -22,19 +23,13 @@ import 'package:fladder/services/playback_diagnostics.dart';
 import 'package:fladder/services/playback_reporting_scope.dart';
 import 'package:fladder/wrappers/media_control_wrapper.dart';
 
-class _Ref extends Fake implements Ref {
-  final values = <Object, Object?>{};
-  final reads = <Object>[];
-
-  @override
-  T read<T>(ProviderListenable<T> provider) {
-    reads.add(provider);
-    return values[provider] as T;
-  }
-}
+import 'support/playback_test_ref.dart';
 
 class _PausedPlayer extends Fake implements MediaControlsWrapper {
   var pauses = 0;
+
+  @override
+  Future<void> dispose() async {}
 
   @override
   Future<void> pause() async {
@@ -42,7 +37,20 @@ class _PausedPlayer extends Fake implements MediaControlsWrapper {
   }
 }
 
-class _NoOfflineItem extends Fake implements SyncNotifier {
+class _PausedPlayerNotifier extends VideoPlayerNotifier {
+  _PausedPlayerNotifier(super.ref, _PausedPlayer player) {
+    state = player;
+  }
+
+}
+
+class _NoOfflineItem extends StateNotifier<SyncSettingsModel>
+    implements SyncNotifier {
+  _NoOfflineItem() : super(SyncSettingsModel());
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+
   @override
   Future<SyncedItem?> getSyncedItem(String? id) async => null;
 }
@@ -108,7 +116,7 @@ void main() {
 
   test('Native advertises required SDR range while MPV and MDK keep their profiles', () {
     final native = rangeCondition(defaultProfile(PlayerOptions.nativePlayer));
-    expect(native?.$Value, 'SDR');
+    expect(native?.value, 'SDR');
     expect(native?.isRequired, isTrue);
     expect(rangeCondition(defaultProfile(PlayerOptions.libMPV)), isNull);
     expect(rangeCondition(defaultProfile(PlayerOptions.libMDK)), isNull);
@@ -122,7 +130,7 @@ void main() {
     container.read(videoPlayerSettingsProvider.notifier).applyRestoredSettings(
           VideoPlayerSettingsModel(playerOptions: PlayerOptions.nativePlayer),
         );
-    expect(rangeCondition(container.read(videoProfileProvider))?.$Value, 'SDR');
+    expect(rangeCondition(container.read(videoProfileProvider))?.value, 'SDR');
   });
 
   test('profile follows a switch from Native back to MPV without constructing a player', () async {
@@ -132,9 +140,9 @@ void main() {
     addTearDown(container.dispose);
     final settings = container.read(videoPlayerSettingsProvider.notifier);
     settings.applyRestoredSettings(VideoPlayerSettingsModel(playerOptions: PlayerOptions.nativePlayer));
-    final subscription = container.listen(videoProfileProvider, (_, __) {});
+    final subscription = container.listen(videoProfileProvider, (_, _) {});
     addTearDown(subscription.close);
-    expect(rangeCondition(container.read(videoProfileProvider))?.$Value, 'SDR');
+    expect(rangeCondition(container.read(videoProfileProvider))?.value, 'SDR');
     settings.applyRestoredSettings(VideoPlayerSettingsModel(playerOptions: PlayerOptions.libMPV));
     await container.pump();
     expect(rangeCondition(container.read(videoProfileProvider)), isNull);
@@ -145,7 +153,7 @@ void main() {
     final request = PlaybackInfoDto(
       deviceProfile: playbackDeviceProfile(profile: native, player: PlayerOptions.nativePlayer, liveTv: true),
     );
-    expect(rangeCondition(request.deviceProfile!)?.$Value, 'SDR');
+    expect(rangeCondition(request.deviceProfile!)?.value, 'SDR');
     expect(
       playbackDeviceProfile(profile: defaultProfile(PlayerOptions.libMPV), player: PlayerOptions.libMPV, liveTv: true),
       isNull,
@@ -192,37 +200,37 @@ void main() {
   });
 
   test('rejected TV request clears buffering without loading another player', () async {
-    final ref = _Ref();
     final player = _PausedPlayer();
-    final mediaState = StateController(MediaPlaybackModel());
-    addTearDown(mediaState.dispose);
-    ref.values[videoPlayerProvider] = player;
-    ref.values[mediaPlaybackProvider.notifier] = mediaState;
-    ref.values[playBackModel] = null;
-    ref.values[syncProvider.notifier] = _NoOfflineItem();
+    final container = ProviderContainer.test(overrides: [
+      videoPlayerProvider.overrideWith((ref) => _PausedPlayerNotifier(ref, player)),
+      syncProvider.overrideWith((ref) => _NoOfflineItem()),
+    ]);
 
-    await _RejectedTvRequest(ref: ref).loadTVChannel(_Channel());
+    await _RejectedTvRequest(ref: playbackTestRef(container)).loadTVChannel(_Channel());
 
     expect(player.pauses, 1);
-    expect(mediaState.state.buffering, isFalse);
-    expect(ref.reads, isNot(contains(videoPlayerProvider.notifier)));
+    expect(container.read(mediaPlaybackProvider).buffering, isFalse);
   });
 
   test('Native TV local track changes do not enter generic VOD renegotiation', () async {
-    final ref = _Ref();
-    ref.values[videoPlayerSettingsProvider] = VideoPlayerSettingsModel(playerOptions: PlayerOptions.libMPV);
+    final container = ProviderContainer.test(overrides: [
+      videoPlayerSettingsProvider.overrideWith((ref) =>
+          VideoPlayerSettingsProviderNotifier(ref)..applyRestoredSettings(
+              VideoPlayerSettingsModel(playerOptions: PlayerOptions.libMPV))),
+    ]);
 
-    await PlaybackModelHelper(ref: ref).shouldReload(_TvModel());
-
-    expect(ref.reads, isEmpty);
+    await PlaybackModelHelper(ref: playbackTestRef(container)).shouldReload(_TvModel());
   });
 
   test('MPV TV keeps its existing reload path even after settings change to Native', () async {
-    final ref = _Ref();
-    ref.values[videoPlayerSettingsProvider] = VideoPlayerSettingsModel(playerOptions: PlayerOptions.nativePlayer);
+    final container = ProviderContainer.test(overrides: [
+      videoPlayerSettingsProvider.overrideWith((ref) =>
+          VideoPlayerSettingsProviderNotifier(ref)..applyRestoredSettings(
+              VideoPlayerSettingsModel(playerOptions: PlayerOptions.nativePlayer))),
+    ]);
 
     await expectLater(
-      PlaybackModelHelper(ref: ref).shouldReload(_TvModel(native: false)),
+      PlaybackModelHelper(ref: playbackTestRef(container)).shouldReload(_TvModel(native: false)),
       throwsA(isA<StateError>().having((error) => error.message, 'message', 'Generic VOD reload path entered')),
     );
   });

@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/widgets.dart' hide RepeatMode;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -86,7 +86,8 @@ class TranscodePlaybackModel extends PlaybackModel {
         subtitleStreamIndex: subtitleStreamIndexForReport(ref),
         audioStreamIndex: mediaStreams?.defaultAudioStreamIndex,
         volumeLevel: 100,
-        playbackStartTimeTicks: position.toRuntimeTicks,
+        positionTicks: position.toRuntimeTicks,
+        playbackStartTimeTicks: DateTime.now().millisecondsSinceEpoch * 10000,
         playMethod: PlayMethod.transcode,
         isMuted: false,
         isPaused: false,

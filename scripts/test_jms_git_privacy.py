@@ -140,6 +140,31 @@ class PrivacyTests(unittest.TestCase):
         self.assertIn('private domain', findings('config.txt', b'https://service.private.example/api', ['private.example']))
         self.assertIn('personal filesystem path', findings('notes.md', str(Path.home() / 'fixture').encode(), []))
 
+    def test_published_upstream_author_does_not_exempt_other_findings(self):
+        previous = Path.cwd()
+        with tempfile.TemporaryDirectory() as folder:
+            try:
+                os.chdir(folder)
+                subprocess.run(['git', 'init', '-q', '-b', 'jms'], check=True)
+
+                def commit(email, contents):
+                    Path('settings.txt').write_text(contents, encoding='utf-8')
+                    subprocess.run(['git', 'add', 'settings.txt'], check=True)
+                    subprocess.run(['git', '-c', 'user.name=fixture', '-c', f'user.email={email}',
+                                    'commit', '-qm', 'Update synthetic setting'], check=True)
+                    return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode().strip()
+
+                base = commit('fixture@users.noreply.github.com', 'fixture')
+                upstream = commit('fixture@public.example.invalid', 'https://private.example.invalid')
+                local = commit('fixture@local.example.invalid', 'local fixture')
+                with patch('check_jms_git_privacy.published_upstream_commits', return_value={upstream}):
+                    results = dict(outgoing_findings(local, [base], ['private.example.invalid']))
+                self.assertEqual([], results[upstream + '/identity'])
+                self.assertIn('private domain', results[upstream + '/settings.txt'])
+                self.assertIn('non-noreply identity', results[local + '/identity'])
+            finally:
+                os.chdir(previous)
+
     def test_public_links_and_similar_domain_are_allowed(self):
         self.assertEqual([], findings('README.md', b'https://github.com/example/project https://notprivate.example', ['private.example']))
         self.assertEqual([], findings('sentinel.dart', b"const kBrowserManagedCookie = 'browser-managed-cookie';", []))

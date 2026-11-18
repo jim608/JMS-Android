@@ -140,7 +140,7 @@ class SyncPlayTransport implements SyncPlayApiPort {
       _socket = socket;
       _subscription = socket.messages.listen(
         _onMessage,
-        onError: (Object _, StackTrace __) => _lostConnection(),
+        onError: (Object _, StackTrace _) => _lostConnection(),
         onDone: _lostConnection,
       );
       await socket.ready.timeout(connectTimeout);

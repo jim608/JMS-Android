@@ -10,16 +10,13 @@ final settingsBackupFilesProvider = Provider((ref) => SettingsBackupFiles());
 
 class SettingsBackupFiles {
   Future<Uint8List?> pick() async {
-    final result = await FilePicker.platform
-        .pickFiles(type: FileType.custom, allowedExtensions: ['json'], withData: false, withReadStream: true);
-    if (result == null) return null;
-    final file = result.files.single;
-    if (file.size > SettingsBackup.maxBytes) {
+    final file = await FilePicker.pickFile(type: FileType.custom, allowedExtensions: const ['json']);
+    if (file == null) return null;
+    final size = file.lengthSync();
+    if (size != null && size > SettingsBackup.maxBytes) {
       throw const SettingsBackupFailure('size');
     }
-    final stream = file.readStream;
-    if (stream == null) throw const SettingsBackupFailure('read');
-    return readLimited(stream);
+    return readLimited(file.readAsByteStream());
   }
 
   static Future<Uint8List> readLimited(Stream<List<int>> stream) async {
@@ -34,8 +31,7 @@ class SettingsBackupFiles {
   }
 
   Future<String> save(Uint8List bytes) async {
-    final path = await FilePicker.platform
-        .saveFile(fileName: 'JMS-settings-v1.json', type: FileType.custom, allowedExtensions: ['json'], bytes: bytes);
+    final path = await FilePicker.saveFile(fileName: 'JMS-settings-v1.json', mimeType: 'application/json', bytes: bytes);
     return kIsWeb
         ? 'saveRequested'
         : path == null

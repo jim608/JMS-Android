@@ -17,7 +17,7 @@ part 'credentials_model.g.dart';
 abstract class CredentialsModel with _$CredentialsModel {
   const CredentialsModel._();
 
-  factory CredentialsModel.internal({
+  factory CredentialsModel({
     @Default("") String token,
     @Default("") String url,
     // Retained only to read existing accounts; automatic local URL routing was removed.
@@ -28,7 +28,7 @@ abstract class CredentialsModel with _$CredentialsModel {
   }) = _CredentialsModel;
 
   factory CredentialsModel.createNewCredentials() =>
-      CredentialsModel.internal(deviceId: Xid().toString());
+      CredentialsModel(deviceId: Xid().toString());
 
   Map<String, String> header(Ref ref,
       {String? deviceIdOverride, bool includeClient = true}) {
@@ -59,7 +59,7 @@ abstract class CredentialsModel with _$CredentialsModel {
       CredentialsModel.fromMap(json.decode(source));
 
   factory CredentialsModel.fromMap(Map<String, dynamic> map) {
-    return CredentialsModel.internal(
+    return CredentialsModel(
       token: map['token'] ?? '',
       url: map['server'] ?? '',
       serverName: map['serverName'] ?? '',

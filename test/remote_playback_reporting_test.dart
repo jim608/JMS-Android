@@ -19,6 +19,8 @@ import 'package:fladder/util/subtitle_selection_failure.dart';
 import 'package:fladder/wrappers/media_control_wrapper.dart';
 import 'package:fladder/services/playback_reporting_scope.dart';
 
+import 'support/playback_test_ref.dart';
+
 class _Item extends Fake implements ItemBaseModel {
   _Item(this.id);
   @override
@@ -54,23 +56,6 @@ class _Api implements PlaybackReportApi {
 
   @override
   void close() {}
-}
-
-class _Ref extends Fake implements Ref {}
-
-class _CreationRef extends Fake implements Ref {
-  final account = AccountModel(
-      name: 'fixture',
-      id: 'account-A',
-      avatar: '',
-      lastUsed: DateTime.utc(2026),
-      credentials: CredentialsModel.internal());
-  @override
-  T read<T>(ProviderListenable<T> provider) {
-    if (identical(provider, userProvider)) return account as T;
-    throw StateError(
-        'Account invalidation must stop before another API lookup');
-  }
 }
 
 class _QueueGateHelper extends PlaybackModelHelper {
@@ -120,7 +105,16 @@ void main() {
     var current = true, captures = 0;
     final capture = PlaybackReportingCapture(
         api: _Api(), isCurrent: () => current, isPlaybackCurrent: (_) => true);
-    final helper = _QueueGateHelper(_CreationRef(), () {
+    final container = ProviderContainer.test(overrides: [
+      userProvider.overrideWithValue(AccountModel(
+        name: 'fixture',
+        id: 'account-A',
+        avatar: '',
+        lastUsed: DateTime.utc(2026),
+        credentials: CredentialsModel(),
+      )),
+    ]);
+    final helper = _QueueGateHelper(playbackTestRef(container), () {
       captures++;
       return capture;
     });
@@ -181,7 +175,7 @@ void main() {
           queue: [_Item('previous'), _Item('movie'), _Item('next')],
           api: api,
         );
-        final actualRef = _Ref();
+        final actualRef = playbackTestRef();
         await model.playbackStarted(const Duration(seconds: 1), actualRef);
         await model.updatePlaybackPosition(
           const Duration(seconds: 5),
@@ -275,7 +269,7 @@ void main() {
               playbackInfo:
                   const PlaybackInfoResponse(playSessionId: 'unbound'),
               mediaStreams: _streams());
-      final ref = _Ref();
+      final ref = playbackTestRef();
       expect(await model.playbackStarted(Duration.zero, ref), isNull);
       expect(
           await model.updatePlaybackPosition(Duration.zero, true, ref), isNull);
@@ -287,11 +281,11 @@ void main() {
       () async {
         final api = _Api(),
             model = create(streams: _streams(subtitle: -1, audio: 3), api: api);
-        await model.updatePlaybackPosition(Duration.zero, true, _Ref());
+        await model.updatePlaybackPosition(Duration.zero, true, playbackTestRef());
         await model.updatePlaybackPosition(
           const Duration(seconds: 1),
           true,
-          _Ref(),
+          playbackTestRef(),
         );
         expect(
           api.progressReports.every(
@@ -306,7 +300,7 @@ void main() {
         );
         final pending =
             create(streams: _streams(subtitle: null, audio: null), api: api);
-        await pending.updatePlaybackPosition(Duration.zero, true, _Ref());
+        await pending.updatePlaybackPosition(Duration.zero, true, playbackTestRef());
         expect(api.progressReports.last.subtitleStreamIndex, isNull);
         expect(api.progressReports.last.audioStreamIndex, isNull);
         expect(

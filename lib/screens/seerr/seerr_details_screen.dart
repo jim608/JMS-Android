@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:fladder/screens/seerr/seerr_media_actions.dart';
 
 import 'package:auto_route/auto_route.dart';

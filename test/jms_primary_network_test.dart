@@ -25,7 +25,7 @@ AccountModel _account({String primary = _primary, bool notifications = false}) =
       id: 'synthetic-user',
       avatar: '',
       lastUsed: DateTime(2026),
-      credentials: CredentialsModel.internal(
+      credentials: CredentialsModel(
         url: primary,
         localUrl: _legacy,
         serverId: 'synthetic-server',
@@ -48,7 +48,7 @@ class _TestAuth extends AuthNotifier {
     if (primary != null) {
       state = LoginScreenModel(
         serverLoginModel: ServerLoginModel(
-          tempCredentials: CredentialsModel.internal(url: primary),
+          tempCredentials: CredentialsModel(url: primary),
         ),
       );
     }

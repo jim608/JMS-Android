@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
 import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart';
 import 'package:fladder/models/favourites_model.dart';
 import 'package:fladder/models/item_base_model.dart';
 import 'package:fladder/providers/api_provider.dart';
+import 'package:fladder/providers/jellyfin_websocket_provider.dart';
 import 'package:fladder/providers/service_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/util/item_base_model/item_base_model_extensions.dart';
@@ -14,7 +18,11 @@ final favouritesProvider = StateNotifierProvider<FavouritesNotifier, FavouritesM
 });
 
 class FavouritesNotifier extends StateNotifier<FavouritesModel> {
-  FavouritesNotifier(this.ref) : super(FavouritesModel());
+  FavouritesNotifier(this.ref) : super(FavouritesModel()) {
+    ref.listen(jellyfinWebSocketProvider, (previous, next) {
+      next.whenData(_handleWebSocketEvent);
+    });
+  }
 
   final Ref ref;
 
@@ -23,12 +31,36 @@ class FavouritesNotifier extends StateNotifier<FavouritesModel> {
 
   bool _isCurrent(int generation) => mounted && generation == _refreshGeneration;
 
+  bool _fetched = false;
+  Timer? _refreshTimer;
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  void _handleWebSocketEvent(JellyfinWebSocketEvent event) {
+    if (!_fetched) return;
+    final favouriteIds = [...state.favourites.values.expand((items) => items), ...state.people].map((item) => item.id);
+    final affected = switch (event) {
+      JellyfinUserDataChanged() => event.isForUser(ref.read(userProvider)?.id) &&
+          event.userDataByItemId.entries.any((entry) => entry.value.isFavourite != favouriteIds.contains(entry.key)),
+      JellyfinLibraryChanged() => favouriteIds.any({...event.updatedIds, ...event.removedIds}.contains),
+      JellyfinWebSocketReconnected() => true,
+    };
+    if (!affected) return;
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer(const Duration(milliseconds: 750), () => unawaited(fetchFavourites()));
+  }
+
   Future<void> fetchFavourites() async {
     if (!mounted || state.loading) return;
     final generation = ++_refreshGeneration;
     state = state.copyWith(loading: true);
     try {
       if (!_isCurrent(generation)) return;
+      _fetched = true;
       await Future.wait([_fetchMediaFavourites(generation), _fetchPeople(generation)]);
     } finally {
       if (_isCurrent(generation)) state = state.copyWith(loading: false);
@@ -93,6 +125,8 @@ class FavouritesNotifier extends StateNotifier<FavouritesModel> {
 
   void clear() {
     _refreshGeneration++;
+    _fetched = false;
+    _refreshTimer?.cancel();
     state = FavouritesModel();
   }
 }

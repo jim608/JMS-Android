@@ -19,7 +19,7 @@ class SyntheticNamedPipe {
     final name = path.toNativeUtf16();
     try {
       handle = CreateNamedPipe(
-          name,
+          PCWSTR(name),
           PIPE_ACCESS_DUPLEX,
           PIPE_TYPE_BYTE |
               PIPE_READMODE_BYTE |
@@ -41,12 +41,12 @@ class SyntheticNamedPipe {
   }
 
   late final String path;
-  late final int handle;
+  late final HANDLE handle;
 
   void accept() {
     final available = calloc<Uint32>();
     try {
-      if (PeekNamedPipe(handle, nullptr, 0, nullptr, available, nullptr) == 0) {
+      if (!PeekNamedPipe(handle, null, 0, null, available, null).value) {
         throw StateError('Synthetic named pipe not connected');
       }
     } finally {
@@ -63,16 +63,15 @@ class SyntheticNamedPipe {
     try {
       while (result.length < length &&
           clock.elapsed < const Duration(seconds: 1)) {
-        if (PeekNamedPipe(handle, nullptr, 0, nullptr, available, nullptr) ==
-            0) {
-          throw StateError(
-              'Synthetic named pipe peek failed (${GetLastError()})');
+        final peek = PeekNamedPipe(handle, null, 0, null, available, null);
+        if (!peek.value) {
+          throw StateError('Synthetic named pipe peek failed (${peek.error})');
         }
         if (available.value != 0) {
           final wanted = (length - result.length).clamp(0, 4096);
-          if (ReadFile(handle, buffer, wanted, count, nullptr) == 0) {
-            throw StateError(
-                'Synthetic named pipe read failed (${GetLastError()})');
+          final read = ReadFile(handle, buffer, wanted, count, null);
+          if (!read.value) {
+            throw StateError('Synthetic named pipe read failed (${read.error})');
           }
           result.add(Uint8List.fromList(buffer.asTypedList(count.value)));
         }
@@ -96,7 +95,7 @@ class SyntheticNamedPipe {
     final count = calloc<Uint32>();
     try {
       buffer.asTypedList(bytes.length).setAll(0, bytes);
-      if (WriteFile(handle, buffer, bytes.length, count, nullptr) == 0 ||
+      if (!WriteFile(handle, buffer, bytes.length, count, null).value ||
           count.value != bytes.length) {
         throw StateError('Synthetic named pipe write failed');
       }

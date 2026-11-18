@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -100,12 +100,15 @@ class _VideoPlayerState extends ConsumerState<VideoPlayer> with WidgetsBindingOb
       },
     );
 
-    final video = CenteredVideoViewport(
-      child: playerController.videoWidget(
-        const Key("VideoPlayer"),
-        fillScreen ? (MediaQuery.of(context).orientation == Orientation.portrait ? videoFit : BoxFit.cover) : videoFit,
-      ),
-    );
+    final playerDisposed = ref.watch(mediaPlaybackProvider.select((value) => value.state == VideoPlayerState.disposed));
+    final video = playerDisposed
+        ? const SizedBox.shrink()
+        : CenteredVideoViewport(
+            child: playerController.videoWidget(
+              const Key("VideoPlayer"),
+              fillScreen ? (MediaQuery.of(context).orientation == Orientation.portrait ? videoFit : BoxFit.cover) : videoFit,
+            ),
+          );
     final ambientEnabled = ref.watch(videoPlayerSettingsProvider.select((value) => value.ambientBlur));
     final ambientPlaying = ref.watch(mediaPlaybackProvider.select((value) => value.playing && !value.buffering));
     final player = ValueListenableBuilder<AmbientComposition>(
@@ -161,7 +164,7 @@ class _VideoPlayerState extends ConsumerState<VideoPlayer> with WidgetsBindingOb
                     ),
                   _ => VideoPlayerNextWrapper(
                       video: player,
-                      controls: const DesktopControls(),
+                      controlsBuilder: (nextUpVisible) => DesktopControls(nextUpVisible: nextUpVisible),
                       overlays: [
                         if (errorPlaying || ref.watch(mediaPlaybackProvider.select((state) => state.errorPlaying)))
                           const _VideoErrorWidget(),

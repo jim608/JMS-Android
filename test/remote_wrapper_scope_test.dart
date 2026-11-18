@@ -2,57 +2,29 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart';
-import 'package:fladder/models/item_base_model.dart';
 import 'package:fladder/models/items/movie_model.dart';
 import 'package:fladder/models/media_playback_model.dart';
 import 'package:fladder/models/playback/playback_model.dart';
 import 'package:fladder/models/settings/client_settings_model.dart';
 import 'package:fladder/models/settings/subtitle_settings_model.dart';
 import 'package:fladder/models/settings/video_player_settings.dart';
-import 'package:fladder/providers/segment_skip_provider.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
-import 'package:fladder/providers/settings/subtitle_settings_provider.dart';
-import 'package:fladder/providers/settings/video_player_settings_provider.dart';
 import 'package:fladder/providers/sleep_timer_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
 import 'package:fladder/services/playback_reporting_scope.dart';
 import 'package:fladder/services/remote_control/remote_control_models.dart';
 import 'package:fladder/services/syncplay/syncplay_player_commands.dart';
 import 'package:fladder/util/jms_test_profile_policy.dart';
-import 'package:fladder/util/localization_helper.dart';
 import 'package:fladder/util/sleep_timer.dart';
 import 'package:fladder/wrappers/media_control_wrapper.dart';
 import 'package:fladder/wrappers/players/base_player.dart';
 import 'package:fladder/wrappers/players/player_states.dart';
 
-class _Subscription<T> extends Fake implements ProviderSubscription<T> {
-  @override
-  void close() {}
-}
-
-class _Ref extends Fake implements Ref {
-  final values = <Object, Object?>{};
-  @override
-  T read<T>(ProviderListenable<T> provider) {
-    if (values.containsKey(provider)) return values[provider] as T;
-    final model = values[playBackModel] as PlaybackModel?;
-    if (T == _typeOf<ItemBaseModel?>()) return model?.item as T;
-    if (T == _typeOf<Future<Duration>?>()) return model?.startDuration() as T;
-    throw StateError('Unexpected fixture provider: $provider');
-  }
-
-  @override
-  ProviderSubscription<T> listen<T>(ProviderListenable<T> provider,
-          void Function(T? previous, T next) listener,
-          {void Function(Object, StackTrace)? onError,
-          bool fireImmediately = false}) =>
-      _Subscription<T>();
-}
-
-Type _typeOf<T>() => T;
+import 'support/playback_test_ref.dart';
 
 class _Scope extends Fake implements PlaybackReportingScope {
   bool valid = true;
@@ -114,7 +86,8 @@ class _Player extends Fake implements BasePlayer {
   @override
   Stream<PlayerState> get stateStream => input.stream;
   @override
-  Future<void> init(VideoPlayerSettingsModel settings) async {}
+  Future<void> init(VideoPlayerSettingsModel settings,
+      {bool lowResourceMode = false}) async {}
   @override
   Future<void> dispose() async {
     await input.close();
@@ -152,30 +125,28 @@ class _Group extends Fake implements SyncPlayPlayerCommands {
 
 class _Harness {
   _Harness({bool sourceSync = true}) : player = _Player(sourceSync: sourceSync);
-  final ref = _Ref();
   final _Player player;
   final scope = _Scope();
-  final media = StateController(MediaPlaybackModel(
-      state: VideoPlayerState.fullScreen,
-      position: const Duration(seconds: 12),
-      playing: true));
+  late final container = ProviderContainer.test(overrides: [
+    playBackModel.overrideWith((ref) => model),
+    mediaPlaybackProvider.overrideWith((ref) => MediaPlaybackModel(
+        state: VideoPlayerState.fullScreen,
+        position: const Duration(seconds: 12),
+        playing: true)),
+    sleepTimerProvider.overrideWith((ref) => SleepTimerController(pause: () async {})),
+    clientSettingsProvider.overrideWith((ref) => ClientSettingsNotifier(ref)
+      ..applyRestoredSettings(
+          ClientSettingsModel.defaultModel().copyWith(enableMediaKeys: false))),
+  ]);
+  StateController<MediaPlaybackModel> get media =>
+      container.read(mediaPlaybackProvider.notifier);
+  set playback(PlaybackModel model) =>
+      container.read(playBackModel.notifier).state = model;
   late final model = _Playback('occurrence', scope);
-  late final sleep = SleepTimerController(pause: () async {});
-  late final wrapper = MediaControlsWrapper(ref: ref);
+  SleepTimerController get sleep => container.read(sleepTimerProvider);
+  late final wrapper = MediaControlsWrapper(ref: playbackTestRef(container));
   bool ownerCurrent = true;
   Future<void> init() async {
-    ref.values.addAll({
-      playBackModel: model,
-      mediaPlaybackProvider: media.state,
-      mediaPlaybackProvider.notifier: media,
-      sleepTimerProvider: sleep,
-      videoPlayerSettingsProvider: VideoPlayerSettingsModel(),
-      subtitleSettingsProvider: const SubtitleSettingsModel(),
-      segmentSkipSessionProvider: SegmentSkipSession(),
-      clientSettingsProvider:
-          ClientSettingsModel.defaultModel().copyWith(enableMediaKeys: false),
-      localizationContextProvider: null
-    });
     await wrapper.setup(player);
   }
 
@@ -187,8 +158,6 @@ class _Harness {
       };
   Future<void> close() async {
     await wrapper.dispose();
-    sleep.dispose();
-    media.dispose();
     await player.input.close();
   }
 }
@@ -229,7 +198,7 @@ void main() {
         }
         if (change == 'disable') h.ownerCurrent = false;
         if (change == 'model') {
-          h.ref.values[playBackModel] = _Playback('replay', _Scope());
+          h.playback = _Playback('replay', _Scope());
         }
         if (change == 'renderer') await h.wrapper.setup(_Player());
         h.player.actionGate!.complete();
@@ -328,7 +297,7 @@ void main() {
         };
         if (replacement == 'renderer') await h.wrapper.setup(_Player());
         if (replacement == 'model') {
-          h.ref.values[playBackModel] = _Playback('replay', _Scope());
+          h.playback = _Playback('replay', _Scope());
         }
         h.player.actionGate!.complete();
         await operation;
@@ -349,7 +318,7 @@ void main() {
     final sub = h.wrapper.stateStream.listen(delivered.add);
     h.player.input.add(
         PlayerState(completed: true, position: const Duration(seconds: 90)));
-    h.ref.values[playBackModel] = _Playback('new-occurrence', _Scope());
+    h.playback = _Playback('new-occurrence', _Scope());
     await Future<void>.delayed(Duration.zero);
     expect(delivered, isEmpty);
     expect(h.wrapper.playbackState.value.updatePosition, Duration.zero);
@@ -370,7 +339,7 @@ void main() {
       if (account) {
         h.scope.valid = false;
       } else {
-        h.ref.values[playBackModel] = _Playback('new-occurrence', _Scope());
+        h.playback = _Playback('new-occurrence', _Scope());
       }
       await Future<void>.delayed(Duration.zero);
       expect(delivered, isEmpty);

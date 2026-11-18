@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
@@ -21,6 +21,7 @@ import 'package:fladder/util/jms_smooth_scroll.dart';
 import 'package:fladder/util/localization_helper.dart';
 import 'package:fladder/util/theme_extensions.dart';
 import 'package:fladder/util/window_actions.dart';
+import 'package:fladder/widgets/shared/tab_back_gesture.dart';
 
 @RoutePage()
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -53,7 +54,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   child: Stack(
                     children: [
                       _leftPane(context),
-                      content,
+                      TabBackGesture(
+                        enabled: context.tabsRouter.activeIndex != 0,
+                        onBack: () => context.tabsRouter.setActiveIndex(0),
+                        child: content,
+                      ),
                     ],
                   ),
                 )

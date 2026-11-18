@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class FladderFonts {
   /// A restrained UI scale with real weights so widget-level emphasis still works.

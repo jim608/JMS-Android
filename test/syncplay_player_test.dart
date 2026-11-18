@@ -13,7 +13,6 @@ import 'package:fladder/models/account_model.dart';
 import 'package:fladder/models/credentials_model.dart';
 import 'package:fladder/models/items/movie_model.dart';
 import 'package:fladder/models/items/media_streams_model.dart';
-import 'package:fladder/models/media_playback_model.dart';
 import 'package:fladder/models/playback/playback_model.dart';
 import 'package:fladder/models/settings/video_player_settings.dart';
 import 'package:fladder/models/settings/subtitle_settings_model.dart';
@@ -23,7 +22,6 @@ import 'package:fladder/profiles/default_profile.dart';
 import 'package:fladder/providers/settings/video_player_settings_provider.dart';
 import 'package:fladder/providers/image_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
-import 'package:fladder/providers/segment_skip_provider.dart';
 import 'package:fladder/services/syncplay/syncplay_clock.dart';
 import 'package:fladder/services/syncplay/syncplay_controller.dart';
 import 'package:fladder/services/syncplay/syncplay_models.dart';
@@ -39,6 +37,7 @@ import 'package:fladder/services/syncplay/syncplay_buffering.dart';
 import 'package:fladder/services/syncplay/syncplay_prebuffer_coordinator.dart';
 
 import 'syncplay_controller_test.dart' as protocol;
+import 'support/playback_test_ref.dart';
 import 'support/syncplay_wait_server.dart' as wait;
 
 class _Smtc extends Fake implements SmtcInternal {}
@@ -83,7 +82,8 @@ class _ReadyPlayer extends Fake implements BasePlayer {
   double rate = 1;
   Completer<void>? rateReady;
   @override
-  Future<void> init(VideoPlayerSettingsModel settings) async {}
+  Future<void> init(VideoPlayerSettingsModel settings,
+      {bool lowResourceMode = false}) async {}
   @override
   Future<void> dispose() async {}
   @override
@@ -118,7 +118,7 @@ class _IdleNativePlayer extends LibMPV {
         if (name == 'time-pos') _progress();
         return properties[name];
       },
-      write: (_, __) async {},
+      write: (_, _) async {},
       isCurrent: () => current,
       generation: () => epoch,
       buffering: () => nativeWaiting,
@@ -156,7 +156,8 @@ class _IdleNativePlayer extends LibMPV {
   @override
   MpvSyncPlayBufferProbe get syncPlayBufferProbe => probe;
   @override
-  Future<void> init(VideoPlayerSettingsModel settings) async {}
+  Future<void> init(VideoPlayerSettingsModel settings,
+      {bool lowResourceMode = false}) async {}
   @override
   Future<SyncPlayBufferSample> readSyncPlayBufferSample() => probe.sample();
   @override
@@ -272,7 +273,7 @@ class _NativeRoomEnd {
     backend.lastState.buffering = false;
     await backend.seek(server.anchorPosition);
     wrapper.syncPlayCommands = commands;
-    final ref = _Ref()..values[videoPlayerProvider] = wrapper;
+    final ref = _playerRef(wrapper);
     adapter = SyncPlayPlayerAdapter(
         ref: ref, account: account, api: _Api(), isCurrent: () => true);
     controller = SyncPlayController(
@@ -344,21 +345,11 @@ final account = AccountModel(
     id: '33333333333333333333333333333333',
     avatar: '',
     lastUsed: DateTime.utc(2026),
-    credentials: CredentialsModel.internal(
+    credentials: CredentialsModel(
         url: 'https://media.example.invalid/jf',
         token: 'synthetic-only',
         serverId: mediaId));
 Response<T> response<T>(T data) => Response(http.Response('', 200), data);
-
-class _Ref extends Fake implements Ref {
-  _Ref() {
-    values[segmentSkipSessionProvider] = SegmentSkipSession();
-    values[mediaPlaybackProvider] = MediaPlaybackModel();
-  }
-  final values = <Object, Object?>{};
-  @override
-  T read<T>(ProviderListenable<T> provider) => values[provider] as T;
-}
 
 class _Http extends http.BaseClient {
   int closes = 0;
@@ -522,6 +513,23 @@ class _Notifier extends VideoPlayerNotifier {
   }
 }
 
+class _PlayerFixture {
+  late final ProviderContainer container = ProviderContainer.test(overrides: [
+    videoPlayerProvider.overrideWith((ref) => _Notifier(ref, wrapper)),
+    videoProfileProvider.overrideWith((ref) => const DeviceProfile()),
+    imageUtilityProvider.overrideWith((ref) => _Images()),
+  ]);
+  late final Ref ref = playbackTestRef(container);
+  late final _Wrapper wrapper = _Wrapper(ref);
+}
+
+Ref _playerRef(MediaControlsWrapper wrapper) {
+  final container = ProviderContainer.test(overrides: [
+    videoPlayerProvider.overrideWith((ref) => _Notifier(ref, wrapper)),
+  ]);
+  return playbackTestRef(container);
+}
+
 /// Keep this regression at the command boundary. Queue loading is synthetic;
 /// every playback control and the backend-ready wait use the real adapter.
 class _AdapterCommands implements SyncPlayPlayerPort {
@@ -608,7 +616,7 @@ void main() {
                   : null);
       await _model(_Api()).setSubtitle(track, wrapper);
       final selection = 'native-subtitle:${track.index}';
-      final ref = _Ref()..values[videoPlayerProvider] = wrapper;
+      final ref = _playerRef(wrapper);
       final adapter = SyncPlayPlayerAdapter(
           ref: ref, account: account, api: _Api(), isCurrent: () => true);
       addTearDown(() async {
@@ -767,22 +775,9 @@ void main() {
   });
 
   ({_Wrapper wrapper, SyncPlayPlayerAdapter adapter}) realLoadFixture() {
-    final ref = _Ref();
-    final wrapper = _Wrapper(ref);
-    final media = StateController(MediaPlaybackModel());
-    final playback = StateController<PlaybackModel?>(null);
-    ref.values.addAll({
-      mediaPlaybackProvider.notifier: media,
-      mediaPlaybackProvider: media.state,
-      playBackModel: null,
-      playBackModel.notifier: playback,
-      playbackRateProvider.notifier: StateController(1.0),
-      videoPlayerSettingsProvider: VideoPlayerSettingsModel(),
-      videoProfileProvider: const DeviceProfile(),
-      imageUtilityProvider: _Images(),
-      videoPlayerProvider: wrapper,
-      videoPlayerProvider.notifier: _Notifier(ref, wrapper),
-    });
+    final fixture = _PlayerFixture();
+    final ref = fixture.ref;
+    final wrapper = fixture.wrapper;
     final api = _Api();
     api.itemReady.complete(response(dto));
     api.infoReady.complete(response(const PlaybackInfoResponse(mediaSources: [
@@ -979,7 +974,7 @@ void main() {
   test(
       'local group pause play seek and toggle delegate once; local queue cannot advance',
       () async {
-    final wrapper = _Wrapper(_Ref());
+    final wrapper = _Wrapper(playbackTestRef());
     final commands = _Commands();
     wrapper.syncPlayCommands = commands;
     await wrapper.pause();
@@ -999,11 +994,11 @@ void main() {
 
   test('remote unpause waits for seek and never echoes local commands',
       () async {
-    final ref = _Ref();
-    final wrapper = _Wrapper(ref);
+    final fixture = _PlayerFixture();
+    final ref = fixture.ref;
+    final wrapper = fixture.wrapper;
     final commands = _Commands();
     wrapper.syncPlayCommands = commands;
-    ref.values[videoPlayerProvider] = wrapper;
     wrapper.seekReady = Completer<void>();
     final adapter = SyncPlayPlayerAdapter(
         ref: ref, account: account, api: _Api(), isCurrent: () => true);
@@ -1020,10 +1015,10 @@ void main() {
 
   test('account invalidation during remote seek prevents late play', () async {
     var current = true;
-    final ref = _Ref();
-    final wrapper = _Wrapper(ref);
+    final fixture = _PlayerFixture();
+    final ref = fixture.ref;
+    final wrapper = fixture.wrapper;
     wrapper.raw.position = const Duration(seconds: 10);
-    ref.values[videoPlayerProvider] = wrapper;
     wrapper.seekReady = Completer<void>();
     final adapter = SyncPlayPlayerAdapter(
         ref: ref, account: account, api: _Api(), isCurrent: () => current);
@@ -1038,10 +1033,10 @@ void main() {
   test(
       'cancel pending actions rejects old seek completion but permits a future command',
       () async {
-    final ref = _Ref();
-    final wrapper = _Wrapper(ref);
+    final fixture = _PlayerFixture();
+    final ref = fixture.ref;
+    final wrapper = fixture.wrapper;
     wrapper.raw.position = const Duration(seconds: 10);
-    ref.values[videoPlayerProvider] = wrapper;
     wrapper.seekReady = Completer<void>();
     final adapter = SyncPlayPlayerAdapter(
         ref: ref, account: account, api: _Api(), isCurrent: () => true);
@@ -1058,10 +1053,10 @@ void main() {
 
   test('aligned pause and unpause do not manufacture seek buffering pulses',
       () async {
-    final ref = _Ref();
-    final wrapper = _Wrapper(ref);
+    final fixture = _PlayerFixture();
+    final ref = fixture.ref;
+    final wrapper = fixture.wrapper;
     wrapper.raw.position = const Duration(milliseconds: 8100);
-    ref.values[videoPlayerProvider] = wrapper;
     final adapter = SyncPlayPlayerAdapter(
         ref: ref, account: account, api: _Api(), isCurrent: () => true);
     await adapter.applyRemote(const SyncPlayPlayerAction(
@@ -1075,9 +1070,9 @@ void main() {
 
   test('accepted seek is not media ready until actual buffering clears',
       () async {
-    final ref = _Ref();
-    final wrapper = _Wrapper(ref)..holdBufferingOnSeek = true;
-    ref.values[videoPlayerProvider] = wrapper;
+    final fixture = _PlayerFixture();
+    final ref = fixture.ref;
+    final wrapper = fixture.wrapper..holdBufferingOnSeek = true;
     final adapter = SyncPlayPlayerAdapter(
         ref: ref, account: account, api: _Api(), isCurrent: () => true);
     var completed = false;
@@ -1096,9 +1091,9 @@ void main() {
 
   test('leaving cancels an actual media-ready wait without a late play',
       () async {
-    final ref = _Ref();
-    final wrapper = _Wrapper(ref)..holdBufferingOnSeek = true;
-    ref.values[videoPlayerProvider] = wrapper;
+    final fixture = _PlayerFixture();
+    final ref = fixture.ref;
+    final wrapper = fixture.wrapper..holdBufferingOnSeek = true;
     final adapter = SyncPlayPlayerAdapter(
         ref: ref, account: account, api: _Api(), isCurrent: () => true);
     final action = adapter.applyRemote(const SyncPlayPlayerAction(
@@ -1125,10 +1120,10 @@ void main() {
       final world = protocol.World();
       final server = protocol.Server(world);
       final api = server.client('synthetic-participant');
-      final ref = _Ref();
-      final wrapper = _Wrapper(ref)..holdBufferingOnSeek = true;
+      final fixture = _PlayerFixture();
+      final ref = fixture.ref;
+      final wrapper = fixture.wrapper..holdBufferingOnSeek = true;
       wrapper.raw.playing = false;
-      ref.values[videoPlayerProvider] = wrapper;
       // Login identity deliberately remains current across a network disconnect.
       final adapter = SyncPlayPlayerAdapter(
           ref: ref, account: account, api: _Api(), isCurrent: () => true);
@@ -1196,11 +1191,11 @@ void main() {
 
   test('a newer remote pause supersedes an unpause still awaiting its seek',
       () async {
-    final ref = _Ref();
-    final wrapper = _Wrapper(ref);
+    final fixture = _PlayerFixture();
+    final ref = fixture.ref;
+    final wrapper = fixture.wrapper;
     final commands = _Commands();
     wrapper.syncPlayCommands = commands;
-    ref.values[videoPlayerProvider] = wrapper;
     final oldSeek = Completer<void>();
     wrapper.seekReady = oldSeek;
     final adapter = SyncPlayPlayerAdapter(
@@ -1225,8 +1220,9 @@ void main() {
       () async {
     var current = true;
     final api = _Api();
-    final ref = _Ref();
-    ref.values[videoProfileProvider] = const DeviceProfile();
+    final ref = playbackTestRef(ProviderContainer.test(overrides: [
+      videoProfileProvider.overrideWith((ref) => const DeviceProfile()),
+    ]));
     final loading = createSyncPlayPlaybackModel(
         ref: ref,
         api: api,
@@ -1293,8 +1289,9 @@ void main() {
 
   test('foreign transcoding origin is refused before model creation', () async {
     final api = _Api();
-    final ref = _Ref();
-    ref.values[videoProfileProvider] = const DeviceProfile();
+    final ref = playbackTestRef(ProviderContainer.test(overrides: [
+      videoProfileProvider.overrideWith((ref) => const DeviceProfile()),
+    ]));
     api.itemReady.complete(response(dto));
     api.infoReady.complete(response(const PlaybackInfoResponse(mediaSources: [
       MediaSourceInfo(
@@ -1334,9 +1331,9 @@ void main() {
     final playback = _model(api,
         current: () => accountCurrent, owner: owner, queue: () => roomQueue);
     final copy = playback.copyWith() as SyncPlayPlaybackModel;
-    await copy.playbackStarted(Duration.zero, _Ref());
+    await copy.playbackStarted(Duration.zero, playbackTestRef());
     expect((api.reports.single as PlaybackStartInfo).isPaused, isTrue);
-    await copy.updatePlaybackPosition(const Duration(seconds: 5), true, _Ref());
+    await copy.updatePlaybackPosition(const Duration(seconds: 5), true, playbackTestRef());
     final report = api.reports.last as PlaybackProgressInfo;
     expect(report.playlistItemId, entry.playlistItemId);
     expect(
@@ -1344,11 +1341,11 @@ void main() {
     expect(api.ownedClient.transport.closes, 0);
     roomQueue = null;
     expect(copy.serverManagedQueue, isFalse);
-    await copy.updatePlaybackPosition(const Duration(seconds: 5), true, _Ref());
-    await copy.playbackStopped(const Duration(seconds: 5), null, _Ref());
+    await copy.updatePlaybackPosition(const Duration(seconds: 5), true, playbackTestRef());
+    await copy.playbackStopped(const Duration(seconds: 5), null, playbackTestRef());
     expect(api.reports.last, isA<PlaybackStopInfo>());
     accountCurrent = false;
-    await copy.updatePlaybackPosition(const Duration(seconds: 6), true, _Ref());
+    await copy.updatePlaybackPosition(const Duration(seconds: 6), true, playbackTestRef());
     expect(api.reports.length, 4);
     copy.dispose();
     playback.dispose();
@@ -1442,19 +1439,10 @@ void main() {
   test(
       'notifier group load stays paused and stale load cannot resume or set tracks',
       () async {
-    final ref = _Ref();
-    final wrapper = _Wrapper(ref);
-    final media = StateController(MediaPlaybackModel());
-    final playback = StateController<PlaybackModel?>(null);
-    ref.values.addAll({
-      mediaPlaybackProvider.notifier: media,
-      mediaPlaybackProvider: media.state,
-      playBackModel: null,
-      playBackModel.notifier: playback,
-      playbackRateProvider.notifier: StateController(1.0),
-      videoPlayerSettingsProvider: VideoPlayerSettingsModel()
-    });
-    final notifier = _Notifier(ref, wrapper);
+    final fixture = _PlayerFixture();
+    final ref = fixture.ref;
+    final wrapper = fixture.wrapper;
+    final notifier = ref.read(videoPlayerProvider.notifier);
     final api = _Api();
     var current = true;
     wrapper.loadReady = Completer<void>();

@@ -1,14 +1,14 @@
 import 'dart:convert';
 import 'dart:ui' as ui;
 
-import 'package:fladder/l10n/generated/app_localizations.dart';
+import 'package:fladder/localization_delegates.dart';
 import 'package:fladder/models/settings/client_settings_model.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
 import 'package:fladder/theme.dart';
 import 'package:fladder/theme/fonts.dart';
 import 'package:fladder/widgets/shared/theme_overwrite.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -163,7 +163,7 @@ void main() {
         theme: parent,
         locale: const Locale('zh', 'TW'),
         supportedLocales: const [Locale('zh', 'TW')],
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        localizationsDelegates: FladderLocalizations.localizationsDelegates,
         home: ThemeOverwrite(
           color: Colors.teal,
           child: (context) {

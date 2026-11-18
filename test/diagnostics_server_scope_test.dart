@@ -24,7 +24,7 @@ void main() {
     originalFlutter = FlutterError.onError;
     originalPlatform = PlatformDispatcher.instance.onError;
     FlutterError.onError = (_) {};
-    PlatformDispatcher.instance.onError = (_, __) => true;
+    PlatformDispatcher.instance.onError = (_, _) => true;
   });
 
   tearDown(() {

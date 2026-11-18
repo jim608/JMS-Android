@@ -69,11 +69,9 @@ jobs:
           SOURCE_COMMIT: ${{ inputs.source_commit }}
         run: |
           set -euo pipefail
-          docker build --target build -f Dockerfile.linux --build-arg JMS_BUILD_ID="$BUILD_ID" --build-arg JMS_SOURCE_COMMIT="$SOURCE_COMMIT" -t jms-flatpak-app .
-          docker create --name jms-flatpak-export jms-flatpak-app /bin/true
-          mkdir bundle candidate
-          docker cp jms-flatpak-export:/workspace/build/linux/x64/release/bundle/. bundle/
-          python3 scripts/package_jms_flatpak.py --source-commit "$SOURCE_COMMIT" stage --bundle bundle --output flatpak-input
+          docker build --target export -f Dockerfile.linux --build-arg JMS_BUILD_ID="$BUILD_ID" --build-arg JMS_SOURCE_COMMIT="$SOURCE_COMMIT" --output type=local,dest=flatpak-build-export .
+          mkdir candidate
+          python3 scripts/package_jms_flatpak.py --source-commit "$SOURCE_COMMIT" stage --bundle flatpak-build-export/bundle --output flatpak-input
       - uses: actions/checkout@v4.1.1
         with:
           ref: ${{ github.sha }}

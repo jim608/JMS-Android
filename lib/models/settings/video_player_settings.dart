@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
@@ -37,6 +37,8 @@ enum VideoHotKeys {
   takeScreenshot,
   takeScreenshotClean,
   toggleSubtitles,
+  subtitleOffsetBackward,
+  subtitleOffsetForward,
   exit;
 
   const VideoHotKeys();
@@ -64,6 +66,8 @@ enum VideoHotKeys {
       VideoHotKeys.takeScreenshot => context.localized.takeScreenshot,
       VideoHotKeys.takeScreenshotClean => context.localized.takeScreenshotClean,
       VideoHotKeys.toggleSubtitles => context.localized.toggleSubtitles,
+      VideoHotKeys.subtitleOffsetBackward => context.localized.subtitleOffsetBackward,
+      VideoHotKeys.subtitleOffsetForward => context.localized.subtitleOffsetForward,
       VideoHotKeys.exit => context.localized.exit,
     };
   }
@@ -111,6 +115,7 @@ abstract class VideoPlayerSettingsModel with _$VideoPlayerSettingsModel {
     @Default(true) bool enablePlayPauseFade,
     @Default(true) bool enableCrossfade,
     @Default(400) int crossfadeDurationMs,
+    @Default(false) bool refreshRateSwitching,
     @Default(false) bool ambientBlur,
     @Default(0.8) double ambientIntensity,
     @Default(0.9) double ambientSpread,
@@ -345,6 +350,10 @@ Map<VideoHotKeys, KeyCombination> get _defaultVideoHotKeys => {
           VideoHotKeys.takeScreenshotClean =>
             KeyCombination(key: LogicalKeyboardKey.keyG, modifier: LogicalKeyboardKey.controlLeft),
           VideoHotKeys.toggleSubtitles => KeyCombination(key: LogicalKeyboardKey.keyT),
+          VideoHotKeys.subtitleOffsetBackward =>
+            KeyCombination(key: LogicalKeyboardKey.arrowLeft, modifier: LogicalKeyboardKey.controlLeft),
+          VideoHotKeys.subtitleOffsetForward =>
+            KeyCombination(key: LogicalKeyboardKey.arrowRight, modifier: LogicalKeyboardKey.controlLeft),
           VideoHotKeys.exit => KeyCombination(key: LogicalKeyboardKey.escape),
         },
     };

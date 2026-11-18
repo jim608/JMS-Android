@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -133,7 +133,7 @@ class _SyncPlayDialogState extends ConsumerState<SyncPlayDialog> {
           ? _notifier.leaveRoom()
           : _notifier.cancelHomeJoin(ticket);
       unawaited(
-          completion.then<void>((_) {}, onError: (Object _, StackTrace __) {}));
+          completion.then<void>((_) {}, onError: (Object _, StackTrace _) {}));
     } catch (_) {
       // Dismissing the room must not depend on asynchronous cleanup success.
     }

@@ -11,6 +11,21 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 MARKER = '__JMS_MAIN_CONTENT_SHA256__'
+LEGACY_WORKER = """'use strict';
+const MANIFEST = 'flutter-app-manifest';
+const TEMP = 'flutter-temp-cache';
+const CACHE_NAME = 'flutter-app-cache';
+
+const RESOURCES = $$RESOURCES_MAP;
+const CORE = $$CORE_LIST;
+self.addEventListener('install', (event) => {
+  event.waitUntil(caches.open(TEMP).then((cache) =>
+    cache.addAll(CORE.map((value) => new Request(value, {'cache': 'reload'})))));
+});
+// During activate, the prior manifest determines which cached entries to keep.
+self.addEventListener('activate', () => {});
+self.addEventListener('fetch', () => {});
+"""
 
 
 class WebBootstrapTests(unittest.TestCase):
@@ -49,7 +64,7 @@ class WebBootstrapTests(unittest.TestCase):
         self.resources['assets/config/config.json'] = '0' * 32
         self.resources['version.json'] = '1' * 32
         self.core = ['main.dart.js', 'index.html', 'flutter_bootstrap.js']
-        worker = self.template.read_text(encoding='utf-8').replace(
+        worker = LEGACY_WORKER.replace(
             '$$RESOURCES_MAP', json.dumps(self.resources)).replace('$$CORE_LIST', json.dumps(self.core))
         for name, data in {'main.dart.js': self.main, 'index.html': index.encode(),
                            'flutter_bootstrap.js': bootstrap.encode(),
@@ -103,6 +118,40 @@ class WebBootstrapTests(unittest.TestCase):
         before = self.snapshot()
         self.assertNotEqual(self.run_prepare().returncode, 0)
         self.assertEqual(self.snapshot(), before)
+
+    def test_pinned_unregister_worker_keeps_exact_bytes(self):
+        worker = self.directory / 'flutter_service_worker.js'
+        worker.write_bytes(self.template.read_bytes())
+        before = self.snapshot()
+        result = self.run_prepare()
+        self.assertEqual(result.returncode, 0, result.stderr.decode(errors='replace'))
+        checksum = hashlib.sha256(self.main).hexdigest()
+        record = json.loads(result.stdout)
+        self.assertEqual(record['mainSha256'], checksum)
+        self.assertEqual(record['versionedMain'], 'main.dart.js?v=' + checksum)
+        self.assertFalse(record['serviceWorkerForegroundWait'])
+        after = self.snapshot()
+        self.assertEqual(after['main.dart.js'], before['main.dart.js'])
+        self.assertEqual(after[worker.name], before[worker.name])
+        for name in ['index.html', 'flutter_bootstrap.js']:
+            self.assertEqual(after[name], before[name].replace(MARKER.encode(), checksum.encode()))
+
+    def test_changed_unregister_worker_fails_before_any_write(self):
+        worker = self.directory / 'flutter_service_worker.js'
+        original = self.template.read_bytes()
+        self.assertIn(b'self.registration.unregister()', original)
+        for change in [
+            original.replace(b'client.navigate(client.url)', b'client.navigate("/changed")'),
+            original + b"\nself.addEventListener('fetch', () => {});\n",
+            original + LEGACY_WORKER.encode().replace(
+                b'$$RESOURCES_MAP', json.dumps(self.resources).encode()).replace(
+                b'$$CORE_LIST', json.dumps(self.core).encode()),
+        ]:
+            with self.subTest(change=change[:80]):
+                worker.write_bytes(change)
+                before = self.snapshot()
+                self.assertNotEqual(self.run_prepare().returncode, 0)
+                self.assertEqual(self.snapshot(), before)
 
     def test_repeated_finalize_is_rejected_without_rewriting_hashes(self):
         self.assertEqual(self.run_prepare().returncode, 0)

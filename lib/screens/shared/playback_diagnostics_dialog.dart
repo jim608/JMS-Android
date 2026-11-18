@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 
 import 'package:fladder/services/playback_diagnostics.dart' as diagnostics;
@@ -58,11 +58,10 @@ class _PlaybackDiagnosticsDialogState
     if (_exporting) return;
     setState(() => _exporting = true);
     try {
-      final path = await FilePicker.platform.saveFile(
+      final path = await FilePicker.saveFile(
         dialogTitle: _title,
         fileName: 'JMS-playback-diagnostics.txt',
-        type: FileType.custom,
-        allowedExtensions: const ['txt'],
+        mimeType: 'text/plain',
         bytes: Uint8List.fromList(utf8.encode(widget.report)),
       );
       // Web starts a browser download and returns null; native null is cancel.

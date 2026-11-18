@@ -65,6 +65,26 @@ class AppDatabase extends _$AppDatabase {
     }
   }
 
+  Future<List<SyncedItem>> getNestedChildrenRecursive(String rootId) async {
+    final currentUserId = userId;
+    final allChildren = <SyncedItem>[];
+    var currentLevelIds = {rootId};
+
+    while (currentLevelIds.isNotEmpty) {
+      final nextLevel = await managers.databaseItems
+          .filter((f) => f.parentId.isIn(currentLevelIds) & f.userId.equals(currentUserId))
+          .get();
+
+      if (nextLevel.isEmpty) break;
+
+      final syncedItems = nextLevel.map(databaseConverter).toList();
+      allChildren.addAll(syncedItems);
+      currentLevelIds = syncedItems.map((e) => e.id).toSet();
+    }
+
+    return allChildren;
+  }
+
   Selectable<SyncedItem> getItem(String id) =>
       (select(databaseItems)..where((tbl) => tbl.id.equals(id) & tbl.userId.equals(userId))).map(databaseConverter);
 

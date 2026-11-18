@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -35,7 +35,7 @@ AccountModel _account(
         avatar: '',
         lastUsed: DateTime(2026),
         credentials:
-            CredentialsModel.internal(serverId: 'synthetic-server', url: url),
+            CredentialsModel(serverId: 'synthetic-server', url: url),
         seerrCredentials: seerr);
 
 class _EntryUser extends User {
@@ -119,7 +119,7 @@ void main() {
               })),
     ]);
     containers.add(container);
-    container.listen(seerrApiProvider, (_, __) {});
+    container.listen(seerrApiProvider, (_, _) {});
     return container;
   }
 

@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fladder/models/account_model.dart';
@@ -103,7 +104,7 @@ final discordPresenceSettingsProvider =
             ? item.title
             : '${item.title} • ${item.name}');
     final privateMode = scope == null ||
-        ref.read(incognitoProvider) ||
+        (account?.incognitoMode ?? ref.read(incognitoModeProvider)) ||
         ref.read(lockScreenActiveProvider) ||
         ref.read(discordBrowsingProvider).blocked;
     settings.updatePlayback(
@@ -135,13 +136,16 @@ final discordPresenceSettingsProvider =
     );
   }
 
-  ref.listen(userProvider, (_, __) => update());
-  ref.listen(incognitoProvider, (_, __) => update());
-  ref.listen(lockScreenActiveProvider, (_, __) => update());
-  ref.listen(discordBrowsingProvider, (_, __) => update());
-  ref.listen(mediaPlaybackProvider, (_, __) => update());
-  ref.listen(playBackModel, (_, __) => update());
-  ref.listen(playbackRateProvider, (_, __) => update());
+  ref.listen(userProvider, (_, _) => update());
+  // Apply the privacy boundary before asynchronous artwork can complete.
+  ref.listen(incognitoModeProvider, (_, _) {
+    if (ref.read(userProvider)?.incognitoMode == null) update();
+  });
+  ref.listen(lockScreenActiveProvider, (_, _) => update());
+  ref.listen(discordBrowsingProvider, (_, _) => update());
+  ref.listen(mediaPlaybackProvider, (_, _) => update());
+  ref.listen(playBackModel, (_, _) => update());
+  ref.listen(playbackRateProvider, (_, _) => update());
   update();
   return settings;
 });

@@ -104,7 +104,7 @@ class SyncPlayRecovery {
         _validationCooldown = null;
       });
       _validation = Future<void>.sync(revalidate)
-          .then<void>((_) {}, onError: (Object _, StackTrace __) {})
+          .then<void>((_) {}, onError: (Object _, StackTrace _) {})
           .whenComplete(() => _validation = null);
     } else {
       observe(state);
