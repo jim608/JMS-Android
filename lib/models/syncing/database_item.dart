@@ -84,15 +84,22 @@ class AppDatabase extends _$AppDatabase {
             ..orderBy([(t) => OrderingTerm(expression: t.sortName)]))
           .map(databaseConverter);
 
-  Future<int> insertItem(SyncedItem item) async {
-    final itemExists = await getItem(item.id).getSingleOrNull();
-    if (itemExists != null) {
-      return (update(databaseItems)..where((tbl) => tbl.id.equals(item.id) & tbl.userId.equals(userId)))
-          .write(toDataBaseItem(item));
-    } else {
-      return into(databaseItems).insert(toDataBaseItem(item));
-    }
-  }
+  Future<int> insertItem(SyncedItem item) => into(databaseItems).insertOnConflictUpdate(toDataBaseItem(item));
+
+  Expression<bool> _matchesDownload(DatabaseItems row, SyncedItem item) =>
+      row.id.equals(item.id) & row.userId.equals(item.userId) & row.path.equalsNullable(item.path);
+
+  Future<String?> readTrickPlay(SyncedItem item) => (selectOnly(databaseItems)
+        ..addColumns([databaseItems.trickPlayModel])
+        ..where(_matchesDownload(databaseItems, item)))
+      .map((row) => row.read(databaseItems.trickPlayModel))
+      .getSingleOrNull();
+
+  Future<int> saveTrickPlay(SyncedItem item, TrickPlayModel? model, {String? previous}) => (update(databaseItems)
+        ..where((row) =>
+            _matchesDownload(row, item) &
+            (model == null ? const Constant(true) : row.trickPlayModel.equalsNullable(previous))))
+      .write(DatabaseItemsCompanion(trickPlayModel: Value(model == null ? null : jsonEncode(model.toJson()))));
 
   Future<List<SyncedItem>> getNestedChildren(SyncedItem root) async {
     final itemType = root.createItemModel(ref)?.type;
@@ -131,17 +138,15 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> insertMultipleEntries(List<SyncedItem> items) async {
     await batch((batch) {
-      batch.insertAll(
-        databaseItems,
-        items.map(toDataBaseItem),
-        mode: InsertMode.insertOrReplace,
-      );
+      batch.insertAllOnConflictUpdate(databaseItems, items.map(toDataBaseItem));
     });
   }
 
   Future<void> deleteAllItems(List<SyncedItem> items) async {
     await batch((batch) {
-      batch.deleteWhere(databaseItems, (tbl) => tbl.id.isIn(items.map((e) => e.id)) & tbl.userId.equals(userId));
+      for (final item in items) {
+        batch.deleteWhere(databaseItems, (row) => _matchesDownload(row, item));
+      }
     });
   }
 
@@ -150,12 +155,12 @@ class AppDatabase extends _$AppDatabase {
       id: Value(item.id),
       parentId: Value(item.parentId),
       syncing: Value(item.syncing),
-      userId: Value(userId),
+      userId: Value(item.userId),
       path: Value(item.path),
       fileSize: Value(item.fileSize),
       sortName: Value(item.sortName),
       videoFileName: Value(item.videoFileName),
-      trickPlayModel: Value(item.fTrickPlayModel != null ? jsonEncode(item.fTrickPlayModel?.toJson()) : null),
+      // Preview publication has its own update so stale item metadata cannot replace it.
       mediaSegments: Value(item.mediaSegments != null ? jsonEncode(item.mediaSegments?.toJson()) : null),
       images: Value(item.fImages != null ? jsonEncode(item.fImages?.toJson()) : null),
       chapters: Value(jsonEncode(item.fChapters.map((e) => e.toJson()).toList())),

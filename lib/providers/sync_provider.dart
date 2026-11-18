@@ -11,6 +11,7 @@ import 'package:collection/collection.dart';
 import 'package:drift_db_viewer/drift_db_viewer.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 
@@ -28,6 +29,7 @@ import 'package:fladder/models/items/movie_model.dart';
 import 'package:fladder/models/items/playlist_model.dart';
 import 'package:fladder/models/items/season_model.dart';
 import 'package:fladder/models/items/series_model.dart';
+import 'package:fladder/models/items/trick_play_model.dart';
 import 'package:fladder/models/syncing/database_item.dart';
 import 'package:fladder/models/syncing/download_stream.dart';
 import 'package:fladder/models/syncing/sync_item.dart';
@@ -60,9 +62,43 @@ final activeDownloadTasksProvider = StateProvider<List<DownloadTask>>((ref) {
 
 const syncPathKey = "syncPathKey";
 
+class _OfflineTrickPlay {
+  _OfflineTrickPlay(this.isCurrentAccount);
+
+  final _cancelled = Completer<void>();
+  final bool Function() isCurrentAccount;
+  http.Client? client;
+  Future<bool>? enqueue;
+  Future<void>? done;
+
+  bool get isCancelled => _cancelled.isCompleted;
+  bool get isCurrent => !isCancelled && isCurrentAccount();
+
+  void cancel() {
+    if (!isCancelled) _cancelled.complete();
+    closeClient();
+  }
+
+  void closeClient() {
+    client?.close();
+    client = null;
+  }
+
+  Future<T?> requestMetadata<T>(Future<T> response) => Future.any([
+        response.timeout(const Duration(seconds: 10)),
+        _cancelled.future.then<T?>((_) => null),
+      ]);
+
+  Future<void> waitForCancellation() async {
+    cancel();
+    await enqueue?.then<void>((_) {}, onError: (Object _) {});
+    await done;
+  }
+}
+
 class SyncNotifier extends StateNotifier<SyncSettingsModel> {
-  SyncNotifier(this.ref, this.mobileDirectory)
-      : _db = AppDatabase(ref),
+  SyncNotifier(this.ref, this.mobileDirectory, {AppDatabase? database})
+      : _db = database ?? AppDatabase(ref),
         super(SyncSettingsModel()) {
     _init();
   }
@@ -75,6 +111,7 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
   bool updatingSyncStatus = false;
 
   StreamSubscription<List<SyncedItem>>? _subscription;
+  final _offlineTrickPlay = <String, _OfflineTrickPlay>{};
 
   @override
   set state(SyncSettingsModel value) {
@@ -111,6 +148,9 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
     ref.listen(
       userProvider,
       (previous, next) {
+        if (previous?.id != next?.id || previous?.credentials != next?.credentials) {
+          _cancelOfflineTrickPlayForAccountChange();
+        }
         if (previous?.id != next?.id) {
           if (next?.id != null) {
             _initializeQueryStream(id: next!.id);
@@ -118,6 +158,9 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
         }
       },
     );
+    ref.listen(serverUrlProvider, (previous, next) {
+      if (previous != next) _cancelOfflineTrickPlayForAccountChange();
+    });
 
     ref.listen(connectivityStatusProvider, (_, next) {
       if (next != ConnectionState.offline) {
@@ -222,8 +265,8 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
   String? get _savePath => JmsTestProfilePolicy.enabled
       ? mobileDirectory.path
       : !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
-      ? ref.read(clientSettingsProvider.select((value) => value.syncPath))
-      : mobileDirectory.path;
+          ? ref.read(clientSettingsProvider.select((value) => value.syncPath))
+          : mobileDirectory.path;
 
   String? get savePath => _savePath;
 
@@ -259,6 +302,7 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
 
   @override
   void dispose() {
+    _cancelOfflineTrickPlayForAccountChange();
     _subscription?.cancel();
     super.dispose();
   }
@@ -330,7 +374,6 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
         sortName: newSyncedItem.sortName,
         syncing: false,
         fImages: newSyncedItem.fImages,
-        fTrickPlayModel: newSyncedItem.fTrickPlayModel,
         subtitles: newSyncedItem.subtitles,
         userData: UserData.determineLastUserData([item.userData, newSyncedItem.userData]),
       );
@@ -409,6 +452,7 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
               )
               .toList());
 
+      await Future.wait([item, ...nestedChildren].map((entry) => _cancelOfflineTrickPlay(entry.directory.path)));
       await ref.read(backgroundDownloaderProvider).cancelTaskWithId(item.id);
 
       await _db.deleteAllItems([...nestedChildren, item]);
@@ -472,6 +516,7 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
   }
 
   Future<void> _deleteSyncedItemAndFiles(SyncedItem item) async {
+    await _cancelOfflineTrickPlay(item.directory.path);
     await ref.read(backgroundDownloaderProvider).cancelTaskWithId(item.id);
     await _db.deleteAllItems([item]);
     if (await item.directory.exists()) {
@@ -620,16 +665,18 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
       return syncedItem;
     }
 
+    await _cancelOfflineTrickPlay(syncedItem.directory.path);
+    await ref.read(backgroundDownloaderProvider).cancelTaskWithId(syncedItem.id);
     await syncedItem.deleteDatFiles(ref);
+    await _db.saveTrickPlay(syncedItem, null);
 
     syncedItem = syncedItem.copyWith(
       transcodeDownloadModel: null,
+      fTrickPlayModel: null,
     );
     await updateItem(syncedItem);
 
     ref.read(downloadTasksProvider(syncedItem.id).notifier).update((state) => DownloadStream.empty());
-
-    ref.read(backgroundDownloaderProvider).cancelTaskWithId(syncedItem.id);
 
     cleanupTemporaryFiles();
     refresh();
@@ -655,7 +702,17 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
     final effectiveTranscodeModel = transcodeModel ?? globalTranscodeModel;
     final effectiveMusicTranscodeModel = musicTranscodeModel ?? globalMusicTranscodeModel;
 
-    final userId = ref.read(userProvider)?.id;
+    final user = ref.read(userProvider);
+    if (user == null || user.id != syncItem.userId) return null;
+    final serverUrl = ref.read(serverUrlProvider);
+    bool isCurrentAccount() {
+      if (!mounted) return false;
+      final current = ref.read(userProvider);
+      return current?.id == user.id &&
+          current?.credentials == user.credentials &&
+          ref.read(serverUrlProvider) == serverUrl;
+    }
+
     final item = syncItem.createItemModel(ref);
     if (item == null) return null;
     final isAudioItem = item is AudioModel;
@@ -674,7 +731,7 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
           .itemsItemIdPlaybackInfoPost(
             itemId: syncItem.id,
             body: PlaybackInfoDto(
-              userId: userId,
+              userId: user.id,
               enableDirectPlay: !transcodeEnabled,
               enableDirectStream: !transcodeEnabled,
               enableTranscoding: true,
@@ -694,6 +751,7 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
       log('No playback info received for item ${syncItem.id}');
       return null;
     }
+    if (!isCurrentAccount()) return null;
 
     final directory = await Directory(syncItem.directory.path).create(recursive: true);
 
@@ -702,7 +760,6 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
         ? <SubStreamModel>[]
         : await saveExternalSubtitles(newState?.mediaStreamsModel?.subStreams, syncItem);
 
-    final trickPlayFile = isAudioItem ? null : await saveTrickPlayData(item, directory);
     final mediaSegments = isAudioItem ? null : (await api.mediaSegmentsGet(id: syncItem.id))?.body;
 
     syncItem = syncItem.copyWith(
@@ -716,7 +773,6 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
                   : effectiveTranscodeModel.container.extension,
             )
           : syncItem.videoFileName,
-      fTrickPlayModel: trickPlayFile,
       mediaSegments: mediaSegments,
       transcodeDownloadModel: isAudioItem ? null : effectiveTranscodeModel,
     );
@@ -728,12 +784,9 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
       await writeOverlayFile(syncItem, effectiveTranscodeModel, subtitles);
     }
 
+    if (!isCurrentAccount()) return null;
     await updateItem(syncItem);
-
-    final currentTask = ref.read(downloadTasksProvider(syncItem.id));
-    final user = ref.read(userProvider);
-
-    if (user == null) return null;
+    if (!isCurrentAccount()) return null;
 
     final mediaSource = playbackData.mediaSources?.firstOrNull;
 
@@ -761,9 +814,6 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
     }
 
     try {
-      if (currentTask.task != null) {
-        await ref.read(backgroundDownloaderProvider).cancelTaskWithId(currentTask.id);
-      }
       if (!skipDownload) {
         final curlHeaders = {
           ...user.credentials.header(ref),
@@ -786,14 +836,45 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
           allowPause: true,
         );
 
-        ref.read(activeDownloadTasksProvider.notifier).update((state) {
-          final existingTasks = state.where((element) => element.taskId != downloadTask.taskId).toList();
-          return [...existingTasks, downloadTask];
-        });
-
-        final defaultDownloadStream = DownloadStream(id: syncItem.id, task: downloadTask, status: TaskStatus.enqueued);
-        ref.read(downloadTasksProvider(syncItem.id).notifier).update((state) => defaultDownloadStream);
-        return await ref.read(backgroundDownloaderProvider).enqueue(downloadTask);
+        final directoryPath = directory.path;
+        final previousPreview = _offlineTrickPlay[directoryPath];
+        final preview = isAudioItem ? null : _OfflineTrickPlay(isCurrentAccount);
+        if (preview != null) _offlineTrickPlay[directoryPath] = preview;
+        var queued = false;
+        try {
+          await previousPreview?.waitForCancellation();
+          if (!(preview?.isCurrent ?? isCurrentAccount())) return null;
+          final downloader = ref.read(backgroundDownloaderProvider);
+          final currentTask = ref.read(downloadTasksProvider(syncItem.id));
+          if (currentTask.task != null) await downloader.cancelTaskWithId(currentTask.id);
+          if (!(preview?.isCurrent ?? isCurrentAccount())) return null;
+          ref.read(activeDownloadTasksProvider.notifier).update((state) {
+            final existingTasks = state.where((element) => element.taskId != downloadTask.taskId).toList();
+            return [...existingTasks, downloadTask];
+          });
+          ref.read(downloadTasksProvider(syncItem.id).notifier).update(
+                (state) => DownloadStream(id: syncItem.id, task: downloadTask, status: TaskStatus.enqueued),
+              );
+          final enqueue = downloader.enqueue(downloadTask);
+          if (preview != null) preview.enqueue = enqueue;
+          queued = await enqueue;
+          if (queued && preview != null && preview.isCurrent) {
+            preview.done = _saveOfflineTrickPlay(syncItem, item, preview);
+          }
+          return queued;
+        } finally {
+          if (preview?.done == null && identical(_offlineTrickPlay[directoryPath], preview)) {
+            _offlineTrickPlay.remove(directoryPath);
+          }
+          if (!queued) {
+            ref.read(activeDownloadTasksProvider.notifier).update(
+                  (state) => state.where((task) => !identical(task, downloadTask)).toList(),
+                );
+            ref.read(downloadTasksProvider(syncItem.id).notifier).update(
+                  (state) => identical(state.task, downloadTask) ? DownloadStream.empty() : state,
+                );
+          }
+        }
       }
     } catch (e) {
       log(e.toString());
@@ -803,7 +884,91 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
     return null;
   }
 
+  Future<void> _cancelOfflineTrickPlay(String directory) async {
+    await _offlineTrickPlay[directory]?.waitForCancellation();
+  }
+
+  void _cancelOfflineTrickPlayForAccountChange() {
+    for (final preview in _offlineTrickPlay.values) {
+      preview.cancel();
+    }
+  }
+
+  Future<void> cancelSyncTasks(List<DownloadTask> tasks) async {
+    await Future.wait(tasks.map((task) => _cancelOfflineTrickPlay(task.directory)));
+    await ref.read(backgroundDownloaderProvider).cancelAll(tasks: tasks);
+  }
+
+  Future<void> _saveOfflineTrickPlay(SyncedItem syncItem, ItemBaseModel item, _OfflineTrickPlay preview) async {
+    Directory? tiles;
+    var saved = false;
+    try {
+      if (!preview.isCurrent) return;
+      final previous = await _db.readTrickPlay(syncItem);
+      final oldModel = previous == null ? null : TrickPlayModel.fromJson(jsonDecode(previous));
+      if (oldModel != null && await _hasOfflineTrickPlay(syncItem, oldModel)) return;
+      if (!preview.isCurrent) return;
+      final model = (await preview.requestMetadata(api.getTrickPlay(item: item, ref: ref)))?.body;
+      if (!preview.isCurrent || model == null || model.images.isEmpty) return;
+
+      final root = await syncItem.trickPlayDirectory.create(recursive: true);
+      tiles = await root.createTemp('tiles-');
+      if (!preview.isCurrent) return;
+      final client = preview.client = http.Client();
+      final images = <String>[];
+      for (final (index, url) in model.images.indexed) {
+        if (!preview.isCurrent) return;
+        final response = await client.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
+        if (!preview.isCurrent || response.statusCode != 200 || response.bodyBytes.isEmpty) return;
+        final filename = 'tile_$index.jpg';
+        await File(path.join(tiles.path, filename)).writeAsBytes(response.bodyBytes);
+        images.add(path.relative(path.join(tiles.path, filename), from: syncItem.directory.path));
+      }
+      if (preview.isCurrent) {
+        saved = await _db.saveTrickPlay(syncItem, model.copyWith(images: images), previous: previous) != 0;
+        if (saved && oldModel != null) await _removeOldOfflineTrickPlay(root, oldModel);
+      }
+    } catch (error) {
+      log('Failed to save offline previews for ${syncItem.id}: ${error.runtimeType}');
+    } finally {
+      preview.closeClient();
+      if (!saved && tiles != null) {
+        try {
+          await tiles.delete(recursive: true);
+        } on FileSystemException catch (error) {
+          log('Failed to remove partial offline previews for ${syncItem.id}: ${error.runtimeType}');
+        }
+      }
+      final directoryPath = syncItem.directory.path;
+      if (identical(_offlineTrickPlay[directoryPath], preview)) _offlineTrickPlay.remove(directoryPath);
+    }
+  }
+
+  Future<bool> _hasOfflineTrickPlay(SyncedItem item, TrickPlayModel model) async {
+    if (model.images.isEmpty || model.images.length * model.imagesPerTile < model.thumbnailCount) return false;
+    for (final image in model.images) {
+      if (!await File(path.join(item.directory.path, image)).exists()) return false;
+    }
+    return true;
+  }
+
+  Future<void> _removeOldOfflineTrickPlay(Directory root, TrickPlayModel model) async {
+    if (model.images.isEmpty) return;
+    final parts = path.split(model.images.first);
+    if (parts.length != 3 || parts[0] != SyncedItem.trickPlayPath || !parts[1].startsWith('tiles-')) return;
+    final expected = model.images.indexed.every((tile) {
+      final (index, file) = tile;
+      return path.normalize(file) == path.join(SyncedItem.trickPlayPath, parts[1], 'tile_$index.jpg');
+    });
+    if (!expected) return;
+    final directory = path.join(root.path, parts[1]);
+    if (await FileSystemEntity.type(directory, followLinks: false) == FileSystemEntityType.directory) {
+      await Directory(directory).delete(recursive: true);
+    }
+  }
+
   Future<void> removeAllSyncedData() async {
+    await Future.wait(_offlineTrickPlay.keys.toList().map(_cancelOfflineTrickPlay));
     if (await mainDirectory.exists()) {
       await mainDirectory.delete(recursive: true);
     }

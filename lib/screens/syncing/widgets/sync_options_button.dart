@@ -196,8 +196,8 @@ class SyncOptionsButton extends ConsumerWidget {
                 ],
               ),
               onTap: () {
-                ref.read(backgroundDownloaderProvider).cancelAll(
-                    tasks: [...runningTasks, ...pausedTasks, ...enqueuedTasks].map((e) => e.task).nonNulls.toList());
+                ref.read(syncProvider.notifier).cancelSyncTasks(
+                    [...runningTasks, ...pausedTasks, ...enqueuedTasks].map((e) => e.task).nonNulls.toList());
               },
             ),
           ]

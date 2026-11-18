@@ -1,0 +1,352 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:background_downloader/background_downloader.dart';
+import 'package:chopper/chopper.dart';
+import 'package:drift/native.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:path/path.dart' as path;
+
+import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart';
+import 'package:fladder/models/account_model.dart';
+import 'package:fladder/models/credentials_model.dart';
+import 'package:fladder/models/item_base_model.dart';
+import 'package:fladder/models/items/media_segments_model.dart';
+import 'package:fladder/models/items/media_streams_model.dart';
+import 'package:fladder/models/items/trick_play_model.dart';
+import 'package:fladder/models/syncing/database_item.dart';
+import 'package:fladder/models/syncing/sync_item.dart';
+import 'package:fladder/models/syncing/sync_settings_model.dart';
+import 'package:fladder/models/syncing/transcode_download_model.dart';
+import 'package:fladder/models/syncing/transcode_music_download_model.dart';
+import 'package:fladder/providers/api_provider.dart';
+import 'package:fladder/providers/service_provider.dart';
+import 'package:fladder/providers/sync/background_download_provider.dart';
+import 'package:fladder/providers/sync/sync_provider_media.dart';
+import 'package:fladder/providers/sync_provider.dart';
+import 'package:fladder/providers/user_provider.dart';
+
+class _Subscription<T> extends Fake implements ProviderSubscription<T> {}
+
+class _FixtureRef extends Fake implements Ref {
+  @override
+  final container = ProviderContainer();
+  final values = <Object, Object?>{};
+  void Function(Object)? onRead;
+
+  @override
+  T read<T>(ProviderListenable<T> provider) {
+    onRead?.call(provider);
+    if (values.containsKey(provider)) return values[provider] as T;
+    if (T == String) return ((values[userProvider] as AccountModel?)?.id ?? '') as T;
+    if (T == TranscodeDownloadModel) return TranscodeDownloadModel.fromDefaults() as T;
+    if (T == TranscodeMusicDownloadModel) return const TranscodeMusicDownloadModel() as T;
+    if (T == bool) return false as T;
+    return container.read(provider);
+  }
+
+  @override
+  ProviderSubscription<T> listen<T>(
+    ProviderListenable<T> provider,
+    void Function(T? previous, T next) listener, {
+    void Function(Object, StackTrace)? onError,
+    bool fireImmediately = false,
+  }) =>
+      _Subscription<T>();
+}
+
+class _Notifier extends SyncNotifier {
+  _Notifier(super.ref, super.mobileDirectory, this.database) : super(database: database);
+
+  final AppDatabase database;
+
+  @override
+  set state(SyncSettingsModel value) {}
+
+  @override
+  Future<void> cleanupTemporaryFiles() async {}
+
+  @override
+  Future<int> updateItem(SyncedItem item) => database.insertItem(item);
+}
+
+class _Downloader extends Fake implements FileDownloader {
+  _Downloader(this.events);
+  final List<String> events;
+  DownloadTask? downloadTask;
+
+  @override
+  Future<bool> enqueue(Task task) async {
+    downloadTask = task as DownloadTask;
+    events.add('media');
+    return true;
+  }
+
+  @override
+  Future<bool> cancelAll({Iterable<Task>? tasks, String? group}) async => true;
+
+  @override
+  Future<bool> cancelTaskWithId(String taskId) async => true;
+}
+
+class _Api extends Fake implements JellyService {
+  _Api({this.manifestRequested, this.pendingManifest});
+
+  final Completer<void>? manifestRequested;
+  final Future<Response<TrickPlayModel>?>? pendingManifest;
+
+  @override
+  Future<Response<PlaybackInfoResponse>> itemsItemIdPlaybackInfoPost({
+    required String? itemId,
+    required PlaybackInfoDto? body,
+  }) async =>
+      Response(
+        http.Response('', 200),
+        const PlaybackInfoResponse(mediaSources: [MediaSourceInfo(id: 'source', supportsDirectPlay: true)]),
+      );
+
+  @override
+  Future<Response<MediaSegmentsModel>?> mediaSegmentsGet({required String id}) async => null;
+
+  @override
+  Future<Response<TrickPlayModel>?> getTrickPlay({
+    required ItemBaseModel? item,
+    int? width,
+    required Ref ref,
+  }) async {
+    manifestRequested?.complete();
+    if (pendingManifest case final pending?) return pending;
+    return Response(
+      http.Response('', 200),
+      TrickPlayModel(
+        width: 10,
+        height: 10,
+        tileWidth: 1,
+        tileHeight: 1,
+        thumbnailCount: 1,
+        interval: const Duration(seconds: 5),
+        images: ['https://fixture.invalid/tile.jpg'],
+      ),
+    );
+  }
+}
+
+SubStreamModel _subtitle(int index) => SubStreamModel(
+      name: 'Chinese',
+      id: 'track-$index',
+      title: 'Chinese',
+      displayTitle: 'Chinese',
+      language: 'chi',
+      codec: 'ass',
+      url: 'https://fixture.invalid/subtitle/$index',
+      isDefault: false,
+      isExternal: true,
+      index: index,
+    );
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  late Directory directory;
+  late _FixtureRef ref;
+  late _Notifier notifier;
+  late SyncedItem item;
+  late AppDatabase database;
+
+  setUp(() async {
+    directory = await Directory.systemTemp.createTemp('jms-offline-test-');
+    ref = _FixtureRef()..values[userProvider] = null;
+    database = AppDatabase(ref, NativeDatabase.memory());
+    notifier = _Notifier(ref, directory, database);
+    item = SyncedItem(id: 'movie', userId: 'user', path: directory.path, videoFileName: 'movie.mkv');
+  });
+
+  tearDown(() async {
+    notifier.dispose();
+    await database.close();
+    ref.container.dispose();
+    await directory.delete(recursive: true);
+  });
+
+  test('same-label offline subtitles keep separate contents', () async {
+    final tracks = await http.runWithClient(
+      () => notifier.saveExternalSubtitles([_subtitle(4), _subtitle(7)], item),
+      () => MockClient((request) async => http.Response(request.url.pathSegments.last, 200)),
+    );
+
+    expect(tracks.map((track) => track.url).toSet(), hasLength(2));
+    expect(await File(tracks.first.url!).readAsString(), '4');
+    expect(await File(tracks.last.url!).readAsString(), '7');
+  });
+
+  Future<_Downloader> prepareSync(List<String> events, {_Api? api}) async {
+    final downloader = _Downloader(events);
+    ref.values.addAll({
+      jellyApiProvider: api ?? _Api(),
+      backgroundDownloaderProvider: downloader,
+      serverUrlProvider: 'https://fixture.invalid',
+      userProvider: AccountModel(
+        name: 'Synthetic',
+        id: 'user',
+        avatar: '',
+        lastUsed: DateTime(2026),
+        credentials: CredentialsModel.internal(token: 'synthetic', url: 'https://fixture.invalid'),
+      ),
+    });
+    await item.dataFile.writeAsString('{"Id":"movie","Name":"Synthetic movie","Type":"Movie","MediaType":"Video"}');
+    return downloader;
+  }
+
+  test('the main file enters the queue before an optional thumbnail failure', () async {
+    final events = <String>[];
+    final downloader = await prepareSync(events);
+    final thumbnailStarted = Completer<void>();
+    final result = await http.runWithClient(
+      () => notifier.syncFile(item, false).then<Object?>((value) => value, onError: (Object error) => error),
+      () => MockClient((request) async {
+        events.add('thumbnail');
+        thumbnailStarted.complete();
+        throw http.ClientException('synthetic thumbnail failure', request.url);
+      }),
+    );
+
+    await thumbnailStarted.future.timeout(const Duration(seconds: 2));
+    expect(events, ['media', 'thumbnail']);
+    expect(result, isTrue);
+    await notifier.cancelSyncTasks([downloader.downloadTask!]);
+    expect(await item.trickPlayDirectory.list().toList(), isEmpty);
+  });
+
+  test('cancel does not wait for a thumbnail response or publish its late bytes', () async {
+    final downloader = await prepareSync([]);
+    final thumbnailStarted = Completer<void>();
+    final thumbnail = Completer<http.Response>();
+    final clientClosed = Completer<void>();
+    final result = await http.runWithClient(
+      () => notifier.syncFile(item, false),
+      () => _ClosingMockClient((request) {
+        thumbnailStarted.complete();
+        return Future.any([
+          thumbnail.future,
+          clientClosed.future.then<http.Response>((_) => throw http.ClientException('closed', request.url)),
+        ]);
+      }, clientClosed),
+    );
+
+    expect(result, isTrue);
+    await thumbnailStarted.future.timeout(const Duration(seconds: 2));
+    await notifier.cancelSyncTasks([downloader.downloadTask!]).timeout(const Duration(seconds: 1));
+    expect(clientClosed.isCompleted, isTrue);
+    thumbnail.complete(http.Response('late', 200));
+    expect(await item.trickPlayDirectory.list().toList(), isEmpty);
+  });
+
+  test('unrelated metadata updates preserve a committed preview', () async {
+    await prepareSync([]);
+    await database.insertItem(item);
+    final preview = (await _Api().getTrickPlay(item: null, ref: ref))!.body!;
+    expect(await database.saveTrickPlay(item, preview), 1);
+
+    await database.insertItem(item.copyWith(sortName: 'Changed'));
+    await database.insertMultipleEntries([item.copyWith(sortName: 'Changed again')]);
+
+    final saved = (await notifier.getSyncedItem(item.id))!;
+    expect(saved.sortName, 'Changed again');
+    expect(saved.fTrickPlayModel?.toJson(), preview.toJson());
+    expect(await database.saveTrickPlay(item, preview), 0);
+  });
+
+  test('deletion remains scoped to the captured account and path', () async {
+    await prepareSync([]);
+    final second = item.copyWith(userId: 'other-user');
+    await database.insertMultipleEntries([item, second]);
+    final current = ref.values[userProvider] as AccountModel;
+    ref.values[userProvider] = current.copyWith(id: second.userId);
+
+    await database.deleteAllItems([item.copyWith(path: '${directory.path}-old')]);
+    ref.values[userProvider] = current;
+    expect(await notifier.getSyncedItem(item.id), isNotNull);
+    ref.values[userProvider] = current.copyWith(id: second.userId);
+
+    await database.deleteAllItems([item]);
+    expect((await notifier.getSyncedItem(second.id))?.userId, second.userId);
+    ref.values[userProvider] = current;
+    expect(await notifier.getSyncedItem(item.id), isNull);
+  });
+
+  test('changing server with the same user ID discards a held preview manifest', () async {
+    final manifestRequested = Completer<void>();
+    final manifest = Completer<Response<TrickPlayModel>?>();
+    final api = _Api(manifestRequested: manifestRequested, pendingManifest: manifest.future);
+    await prepareSync([], api: api);
+    var tiles = 0;
+
+    final result = await http.runWithClient(
+      () => notifier.syncFile(item, false),
+      () => MockClient((request) async {
+        tiles++;
+        return http.Response('wrong account', 200);
+      }),
+    );
+    expect(result, isTrue);
+    await manifestRequested.future.timeout(const Duration(seconds: 2));
+
+    ref.values[serverUrlProvider] = 'https://other-fixture.invalid';
+    final scopeChecked = Completer<void>();
+    ref.onRead = (provider) {
+      if (provider == serverUrlProvider && !scopeChecked.isCompleted) scopeChecked.complete();
+    };
+    manifest.complete(await _Api().getTrickPlay(item: null, ref: ref));
+    await scopeChecked.future.timeout(const Duration(seconds: 2));
+
+    expect(tiles, 0);
+    expect(await item.trickPlayDirectory.exists(), isFalse);
+    expect(await database.readTrickPlay(item), isNull);
+  });
+
+  test('a successful thumbnail repair replaces only the previous generated cache', () async {
+    final downloader = await prepareSync([]);
+    await database.insertItem(item);
+    final root = await item.trickPlayDirectory.create();
+    final old = await root.createTemp('tiles-');
+    final unrelated = await root.createTemp('tiles-');
+    final legacy = await File(path.join(root.path, 'tile_0.jpg')).writeAsString('legacy');
+    final oldRelative = path.relative(path.join(old.path, 'tile_0.jpg'), from: directory.path);
+    final model = (await _Api().getTrickPlay(item: null, ref: ref))!.body!;
+    expect(await database.saveTrickPlay(item, model.copyWith(images: [oldRelative])), 1);
+    final initial = await database.readTrickPlay(item);
+
+    expect(
+        await http.runWithClient(
+          () => notifier.syncFile(item, false),
+          () => MockClient((request) async => http.Response('new preview', 200)),
+        ),
+        isTrue);
+    await (() async {
+      while (await database.readTrickPlay(item) == initial) {
+        await Future<void>.delayed(const Duration(milliseconds: 1));
+      }
+    })()
+        .timeout(const Duration(seconds: 2));
+    await notifier.cancelSyncTasks([downloader.downloadTask!]);
+
+    final saved = (await notifier.getSyncedItem(item.id))!;
+    expect(await File(saved.trickPlayModel!.images.single).readAsString(), 'new preview');
+    expect(await old.exists(), isFalse);
+    expect(await unrelated.exists(), isTrue);
+    expect(await legacy.readAsString(), 'legacy');
+  });
+}
+
+class _ClosingMockClient extends MockClient {
+  _ClosingMockClient(super.fn, this.closed);
+  final Completer<void> closed;
+
+  @override
+  void close() {
+    closed.complete();
+    super.close();
+  }
+}

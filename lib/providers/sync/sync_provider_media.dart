@@ -1,16 +1,13 @@
 import 'dart:developer';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
-
+import 'package:collection/collection.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 
-import 'package:fladder/models/item_base_model.dart';
 import 'package:fladder/models/items/chapters_model.dart';
 import 'package:fladder/models/items/images_models.dart';
 import 'package:fladder/models/items/media_streams_model.dart';
-import 'package:fladder/models/items/trick_play_model.dart';
 import 'package:fladder/models/syncing/sync_item.dart';
 import 'package:fladder/providers/sync_provider.dart';
 import 'package:fladder/screens/shared/fladder_notification_overlay.dart';
@@ -24,15 +21,17 @@ extension SyncMediaHelpers on SyncNotifier {
 
     await directory.create(recursive: true);
 
-    return Stream.fromIterable(subtitles).asyncMap((element) async {
+    return Stream.fromIterable(subtitles.mapIndexed((position, element) => (position, element)))
+        .asyncMap((track) async {
+      final (position, element) = track;
       final canDownload = element.isExternal || (element.supportsExternalStream && element.url != null);
       if (canDownload) {
         try {
           final response = await http.get(Uri.parse(element.url!));
           if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
             final ext = subtitleExtension(element.codec);
-            final file = File(path.joinAll([directory.path, "${element.displayTitle}.${element.language}.$ext"]));
-            file.writeAsBytesSync(response.bodyBytes);
+            final file = File(path.join(directory.path, 'subtitle-${element.index}-$position.$ext'));
+            await file.writeAsBytes(response.bodyBytes);
             return element.copyWith(
               url: () => file.path,
               isExternal: true,
@@ -57,32 +56,6 @@ extension SyncMediaHelpers on SyncNotifier {
       'pgs' || 'pgssub' => 'sup',
       _ => 'srt',
     };
-  }
-
-  Future<TrickPlayModel?> saveTrickPlayData(ItemBaseModel? item, Directory saveDirectory) async {
-    if (item == null) return null;
-    final trickPlayDirectory = Directory(path.joinAll([saveDirectory.path, SyncedItem.trickPlayPath]))
-      ..createSync(recursive: true);
-    final trickPlayData = await api.getTrickPlay(item: item, ref: ref);
-    final List<String> newStringList = [];
-
-    for (var index = 0; index < (trickPlayData?.body?.images.length ?? 0); index++) {
-      final image = trickPlayData?.body?.images[index];
-      if (image != null) {
-        final http.Response response = await http.get(Uri.parse(image));
-        File? newFile;
-        final fileName = "tile_$index.jpg";
-        if (response.statusCode == 200) {
-          final Uint8List bytes = response.bodyBytes;
-          newFile = File(path.joinAll([trickPlayDirectory.path, fileName]));
-          await newFile.writeAsBytes(bytes);
-        }
-        if (newFile != null && await newFile.exists()) {
-          newStringList.add(path.joinAll(['TrickPlay', fileName]));
-        }
-      }
-    }
-    return trickPlayData?.body?.copyWith(images: newStringList.toList());
   }
 
   Future<ImagesData?> saveImageData(ImagesData? data, Directory saveDirectory) async {
