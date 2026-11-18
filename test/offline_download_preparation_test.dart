@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:background_downloader/background_downloader.dart';
@@ -9,11 +10,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:path/path.dart' as path;
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
 import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart';
 import 'package:fladder/models/account_model.dart';
 import 'package:fladder/models/credentials_model.dart';
 import 'package:fladder/models/item_base_model.dart';
+import 'package:fladder/models/items/item_shared_models.dart';
 import 'package:fladder/models/items/media_segments_model.dart';
 import 'package:fladder/models/items/media_streams_model.dart';
 import 'package:fladder/models/items/trick_play_model.dart';
@@ -23,6 +26,7 @@ import 'package:fladder/models/syncing/sync_settings_model.dart';
 import 'package:fladder/models/syncing/transcode_download_model.dart';
 import 'package:fladder/models/syncing/transcode_music_download_model.dart';
 import 'package:fladder/providers/api_provider.dart';
+import 'package:fladder/providers/connectivity_provider.dart';
 import 'package:fladder/providers/service_provider.dart';
 import 'package:fladder/providers/sync/background_download_provider.dart';
 import 'package:fladder/providers/sync/sync_provider_media.dart';
@@ -67,10 +71,21 @@ class _Notifier extends SyncNotifier {
   set state(SyncSettingsModel value) {}
 
   @override
-  Future<void> cleanupTemporaryFiles() async {}
+  Future<int> updateItem(SyncedItem item) => database.insertItem(item);
+}
+
+class _FixturePaths extends PathProviderPlatform {
+  _FixturePaths(this.path);
+  final String path;
 
   @override
-  Future<int> updateItem(SyncedItem item) => database.insertItem(item);
+  Future<String?> getTemporaryPath() async => path;
+
+  @override
+  Future<String?> getApplicationSupportPath() async => path;
+
+  @override
+  Future<String?> getApplicationDocumentsPath() async => path;
 }
 
 class _Downloader extends Fake implements FileDownloader {
@@ -337,6 +352,144 @@ void main() {
     expect(await old.exists(), isFalse);
     expect(await unrelated.exists(), isTrue);
     expect(await legacy.readAsString(), 'legacy');
+  });
+
+  void activate(String id, String server) {
+    final url = 'https://$server.fixture.invalid/jellyfin';
+    ref.values.addAll({
+      serverUrlProvider: url,
+      connectivityStatusProvider: ConnectionState.wifi,
+      userProvider: AccountModel(
+          name: id,
+          id: id,
+          avatar: '',
+          lastUsed: DateTime(2026),
+          credentials: CredentialsModel.internal(token: 'token-$server', url: url, serverId: server)),
+    });
+  }
+
+  Future<SyncedItem> pending(String id, String account, String server, int ticks) async {
+    final itemFolder = await Directory(path.join(directory.path, '$server-$id')).create();
+    final pending = SyncedItem(
+        id: id,
+        userId: account,
+        path: itemFolder.path,
+        sortName: id,
+        unSyncedData: true,
+        userData: UserData(playbackPositionTicks: ticks));
+    await pending.dataFile
+        .writeAsString(jsonEncode(BaseItemDto(id: id, serverId: server, name: id, type: BaseItemKind.movie).toJson()));
+    await database.insertItem(pending);
+    return pending;
+  }
+
+  test('held replay cannot cross account and the new account can sync before it completes', () async {
+    activate('account-a', 'server-a');
+    await pending('first', 'account-a', 'server-a', 10);
+    await pending('second', 'account-a', 'server-a', 20);
+    await pending('first', 'account-b', 'server-b', 30);
+    final called = <(String, String, int)>[];
+    final oldStarted = Completer<void>();
+    final oldResponse = Completer<http.Response>();
+    await http.runWithClient(() async {
+      final old = notifier.updateSyncStates();
+      await oldStarted.future.timeout(const Duration(seconds: 2));
+      activate('account-b', 'server-b');
+      await notifier.updateSyncStates();
+      final callsBeforeOldResponse = called.toList();
+      oldResponse.complete(http.Response('{}', 200));
+      await old;
+
+      expect(callsBeforeOldResponse,
+          [('server-a.fixture.invalid', 'account-a', 10), ('server-b.fixture.invalid', 'account-b', 30)]);
+      expect(called, callsBeforeOldResponse);
+      expect((await notifier.getSyncedItem('first'))?.unSyncedData, isFalse);
+      activate('account-a', 'server-a');
+      expect((await notifier.getSyncedItem('first'))?.unSyncedData, isTrue);
+      expect((await notifier.getSyncedItem('second'))?.unSyncedData, isTrue);
+    },
+        () => MockClient((request) async {
+              final ticks = (jsonDecode(request.body) as Map)['PlaybackPositionTicks'] as int;
+              expect(request.headers['authorization'], contains('Token="token-${request.url.host.split('.').first}"'));
+              expect(request.url.pathSegments.first, 'jellyfin');
+              expect(request.followRedirects, isFalse);
+              called.add((request.url.host, request.url.queryParameters['userId']!, ticks));
+              if (called.length == 1) {
+                oldStarted.complete();
+                return oldResponse.future;
+              }
+              return http.Response('{}', 200);
+            }));
+  });
+
+  test('replay holds foreign and unverified server data and refuses redirects', () async {
+    activate('same-id', 'server-b');
+    await pending('a-old-server-item', 'same-id', 'server-a', 10);
+    await pending('b-unverified-item', 'same-id', '', 20);
+    await pending('c-current-server-item', 'same-id', 'server-b', 30);
+    final requested = <http.Request>[];
+    await http.runWithClient(
+        notifier.updateSyncStates,
+        () => MockClient((request) async {
+              requested.add(request);
+              return http.Response('', 307, headers: {'location': 'https://redirect.fixture.invalid/UserData'});
+            }));
+
+    expect(requested.single.url.host, 'server-b.fixture.invalid');
+    expect(requested.single.url.pathSegments, ['jellyfin', 'UserItems', 'c-current-server-item', 'UserData']);
+    expect(requested.single.followRedirects, isFalse);
+    expect((await notifier.getSyncedItem('a-old-server-item'))?.unSyncedData, isTrue);
+    expect((await notifier.getSyncedItem('b-unverified-item'))?.unSyncedData, isTrue);
+    expect((await notifier.getSyncedItem('c-current-server-item'))?.unSyncedData, isTrue);
+  });
+
+  test('acknowledging older offline data preserves a newer edit', () async {
+    activate('account-a', 'server-a');
+    final original = await pending('movie', 'account-a', 'server-a', 10);
+    final called = <int>[];
+    final postStarted = Completer<void>();
+    final firstResponse = Completer<http.Response>();
+    await http.runWithClient(() async {
+      final replay = notifier.updateSyncStates();
+      await postStarted.future.timeout(const Duration(seconds: 2));
+      await database
+          .insertItem(original.copyWith(userData: const UserData(playbackPositionTicks: 20), sortName: 'New metadata'));
+      firstResponse.complete(http.Response('{}', 200));
+      await replay;
+
+      final saved = (await notifier.getSyncedItem('movie'))!;
+      expect(saved.userData?.playbackPositionTicks, 20);
+      expect(saved.sortName, 'New metadata');
+      expect(saved.unSyncedData, isTrue);
+    },
+        () => MockClient((request) async {
+              called.add((jsonDecode(request.body) as Map)['PlaybackPositionTicks'] as int);
+              if (called.length == 1) {
+                postStarted.complete();
+                return firstResponse.future;
+              }
+              return http.Response('{}', 503);
+            }));
+  });
+
+  test('startup preserves a download partial before downloader tasks are restored', () async {
+    final previous = PathProviderPlatform.instance;
+    PathProviderPlatform.instance = _FixturePaths(directory.path);
+    addTearDown(() => PathProviderPlatform.instance = previous);
+    final partial = await File(path.join(directory.path, 'com.bbflight.background_downloader-resume-partial'))
+        .writeAsString('resumable bytes');
+    final task = DownloadTask(taskId: 'FIXTURE_PAUSED_DOWNLOAD', url: 'https://fixture.invalid/movie.mkv');
+    final storage = LocalStorePersistentStorage();
+    await storage.initialize();
+    await storage.storeResumeData(ResumeData(task, partial.path, await partial.length(), 'FAKE_ETAG'));
+    await storage.retrieveAllResumeData();
+    final startup = SyncNotifier(ref, directory, database: database);
+    addTearDown(startup.dispose);
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    final resume = (await storage.retrieveResumeData(task.taskId))!;
+    expect(resume.tempFilepath, partial.path);
+    expect(await File(resume.tempFilepath).length(), resume.requiredStartByte);
+    expect(await File(resume.tempFilepath).readAsString(), 'resumable bytes');
   });
 }
 

@@ -13,7 +13,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 
 import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart';
 import 'package:fladder/models/api_result.dart';
@@ -108,7 +107,9 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
   final Directory mobileDirectory;
   final String subPath = "Synced";
 
-  bool updatingSyncStatus = false;
+  int _offlineAccountEpoch = 0;
+  final _replayingUserData = <(String, String)>{};
+  final _replayRequested = <(String, String)>{};
 
   StreamSubscription<List<SyncedItem>>? _subscription;
   final _offlineTrickPlay = <String, _OfflineTrickPlay>{};
@@ -120,36 +121,97 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
   }
 
   Future<void> updateSyncStates() async {
-    final lastState =
-        (await _db.getAllItems.get()).where((item) => item.unSyncedData && item.userData != null).toList();
-    if (updatingSyncStatus || lastState.isEmpty) return;
-    updatingSyncStatus = true;
+    if (!mounted) return;
+    final account = ref.read(userProvider);
+    if (account == null || account.credentials.serverId.isEmpty) return;
+    final server = ref.read(serverUrlProvider);
+    if (server == null || server.isEmpty || ref.read(connectivityStatusProvider) == ConnectionState.offline) return;
+    final credentials = account.credentials;
+    final target = (account.id, credentials.serverId);
+    final epoch = _offlineAccountEpoch;
+
+    bool isCurrent() {
+      if (!mounted || epoch != _offlineAccountEpoch) return false;
+      final current = ref.read(userProvider);
+      return current?.id == account.id && current?.credentials == credentials && ref.read(serverUrlProvider) == server;
+    }
+
+    if (!_replayingUserData.add(target)) {
+      _replayRequested.add(target);
+      return;
+    }
+
+    http.Client? client;
     try {
-      for (final item in lastState) {
-        if (item.userData == null) continue;
-        final updatedItem =
-            await ref.read(jellyApiProvider).userItemsItemIdUserDataPost(itemId: item.id, body: item.userData);
-        if (updatedItem?.isSuccessful == true) {
-          final syncedItem = item.copyWith(unSyncedData: false);
-          await _db.insertItem(syncedItem);
-        } else {
-          break;
+      final headers = credentials.header(ref);
+      var changedDuringReplay = false;
+      do {
+        _replayRequested.remove(target);
+        changedDuringReplay = false;
+        final rows = await _db.pendingUserData(account.id);
+        if (!isCurrent()) return;
+        for (final row in rows) {
+          final body = await _readPendingUserData(row, credentials.serverId);
+          if (!isCurrent()) return;
+          if (body == null) continue;
+          final uri = buildServerUriFromBase(server,
+              pathSegments: ['UserItems', row.id, 'UserData'], queryParameters: {'userId': account.id});
+          if (uri == null || ref.read(connectivityStatusProvider) == ConnectionState.offline) return;
+          client ??= http.Client();
+          final accepted = await JellyService.postOfflineUserData(
+            client: client,
+            uri: uri,
+            headers: headers,
+            itemId: row.id,
+            body: body,
+          ).timeout(const Duration(seconds: 15));
+          if (!isCurrent() || !accepted) return;
+          final acknowledged = await _db.acknowledgeUserData(row);
+          if (!isCurrent()) return;
+          changedDuringReplay |= acknowledged == 0;
+        }
+      } while (changedDuringReplay || _replayRequested.contains(target));
+    } catch (error) {
+      log('Could not replay offline user data: ${error.runtimeType}');
+    } finally {
+      client?.close();
+      _replayingUserData.remove(target);
+      if (_replayRequested.remove(target) && mounted && !isCurrent()) {
+        final current = ref.read(userProvider);
+        if (current?.id == account.id && current?.credentials.serverId == credentials.serverId) {
+          unawaited(updateSyncStates());
         }
       }
-    } catch (e) {
-      // log('Error updating sync states: $e');
-    } finally {
-      updatingSyncStatus = false;
     }
   }
 
+  Future<UserData?> _readPendingUserData(PendingUserData pending, String serverId) async {
+    final directory = pending.path;
+    if (directory == null) return null;
+    try {
+      final source = jsonDecode(await File(path.join(directory, 'data.json')).readAsString());
+      if (source is! Map || source['ServerId'] != serverId) return null;
+      final data = jsonDecode(pending.data);
+      return data is String ? UserData.fromJson(data) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void _offlineAccountChanged() {
+    _offlineAccountEpoch++;
+    _cancelOfflineTrickPlayForAccountChange();
+    scheduleMicrotask(() {
+      if (mounted) unawaited(updateSyncStates());
+    });
+  }
+
   void _init() {
-    cleanupTemporaryFiles();
     ref.listen(
       userProvider,
       (previous, next) {
         if (previous?.id != next?.id || previous?.credentials != next?.credentials) {
-          _cancelOfflineTrickPlayForAccountChange();
+          _offlineAccountChanged();
         }
         if (previous?.id != next?.id) {
           if (next?.id != null) {
@@ -159,7 +221,7 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
       },
     );
     ref.listen(serverUrlProvider, (previous, next) {
-      if (previous != next) _cancelOfflineTrickPlayForAccountChange();
+      if (previous != next) _offlineAccountChanged();
     });
 
     ref.listen(connectivityStatusProvider, (_, next) {
@@ -180,6 +242,7 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
     final queryStream = _db.getAllItems.watch().map(_rootSyncItems);
     final initItems = _rootSyncItems(await _db.getAllItems.get());
 
+    if (!mounted || ref.read(userProvider)?.id != userId) return;
     state = state.copyWith(items: initItems);
 
     _subscription = queryStream.listen((items) {
@@ -189,75 +252,6 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
 
   List<SyncedItem> _rootSyncItems(List<SyncedItem> items) {
     return items.where((item) => item.parentId == null).toList();
-  }
-
-  Future<void> cleanupTemporaryFiles() async {
-    if (kIsWeb) return;
-
-    final activeDownloads = ref.read(activeDownloadTasksProvider);
-    if (activeDownloads.isNotEmpty) return;
-
-    // List of directories to check
-    final directories = [
-      //Desktop directory
-      await getTemporaryDirectory(),
-      //Mobile directory
-      await getApplicationSupportDirectory(),
-    ];
-
-    for (final dir in directories) {
-      final List<FileSystemEntity> files = dir.listSync();
-
-      for (var file in files) {
-        if (file is File) {
-          final fileName = file.path.split(Platform.pathSeparator).last;
-          try {
-            final fileSize = await file.length();
-            if (fileName.startsWith('com.bbflight.background_downloader') && fileSize != 0) {
-              try {
-                await file.delete();
-                log('Deleted temporary file: $fileName from ${dir.path}');
-              } catch (e) {
-                log('Failed to delete file $fileName: $e');
-              }
-            }
-          } on PathAccessException {
-            // Skip files that are inaccessible
-            continue;
-          }
-        }
-      }
-    }
-  }
-
-  Future<List<String>> getTempFiles() async {
-    if (kIsWeb) return const [];
-
-    final tempFiles = <String>[];
-
-    // List of directories to check
-    final directories = [
-      //Desktop directory
-      await getTemporaryDirectory(),
-      //Mobile directory
-      await getApplicationSupportDirectory(),
-    ];
-
-    for (final dir in directories) {
-      final List<FileSystemEntity> files = dir.listSync();
-
-      for (var file in files) {
-        if (file is File) {
-          final fileName = file.path.split(Platform.pathSeparator).last;
-          final fileSize = await file.length();
-          if (fileName.startsWith('com.bbflight.background_downloader') && fileSize != 0) {
-            tempFiles.add(file.path);
-          }
-        }
-      }
-    }
-
-    return tempFiles;
   }
 
   late final JellyService api = ref.read(jellyApiProvider);
@@ -634,7 +628,6 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
       await _deleteSyncedItemAndFiles(syncedItem);
       ref.read(downloadTasksProvider(syncedItem.id).notifier).update((state) => DownloadStream.empty());
       await _cleanupOrphanedMusicParents([syncedItem]);
-      cleanupTemporaryFiles();
       refresh();
       return syncedItem;
     }
@@ -660,7 +653,6 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
 
       await _cleanupOrphanedMusicParents(removedTracks);
 
-      cleanupTemporaryFiles();
       refresh();
       return syncedItem;
     }
@@ -678,7 +670,6 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
 
     ref.read(downloadTasksProvider(syncedItem.id).notifier).update((state) => DownloadStream.empty());
 
-    cleanupTemporaryFiles();
     refresh();
     return syncedItem;
   }
@@ -689,8 +680,6 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
     TranscodeDownloadModel? transcodeModel,
     TranscodeMusicDownloadModel? musicTranscodeModel,
   }) async {
-    cleanupTemporaryFiles();
-
     if (!skipDownload && syncItem.videoFile.existsSync()) {
       return true;
     }

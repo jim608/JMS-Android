@@ -184,18 +184,36 @@ class JellyService {
     final response = await api.userItemsItemIdUserDataPost(
       userId: account?.id,
       itemId: itemId,
-      body: UpdateUserItemDataDto(
+      body: _userDataUpdate(itemId, body),
+    );
+    return response.copyWith(
+      body: UserData.fromDto(response.bodyOrThrow),
+    );
+  }
+
+  static UpdateUserItemDataDto _userDataUpdate(String? itemId, UserData body) => UpdateUserItemDataDto(
         playCount: body.playCount,
         playbackPositionTicks: body.playbackPositionTicks,
         isFavorite: body.isFavourite,
         played: body.played,
         lastPlayedDate: body.lastPlayed,
         itemId: itemId,
-      ),
-    );
-    return response.copyWith(
-      body: UserData.fromDto(response.bodyOrThrow),
-    );
+      );
+
+  static Future<bool> postOfflineUserData({
+    required http.Client client,
+    required Uri uri,
+    required Map<String, String> headers,
+    required String itemId,
+    required UserData body,
+  }) async {
+    final request = http.Request('POST', uri)
+      ..followRedirects = false
+      ..headers.addAll({...headers, 'content-type': 'application/json'})
+      ..body = jsonEncode(_userDataUpdate(itemId, body).toJson());
+    final response = await client.send(request);
+    await response.stream.drain<void>();
+    return response.statusCode >= 200 && response.statusCode < 300;
   }
 
   Future<Response<ServerQueryResult>> itemsGet({

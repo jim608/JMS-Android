@@ -21,6 +21,8 @@ part 'database_item.g.dart';
 
 const _databseName = 'syncedDatabase';
 
+typedef PendingUserData = ({String id, String userId, String? path, String data});
+
 @TableIndex(name: 'database_id', columns: {#userId, #id})
 class DatabaseItems extends Table {
   TextColumn get userId => text().withLength(min: 1)();
@@ -85,6 +87,26 @@ class AppDatabase extends _$AppDatabase {
           .map(databaseConverter);
 
   Future<int> insertItem(SyncedItem item) => into(databaseItems).insertOnConflictUpdate(toDataBaseItem(item));
+
+  Future<List<PendingUserData>> pendingUserData(String userId) {
+    final items = databaseItems;
+    return (selectOnly(items)
+          ..addColumns([items.id, items.path, items.userData])
+          ..where(items.userId.equals(userId) & items.unSyncedData.equals(true) & items.userData.isNotNull())
+          ..orderBy([OrderingTerm.asc(items.sortName)]))
+        .map((row) =>
+            (id: row.read(items.id)!, userId: userId, path: row.read(items.path), data: row.read(items.userData)!))
+        .get();
+  }
+
+  Future<int> acknowledgeUserData(PendingUserData pending) => (update(databaseItems)
+        ..where((row) =>
+            row.id.equals(pending.id) &
+            row.userId.equals(pending.userId) &
+            row.path.equalsNullable(pending.path) &
+            row.unSyncedData.equals(true) &
+            row.userData.equals(pending.data)))
+      .write(const DatabaseItemsCompanion(unSyncedData: Value(false)));
 
   Expression<bool> _matchesDownload(DatabaseItems row, SyncedItem item) =>
       row.id.equals(item.id) & row.userId.equals(item.userId) & row.path.equalsNullable(item.path);
