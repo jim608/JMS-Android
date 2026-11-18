@@ -148705,5 +148705,95 @@
       }
     ],
     "explanation": "This exact JMS APK member is byte-identical to the pinned official media-kit ARM64 JAR and prior anonymous JMS .59 APK. Path matches are upstream GitHub runner build prefixes. The six key-shaped matches are complete NUL-terminated PEM format labels with no key data and match the pinned mbedTLS parser constants."
+  },
+  {
+    "source": "https://pub.dev/api/archives/desktop_drop-0.8.4.tar.gz",
+    "archiveSha256": "47ded09c85909edfed644fd4cbb5051b040d0aed5c79e7e062ea4b3b7156dbe4",
+    "member": "lib/src/events.dart",
+    "sha256": "57d6b04eb45db7095982a428d0d4244b7c9fe099dd464038a971780cac2473aa",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Synthetic file URI examples in upstream Dart event API documentation.",
+    "evidence": {
+      "kind": "upstream-license",
+      "member": "LICENSE",
+      "sha256": "54bb187c3c4d8d9e74475f69b63a70798fb80581c334b2da487d1c4c70f68155"
+    }
+  },
+  {
+    "source": "https://pub.dev/api/archives/desktop_drop-0.8.4.tar.gz",
+    "archiveSha256": "47ded09c85909edfed644fd4cbb5051b040d0aed5c79e7e062ea4b3b7156dbe4",
+    "member": "lib/src/drop_target.dart",
+    "sha256": "b2e24e7edf2baadd33bffe3a0e9c1eaaf50d4aa600c5e2c11d91164105c1ced5",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Synthetic file URI examples in upstream Dart drop target API documentation.",
+    "evidence": {
+      "kind": "upstream-license",
+      "member": "LICENSE",
+      "sha256": "54bb187c3c4d8d9e74475f69b63a70798fb80581c334b2da487d1c4c70f68155"
+    }
+  },
+  {
+    "source": "https://pub.dev/api/archives/desktop_drop-0.8.4.tar.gz",
+    "archiveSha256": "47ded09c85909edfed644fd4cbb5051b040d0aed5c79e7e062ea4b3b7156dbe4",
+    "member": "test/channel_linux_test.dart",
+    "sha256": "9bef088e560b4392562f055506943727a04d6e73de153f6ba33be34d74cf8cd2",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Synthetic Linux file URI inputs and expected paths in upstream unit tests.",
+    "evidence": {
+      "kind": "upstream-license",
+      "member": "LICENSE",
+      "sha256": "54bb187c3c4d8d9e74475f69b63a70798fb80581c334b2da487d1c4c70f68155"
+    }
+  },
+  {
+    "source": "https://sqlite.org/2026/sqlite-amalgamation-3540100.zip",
+    "archiveSha256": "0a9c8e34352dad46006aa82836d5383bff9dc6bc9ce5a60553c05aa30e6ad1f9",
+    "member": "sqlite-amalgamation-3540100/sqlite3.c",
+    "sha256": "0c657666d819f261cc4007526ad57e1669de9949df7a8ea847aa284a2bf0ee52",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Synthetic database URI, WAL naming and super-journal examples in the public SQLite 3.54.1 amalgamation comments.",
+    "evidence": {
+      "kind": "upstream-corresponding-source",
+      "member": "sqlite-amalgamation-3540100/sqlite3ext.h",
+      "sha256": "48963abfefb41ac329ef9d706acb5eadba952a99a748285c9ded6b5e0942721b"
+    }
+  },
+  {
+    "source": "https://sqlite.org/2026/sqlite-amalgamation-3540100.zip",
+    "archiveSha256": "0a9c8e34352dad46006aa82836d5383bff9dc6bc9ce5a60553c05aa30e6ad1f9",
+    "member": "sqlite-amalgamation-3540100/sqlite3.h",
+    "sha256": "d6c84557261893439b341d2e6c35187ae3ea24fbfd843ad94616f72d89242b8c",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Synthetic database URI examples in the public SQLite 3.54.1 API comments.",
+    "evidence": {
+      "kind": "upstream-corresponding-source",
+      "member": "sqlite-amalgamation-3540100/sqlite3ext.h",
+      "sha256": "48963abfefb41ac329ef9d706acb5eadba952a99a748285c9ded6b5e0942721b"
+    }
+  },
+  {
+    "source": "https://sqlite.org/2026/sqlite-amalgamation-3540100.zip",
+    "archiveSha256": "0a9c8e34352dad46006aa82836d5383bff9dc6bc9ce5a60553c05aa30e6ad1f9",
+    "member": "sqlite-amalgamation-3540100/shell.c",
+    "sha256": "00c5cba13701f8c02771f147190aca4faacdf6f6b0def48246fc6c2af656e9ee",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Synthetic file path in the public SQLite 3.54.1 shell basename-removal comment.",
+    "evidence": {
+      "kind": "upstream-corresponding-source",
+      "member": "sqlite-amalgamation-3540100/sqlite3ext.h",
+      "sha256": "48963abfefb41ac329ef9d706acb5eadba952a99a748285c9ded6b5e0942721b"
+    }
   }
 ]
