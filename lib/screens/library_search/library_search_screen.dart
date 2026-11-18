@@ -137,7 +137,12 @@ class _LibrarySearchScreenState extends ConsumerState<LibrarySearchScreen> {
 
   Future<void> refreshSearch() async {
     await refreshKey.currentState?.show();
-    scrollController.jumpTo(0);
+    if (!mounted) return;
+    // A refresh indicator already in progress shares its future with later calls to show().
+    if (!libraryProvider.loading && libraryProvider.needsRefresh) {
+      await libraryProvider.initRefresh(parentIds: widget.parentId ?? []);
+    }
+    if (mounted && scrollController.hasClients) scrollController.jumpTo(0);
   }
 
   @override
@@ -776,7 +781,6 @@ class LibraryAppBar extends ConsumerWidget {
                         onSubmited: (value) async {
                           if (librarySearchResults.filters.searchQuery != value) {
                             libraryProvider.setSearch(value);
-                            refreshKey.currentState?.show();
                           }
                         },
                       ),

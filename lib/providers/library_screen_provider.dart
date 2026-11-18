@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:chopper/chopper.dart';
+import 'package:collection/collection.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -60,46 +60,63 @@ abstract class LibraryScreenModel with _$LibraryScreenModel {
 @Riverpod(keepAlive: true)
 class LibraryScreen extends _$LibraryScreen {
   late final JellyService api = ref.read(jellyApiProvider);
+  int _generation = 0;
 
   @override
-  LibraryScreenModel build() => LibraryScreenModel();
+  LibraryScreenModel build() {
+    ref.onDispose(() => _generation++);
+    return LibraryScreenModel();
+  }
 
-  Future<void> fetchAllLibraries() async {
-    final views = await ref.read(viewsProvider.notifier).fetchViews();
+  Future<void> fetchAllLibraries({bool refreshViews = false}) async {
+    final generation = ++_generation;
+    final cached = ref.read(viewsProvider).views;
+    final loaded = refreshViews || cached.isEmpty ? await ref.read(viewsProvider.notifier).fetchLibraryList() : cached;
+    if (generation != _generation) return;
+    final views = loaded ?? state.views;
+    final previousId = state.selectedViewModel?.id;
+    final selected = views.firstWhereOrNull((view) => view.id == previousId) ?? views.firstOrNull;
+    final changed = selected?.id != previousId;
     state = state.copyWith(
-      views: views?.views.toList() ?? [],
+      views: views,
+      selectedViewModel: selected,
+      recommendations: changed ? [] : state.recommendations,
+      favourites: changed ? [] : state.favourites,
+      genres: changed ? [] : state.genres,
     );
-    if (state.views.isEmpty) return;
-    final viewModel = state.selectedViewModel ?? state.views.firstOrNull;
-    if (viewModel == null) return;
-    selectLibrary(viewModel);
-    await loadLibrary(viewModel);
+    if (selected != null) await _loadLibrary(selected, generation);
   }
 
   Future<void> selectLibrary(ViewModel viewModel) async {
-    state = state.copyWith(selectedViewModel: viewModel);
+    final generation = ++_generation;
+    if (viewModel.id != state.selectedViewModel?.id) {
+      state = state.copyWith(
+        selectedViewModel: viewModel,
+        recommendations: [],
+        favourites: [],
+        genres: [],
+      );
+    }
+    await _loadLibrary(viewModel, generation);
   }
 
   Future<void> setViewType(Set<LibraryViewType> type) async {
     state = state.copyWith(viewType: type);
   }
 
-  Future<Response?> loadLibrary(ViewModel viewModel) async {
-    if (state.viewType.contains(LibraryViewType.recommended)) {
-      await loadRecommendations(viewModel);
+  Future<void> _loadLibrary(ViewModel viewModel, int generation) async {
+    if (generation == _generation && state.viewType.contains(LibraryViewType.recommended)) {
+      await _loadRecommendations(viewModel, generation);
     }
-    if (state.viewType.contains(LibraryViewType.favourites)) {
-      await loadFavourites(viewModel);
+    if (generation == _generation && state.viewType.contains(LibraryViewType.favourites)) {
+      await _loadFavourites(viewModel, generation);
     }
-    if (state.viewType.contains(LibraryViewType.genres)) {
-      await loadGenres(viewModel);
+    if (generation == _generation && state.viewType.contains(LibraryViewType.genres)) {
+      await _loadGenres(viewModel, generation);
     }
-    return null;
   }
 
-  Future<void> loadResume(ViewModel viewModel) async {}
-
-  Future<void> loadRecommendations(ViewModel viewModel) async {
+  Future<void> _loadRecommendations(ViewModel viewModel, int generation) async {
     RecommendedModel continueRecommendations = RecommendedModel(name: const Continue(), posters: []);
     RecommendedModel nextUpRecommendations = RecommendedModel(name: const NextUp(), posters: []);
     RecommendedModel latestRecommendations = RecommendedModel(name: const Latest(), posters: []);
@@ -121,6 +138,7 @@ class LibraryScreen extends _$LibraryScreen {
       mediaTypes: [MediaType.video],
       enableTotalRecordCount: false,
     );
+    if (generation != _generation) return;
     continueRecommendations = RecommendedModel(
       name: const Continue(),
       posters: resume.body?.items?.map((e) => ItemBaseModel.fromBaseDto(e, ref)).toList() ?? [],
@@ -137,6 +155,7 @@ class LibraryScreen extends _$LibraryScreen {
         ],
         itemLimit: 9,
       );
+      if (generation != _generation) return;
       otherRecommendations = (response.body?.map(
                 (e) => RecommendedModel.fromBaseDto(e, ref),
               ) ??
@@ -154,6 +173,7 @@ class LibraryScreen extends _$LibraryScreen {
         ItemFields.overview,
       ],
     );
+    if (generation != _generation) return;
     final latest = await api.usersUserIdItemsGet(
       parentId: viewModel.id,
       sortBy: [ItemSortBy.datelastcontentadded, ItemSortBy.datecreated, ItemSortBy.sortname],
@@ -161,6 +181,7 @@ class LibraryScreen extends _$LibraryScreen {
       limit: 9,
       includeItemTypes: viewModel.collectionType.itemKinds.expand((e) => e.dtoKind).toList(),
     );
+    if (generation != _generation) return;
     latestRecommendations = RecommendedModel(
       name: const Latest(),
       posters: latest.body?.items?.map((e) => ItemBaseModel.fromBaseDto(e, ref)).toList() ?? [],
@@ -183,7 +204,7 @@ class LibraryScreen extends _$LibraryScreen {
     );
   }
 
-  Future<Response?> loadFavourites(ViewModel viewModel) async {
+  Future<void> _loadFavourites(ViewModel viewModel, int generation) async {
     final response = await api.itemsGet(
       parentId: viewModel.id,
       isFavorite: true,
@@ -199,11 +220,10 @@ class LibraryScreen extends _$LibraryScreen {
       enableTotalRecordCount: false,
     );
 
-    state = state.copyWith(favourites: response.body?.items ?? []);
-    return response;
+    if (generation == _generation) state = state.copyWith(favourites: response.body?.items ?? []);
   }
 
-  Future<Response?> loadGenres(ViewModel viewModel) async {
+  Future<void> _loadGenres(ViewModel viewModel, int generation) async {
     final genres = await api.genresGet(
       sortBy: [ItemSortBy.sortname],
       sortOrder: [SortOrder.ascending],
@@ -211,14 +231,13 @@ class LibraryScreen extends _$LibraryScreen {
           viewModel.collectionType == CollectionType.movies ? [BaseItemKind.movie] : [BaseItemKind.series],
       parentId: viewModel.id,
     );
+    if (generation != _generation) return;
 
     final filteredGenres = (genres.body?.items?.map(
               (item) => GenreItems(id: item.id ?? "", name: item.name ?? ""),
             ) ??
             [])
         .toList();
-
-    if (filteredGenres.isEmpty) return null;
 
     final futures = filteredGenres.map((genre) {
       return api
@@ -250,14 +269,14 @@ class LibraryScreen extends _$LibraryScreen {
 
     final results = await Future.wait(futures);
 
+    if (generation != _generation) return;
     state = state.copyWith(
       genres: results.whereType<RecommendedModel>().toList(),
     );
-
-    return null;
   }
 
   void clear() {
+    _generation++;
     state = LibraryScreenModel();
   }
 }

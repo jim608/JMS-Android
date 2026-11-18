@@ -287,6 +287,8 @@ class JellyService {
     final isOffline = ref.read(offlineStateProvider);
 
     if (isOffline) {
+      final firstIndex = startIndex != null && startIndex > 0 ? startIndex : 0;
+      final keyword = searchTerm?.trim().toLowerCase() ?? '';
       List<SyncedItem> syncedItems = [];
 
       if (ids != null && ids.isNotEmpty) {
@@ -304,7 +306,7 @@ class JellyService {
             ServerQueryResult(
               items: [],
               totalRecordCount: 0,
-              startIndex: 0,
+              startIndex: firstIndex,
             ),
           );
         }
@@ -329,33 +331,38 @@ class JellyService {
           ServerQueryResult(
             items: [],
             totalRecordCount: 0,
-            startIndex: 0,
+            startIndex: firstIndex,
           ),
         );
       }
 
-      final actualItems = syncedItems.nonNulls.toList();
+      final filteredItems = syncedItems.where((element) {
+        final model = element.itemModel;
+        if (model == null) return false;
 
-      final filteredItems = actualItems.where((element) {
-        final type = element.data?.type;
+        if (parentId != null && (element.id == parentId || model.id == parentId)) {
+          return false;
+        }
 
-        if (parentId != null && (element.id == parentId || element.itemModel?.id == parentId)) {
+        if (keyword.isNotEmpty &&
+            !model.name.toLowerCase().contains(keyword) &&
+            !model.title.toLowerCase().contains(keyword)) {
           return false;
         }
 
         if (excludeItemIds != null && excludeItemIds.contains(element.id)) return false;
 
         if (includeItemTypes != null && includeItemTypes.isNotEmpty) {
-          if (type == null || !includeItemTypes.contains(type)) return false;
+          if (!includeItemTypes.contains(element.data?.type)) return false;
         }
 
         if (isFavorite != null) {
-          final isFav = element.itemModel?.userData.isFavourite ?? element.userData?.isFavourite ?? false;
+          final isFav = model.userData.isFavourite;
           if (isFav != isFavorite) return false;
         }
 
         if (isPlayed != null) {
-          final played = element.itemModel?.userData.played ?? element.userData?.played ?? false;
+          final played = model.userData.played;
           if (played != isPlayed) return false;
         }
 
@@ -364,18 +371,23 @@ class JellyService {
 
       if (sortBy?.contains(ItemSortBy.random) == true) {
         filteredItems.shuffle();
-      } else {
-        filteredItems.sort((a, b) => _sortSyncedItems(a.data, b.data, sortBy, sortOrder));
+      } else if (sortBy?.isNotEmpty == true) {
+        final metadata = {for (final item in filteredItems) item.id: item.data};
+        filteredItems.sort((a, b) {
+          final order = _sortSyncedItems(metadata[a.id], metadata[b.id], sortBy, sortOrder);
+          return order == 0 ? a.id.compareTo(b.id) : order;
+        });
       }
 
-      final baseItems = filteredItems.map((e) => e.itemModel).nonNulls.toList();
+      final remaining = filteredItems.skip(firstIndex);
+      final page = limit == null ? remaining : remaining.take(limit < 0 ? 0 : limit);
 
       return Response(
         http.Response("", 202),
         ServerQueryResult(
-          items: baseItems,
-          totalRecordCount: baseItems.length,
-          startIndex: 0,
+          items: page.map((item) => item.itemModel!).toList(),
+          totalRecordCount: filteredItems.length,
+          startIndex: firstIndex,
         ),
       );
     }

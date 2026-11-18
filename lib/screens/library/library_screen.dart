@@ -45,12 +45,24 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> with SingleTicker
   final GlobalKey<RefreshIndicatorState>? refreshKey = GlobalKey();
 
   bool refreshing = false;
+  bool _initialRefresh = true;
+
+  Future<void> _refresh(Future<void> Function() load) async {
+    if (refreshing) return;
+    setState(() => refreshing = true);
+    try {
+      await load();
+    } finally {
+      if (mounted) setState(() => refreshing = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     ref.listen(libraryScreenProvider, (previous, next) {
-      if ((previous?.viewType.length ?? 0) < next.viewType.length) {
-        refreshKey?.currentState?.show();
+      final selected = next.selectedViewModel;
+      if (selected != null && (previous?.viewType.length ?? 0) < next.viewType.length) {
+        _refresh(() => ref.read(libraryScreenProvider.notifier).selectLibrary(selected));
       }
     });
     final libraryScreenState = ref.watch(libraryScreenProvider);
@@ -74,17 +86,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> with SingleTicker
       body: PullToRefresh(
         refreshOnStart: true,
         refreshKey: refreshKey,
-        onRefresh: () async {
-          if (refreshing) return;
-          setState(() => refreshing = true);
-          try {
-            await ref.read(libraryScreenProvider.notifier).fetchAllLibraries();
-          } finally {
-            if (mounted) {
-              setState(() => refreshing = false);
-            }
-          }
-        },
+        onRefresh: () => _refresh(() {
+          final refreshViews = !_initialRefresh;
+          _initialRefresh = false;
+          return ref.read(libraryScreenProvider.notifier).fetchAllLibraries(refreshViews: refreshViews);
+        }),
         child: (context) => AnimatedOpacity(
           opacity: refreshing ? 0.75 : 1.0,
           duration: const Duration(milliseconds: 175),
@@ -105,11 +111,8 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> with SingleTicker
                       padding: padding,
                       views: views,
                       selectedView: libraryScreenState.selectedViewModel,
-                      onSelected: (view) {
-                        if (refreshing) return;
-                        ref.read(libraryScreenProvider.notifier).selectLibrary(view);
-                        refreshKey?.currentState?.show();
-                      },
+                      onSelected: (view) =>
+                          _refresh(() => ref.read(libraryScreenProvider.notifier).selectLibrary(view)),
                     ),
                   ),
                 if (selectedView != null)

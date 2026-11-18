@@ -34,46 +34,65 @@ class ViewsNotifier extends StateNotifier<ViewsModel> {
   final Ref ref;
 
   late final JellyService api = ref.read(jellyApiProvider);
+  int _generation = 0;
 
-  Future<ViewsModel?> fetchViews() async {
-    if (state.loading) return null;
+  List<ViewModel> _libraryViews(List<BaseItemDto>? items, {required bool showAllCollections}) {
+    return items
+            ?.map((item) => ViewModel.fromBodyDto(item, ref))
+            .where((view) => showAllCollections || enableCollectionTypes.contains(view.collectionType))
+            .toList() ??
+        [];
+  }
+
+  Future<List<ViewModel>?> fetchLibraryList() async {
+    final generation = _generation;
     try {
       final showAllCollections = ref.read(clientSettingsProvider.select((value) => value.showAllCollectionTypes));
       final response = await api.usersUserIdViewsGet();
-      final createdViews = response.body?.items?.map((e) => ViewModel.fromBodyDto(e, ref)).where((element) {
-        return showAllCollections ? true : enableCollectionTypes.contains(element.collectionType);
-      });
+      if (!mounted || generation != _generation || !response.isSuccessful) return null;
+      return _applyLibraryOrdering(_libraryViews(response.body?.items, showAllCollections: showAllCollections));
+    } catch (_) {
+      return null;
+    }
+  }
 
-      List<ViewModel> newList = [];
+  Future<ViewsModel?> fetchViews() async {
+    if (state.loading) return null;
+    final generation = _generation;
+    try {
+      final showAllCollections = ref.read(clientSettingsProvider.select((value) => value.showAllCollectionTypes));
+      final response = await api.usersUserIdViewsGet();
+      if (!mounted || generation != _generation) return null;
+      final createdViews = _libraryViews(response.body?.items, showAllCollections: showAllCollections);
 
-      if (createdViews != null) {
-        newList = await Future.wait(createdViews.map((e) async {
-          if (ref.read(userProvider)?.latestItemsExcludes.contains(e.id) == true) return e;
-          final recents = await api.usersUserIdItemsLatestGet(
-            parentId: e.id,
-            imageTypeLimit: 1,
-            limit: 16,
-            includeItemTypes:
-                (e.collectionType == CollectionType.books && !showAllCollections) ? [BaseItemKind.book] : null,
-            enableImageTypes: [
-              ImageType.primary,
-              ImageType.backdrop,
-              ImageType.thumb,
-            ],
-            fields: [
-              ItemFields.parentid,
-              ItemFields.mediastreams,
-              ItemFields.mediasources,
-              ItemFields.candelete,
-              ItemFields.candownload,
-              ItemFields.primaryimageaspectratio,
-              ItemFields.overview,
-            ],
-          );
-          return e.copyWith(recentlyAdded: recents.body?.map((e) => ItemBaseModel.fromBaseDto(e, ref)).toList());
-        }));
-      }
+      final newList = await Future.wait(createdViews.map((e) async {
+        if (ref.read(userProvider)?.latestItemsExcludes.contains(e.id) == true) return e;
+        final recents = await api.usersUserIdItemsLatestGet(
+          parentId: e.id,
+          imageTypeLimit: 1,
+          limit: 16,
+          includeItemTypes:
+              (e.collectionType == CollectionType.books && !showAllCollections) ? [BaseItemKind.book] : null,
+          enableImageTypes: [
+            ImageType.primary,
+            ImageType.backdrop,
+            ImageType.thumb,
+          ],
+          fields: [
+            ItemFields.parentid,
+            ItemFields.mediastreams,
+            ItemFields.mediasources,
+            ItemFields.candelete,
+            ItemFields.candownload,
+            ItemFields.primaryimageaspectratio,
+            ItemFields.overview,
+          ],
+        );
+        if (!mounted || generation != _generation) return e;
+        return e.copyWith(recentlyAdded: recents.body?.map((e) => ItemBaseModel.fromBaseDto(e, ref)).toList());
+      }));
 
+      if (!mounted || generation != _generation) return null;
       state = state.copyWith(
           views: _applyLibraryOrdering(newList),
           dashboardViews: _applyLibraryOrdering(newList
@@ -82,6 +101,7 @@ class ViewsNotifier extends StateNotifier<ViewsModel> {
           loading: false);
       return state;
     } catch (e) {
+      if (!mounted || generation != _generation) return null;
       return state.copyWith(loading: false);
     }
   }
@@ -102,6 +122,7 @@ class ViewsNotifier extends StateNotifier<ViewsModel> {
   }
 
   void clear() {
+    _generation++;
     state = ViewsModel();
   }
 }
