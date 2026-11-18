@@ -88,7 +88,6 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
 
   final fadeDuration = const Duration(milliseconds: 350);
   bool showOverlay = true;
-  bool wasPlaying = false;
   SystemUiMode? _currentSystemUiMode;
 
   bool _speedBoostActive = false;
@@ -620,8 +619,7 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
             SizedBox(
               height: 25,
               child: VideoProgressBar(
-                wasPlayingChanged: (value) => wasPlaying = value,
-                wasPlaying: wasPlaying,
+                key: ValueKey((item?.id, playbackModel?.playbackInfo?.playSessionId)),
                 duration: mediaPlayback.duration,
                 position: mediaPlayback.position,
                 buffer: mediaPlayback.buffer,

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart';
 import 'package:fladder/l10n/generated/app_localizations.dart';
 import 'package:fladder/models/items/movie_model.dart';
@@ -8,11 +10,13 @@ import 'package:fladder/providers/shared_provider.dart';
 import 'package:fladder/providers/video_player_provider.dart';
 import 'package:fladder/screens/video_player/components/video_player_options_sheet.dart';
 import 'package:fladder/screens/video_player/video_player_controls.dart';
+import 'package:fladder/services/syncplay/syncplay_player_commands.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout_model.dart';
 import 'package:fladder/util/input_detector.dart';
 import 'package:fladder/util/poster_defaults.dart';
 import 'package:fladder/wrappers/media_control_wrapper.dart';
+import 'package:fladder/wrappers/players/player_states.dart';
 import 'package:fladder/widgets/shared/fladder_slider.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -27,9 +31,11 @@ class _Player extends MediaControlsWrapper {
   int toggles = 0;
   int plays = 0;
   final seeks = <Duration>[];
+  final pendingSeeks = <Completer<void>>[];
+  Completer<void>? pauseReport;
   bool syncActive = false;
   @override
-  bool get syncPlayActive => syncActive;
+  bool get syncPlayActive => syncActive || super.syncPlayActive;
   @override
   bool get hasPlayer => true;
   @override
@@ -47,13 +53,37 @@ class _Player extends MediaControlsWrapper {
   @override
   Future<void> pause() async {
     ref.read(mediaPlaybackProvider.notifier).update((s) => s.copyWith(playing: false));
+    await pauseReport?.future;
   }
 
   @override
-  Future<void> seek(Duration position) async => seeks.add(position);
+  PlayerState get lastState => PlayerState(playing: ref.read(mediaPlaybackProvider).playing);
+
+  @override
+  Future<void> seek(Duration position) async {
+    seeks.add(position);
+    if (pendingSeeks.isNotEmpty) await pendingSeeks.removeAt(0).future;
+  }
 
   @override
   Future<void> dispose() async {}
+}
+
+class _RoomCommands implements SyncPlayPlayerCommands {
+  @override
+  bool get active => true;
+
+  @override
+  Future<void> pause() async {}
+
+  @override
+  Future<void> play() async {}
+
+  @override
+  Future<void> seek(Duration position) async {}
+
+  @override
+  Future<void> stop() async {}
 }
 
 class _Notifier extends VideoPlayerNotifier {
@@ -125,6 +155,20 @@ Future<ProviderContainer> _mount(
   ));
   await tester.pump();
   return ProviderScope.containerOf(tester.element(find.byType(DesktopControls)));
+}
+
+Future<TestGesture> _startProgressDrag(WidgetTester tester, double delta) async {
+  final slider = tester.getRect(find.byType(FladderSlider).first);
+  final drag = await tester.startGesture(slider.center);
+  await drag.moveTo(slider.center + Offset(delta, 0));
+  await tester.pump();
+  return drag;
+}
+
+Future<void> _dragProgress(WidgetTester tester, double delta) async {
+  final drag = await _startProgressDrag(tester, delta);
+  await drag.up();
+  await tester.pump();
 }
 
 void main() {
@@ -251,6 +295,105 @@ void main() {
     expect(_opacity(tester), 1);
     await tester.pump(const Duration(seconds: 2));
     expect(_opacity(tester), 0);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('progress drag resumes only after its seek finishes', (tester) async {
+    final container = await _mount(tester);
+    final player = container.read(videoPlayerProvider) as _Player;
+    final seek = Completer<void>();
+    player.pendingSeeks.add(seek);
+
+    await _dragProgress(tester, 40);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(player.seeks, hasLength(1));
+    expect(player.plays, 0);
+
+    seek.complete();
+    await tester.pump();
+    expect(player.plays, 1);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('progress seek does not wait for the pause report', (tester) async {
+    final container = await _mount(tester);
+    final player = container.read(videoPlayerProvider) as _Player;
+    final report = Completer<void>();
+    player.pauseReport = report;
+
+    await _dragProgress(tester, 40);
+    final seeksBeforeReport = player.seeks.length;
+    report.complete();
+    await tester.pump();
+    await tester.pumpWidget(const SizedBox.shrink());
+    expect(seeksBeforeReport, 1);
+  });
+
+  testWidgets('exiting during a progress seek discards pending playback and UI updates', (tester) async {
+    final container = await _mount(tester);
+    final player = container.read(videoPlayerProvider) as _Player;
+    final seek = Completer<void>();
+    player.pendingSeeks.add(seek);
+
+    await _dragProgress(tester, 40);
+    expect(player.seeks, hasLength(1));
+    await tester.pumpWidget(const SizedBox.shrink());
+    seek.complete();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(player.plays, 0);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a second progress drag wins and keeps the original playing intent', (tester) async {
+    final container = await _mount(tester);
+    final player = container.read(videoPlayerProvider) as _Player;
+    final first = Completer<void>();
+    final second = Completer<void>();
+    player.pendingSeeks.addAll([first, second]);
+
+    await _dragProgress(tester, 40);
+    await _dragProgress(tester, 80);
+    expect(player.seeks, hasLength(1));
+
+    first.complete();
+    await tester.pump();
+    expect(player.seeks, hasLength(2));
+    expect(player.seeks.last, greaterThan(player.seeks.first));
+    expect(player.plays, 0);
+
+    second.complete();
+    await tester.pump();
+    expect(player.plays, 1);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('cancelling a progress drag resumes without performing the seek', (tester) async {
+    final container = await _mount(tester);
+    final player = container.read(videoPlayerProvider) as _Player;
+    final drag = await _startProgressDrag(tester, 40);
+
+    await drag.cancel();
+    await tester.pump();
+    expect(player.seeks, isEmpty);
+    expect(player.plays, 1);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('leaving a room during a progress seek never resumes solo playback', (tester) async {
+    final container = await _mount(tester);
+    final player = container.read(videoPlayerProvider) as _Player;
+    final seek = Completer<void>();
+    player.syncPlayCommands = _RoomCommands();
+    player.pendingSeeks.add(seek);
+
+    await _dragProgress(tester, 40);
+    expect(player.seeks, hasLength(1));
+    player.syncPlayCommands = null;
+    seek.complete();
+    await tester.pump();
+
+    expect(player.plays, 0);
+    expect(container.read(mediaPlaybackProvider).playing, isFalse);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 

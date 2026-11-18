@@ -667,6 +667,14 @@ class MediaControlsWrapper extends BaseAudioHandler
     };
   }
 
+  bool Function() captureProgressScrub() {
+    final current = _localPlaybackCurrent(ref.read(playBackModel), _player);
+    final room = _syncPlayBindingEpoch;
+    final inRoom = syncPlayActive;
+    return () =>
+        room == _syncPlayBindingEpoch && inRoom == syncPlayActive && current();
+  }
+
   (BasePlayer, bool Function()) _remoteOperation(bool Function() ownerCurrent) {
     final player = _player;
     final model = ref.read(playBackModel);

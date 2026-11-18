@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -10,24 +11,21 @@ import 'package:fladder/providers/video_player_provider.dart';
 import 'package:fladder/util/duration_extensions.dart';
 import 'package:fladder/util/list_padding.dart';
 import 'package:fladder/util/string_extensions.dart';
+import 'package:fladder/wrappers/media_control_wrapper.dart';
 import 'package:fladder/widgets/gapped_container_shape.dart';
 import 'package:fladder/widgets/shared/fladder_slider.dart';
 import 'package:fladder/widgets/shared/trick_play_image.dart';
 
 class VideoProgressBar extends ConsumerStatefulWidget {
-  final Function(bool value) wasPlayingChanged;
-  final bool wasPlaying;
   final VoidCallback timerReset;
   final Duration duration;
   final Duration position;
   final bool buffering;
   final Duration buffer;
-  final Function(Duration duration) onPositionChanged;
+  final Future<void> Function(Duration duration)? onPositionChanged;
   const VideoProgressBar({
-    required this.wasPlayingChanged,
-    required this.wasPlaying,
     required this.timerReset,
-    required this.onPositionChanged,
+    this.onPositionChanged,
     required this.duration,
     required this.position,
     required this.buffering,
@@ -46,12 +44,84 @@ class _ChapterProgressSliderState extends ConsumerState<VideoProgressBar> {
   double imageBottomOffset = 0.0;
   double chapterCardWidth = 250;
   Duration currentDuration = Duration.zero;
+  int _scrubVersion = 0;
+  int? _dragPointer;
+  bool _ignoreDragEnd = false;
+  bool Function()? _dragCurrent;
+  bool Function()? _resumeCurrent;
+  Future<void> _scrubWork = Future<void>.value();
+
+  void _queueScrub(Future<void> Function() operation) {
+    _scrubWork = _scrubWork.then((_) => operation()).catchError(_reportScrubError);
+  }
+
+  void _reportScrubError(Object error, StackTrace stack) {
+    if (!mounted) return;
+    FlutterError.reportError(FlutterErrorDetails(exception: error, stack: stack, library: 'video progress bar'));
+  }
+
+  Future<void> _scrubPlaybackCommand(MediaControlsWrapper player, Future<void> Function() command) async {
+    final result = command();
+    // A local command also reports playback to Jellyfin after updating the player.
+    if (player.syncPlayActive) {
+      await result;
+    } else {
+      unawaited(result.catchError(_reportScrubError));
+    }
+  }
+
+  bool Function() _captureScrub(MediaControlsWrapper player) {
+    final playbackCurrent = player.captureProgressScrub();
+    return () => mounted && identical(ref.read(videoPlayerProvider), player) && playbackCurrent();
+  }
+
+  void _startScrub(double _) {
+    _scrubVersion++;
+    _ignoreDragEnd = false;
+    setState(() => onHoverStart = true);
+    final player = ref.read(videoPlayerProvider);
+    final current = _captureScrub(player);
+    _dragCurrent = current;
+    if (_resumeCurrent?.call() == true || player.lastState?.playing != true) return;
+
+    _resumeCurrent = current;
+    _queueScrub(() async {
+      if (current()) await _scrubPlaybackCommand(player, player.pause);
+    });
+  }
+
+  void _finishScrub(Duration? position) {
+    final seek = widget.onPositionChanged;
+    final player = ref.read(videoPlayerProvider);
+    final playbackCurrent = _dragCurrent ?? _captureScrub(player);
+    _dragCurrent = null;
+    final version = ++_scrubVersion;
+    bool current() => version == _scrubVersion && playbackCurrent();
+
+    if (position != null) currentDuration = position;
+    widget.timerReset();
+    setState(() {
+      onHoverStart = false;
+      onDragStart = false;
+    });
+    _queueScrub(() async {
+      if (!current()) return;
+      try {
+        if (position != null && seek != null) await seek(position);
+      } finally {
+        if (current() && _resumeCurrent?.call() == true) {
+          _resumeCurrent = null;
+          await _scrubPlaybackCommand(player, player.play);
+        }
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final List<Chapter> chapters = ref.read(playBackModel.select((value) => value?.chapters ?? []));
     final isVisible = (onDragStart ? true : onHoverStart);
-    final player = ref.watch(videoPlayerProvider);
+    final canSeek = widget.onPositionChanged != null;
     final position = onDragStart ? currentDuration : widget.position;
     final MediaSegmentsModel? mediaSegments = ref.read(playBackModel.select((value) => value?.mediaSegments));
     final relativeFraction = position.inMilliseconds / widget.duration.inMilliseconds;
@@ -80,18 +150,30 @@ class _ChapterProgressSliderState extends ConsumerState<VideoProgressBar> {
                 },
                 child: Listener(
                   onPointerDown: (event) {
+                    if (_dragPointer != null) return;
+                    _dragPointer = event.pointer;
+                    _ignoreDragEnd = false;
                     setState(() {
                       onDragStart = true;
                       _updateSliderPosition(event.localPosition.dx, constraints.maxWidth);
                     });
                   },
                   onPointerMove: (event) {
-                    _updateSliderPosition(event.localPosition.dx, constraints.maxWidth);
+                    if (_dragPointer == event.pointer) {
+                      _updateSliderPosition(event.localPosition.dx, constraints.maxWidth);
+                    }
                   },
-                  onPointerUp: (_) {
-                    setState(() {
-                      onDragStart = false;
-                    });
+                  onPointerUp: (event) {
+                    if (_dragPointer != event.pointer) return;
+                    _dragPointer = null;
+                    setState(() => onDragStart = false);
+                  },
+                  onPointerCancel: (event) {
+                    if (_dragPointer != event.pointer) return;
+                    _dragPointer = null;
+                    // A recognizer can still report drag-end for this cancel.
+                    _ignoreDragEnd = true;
+                    _finishScrub(null);
                   },
                   child: Opacity(
                     opacity: widget.buffering ? 0 : 1.0,
@@ -105,25 +187,12 @@ class _ChapterProgressSliderState extends ConsumerState<VideoProgressBar> {
                             0,
                             widget.duration.inMilliseconds.toDouble(),
                           ),
-                      onChangeEnd: (e) async {
-                        currentDuration = Duration(milliseconds: e.toInt());
-                        widget.onPositionChanged.call(Duration(milliseconds: e.toInt()));
-                        await Future.delayed(const Duration(milliseconds: 250));
-                        if (widget.wasPlaying) {
-                          player.play();
-                        }
-                        widget.timerReset.call();
-                        setState(() {
-                          onHoverStart = false;
-                        });
-                      },
-                      onChangeStart: (value) {
-                        setState(() {
-                          onHoverStart = true;
-                        });
-                        widget.wasPlayingChanged.call(player.lastState?.playing ?? false);
-                        player.pause();
-                      },
+                      onChangeEnd: canSeek
+                          ? (value) {
+                              if (!_ignoreDragEnd) _finishScrub(Duration(milliseconds: value.toInt()));
+                            }
+                          : null,
+                      onChangeStart: canSeek ? _startScrub : null,
                       onChanged: (e) {
                         currentDuration = Duration(milliseconds: e.toInt());
                         widget.timerReset.call();

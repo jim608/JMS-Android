@@ -79,7 +79,6 @@ class _TvPlayerControlsState extends ConsumerState<TvPlayerControls> {
 
   final fadeDuration = const Duration(milliseconds: 350);
   bool showOverlay = true;
-  bool wasPlaying = false;
   SystemUiMode? _currentSystemUiMode;
 
   late final double topPadding = MediaQuery.of(context).viewPadding.top;
@@ -488,27 +487,11 @@ class _TvPlayerControlsState extends ConsumerState<TvPlayerControls> {
             SizedBox(
               height: 25,
               child: VideoProgressBar(
-                wasPlayingChanged: (value) => wasPlaying = value,
-                wasPlaying: wasPlaying,
                 duration: displayDuration,
                 position: displayPosition,
                 buffer: mediaPlayback.buffer,
                 buffering: mediaPlayback.buffering,
                 timerReset: resetTimer,
-                onPositionChanged: (position) {
-                  //Disable seeking for live TV for now
-                  return;
-                  // if (position.inMilliseconds > displayPosition.inMilliseconds) {
-                  //   return null;
-                  // }
-                  // final maxSeekBackDuration = displayDuration;
-                  // final seekDifference = displayPosition - position;
-                  // if (maxSeekBackDuration.inMilliseconds < seekDifference.inMilliseconds) {
-                  //   return null;
-                  // }
-                  // final newPos = position.clamp(seekDifference, displayPosition);
-                  // return ref.read(videoPlayerProvider).seek(newPos);
-                },
               ),
             ),
             if (currentProgram != null)
