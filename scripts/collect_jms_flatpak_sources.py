@@ -187,6 +187,41 @@ def reviewed_application_sources(commit, build, output):
     return review
 
 
+def reviewed_media_archives(baseline, manifest, work):
+    reviewed = {(entry['module'], entry['url'], entry['commit']): entry for entry in baseline['archives']}
+    selected = {(module['name'], source['url'], source['commit']) for module in modules(manifest)
+                for source in module.get('sources', []) if source['type'] == 'git'}
+    if (selected != reviewed.keys() or len(reviewed) != len(baseline['archives'])
+            or any(not url.startswith('https://') or not re.fullmatch('[a-f0-9]{40}', commit)
+                   or entry['member'] != f'components/{module}-{commit}.tar.gz'
+                   for (module, url, commit), entry in reviewed.items())):
+        raise ValueError('Reviewed Flatpak media source inputs differ')
+
+    prior = work / 'previous-native-materials.tar.gz'
+    download(baseline['url'], prior, baseline['sha256'], limit=512 * 1024 * 1024)
+    if prior.stat().st_size != baseline['size']:
+        raise ValueError('Reviewed Flatpak media archive size differs')
+    pending = {entry['member']: entry for entry in reviewed.values()}
+    with tarfile.open(prior, 'r|gz') as archive:
+        for member in archive:
+            if member.name not in pending:
+                continue
+            if not member.isfile() or member.size > 256 * 1024 * 1024:
+                raise ValueError('Invalid reviewed Flatpak media source member')
+            target = work / Path(member.name).name
+            with archive.extractfile(member) as source, target.open('wb') as destination:
+                shutil.copyfileobj(source, destination)
+            with target.open('rb') as source:
+                digest = hashlib.file_digest(source, 'sha256').hexdigest()
+            if digest != pending.pop(member.name)['sha256']:
+                raise ValueError('Reviewed Flatpak media source member differs: ' + member.name)
+            if not pending:
+                break
+    if pending:
+        raise ValueError('Required reviewed Flatpak media sources are missing')
+    return reviewed
+
+
 def collect(manifest_path, output, commit):
     build = identity(commit)
     review = reviewed_application_sources(commit, build, output)
@@ -205,6 +240,8 @@ def collect(manifest_path, output, commit):
     records = []
     with tempfile.TemporaryDirectory(prefix='jms-flatpak-sources-') as temporary:
         work = Path(temporary)
+        prior_media = review.get('previousMediaMaterials') if review is not None else None
+        reused = reviewed_media_archives(prior_media, manifest, work) if prior_media else {}
         with tarfile.open(destination, 'w:gz') as materials:
             if review is None:
                 baseline = work / BASELINE_NAME
@@ -251,6 +288,11 @@ def collect(manifest_path, output, commit):
                         records.append({'module': name, 'url': source['url'], 'sha256': source['sha256'], 'member': archived})
                     elif kind == 'git':
                         revision = source.get('commit', '')
+                        pinned = reused.get((name, source['url'], revision))
+                        if pinned is not None:
+                            materials.add(work / Path(pinned['member']).name, arcname=pinned['member'])
+                            records.append(pinned)
+                            continue
                         if not re.fullmatch('[a-f0-9]{40}', revision) or not source['url'].startswith('https://'):
                             raise ValueError('Exact official Git source required')
                         repository = work / f'{name}-{index}-git'
@@ -275,6 +317,8 @@ def collect(manifest_path, output, commit):
                                    'sourceProject': 'https://gitlab.gnome.org/GNOME/gnome-build-meta'}}
             if review is not None:
                 receipt['application'] = {key: review[key] for key in ('inputs', 'binaries')}
+            if prior_media:
+                receipt['previousMediaMaterials'] = {key: prior_media[key] for key in ('url', 'sha256', 'size')}
             evidence = json.dumps(receipt, indent=2).encode()
             info = tarfile.TarInfo('source-materials.json')
             info.size = len(evidence)

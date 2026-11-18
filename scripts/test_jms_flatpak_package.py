@@ -1,5 +1,6 @@
 """Filesystem acceptance checks for Flatpak packaging and source-evidence gates."""
 import hashlib
+import io
 import json
 import os
 import tarfile
@@ -247,6 +248,43 @@ class FlatpakPackageTests(unittest.TestCase):
             self.assertEqual(material.extractfile(reviewed['archives'][0]['member']).read(), public)
             self.assertEqual(json.load(material.extractfile('source-materials.json'))['application'],
                              {'inputs': reviewed['inputs'], 'binaries': reviewed['binaries']})
+
+    def test_reviewed_media_reuse_verifies_manifest_commit_and_immutable_archive_members(self):
+        public = b'fixture pinned corresponding source'
+        source_commit = 'c' * 40
+        media_url = 'https://example.invalid/lib.git'
+        member = f'components/lib-{source_commit}.tar.gz'
+        record = {'module': 'lib', 'url': media_url, 'commit': source_commit, 'member': member,
+                  'sha256': hashlib.sha256(public).hexdigest()}
+        manifest = {'modules': [{'name': 'lib', 'sources': [
+            {'type': 'git', 'url': media_url, 'commit': source_commit}]}]}
+        baseline = {'url': 'https://example.invalid/previous.tar.gz', 'sha256': 'd' * 64,
+                    'size': 0, 'archives': [record]}
+        packed = self.workspace / 'baseline.tar.gz'
+        with tarfile.open(packed, 'w:gz') as archive:
+            entry = tarfile.TarInfo(member)
+            entry.size = len(public)
+            archive.addfile(entry, io.BytesIO(public))
+        baseline['size'] = packed.stat().st_size
+
+        def download(url, path, digest, **kwargs):
+            self.assertEqual((url, digest), (baseline['url'], baseline['sha256']))
+            path.write_bytes(packed.read_bytes())
+
+        with mock.patch.object(sources, 'download', side_effect=download) as remote:
+            manifest['modules'][0]['sources'][0]['commit'] = 'e' * 40
+            with self.assertRaisesRegex(ValueError, 'Reviewed Flatpak media source inputs differ'):
+                sources.reviewed_media_archives(baseline, manifest, self.workspace)
+            remote.assert_not_called()
+            manifest['modules'][0]['sources'][0]['commit'] = source_commit
+            record['sha256'] = 'f' * 64
+            with self.assertRaisesRegex(ValueError, 'Reviewed Flatpak media source member differs'):
+                sources.reviewed_media_archives(baseline, manifest, self.workspace)
+
+            record['sha256'] = hashlib.sha256(public).hexdigest()
+            reused = sources.reviewed_media_archives(baseline, manifest, self.workspace)
+            self.assertEqual(reused[('lib', media_url, source_commit)], record)
+            self.assertEqual((self.workspace / Path(member).name).read_bytes(), public)
 
     def test_source_reuse_rejects_each_changed_native_input_before_download(self):
         manifest = self.workspace / 'manifest.yaml'

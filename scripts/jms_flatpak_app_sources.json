@@ -147,6 +147,59 @@
       "member": "application-sources/flutter-engine-LICENSE.txt",
       "archiveSha256": "02cc795dd6e8c7add0bf92c77210392f6e4c8788bc17cb5c7f8c652a56a8b461",
       "archiveMember": "sky_engine/LICENSE"
+    },
+    {
+      "module": "public-review-origin-libass",
+      "url": "https://codeload.github.com/libass/libass/zip/4a05d8127f525943ebf45fdc6497c9e665947f0d",
+      "sha256": "8fcae6d8cf274372f25e71e755f3d35763e9255aebb150bbcb0bcee7f267fe29",
+      "member": "reviewed-origins/libass-official.zip"
+    },
+    {
+      "module": "public-review-origin-mpv",
+      "url": "https://codeload.github.com/mpv-player/mpv/zip/a0fba7be57f3822d967b04f0f6b6d6341e7516e7",
+      "sha256": "99a52104aa6c4733cb5ccce1c9c7691d2c692d2619af3f096212a274df1b57a7",
+      "member": "reviewed-origins/mpv-official.zip"
+    },
+    {
+      "module": "public-review-origin-nuklear",
+      "url": "https://codeload.github.com/Immediate-Mode-UI/Nuklear/zip/c512ac886425f6b6b6c816d67f4cb1385cd4cc53",
+      "sha256": "ce78230fc48e6f68b004630b1564d22a7615fc47c15cd382da64a05eebed45f3",
+      "member": "reviewed-origins/nuklear-official.zip"
     }
-  ]
+  ],
+  "previousMediaMaterials": {
+    "url": "https://github.com/jim608/JMS-Linux/releases/download/v0.11.1-jms.59-test.1/JMS-Linux-0.11.1-jms.59-flatpak-native-materials.tar.gz",
+    "sha256": "6f1a080f5c4dbf73325af2fffaa34bb6119b26a2b6a6f23ab79e860299a64eea",
+    "size": 331494264,
+    "archives": [
+      {
+        "module": "ffnvcodec",
+        "url": "https://github.com/FFmpeg/nv-codec-headers.git",
+        "commit": "1889e62e2d35ff7aa9baca2bceb14f053785e6f1",
+        "sha256": "a63ed8ddf773d293ff98393841779038eee544262a9542d026cd23555ff0f0a2",
+        "member": "components/ffnvcodec-1889e62e2d35ff7aa9baca2bceb14f053785e6f1.tar.gz"
+      },
+      {
+        "module": "libass",
+        "url": "https://github.com/libass/libass.git",
+        "commit": "4a05d8127f525943ebf45fdc6497c9e665947f0d",
+        "sha256": "caa3b3d253379870eb211853b8ac0c726c65559c5fc9af9ca219679b2bb4262d",
+        "member": "components/libass-4a05d8127f525943ebf45fdc6497c9e665947f0d.tar.gz"
+      },
+      {
+        "module": "libplacebo",
+        "url": "https://code.videolan.org/videolan/libplacebo.git",
+        "commit": "1fd3c7bde7b943fe8985c893310b5269a09b46c5",
+        "sha256": "c00d911c04782eb58ec9e1e29bc02587b0565e1a90cf3291e705d30474ab4639",
+        "member": "components/libplacebo-1fd3c7bde7b943fe8985c893310b5269a09b46c5.tar.gz"
+      },
+      {
+        "module": "mpv",
+        "url": "https://github.com/mpv-player/mpv.git",
+        "commit": "a0fba7be57f3822d967b04f0f6b6d6341e7516e7",
+        "sha256": "6c8bc17136e62bfd25d0846c29cac2935b3b2c3283ed0067a8ed659fcce8326f",
+        "member": "components/mpv-a0fba7be57f3822d967b04f0f6b6d6341e7516e7.tar.gz"
+      }
+    ]
+  }
 }
