@@ -11,8 +11,8 @@
     "sha256": "bf87e5502c6d02bef0c09d27bdb397f2bf3609f38dc28e5495a8a3b27028b207"
   },
   "nativeEvidence": {
-    "path": "docs/release-evidence/native-review.json",
-    "sha256": "a45b61acbab02ae894d072ded0a6fea05ee881937574547e07dc08601c5c02a6"
+    "path": "docs/release-evidence/native-review-jms60.json",
+    "sha256": "177b5fc4bacf52e63414480b366a78668e760705fa9fa117a17b437ffb5bcc71"
   },
   "stableEvidence": null
 }

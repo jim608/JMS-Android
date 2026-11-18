@@ -1,0 +1,241 @@
+{
+  "schemaVersion": 1,
+  "status": "APPROVED",
+  "reviewedBy": "JMS Android native artifact and corresponding-source review",
+  "reviewedAt": "2026-11-18",
+  "sourceCommit": "41090021be63d5569cac2cede3578ab6e31212d5",
+  "buildId": "JMS-0.12.0-jms.60-649dd656e572",
+  "artifact": {
+    "path": "artifacts/JMS-Android-0.12.0-jms.60-release-arm64-test-signed.apk",
+    "sha256": "968e0248982d4ff3dd133128d9ab9a18f1325b5449bbf681068292ece13070ac"
+  },
+  "nativeHashes": {
+    "lib/arm64-v8a/libandroidx.graphics.path.so": "41e9a793c43a0f4fddb19e33f346bace464f30f888ba7b9eaf96294ea115bfb6",
+    "lib/arm64-v8a/libass.so": "f13e8a925ddaa73074105f9af89123b2206edbe4b502d748a6217a261dc62df4",
+    "lib/arm64-v8a/libasskt.so": "d7d221f40dbb94371f23b8a3c69995424bb6f505fe81bff6bf916289a1db487c",
+    "lib/arm64-v8a/libc++_shared.so": "ad74bf43eb1fd576518168f664ad16a74e00eeda9595875c33dd87f6dd197869",
+    "lib/arm64-v8a/libdatastore_shared_counter.so": "d3e48717c9aa147e0ab21063ba0e8e0211cabf8bf40b222640829519edbf58e1",
+    "lib/arm64-v8a/libffmpegJNI.so": "358545f4c9aa9e2eb5fdf7694d089d2e1e61364096bdc52ff99cd1bc303a4632",
+    "lib/arm64-v8a/libflutter.so": "897269cb58e4ae58e67be458235a15180eee37dd8a0fd648bfc095798bf1a005",
+    "lib/arm64-v8a/libmediakitandroidhelper.so": "ab55b1d34665dba8fa7a451e82c466ee71b9698e7da6c9a3cb68a7c0ee7610d4",
+    "lib/arm64-v8a/libmpv.so": "c0d797517822ac8e3006318cc5b80a5331a086282690043881448a9fbc843678",
+    "lib/arm64-v8a/libsqlite3.so": "4d586f7b1920f226030b1c93e9bc8cb7986813c3e7bea28f71fa8873299d7b3d"
+  },
+  "noticesSha256": "b9c2eb582f62260b2a70bbebbeace3b272e05f11118f86dba366a28a617fcefc",
+  "missing": [],
+  "legalBasis": "Release materials preserve the license notices and corresponding source/build materials of the linked Android ELF libraries. Exact unchanged ELF members retain the previous approved corresponding materials. SQLite C is public domain; the exact official source URL, source ID and SHA-256/SHA3-256 are recorded, and the complete MIT Dart wrapper/build recipe is included.",
+  "findings": [
+    "Ten non-app ARM64 ELF members independently verified. Five are byte-identical to their previously approved members.",
+    "ASS 0.5.1 and Jellyfin Media3 FFmpeg 1.9.0+1 members are byte-identical to their official pinned AAR members; all 19 ASS ABI symbols required by the wrapper resolve.",
+    "Packaged Flutter engine and SQLite match the official ARM64 artifacts after reproduction with the pinned NDK r28c strip tool.",
+    "The APK excludes the MDK native libraries and the FvpPlugin DEX marker. The Android notices bytes equal the exact frozen application source blob.",
+    "Sensitive-data screening and device acceptance are separate from this source/native review."
+  ],
+  "deviceAcceptance": false,
+  "materials": [
+    {
+      "sha256": "48d569811daed5831edd4a4f1a589e1316eb2c2c2f5f92afafb9ea35c67e152e",
+      "path": "artifacts/checks/m13/candidate-native/native-review.json"
+    },
+    {
+      "sha256": "258eaf117f13f4c50da4b0f4e3f8ff1e297f5dac530efaa68ace043306efd381",
+      "path": "artifacts/checks/m13/cpp-provider.json"
+    },
+    {
+      "path": "artifacts/native-materials-jms60-android/CMakeLists.txt",
+      "sha256": "8044f1d53d8f115e5fee59255931ca2886698f7cd7b6a8b03f38539b998b5f3d"
+    },
+    {
+      "path": "artifacts/native-materials-jms60-android/NDK-28.2.13676358-NOTICE.toolchain.txt",
+      "sha256": "789714a9076571c580cf531bdcebec776a4d889c12c3c1108adafc6e4338710a"
+    },
+    {
+      "path": "artifacts/native-materials-jms60-android/NDK-28.2.13676358-NOTICE.txt",
+      "sha256": "faf0dc52cf6ce9ab09a04b0c074a378dd2565ee1ed9bc1179d83793bcdba012e"
+    },
+    {
+      "path": "artifacts/native-materials-jms60-android/androidx-media-1.11.1-LICENSE.txt",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "path": "artifacts/native-materials-jms60-android/androidx-media-1.9.0-jellyfin-jni-LICENSE.txt",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "path": "artifacts/native-materials-jms60-android/ass-android-504f64a32505.zip",
+      "sha256": "d5296afc6571d50c38418471fde3f5433ca408ffe4ff9bf9d540f194c93efa95"
+    },
+    {
+      "path": "artifacts/native-materials-jms60-android/ass-kt-0.5.1-sources.jar",
+      "sha256": "f309d6d46d04e0fbcef472ca8a4fda2e88e55ea2feba7cd88312daebe880f93d"
+    },
+    {
+      "path": "artifacts/native-materials-jms60-android/ass-media-0.5.1-sources.jar",
+      "sha256": "53cca8481a55cac0e4e0ddab7db17c4e6a14f1c3709fd27551a7cbee7b3bfc3f"
+    },
+    {
+      "path": "artifacts/native-materials-jms60-android/build_ffmpeg.sh",
+      "sha256": "337c88b9240b67e290c361a59c39cb2812c5bfeb5c04833b5f63b227d07c9dc2"
+    },
+    {
+      "path": "artifacts/native-materials-jms60-android/ffmpeg_jni.cc",
+      "sha256": "cebafb59c70cd7082d40a94d33680f8627547994758fbd8551ab4b3434d4088c"
+    },
+    {
+      "path": "artifacts/native-materials-jms60-android/jellyfin-ffmpeg-37c90f55d8b6.zip",
+      "sha256": "b03b1321f3639657265ecdcf5d5ce26a4d164a164d1b422e42c3f72fd0b4a5a1"
+    },
+    {
+      "path": "artifacts/native-materials-jms60-android/jellyfin-media3-af9ee4e26b20.zip",
+      "sha256": "fe8f1cb7edd97f15c94f51d9ba831c6dc94a9124c3f377258a78f4892e1ae838"
+    },
+    {
+      "path": "artifacts/native-materials-jms60-android/signed-41090021-native-provenance.json",
+      "sha256": "f3b96f452de32c783982380d21aab32070b1b257dbbe093d4a8ac9d27a53f98f"
+    },
+    {
+      "path": "artifacts/native-materials-jms60-android/sky-engine-371f77202a73.zip",
+      "sha256": "02cc795dd6e8c7add0bf92c77210392f6e4c8788bc17cb5c7f8c652a56a8b461"
+    },
+    {
+      "path": "artifacts/native-materials-jms60-android/sqlite3-android-arm64-upstream-proof.json",
+      "sha256": "d78f3b81e69ffc49b797945bd50bfcc6ac2c6d78b7a2c784f33b5cbd7d782df9"
+    },
+    {
+      "path": "artifacts/native-materials-jms60-android/sqlite3.dart-f144d1c56b22.zip",
+      "sha256": "48de62bc01b87bb289e307d272fab88f81b1e07387deaa1e833135a4cce5ee0e"
+    },
+    {
+      "sha256": "7c26a4aa31126c18f17b84929d807572c2984d8e6a612ff6f949fbddfe9b4c00",
+      "path": "artifacts/native-materials-m10/ass-cmake-d3f00a43ca66.zip"
+    },
+    {
+      "sha256": "ec03a733ab96b25b843f7980135d5db6b979e0a63c6c60e7fff5bb58540531f7",
+      "path": "artifacts/native-materials-m10/manifest.json"
+    },
+    {
+      "sha256": "767a7ecdcb64f2506c6f1627f2c6ec6d69b88aa3079df9a0602438cc7d02d546",
+      "path": "artifacts/native-materials-m10/media-kit-helper-42054e5d479f.zip"
+    },
+    {
+      "sha256": "75e31ece965fa698c74e293c8cafbcdb746b80d68dbd4b75fabb60c4def0cb4d",
+      "path": "artifacts/native-materials-m10/mpv-78d43740f52d.zip"
+    },
+    {
+      "sha256": "0412c50826f2204006c07b66d45a14e81f5dc02e633d0f529b5760d866fd7159",
+      "path": "artifacts/native-materials-m10/mpv-build-23d81c8a50c6.zip"
+    },
+    {
+      "sha256": "b02d9e4bcf164ea98ae7d99e9380de56c3a874656c6e1e8c814b721e7cc90d2e",
+      "path": "artifacts/native-materials-m10/supplement-manifest.json"
+    },
+    {
+      "path": "artifacts/native-materials-m13/android-test-provenance.zip",
+      "sha256": "23b103bc738778a3415aa3cf4b9d6ee78781e24f20b6144a7c22df45358c59d2"
+    },
+    {
+      "sha256": "962df34a0fdc540c840f37c8f7d2b1dfe9272c852ef94b55b9f0fb093846a674",
+      "path": "artifacts/native-materials-m13/ass-cmake-tree.json"
+    },
+    {
+      "sha256": "66af76cdc50e22705b73fc0ec634badefa53b4bb5c2726c9bf8a26e57c682488",
+      "path": "artifacts/native-materials-m13/datastore-core-android-1.1.7-sources.jar"
+    },
+    {
+      "path": "artifacts/native-materials-m13/full-arm64-v8a.jar",
+      "sha256": "031aa9e76de6e0dea733d382252636f6237ded0aef797a561e6fc8b85c4f3ff1"
+    },
+    {
+      "sha256": "c8e425479830d24ef46cd56e17aefd5bf0dd8cabb74aa6325c231a96945b66d0",
+      "path": "artifacts/native-materials-m13/graphics-path-1.0.1-native.json"
+    },
+    {
+      "sha256": "b1269caf62d190eb284a8904a4ea99b56461f1093da91a1ee830cebb1218fbd8",
+      "path": "artifacts/native-materials-m13/graphics-path-1.0.1-native.zip"
+    },
+    {
+      "sha256": "9f1b5995b9577a8876525c3411ebb2a49f9ef0e875f6aec3059e807596dc6ca6",
+      "path": "artifacts/native-materials-m13/graphics-path-1.0.1-sources.jar"
+    },
+    {
+      "sha256": "eac8cd51669486c84dc28ecb2c95ae2246451eab29fa1781c85a95b1c943036c",
+      "path": "artifacts/native-materials-m13/manifest.json"
+    },
+    {
+      "sha256": "231bed8bc1bb28a41d88da6b4c2c118de84b92e5f1d67caffa1b7f81aaea8c6e",
+      "path": "artifacts/native-materials-m13/mpv-dav1d-1.2.0.tar.xz"
+    },
+    {
+      "sha256": "dc22aee07c9339f8b16162d3c1927b8e310981bc96d97216a1d6564c150908c7",
+      "path": "artifacts/native-materials-m13/mpv-ffmpeg-6.0.zip"
+    },
+    {
+      "sha256": "59c85e68e881e1ca56c84c0ce8884d6e2b3667695792a775ebac8d1bc8ac1a41",
+      "path": "artifacts/native-materials-m13/mpv-freetype-2.13.0.zip"
+    },
+    {
+      "sha256": "f4b8e31d934faff66696c0425cc1af68e4990e97027e3afc34dcbc4079ec6d46",
+      "path": "artifacts/native-materials-m13/mpv-fribidi-1.0.12.zip"
+    },
+    {
+      "sha256": "9c0548240d3e35351faf8b8d3878c7004360a308058bd70e6bfb48b523589073",
+      "path": "artifacts/native-materials-m13/mpv-harfbuzz-7.2.0.zip"
+    },
+    {
+      "sha256": "c5e772d0aee188e656402b989548765b56fee39ad1316afeb60735a1c9c677b6",
+      "path": "artifacts/native-materials-m13/mpv-libass-0.17.1.zip"
+    },
+    {
+      "sha256": "5d2cc3d78bec3dbe212a9d7fa629ada25a7da928af432c93060ff5c17ee28a9c",
+      "path": "artifacts/native-materials-m13/mpv-libxml2-2.10.3.tar.xz"
+    },
+    {
+      "sha256": "9969088c86eb89f6f0a131e699c46ff57058288410f2087bd0d308f65e9fccb5",
+      "path": "artifacts/native-materials-m13/mpv-mbedtls-3.4.0.zip"
+    },
+    {
+      "sha256": "3b9ce6f9d2d4746da724159ee5f64be2428093da10e3c84c57344eace52de9bf",
+      "path": "artifacts/native-materials-m13/native-ass-bbb3c7f1570a.zip"
+    },
+    {
+      "sha256": "60c54036a1189937da98b1ac54f452c181a6dffee92f964f39bf844997e8491c",
+      "path": "artifacts/native-materials-m13/native-expat-f9a3eeb3e09f.zip"
+    },
+    {
+      "sha256": "da4ff33a05119475fc979dc04963d8ee1f84d7ebdc1a9adb622a69d17c901d9a",
+      "path": "artifacts/native-materials-m13/native-fontconfig-daa175d234b8.tar.gz"
+    },
+    {
+      "sha256": "458f3bef657a2f9af1b925770e6e4e169077200dad833b8303b7c78502f1a6c5",
+      "path": "artifacts/native-materials-m13/native-freetype-42608f77f207.zip"
+    },
+    {
+      "sha256": "ba9c7281af133cb0f55f493ed8050317f92b11259e0bf38a7e7497ff26bfceb0",
+      "path": "artifacts/native-materials-m13/native-fribidi-68162babff4f.zip"
+    },
+    {
+      "sha256": "e15f277ae80ba72fff56827d838f425fa40088d0c71b4538390e83ee406970f8",
+      "path": "artifacts/native-materials-m13/native-harfbuzz-c3fcbffa651c.zip"
+    },
+    {
+      "sha256": "af93a94c170d3ead4a1c3a8a97c39ce0d60dc0b4e3f6eaee49b28eb559446105",
+      "path": "artifacts/native-materials-m13/native-unibreak-304585d8e2d6.zip"
+    },
+    {
+      "sha256": "539dd7aed86e8a4f12cbdd0e6c50c189c7d74847e4fecc64ce2c6ee3a01da38b",
+      "path": "artifacts/native-materials-m13/ndk28-libcxx-LICENSE.txt"
+    },
+    {
+      "sha256": "e2b35be49f7284a45b7baca8fc7b3ab7440e7902392b2528a457816b5bb2a15c",
+      "path": "artifacts/native-materials-m13/ndk28-libcxxabi-LICENSE.txt"
+    },
+    {
+      "sha256": "b5efebcaca80879234098e52d1725e6d9eb8fb96a19fce625d39184b705f7b6d",
+      "path": "artifacts/native-materials-m13/ndk28-libunwind-LICENSE.txt"
+    },
+    {
+      "path": "artifacts/native-materials-m13/tika-core-3.2.0.jar",
+      "sha256": "083229d0199b2066feab0bcbf41d17ea8da3631c6187a865cda173c910467464"
+    }
+  ]
+}

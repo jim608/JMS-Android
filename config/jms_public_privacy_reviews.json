@@ -148528,5 +148528,182 @@
       "member": "mpv/player/javascript/defaults.js",
       "sha256": "a6cafb2575c657c148ef0d8ec92a16ec47ac27bd777933346a04939e82649812"
     }
+  },
+  {
+    "source": "https://codeload.github.com/peerless2012/libass-android/zip/504f64a325059ab5188c4c9d0eddc99c9356a23a",
+    "archiveSha256": "d5296afc6571d50c38418471fde3f5433ca408ffe4ff9bf9d540f194c93efa95",
+    "member": "libass-android-504f64a325059ab5188c4c9d0eddc99c9356a23a/app/src/main/java/io/github/peerless2012/ass/demo/MainActivity.kt",
+    "sha256": "d4df2a7202f9ef2a17de2be3cf7352e733ebf168cae15ed8f8b87ffc138faa8c",
+    "rules": [
+      "private network endpoint"
+    ],
+    "explanation": "The five exact LAN URL matches are in the published upstream demo Activity sample media and subtitle configuration. The demo Activity is excluded from the linked AAR and the URLs have no local policy or credential match.",
+    "evidence": {
+      "kind": "upstream-public-example",
+      "member": "libass-android-504f64a325059ab5188c4c9d0eddc99c9356a23a/app/src/main/java/io/github/peerless2012/ass/demo/MainActivity.kt",
+      "sha256": "d4df2a7202f9ef2a17de2be3cf7352e733ebf168cae15ed8f8b87ffc138faa8c"
+    }
+  },
+  {
+    "source": "https://codeload.github.com/peerless2012/libass-android/zip/504f64a325059ab5188c4c9d0eddc99c9356a23a",
+    "archiveSha256": "d5296afc6571d50c38418471fde3f5433ca408ffe4ff9bf9d540f194c93efa95",
+    "member": "libass-android-504f64a325059ab5188c4c9d0eddc99c9356a23a/lib_ass_media/README.md",
+    "sha256": "083c5cde0e546a27599738aa6183104d18d1cbc1bd1b6c2c597345fea9b96dfa",
+    "rules": [
+      "private network endpoint"
+    ],
+    "explanation": "The three matching LAN subtitle URI examples are byte-identical lines to the previously reviewed upstream demo documentation and are not JMS settings.",
+    "evidence": {
+      "kind": "upstream-public-example",
+      "member": "libass-android-504f64a325059ab5188c4c9d0eddc99c9356a23a/lib_ass_media/README.md",
+      "sha256": "083c5cde0e546a27599738aa6183104d18d1cbc1bd1b6c2c597345fea9b96dfa"
+    }
+  },
+  {
+    "source": "https://codeload.github.com/jellyfin/FFmpeg/zip/37c90f55d8b6c3948c79449b04755527b4ae1351",
+    "archiveSha256": "b03b1321f3639657265ecdcf5d5ce26a4d164a164d1b422e42c3f72fd0b4a5a1",
+    "member": "FFmpeg-37c90f55d8b6c3948c79449b04755527b4ae1351/doc/faq.texi",
+    "sha256": "e3b3247d6489da6228bc644721abe81fbf85e385a3b357ebf9d8d34d868aeddc",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Public cross-compile PKG_CONFIG_LIBDIR example with a placeholder user directory. The member bytes are identical to the previously reviewed pinned FFmpeg source.",
+    "evidence": {
+      "kind": "upstream-public-example",
+      "member": "FFmpeg-37c90f55d8b6c3948c79449b04755527b4ae1351/doc/faq.texi",
+      "sha256": "e3b3247d6489da6228bc644721abe81fbf85e385a3b357ebf9d8d34d868aeddc"
+    }
+  },
+  {
+    "source": "https://codeload.github.com/jellyfin/FFmpeg/zip/37c90f55d8b6c3948c79449b04755527b4ae1351",
+    "archiveSha256": "b03b1321f3639657265ecdcf5d5ce26a4d164a164d1b422e42c3f72fd0b4a5a1",
+    "member": "FFmpeg-37c90f55d8b6c3948c79449b04755527b4ae1351/doc/fate.texi",
+    "sha256": "b9cafbffeb370697c915ae1cc19b2a761059580cbc69688f6895a000f21aaa05",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Public FFmpeg sample-server rsync path examples. The member bytes are identical to the previously reviewed pinned FFmpeg source.",
+    "evidence": {
+      "kind": "upstream-public-example",
+      "member": "FFmpeg-37c90f55d8b6c3948c79449b04755527b4ae1351/doc/fate.texi",
+      "sha256": "b9cafbffeb370697c915ae1cc19b2a761059580cbc69688f6895a000f21aaa05"
+    }
+  },
+  {
+    "source": "https://codeload.github.com/jellyfin/FFmpeg/zip/37c90f55d8b6c3948c79449b04755527b4ae1351",
+    "archiveSha256": "b03b1321f3639657265ecdcf5d5ce26a4d164a164d1b422e42c3f72fd0b4a5a1",
+    "member": "FFmpeg-37c90f55d8b6c3948c79449b04755527b4ae1351/doc/protocols.texi",
+    "sha256": "ed28c920da46decd3fb4d134e2d904e9ff2e5781dea5acea0c3662ddf5c03ab5",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Public SFTP documentation with explicit placeholder components. The member bytes are identical to the previously reviewed pinned FFmpeg source.",
+    "evidence": {
+      "kind": "upstream-public-example",
+      "member": "FFmpeg-37c90f55d8b6c3948c79449b04755527b4ae1351/doc/protocols.texi",
+      "sha256": "ed28c920da46decd3fb4d134e2d904e9ff2e5781dea5acea0c3662ddf5c03ab5"
+    }
+  },
+  {
+    "source": "https://codeload.github.com/jellyfin/FFmpeg/zip/37c90f55d8b6c3948c79449b04755527b4ae1351",
+    "archiveSha256": "b03b1321f3639657265ecdcf5d5ce26a4d164a164d1b422e42c3f72fd0b4a5a1",
+    "member": "FFmpeg-37c90f55d8b6c3948c79449b04755527b4ae1351/libavcodec/cdgraphics.c",
+    "sha256": "5bf39d1796e1cd1aece9848afac3cd7593f07f29cd313a666686137cafe0ff4a",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "Public historical CD Graphics reference URL in a source comment. The member bytes are identical to the previously reviewed pinned FFmpeg source.",
+    "evidence": {
+      "kind": "upstream-public-example",
+      "member": "FFmpeg-37c90f55d8b6c3948c79449b04755527b4ae1351/libavcodec/cdgraphics.c",
+      "sha256": "5bf39d1796e1cd1aece9848afac3cd7593f07f29cd313a666686137cafe0ff4a"
+    }
+  },
+  {
+    "source": "https://codeload.github.com/jellyfin/FFmpeg/zip/37c90f55d8b6c3948c79449b04755527b4ae1351",
+    "archiveSha256": "b03b1321f3639657265ecdcf5d5ce26a4d164a164d1b422e42c3f72fd0b4a5a1",
+    "member": "FFmpeg-37c90f55d8b6c3948c79449b04755527b4ae1351/libavformat/tests/url.c",
+    "sha256": "9ef2d810636f3e8be4e4cf266c87136dd3851730e7a0e0d4f60d1f82f3638220",
+    "rules": [
+      "credential URL/header"
+    ],
+    "explanation": "Synthetic userinfo values in URL decomposition regression tests. The member bytes are identical to the previously reviewed pinned FFmpeg source.",
+    "evidence": {
+      "kind": "upstream-public-example",
+      "member": "FFmpeg-37c90f55d8b6c3948c79449b04755527b4ae1351/libavformat/tests/url.c",
+      "sha256": "9ef2d810636f3e8be4e4cf266c87136dd3851730e7a0e0d4f60d1f82f3638220"
+    }
+  },
+  {
+    "source": "https://codeload.github.com/jellyfin/FFmpeg/zip/37c90f55d8b6c3948c79449b04755527b4ae1351",
+    "archiveSha256": "b03b1321f3639657265ecdcf5d5ce26a4d164a164d1b422e42c3f72fd0b4a5a1",
+    "member": "FFmpeg-37c90f55d8b6c3948c79449b04755527b4ae1351/tests/ref/fate/url",
+    "sha256": "a5b2378a47e738a3513eedb60c2b49eeb9f8f483713a377f03615c8c0f80d1ed",
+    "rules": [
+      "credential URL/header"
+    ],
+    "explanation": "Synthetic expected userinfo text in the corresponding FFmpeg test output. The member bytes are identical to the previously reviewed pinned FFmpeg source.",
+    "evidence": {
+      "kind": "upstream-public-example",
+      "member": "FFmpeg-37c90f55d8b6c3948c79449b04755527b4ae1351/tests/ref/fate/url",
+      "sha256": "a5b2378a47e738a3513eedb60c2b49eeb9f8f483713a377f03615c8c0f80d1ed"
+    }
+  },
+  {
+    "source": "https://storage.googleapis.com/flutter_infra_release/flutter/371f77202a73e8dff57a8b3bff75bca55c090aee/sky_engine.zip",
+    "archiveSha256": "02cc795dd6e8c7add0bf92c77210392f6e4c8788bc17cb5c7f8c652a56a8b461",
+    "member": "sky_engine/lib/core/uri.dart",
+    "sha256": "43d812c9572e4b7b5d43a1a31d4252e7f628e259df509bb429094a9166f71814",
+    "rules": [
+      "personal filesystem path",
+      "personal filesystem path",
+      "credential URL/header"
+    ],
+    "explanation": "All matching lines are identical to those in the previously approved official Flutter engine source. They are Dart URI documentation and parsing examples with placeholder file paths and userinfo.",
+    "evidence": {
+      "kind": "upstream-public-example",
+      "member": "sky_engine/lib/core/uri.dart",
+      "sha256": "43d812c9572e4b7b5d43a1a31d4252e7f628e259df509bb429094a9166f71814"
+    }
+  },
+  {
+    "source": "https://repo.maven.apache.org/maven2/io/github/peerless2012/ass-kt/0.5.1/ass-kt-0.5.1.aar",
+    "archiveSha256": "968e0248982d4ff3dd133128d9ab9a18f1325b5449bbf681068292ece13070ac",
+    "member": "lib/arm64-v8a/libass.so",
+    "sha256": "f13e8a925ddaa73074105f9af89123b2206edbe4b502d748a6217a261dc62df4",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "This exact JMS APK member is byte-identical to the pinned official ass-kt ARM64 AAR member. The 25 matched strings are upstream GitHub runner build paths for libass-android and contain no local user path or credential.",
+    "evidence": {
+      "kind": "upstream-build-or-format-reference",
+      "archiveSha256": "d5296afc6571d50c38418471fde3f5433ca408ffe4ff9bf9d540f194c93efa95",
+      "member": "libass-android-504f64a325059ab5188c4c9d0eddc99c9356a23a/.github/workflows/publish.yml",
+      "sha256": "e929ab3386f6810a5084e1c3d0d3fd49ffde349f310ab2cad5139d1dc92a787b"
+    }
+  },
+  {
+    "source": "https://github.com/media-kit/libmpv-android-video-build/releases/download/v1.1.8/full-arm64-v8a.jar",
+    "archiveSha256": "968e0248982d4ff3dd133128d9ab9a18f1325b5449bbf681068292ece13070ac",
+    "member": "lib/arm64-v8a/libmpv.so",
+    "sha256": "c0d797517822ac8e3006318cc5b80a5331a086282690043881448a9fbc843678",
+    "rules": [
+      "personal filesystem path",
+      "credential pattern"
+    ],
+    "evidence": {
+      "kind": "upstream-build-or-format-reference",
+      "archiveSha256": "9969088c86eb89f6f0a131e699c46ff57058288410f2087bd0d308f65e9fccb5",
+      "member": "mbedtls-3.4.0/library/pkparse.c",
+      "sha256": "bd38ba42e9954cbc45448220feee1cdc0cd38f359ffa0c3a0f201ec3e495c4cc"
+    },
+    "additionalEvidence": [
+      {
+        "archiveSha256": "9969088c86eb89f6f0a131e699c46ff57058288410f2087bd0d308f65e9fccb5",
+        "member": "mbedtls-3.4.0/library/pkwrite.c",
+        "sha256": "c35c263f9041a8b534489c36a31c49e2a54e293bc744032338249c15777c14e2"
+      }
+    ],
+    "explanation": "This exact JMS APK member is byte-identical to the pinned official media-kit ARM64 JAR and prior anonymous JMS .59 APK. Path matches are upstream GitHub runner build prefixes. The six key-shaped matches are complete NUL-terminated PEM format labels with no key data and match the pinned mbedTLS parser constants."
   }
 ]
