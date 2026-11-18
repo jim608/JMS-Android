@@ -36,4 +36,19 @@ void main() {
             start: double.infinity, end: 2, position: 1, offset: 0),
         isFalse);
   });
+
+  test('indexed lookup preserves overlapping cues across distant seeks', () {
+    final timeline = SubtitleCueTimeline([
+      (start: 0.0, end: 3000.0, text: 'long'),
+      for (var index = 1; index < 3000; index++)
+        (start: index.toDouble(), end: index + .5, text: '$index'),
+      (start: 2999.0, end: 3000.0, text: 'same start'),
+    ]);
+
+    expect(timeline.textAt(2999.0), 'long\n2999\nsame start');
+    expect(timeline.textAt(2999.5), 'long\nsame start');
+    expect(timeline.textAt(12.25), 'long\n12');
+    expect(timeline.textAt(3000), isEmpty);
+    expect(timeline.textAt(double.nan), isEmpty);
+  });
 }

@@ -17,6 +17,9 @@ class WebSubtitleTiming {
   final void Function(bool) onAvailable;
   web.HTMLVideoElement? _element;
   web.TextTrack? _track;
+  SubtitleCueTimeline? _timeline;
+  int _indexedCueCount = 0;
+  StreamSubscription<web.Event>? _trackLoad;
   Timer? _timer;
   web.AbortController? _request;
   String? _preparedUrl;
@@ -50,7 +53,8 @@ class WebSubtitleTiming {
       element.onTimeUpdate,
       element.onSeeked,
       element.onPause,
-      element.onPlay
+      element.onPlay,
+      element.onEnded,
     ]) {
       _events.add(event.listen((_) => refresh()));
     }
@@ -72,10 +76,10 @@ class WebSubtitleTiming {
   /// Clear applied subtitles only for Off, a new media source, or disposal.
   void clearTrack() {
     cancelPendingSelection();
+    _useTrack(null);
     _replacement.clear();
     _timer?.cancel();
     _timer = null;
-    _track = null;
     final element = _element;
     if (element != null) {
       final tracks = element.querySelectorAll('track');
@@ -228,49 +232,70 @@ class WebSubtitleTiming {
     final prepared = _preparedUrl;
     _preparedUrl = null;
     if (prepared != null) web.URL.revokeObjectURL(prepared);
-    _track = candidate.element.track
-      ..oncuechange = null
-      ..mode = 'hidden';
-    _startRefreshTimer();
+    _useTrack(candidate.element.track);
   }
 
   void selectTrack() {
     final element = _element;
     if (element == null || element.textTracks.length == 0) return;
-    _track = element.textTracks[element.textTracks.length - 1]
-      ..oncuechange = null
-      ..mode = 'hidden';
-    // Cues may load after selection. Polling also refreshes adjusted text in a
-    // paused video, where browsers need not dispatch cuechange or timeupdate.
-    _startRefreshTimer();
+    final track = element.textTracks[element.textTracks.length - 1];
+    _useTrack(track);
+    final children = element.querySelectorAll('track');
+    for (var i = 0; i < children.length; i++) {
+      final child = children.item(i) as web.HTMLTrackElement;
+      if (identical(child.track, track)) {
+        _trackLoad = child.onLoad.listen((_) => refresh());
+        break;
+      }
+    }
     refresh();
   }
 
-  void _startRefreshTimer() {
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(milliseconds: 50), (_) => refresh());
+  void _useTrack(web.TextTrack? track) {
+    unawaited(_trackLoad?.cancel());
+    _trackLoad = null;
+    _track?.oncuechange = null;
+    _track = track;
+    _timeline = null;
+    _indexedCueCount = 0;
+    if (track != null) {
+      track
+        ..oncuechange = ((web.Event _) => refresh()).toJS
+        ..mode = 'hidden';
+    }
   }
 
   void refresh() {
     final element = _element;
-    final cues = _track?.cues;
-    if (element == null || cues == null || cues.length == 0) {
+    final track = _track;
+    if (element == null || track == null || element.paused || element.ended) {
+      _timer?.cancel();
+      _timer = null;
+    } else {
+      _timer ??=
+          Timer.periodic(const Duration(milliseconds: 50), (_) => refresh());
+    }
+
+    final cues = track?.cues;
+    final count = cues?.length ?? 0;
+    if (element == null || cues == null || count == 0) {
+      _timeline = null;
+      _indexedCueCount = 0;
       _publish('', false);
       return;
     }
-    final active = <String>[];
-    for (var i = 0; i < cues.length; i++) {
-      final cue = cues[i];
-      if (subtitleCueIsActive(
+    if (count != _indexedCueCount) {
+      _timeline = SubtitleCueTimeline(List.generate(count, (index) {
+        final cue = cues[index] as web.VTTCue;
+        return (
           start: cue.startTime,
           end: cue.endTime,
-          position: element.currentTime,
-          offset: _offset)) {
-        final text = (cue as web.VTTCue).getCueAsHTML().textContent ?? '';
-        if (text.isNotEmpty) active.add(text);
-      }
+          text: cue.getCueAsHTML().textContent ?? '',
+        );
+      }, growable: false));
+      _indexedCueCount = count;
     }
-    _publish(active.join('\n'), true);
+    _publish(_timeline!.textAt(element.currentTime - _offset), true);
   }
 
   Future<void> write(String property, String value) async {

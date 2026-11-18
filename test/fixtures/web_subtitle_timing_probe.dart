@@ -69,7 +69,18 @@ Future<void> main() async {
     check('local real video loaded', video.duration >= 2,
         {'duration': video.duration});
     timing.attachElement(video);
-    await select('captions.srt');
+    var pausedRefreshTimers = 0;
+    await runZoned(() => select('captions.srt'),
+        zoneSpecification: ZoneSpecification(
+      createPeriodicTimer: (self, parent, zone, duration, callback) {
+        if (duration == const Duration(milliseconds: 50)) {
+          pausedRefreshTimers++;
+        }
+        return parent.createPeriodicTimer(zone, duration, callback);
+      },
+    ));
+    check('paused subtitle load starts no refresh timer',
+        video.paused && pausedRefreshTimers == 0);
     check('real SRT fetched and normalized into a loaded hidden browser track',
         available && video.textTracks.length == 1);
     await seek(1.05);
