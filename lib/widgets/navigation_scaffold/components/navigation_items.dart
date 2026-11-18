@@ -278,7 +278,9 @@ class FilterNavigationItem extends ConsumerWidget {
     final createdViews =
         views.isNotEmpty ? views : filter.ids.map((e) => ViewModel.createEmpty(e, CollectionType.folders));
 
-    final selected = context.router.currentUrl.contains(filter.navKey.toString());
+    final currentUrl = context.router.currentUrl;
+    final selected = Uri.tryParse(currentUrl)?.queryParameters['savedFilterId'] == filter.id ||
+        currentUrl.contains(filter.navKey.toString());
 
     final viewNames = filter.viewNames.isEmpty ? views.map((e) => e.name).join(", ") : filter.viewNames.join(", ");
 

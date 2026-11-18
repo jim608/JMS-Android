@@ -406,10 +406,19 @@ class User extends _$User {
     final currentList = (state?.libraryFilters ?? []).toList(growable: true);
     final index = currentList.indexWhere((value) => value.id == model.id);
     if (index != -1) {
-      final updatedModel = model.copyWith(showInSideBar: false);
+      final updatedModel = currentList[index].copyWith(showInSideBar: false);
       currentList[index] = updatedModel;
       userState = state?.copyWith(libraryFilters: currentList);
     }
+  }
+
+  void setFilterOnHome(String id, {required bool showOnHome}) {
+    final currentList = [...?state?.libraryFilters];
+    final index = currentList.indexWhere((filter) => filter.id == id);
+    if (index == -1 || currentList[index].showOnHome == showOnHome) return;
+
+    currentList[index] = currentList[index].copyWith(showOnHome: showOnHome);
+    userState = state?.copyWith(libraryFilters: currentList);
   }
 
   void deleteAllFilters() => userState = state?.copyWith(libraryFilters: []);

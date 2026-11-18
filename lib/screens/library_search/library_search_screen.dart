@@ -18,6 +18,7 @@ import 'package:fladder/models/library_filter_model.dart';
 import 'package:fladder/models/library_search/library_search_model.dart';
 import 'package:fladder/models/library_search/library_search_options.dart';
 import 'package:fladder/models/settings/client_settings_model.dart';
+import 'package:fladder/providers/library_filters_provider.dart';
 import 'package:fladder/providers/library_search_provider.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
 import 'package:fladder/routes/auto_router.gr.dart';
@@ -57,6 +58,7 @@ import 'package:fladder/widgets/shared/scroll_position.dart';
 class LibrarySearchScreen extends ConsumerStatefulWidget {
   final String? query;
   final List<String>? parentId;
+  final String? savedFilterId;
   final bool? favourites;
   final SortingOrder? sortOrder;
   final SortingOptions? sortingOptions;
@@ -71,6 +73,7 @@ class LibrarySearchScreen extends ConsumerStatefulWidget {
   const LibrarySearchScreen({
     @QueryParam("query") this.query,
     @QueryParam("parentId") this.parentId,
+    @QueryParam("savedFilterId") this.savedFilterId,
     @QueryParam("favourites") this.favourites,
     @QueryParam("sortOrder") this.sortOrder,
     @QueryParam("sortOptions") this.sortingOptions,
@@ -97,7 +100,9 @@ class _LibrarySearchScreenState extends ConsumerState<LibrarySearchScreen> {
 
   bool loadOnStart = false;
 
-  Key get uniqueKey => Key(widget.parentId?.join(',').toString() ?? "EmptySearch");
+  Key get uniqueKey => Key(widget.savedFilterId == null
+      ? widget.parentId?.join(',') ?? 'EmptySearch'
+      : 'saved-filter-${widget.savedFilterId}');
   AutoDisposeStateNotifierProvider<LibrarySearchNotifier, LibrarySearchModel> get providerKey =>
       librarySearchProvider(uniqueKey);
   LibrarySearchNotifier get libraryProvider => ref.read(librarySearchProvider(uniqueKey).notifier);
@@ -147,9 +152,16 @@ class _LibrarySearchScreenState extends ConsumerState<LibrarySearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isEmptySearchScreen = widget.parentId == null && widget.favourites == null;
+    final savedFilterId = widget.savedFilterId;
+    final saved = savedFilterId == null
+        ? null
+        : ref.watch(userLibraryFilters.select((filters) => filters.where((filter) => filter.id == savedFilterId).firstOrNull));
+    final missingSavedFilter = savedFilterId != null && saved == null;
+    final isEmptySearchScreen = widget.parentId == null && widget.favourites == null && savedFilterId == null;
     final librarySearchResults = ref.watch(providerKey);
-    final postersList = librarySearchResults.posters.hideEmptyChildren(librarySearchResults.filters.hideEmptyShows);
+    final postersList = missingSavedFilter
+        ? const <ItemBaseModel>[]
+        : librarySearchResults.posters.hideEmptyChildren(librarySearchResults.filters.hideEmptyShows);
     final libraryViewType = ref.watch(libraryViewTypeProvider);
 
     final floatingAppBar = AdaptiveLayout.layoutModeOf(context) != LayoutMode.single;
@@ -600,10 +612,12 @@ class _LibrarySearchScreenState extends ConsumerState<LibrarySearchScreen> {
                   autoFocus: false,
                   contextRefresh: false,
                   onRefresh: () async {
-                    final filter = incomingFilter();
+                    if (missingSavedFilter) return;
+                    final filter = saved?.filter ?? incomingFilter();
                     if (libraryProvider.mounted) {
                       return libraryProvider.initRefresh(
-                        parentIds: widget.parentId ?? [],
+                        parentIds: saved?.ids ?? widget.parentId ?? [],
+                      savedFilter: saved != null,
                         filters: filter,
                       );
                     }

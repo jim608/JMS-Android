@@ -64,6 +64,7 @@ class LibrarySearchNotifier extends StateNotifier<LibrarySearchModel> {
   bool wasInitialized = false;
   int _refreshGeneration = 0;
   LibrarySearchModel? _requestedSearch;
+  List<String>? _savedFilterIds;
 
   bool get loading => state.loading;
   bool get needsRefresh => _requestedSearch?.shouldRefresh(state) ?? false;
@@ -73,7 +74,9 @@ class LibrarySearchNotifier extends StateNotifier<LibrarySearchModel> {
   Future<void> initRefresh({
     required List<String> parentIds,
     LibraryFilterModel? filters,
+    bool savedFilter = false,
   }) async {
+    if (savedFilter) _savedFilterIds = parentIds;
     final generation = ++_refreshGeneration;
     loading = true;
     state = state.resetLazyLoad();
@@ -94,7 +97,7 @@ class LibrarySearchNotifier extends StateNotifier<LibrarySearchModel> {
       final firstView = state.views.included.firstWhereOrNull((element) => parentIds.contains(element.id));
       final findFavouriteFilter = ref.read(filterProvider).firstWhereOrNull((element) => element.isFavourite);
       final defaultOrFavourite =
-          filters?.isDefault == true && findFavouriteFilter != null ? findFavouriteFilter.filter : filters;
+          !savedFilter && filters?.isDefault == true && findFavouriteFilter != null ? findFavouriteFilter.filter : filters;
       final activeFilter = defaultOrFavourite ?? firstView?.collectionType.defaultFilters ?? const LibraryFilterModel();
 
       if (firstView != null) {
@@ -104,7 +107,7 @@ class LibrarySearchNotifier extends StateNotifier<LibrarySearchModel> {
 
       if (!wasInitialized) {
         wasInitialized = true;
-        state = state.copyWith(filters: state.filters.loadModel(activeFilter));
+        state = state.copyWith(filters: state.filters.loadModel(activeFilter, keepSavedValues: _savedFilterIds != null));
       }
       await _loadMore(generation);
     } finally {
@@ -212,7 +215,8 @@ class LibrarySearchNotifier extends StateNotifier<LibrarySearchModel> {
     if (state.folderOverwrite.isNotEmpty) {
       await handleFolderLoading();
     } else if (!state.views.hasEnabled) {
-      if (state.filters.searchQuery.isEmpty && state.filters.favourites != true) {
+      if (_savedFilterIds?.isNotEmpty == true ||
+          (_savedFilterIds == null && state.filters.searchQuery.isEmpty && state.filters.favourites != true)) {
         state = state.copyWith(posters: []);
       } else {
         final start = newLastIndices[_globalSearchPage] ?? 0;
@@ -378,42 +382,20 @@ class LibrarySearchNotifier extends StateNotifier<LibrarySearchModel> {
       int? startIndex,
       bool? enableTotalRecordCount,
       List<ItemSortBy>? sortBy,
-      String? searchTerm}) async {
-    final searchString = searchTerm ?? (state.filters.searchQuery.isNotEmpty ? state.filters.searchQuery : null);
-    final response = await api.itemsGet(
-      parentId: viewModel?.id ?? id,
-      searchTerm: searchString,
-      genres: state.filters.genres.included,
-      tags: state.filters.tags.included,
-      recursive: searchString?.isNotEmpty == true ? true : recursive ?? state.filters.recursive,
-      officialRatings: state.filters.officialRatings.included,
-      years: state.filters.years.included,
-      isMissing: false,
-      limit: (limit ?? 0) > 0 ? limit : null,
-      startIndex: (limit ?? 0) > 0 ? startIndex : null,
-      enableTotalRecordCount: enableTotalRecordCount,
-      collapseBoxSetItems: false,
-      studioIds: state.filters.studios.included.map((e) => e.id).toList(),
-      sortBy: sortBy ?? (shuffle == true ? [ItemSortBy.random] : state.filters.sortingOption.toSortBy),
-      sortOrder: [state.filters.sortOrder.sortOrder],
-      fields: {
-        ItemFields.genres,
-        ItemFields.parentid,
-        ItemFields.tags,
-        ItemFields.datecreated,
-        ItemFields.datelastmediaadded,
-        ItemFields.overview,
-        ItemFields.originaltitle,
-        ItemFields.customrating,
-        ItemFields.primaryimageaspectratio,
-        if (viewModel?.collectionType == CollectionType.tvshows) ItemFields.childcount,
-      }.toList(),
-      isFavorite: state.filters.favourites,
-      filters: state.filters.itemFilters.included,
-      includeItemTypes: state.filters.types.included.map((e) => e.dtoKind).expand((e) => e).toList(),
-    );
-    return response.body;
-  }
+      String? searchTerm}) =>
+      queryLibraryItems(
+        api,
+        state.filters,
+        parentId: viewModel?.id ?? id,
+        recursive: recursive,
+        shuffle: shuffle,
+        limit: limit,
+        startIndex: startIndex,
+        enableTotalRecordCount: enableTotalRecordCount,
+        sortBy: sortBy,
+        searchTerm: searchTerm,
+        includeChildCount: viewModel?.collectionType == CollectionType.tvshows,
+      );
 
   Future<ServerQueryResult?> _loadPlaylistItems({ViewModel? viewModel, String? id, int? startIndex, int? limit}) async {
     final response = await api.playlistsPlaylistIdItemsGet(
@@ -1056,6 +1038,7 @@ class LibrarySearchNotifier extends StateNotifier<LibrarySearchModel> {
             isFavourite: model.isFavourite,
             id: model.id,
             showInSideBar: model.showInSideBar,
+            showOnHome: model.showOnHome,
             viewNames: state.folderOverwrite.isNotEmpty
                 ? state.folderOverwrite.included.map((e) => e.name).toList()
                 : state.views.included.map((e) => e.name).toList(),
@@ -1077,6 +1060,55 @@ class LibrarySearchNotifier extends StateNotifier<LibrarySearchModel> {
     loadedFilters = false;
     state = state.copyWith(folderOverwrite: value);
   }
+}
+
+Future<ServerQueryResult?> queryLibraryItems(
+  JellyService api,
+  LibraryFilterModel filters, {
+  String? parentId,
+  bool? recursive,
+  bool? shuffle,
+  int? limit,
+  int? startIndex,
+  bool? enableTotalRecordCount,
+  List<ItemSortBy>? sortBy,
+  String? searchTerm,
+  bool includeChildCount = false,
+}) async {
+  final searchString = searchTerm ?? (filters.searchQuery.isNotEmpty ? filters.searchQuery : null);
+  final response = await api.itemsGet(
+    parentId: parentId,
+    searchTerm: searchString,
+    genres: filters.genres.included,
+    tags: filters.tags.included,
+    recursive: searchString?.isNotEmpty == true ? true : recursive ?? filters.recursive,
+    officialRatings: filters.officialRatings.included,
+    years: filters.years.included,
+    isMissing: false,
+    limit: (limit ?? 0) > 0 ? limit : null,
+    startIndex: (limit ?? 0) > 0 ? startIndex : null,
+    enableTotalRecordCount: enableTotalRecordCount,
+    collapseBoxSetItems: false,
+    studioIds: filters.studios.included.map((e) => e.id).toList(),
+    sortBy: sortBy ?? (shuffle == true ? [ItemSortBy.random] : filters.sortingOption.toSortBy),
+    sortOrder: [filters.sortOrder.sortOrder],
+    fields: {
+      ItemFields.genres,
+      ItemFields.parentid,
+      ItemFields.tags,
+      ItemFields.datecreated,
+      ItemFields.datelastmediaadded,
+      ItemFields.overview,
+      ItemFields.originaltitle,
+      ItemFields.customrating,
+      ItemFields.primaryimageaspectratio,
+      if (includeChildCount) ItemFields.childcount,
+    }.toList(),
+    isFavorite: filters.favourites,
+    filters: filters.itemFilters.included,
+    includeItemTypes: filters.types.included.map((e) => e.dtoKind).expand((e) => e).toList(),
+  );
+  return response.isSuccessful ? response.body : null;
 }
 
 extension SimpleSorter on List<ItemBaseModel> {

@@ -12,6 +12,7 @@ _LibraryFiltersModel _$LibraryFiltersModelFromJson(Map<String, dynamic> json) =>
       name: json['name'] as String,
       isFavourite: json['isFavourite'] as bool,
       showInSideBar: json['showInSideBar'] as bool? ?? false,
+      showOnHome: json['showOnHome'] as bool? ?? false,
       ids: (json['ids'] as List<dynamic>?)?.map((e) => e as String).toList() ??
           const [],
       viewNames: (json['viewNames'] as List<dynamic>?)
@@ -30,6 +31,7 @@ Map<String, dynamic> _$LibraryFiltersModelToJson(
       'name': instance.name,
       'isFavourite': instance.isFavourite,
       'showInSideBar': instance.showInSideBar,
+      'showOnHome': instance.showOnHome,
       'ids': instance.ids,
       'viewNames': instance.viewNames,
       'filter': instance.filter,

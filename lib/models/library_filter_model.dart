@@ -60,16 +60,19 @@ abstract class LibraryFilterModel with _$LibraryFilterModel {
 
   bool get hasActiveFilters => this != defaultFilter;
 
-  LibraryFilterModel loadModel(LibraryFilterModel model) {
+  LibraryFilterModel loadModel(LibraryFilterModel model, {bool keepSavedValues = false}) {
+    Map<T, bool> merge<T>(Map<T, bool> options, Map<T, bool> saved) =>
+        keepSavedValues ? {...options.setAll(false), ...saved} : options.replaceMap(saved);
+
     return copyWith(
       searchQuery: model.searchQuery,
-      genres: genres.replaceMap(model.genres),
-      itemFilters: itemFilters.replaceMap(model.itemFilters),
-      studios: studios.replaceMap(model.studios),
-      tags: tags.replaceMap(model.tags),
-      years: years.setAll(false).replaceMap(model.years),
-      officialRatings: officialRatings.replaceMap(model.officialRatings),
-      types: types.replaceMap(model.types),
+      genres: merge(genres, model.genres),
+      itemFilters: merge(itemFilters, model.itemFilters),
+      studios: merge(studios, model.studios),
+      tags: merge(tags, model.tags),
+      years: merge(years.setAll(false), model.years),
+      officialRatings: merge(officialRatings, model.officialRatings),
+      types: merge(types, model.types),
       sortingOption: model.sortingOption,
       sortOrder: model.sortOrder,
       favourites: model.favourites,

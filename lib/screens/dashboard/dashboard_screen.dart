@@ -10,10 +10,14 @@ import 'package:fladder/jellyfin/jellyfin_open_api.enums.swagger.dart';
 import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart';
 import 'package:fladder/models/collection_types.dart';
 import 'package:fladder/models/item_base_model.dart';
+import 'package:fladder/models/library_filters_model.dart';
 import 'package:fladder/models/library_search/library_search_options.dart';
 import 'package:fladder/models/settings/home_settings_model.dart';
+import 'package:fladder/providers/connectivity_provider.dart';
 import 'package:fladder/providers/dashboard_mode_provider.dart';
 import 'package:fladder/providers/dashboard_provider.dart';
+import 'package:fladder/providers/home_saved_filters_provider.dart';
+import 'package:fladder/providers/library_filters_provider.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
 import 'package:fladder/providers/settings/home_settings_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
@@ -69,6 +73,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   Future<void> _refreshHome() async {
     if (mounted) {
+      for (final filter in ref.read(userLibraryFilters).where((filter) => filter.showOnHome)) {
+        ref.invalidate(homeSavedFilterPreviewProvider(filter.id));
+      }
       await ref.read(userProvider.notifier).updateInformation();
       await ref.read(viewsProvider.notifier).fetchViews();
       await ref.read(dashboardProvider.notifier).fetchNextUpAndResume();
@@ -89,6 +96,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final bannerType = ref.watch(homeSettingsProvider.select((value) => value.homeBanner));
     final dashboardData = ref.watch(dashboardProvider);
     final views = ref.watch(viewsProvider);
+    final savedFilters = ref.watch(userLibraryFilters);
     final homeSettings = ref.watch(homeSettingsProvider);
     final homeBanner = ref.watch(homeSettingsProvider.select((value) => value.homeBanner)) != HomeBanner.hide;
     final resumeVideo = dashboardData.resumeVideo;
@@ -216,6 +224,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     label: context.localized.dashboardContinue,
                     posters: [...allResume, ...dashboardData.nextUp],
                   ),
+                for (final filter in savedFilters.where((filter) => filter.showOnHome))
+                  HomeSavedFilterRow(
+                    key: ValueKey(filter.id),
+                    filter: filter,
+                    contentPadding: padding,
+                    tvMode: useTVExpandedLayout,
+                  ),
                 ...views.dashboardViews
                     .where(
                       (element) => element.recentlyAdded.isNotEmpty && element.collectionType != CollectionType.livetv,
@@ -276,6 +291,67 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class HomeSavedFilterRow extends ConsumerWidget {
+  const HomeSavedFilterRow({
+    required this.filter,
+    required this.contentPadding,
+    required this.tvMode,
+    super.key,
+  });
+
+  final LibraryFiltersModel filter;
+  final EdgeInsets contentPadding;
+  final bool tvMode;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final strings = context.localized;
+    if (ref.watch(offlineStateProvider)) return _status(context, strings.offline);
+
+    final preview = homeSavedFilterPreviewProvider(filter.id);
+    final result = ref.watch(preview);
+    return result.when(
+      skipLoadingOnRefresh: result.hasValue,
+      data: (posters) => posters.isEmpty
+          ? _status(context, strings.jmsSavedFilterNoPreview)
+          : PosterRow(
+              label: filter.name,
+              posters: posters,
+              contentPadding: contentPadding,
+              tvMode: tvMode,
+              onLabelClick: () => filter.navigateTo(context),
+            ),
+      loading: () => _status(context, strings.loading),
+      error: (_, __) => _status(context, strings.somethingWentWrong, onRetry: () => ref.invalidate(preview)),
+    );
+  }
+
+  Widget _status(BuildContext context, String text, {VoidCallback? onRetry}) {
+    return Padding(
+      padding: contentPadding,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextButton.icon(
+            onPressed: () => filter.navigateTo(context),
+            iconAlignment: IconAlignment.end,
+            icon: const Icon(Icons.chevron_right),
+            label: Text(filter.name),
+          ),
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            children: [
+              Semantics(liveRegion: true, child: Text(text)),
+              if (onRetry != null) TextButton(onPressed: onRetry, child: Text(context.localized.retry)),
+            ],
+          ),
+        ],
       ),
     );
   }

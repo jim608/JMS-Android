@@ -11,13 +11,13 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:auto_route/auto_route.dart' as _i31;
 import 'package:collection/collection.dart' as _i38;
-import 'package:fladder/jellyfin/jellyfin_open_api.enums.swagger.dart' as _i37;
+import 'package:fladder/jellyfin/jellyfin_open_api.enums.swagger.dart' as _i36;
 import 'package:fladder/models/item_base_model.dart' as _i33;
-import 'package:fladder/models/items/item_shared_models.dart' as _i36;
+import 'package:fladder/models/items/item_shared_models.dart' as _i35;
 import 'package:fladder/models/items/photo_queue_source.dart' as _i40;
 import 'package:fladder/models/items/photos_model.dart' as _i39;
 import 'package:fladder/models/library_search/library_search_options.dart'
-    as _i35;
+    as _i34;
 import 'package:fladder/models/seerr/seerr_dashboard_model.dart' as _i41;
 import 'package:fladder/routes/nested_details_screen.dart' as _i13;
 import 'package:fladder/screens/control_panel/control_active_tasks_page.dart'
@@ -57,7 +57,7 @@ import 'package:fladder/screens/settings/settings_selection_screen.dart'
 import 'package:fladder/screens/splash_screen.dart' as _i29;
 import 'package:fladder/screens/syncing/synced_screen.dart' as _i30;
 import 'package:fladder/seerr/seerr_models.dart' as _i42;
-import 'package:flutter/foundation.dart' as _i34;
+import 'package:flutter/foundation.dart' as _i37;
 import 'package:flutter/material.dart' as _i32;
 
 /// generated route for
@@ -296,7 +296,7 @@ class DetailsRoute extends _i31.PageRouteInfo<DetailsRouteArgs> {
     String id = '',
     _i33.ItemBaseModel? item,
     Object? tag,
-    _i34.Key? key,
+    _i32.Key? key,
     List<_i31.PageRouteInfo>? children,
   }) : super(
           DetailsRoute.name,
@@ -333,7 +333,7 @@ class DetailsRouteArgs {
 
   final Object? tag;
 
-  final _i34.Key? key;
+  final _i32.Key? key;
 
   @override
   String toString() {
@@ -408,24 +408,26 @@ class LibrarySearchRoute extends _i31.PageRouteInfo<LibrarySearchRouteArgs> {
   LibrarySearchRoute({
     String? query,
     List<String>? parentId,
+    String? savedFilterId,
     bool? favourites,
-    _i35.SortingOrder? sortOrder,
-    _i35.SortingOptions? sortingOptions,
+    _i34.SortingOrder? sortOrder,
+    _i34.SortingOptions? sortingOptions,
     Map<_i33.FladderItemType, bool>? types,
     Map<String, bool>? genres,
-    Map<_i36.Studio, bool>? studios,
-    Map<_i37.ItemFilter, bool>? itemFilters,
+    Map<_i35.Studio, bool>? studios,
+    Map<_i36.ItemFilter, bool>? itemFilters,
     Map<String, bool>? tags,
     Map<int, bool>? years,
     bool? recursive,
     bool? isDefault,
-    _i34.Key? key,
+    _i37.Key? key,
     List<_i31.PageRouteInfo>? children,
   }) : super(
           LibrarySearchRoute.name,
           args: LibrarySearchRouteArgs(
             query: query,
             parentId: parentId,
+            savedFilterId: savedFilterId,
             favourites: favourites,
             sortOrder: sortOrder,
             sortingOptions: sortingOptions,
@@ -442,6 +444,7 @@ class LibrarySearchRoute extends _i31.PageRouteInfo<LibrarySearchRouteArgs> {
           rawQueryParams: {
             'query': query,
             'parentId': parentId,
+            'savedFilterId': savedFilterId,
             'favourites': favourites,
             'sortOrder': sortOrder,
             'sortOptions': sortingOptions,
@@ -467,6 +470,7 @@ class LibrarySearchRoute extends _i31.PageRouteInfo<LibrarySearchRouteArgs> {
         orElse: () => LibrarySearchRouteArgs(
           query: queryParams.optString('query'),
           parentId: queryParams.optList('parentId'),
+          savedFilterId: queryParams.optString('savedFilterId'),
           favourites: queryParams.optBool('favourites'),
           sortOrder: queryParams.get('sortOrder'),
           sortingOptions: queryParams.get('sortOptions'),
@@ -483,6 +487,7 @@ class LibrarySearchRoute extends _i31.PageRouteInfo<LibrarySearchRouteArgs> {
       return _i17.LibrarySearchScreen(
         query: args.query,
         parentId: args.parentId,
+        savedFilterId: args.savedFilterId,
         favourites: args.favourites,
         sortOrder: args.sortOrder,
         sortingOptions: args.sortingOptions,
@@ -504,6 +509,7 @@ class LibrarySearchRouteArgs {
   const LibrarySearchRouteArgs({
     this.query,
     this.parentId,
+    this.savedFilterId,
     this.favourites,
     this.sortOrder,
     this.sortingOptions,
@@ -522,19 +528,21 @@ class LibrarySearchRouteArgs {
 
   final List<String>? parentId;
 
+  final String? savedFilterId;
+
   final bool? favourites;
 
-  final _i35.SortingOrder? sortOrder;
+  final _i34.SortingOrder? sortOrder;
 
-  final _i35.SortingOptions? sortingOptions;
+  final _i34.SortingOptions? sortingOptions;
 
   final Map<_i33.FladderItemType, bool>? types;
 
   final Map<String, bool>? genres;
 
-  final Map<_i36.Studio, bool>? studios;
+  final Map<_i35.Studio, bool>? studios;
 
-  final Map<_i37.ItemFilter, bool>? itemFilters;
+  final Map<_i36.ItemFilter, bool>? itemFilters;
 
   final Map<String, bool>? tags;
 
@@ -544,11 +552,11 @@ class LibrarySearchRouteArgs {
 
   final bool? isDefault;
 
-  final _i34.Key? key;
+  final _i37.Key? key;
 
   @override
   String toString() {
-    return 'LibrarySearchRouteArgs{query: $query, parentId: $parentId, favourites: $favourites, sortOrder: $sortOrder, sortingOptions: $sortingOptions, types: $types, genres: $genres, studios: $studios, itemFilters: $itemFilters, tags: $tags, years: $years, recursive: $recursive, isDefault: $isDefault, key: $key}';
+    return 'LibrarySearchRouteArgs{query: $query, parentId: $parentId, savedFilterId: $savedFilterId, favourites: $favourites, sortOrder: $sortOrder, sortingOptions: $sortingOptions, types: $types, genres: $genres, studios: $studios, itemFilters: $itemFilters, tags: $tags, years: $years, recursive: $recursive, isDefault: $isDefault, key: $key}';
   }
 
   @override
@@ -557,6 +565,7 @@ class LibrarySearchRouteArgs {
     if (other is! LibrarySearchRouteArgs) return false;
     return query == other.query &&
         const _i38.ListEquality().equals(parentId, other.parentId) &&
+        savedFilterId == other.savedFilterId &&
         favourites == other.favourites &&
         sortOrder == other.sortOrder &&
         sortingOptions == other.sortingOptions &&
@@ -575,6 +584,7 @@ class LibrarySearchRouteArgs {
   int get hashCode =>
       query.hashCode ^
       const _i38.ListEquality().hash(parentId) ^
+      savedFilterId.hashCode ^
       favourites.hashCode ^
       sortOrder.hashCode ^
       sortingOptions.hashCode ^

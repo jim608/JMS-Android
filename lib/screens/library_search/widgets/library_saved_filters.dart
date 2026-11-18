@@ -6,6 +6,7 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:fladder/models/library_filter_model.dart';
 import 'package:fladder/models/library_filters_model.dart';
 import 'package:fladder/providers/library_search_provider.dart';
+import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/screens/shared/default_alert_dialog.dart';
 import 'package:fladder/screens/shared/outlined_text_field.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
@@ -88,6 +89,13 @@ class LibrarySavedFiltersDialogue extends ConsumerWidget {
               color: filter.showInSideBar ? Colors.lightBlueAccent : null,
               filter.showInSideBar ? IconsaxPlusBold.menu : IconsaxPlusLinear.menu_1,
             ),
+          ),
+          ItemActionButton(
+            label: Text(
+                filter.showOnHome ? context.localized.jmsUnpinFilterFromHome : context.localized.jmsPinFilterToHome),
+            selected: filter.showOnHome,
+            action: () => ref.read(userProvider.notifier).setFilterOnHome(filter.id, showOnHome: !filter.showOnHome),
+            icon: Icon(filter.showOnHome ? Icons.push_pin : Icons.push_pin_outlined),
           ),
           ItemActionButton(
             label: Text(context.localized.updateFilterForLibrary),

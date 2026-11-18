@@ -25,6 +25,7 @@ abstract class LibraryFiltersModel with _$LibraryFiltersModel {
     required String name,
     required bool isFavourite,
     @Default(false) bool showInSideBar,
+    @Default(false) bool showOnHome,
     @Default([]) List<String> ids,
     @Default([]) List<String> viewNames,
     @Default(LibraryFilterModel()) LibraryFilterModel filter,
@@ -38,6 +39,7 @@ abstract class LibraryFiltersModel with _$LibraryFiltersModel {
     bool? isFavourite,
     String? id,
     bool showInSideBar = false,
+    bool showOnHome = false,
     List<String>? viewNames,
   }) {
     return LibraryFiltersModel(
@@ -47,6 +49,7 @@ abstract class LibraryFiltersModel with _$LibraryFiltersModel {
       ids: searchModel.currentIds,
       filter: searchModel.filters,
       showInSideBar: showInSideBar,
+      showOnHome: showOnHome,
       viewNames: viewNames ?? [],
     );
   }
@@ -58,10 +61,9 @@ abstract class LibraryFiltersModel with _$LibraryFiltersModel {
   Future<void> navigateTo(BuildContext context) async {
     context.pushRoute(
       LibrarySearchRoute(
-        parentId: [...ids, navKey.toString()],
+        parentId: ids,
+        savedFilterId: id,
         key: navKey,
-      ).withFilter(
-        filter,
       ),
     );
   }
