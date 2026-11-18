@@ -15,6 +15,7 @@ import socket
 import ssl
 import urllib.error
 import urllib.request
+import zipfile
 from pathlib import Path
 
 import yaml
@@ -27,6 +28,9 @@ BASELINE_SIZE = 310532681
 BASELINE_URL = 'https://github.com/jim608/JMS-SteamDeck/releases/download/v0.11.1-jms.46-deck-test.20261024/' + BASELINE_NAME
 UCHARDET_URL = 'https://www.freedesktop.org/software/uchardet/releases/uchardet-0.0.8.tar.xz'
 UCHARDET_SHA = 'e97a60cfc00a1c147a674b097bb1422abd9fa78a2d9ce3f3fdcc2e78a34ac5f0'
+APP_SOURCE_REVIEW = Path(__file__).with_name('jms_flatpak_app_sources.json')
+APP_SOURCE_INPUTS = ('pubspec.lock', 'Dockerfile.linux', 'linux/CMakeLists.txt',
+                     'linux/flutter/generated_plugins.cmake')
 
 
 def git(*args, cwd=ROOT):
@@ -164,14 +168,35 @@ def prove_baseline_lock_metadata(before, current):
             'currentExactLockLocation': 'full-corresponding-application-source-zip'}
 
 
+def reviewed_application_sources(commit, build, output):
+    review = json.loads(APP_SOURCE_REVIEW.read_bytes())
+    if build['versionName'] != review['versionName']:
+        return None
+
+    for path in APP_SOURCE_INPUTS:
+        digest = hashlib.sha256(git('show', commit + ':' + path)).hexdigest()
+        if digest != review['inputs'].get(path):
+            raise ValueError('Reviewed Flatpak source changed: ' + path)
+
+    installed = json.loads((output / 'flatpak-build-manifest.json').read_bytes())
+    application_prefix = 'files/lib/jms/lib/'
+    binaries = {name.removeprefix(application_prefix) for name in installed['binaries']
+                if name.startswith(application_prefix)}
+    if installed['build'] != build or binaries != set(review['binaries']):
+        raise ValueError('Unreviewed installed Flatpak application libraries')
+    return review
+
+
 def collect(manifest_path, output, commit):
     build = identity(commit)
-    # Only unchanged native plugin/toolchain inputs can reuse the fixed prior sources.
-    lock_proof = prove_baseline_lock_metadata(
-        git('show', BASELINE_COMMIT + ':pubspec.lock'), git('show', commit + ':pubspec.lock'))
-    for path in ('Dockerfile.linux', 'linux/CMakeLists.txt'):
-        if git('show', BASELINE_COMMIT + ':' + path) != git('show', commit + ':' + path):
-            raise ValueError('Native baseline source changed: ' + path)
+    review = reviewed_application_sources(commit, build, output)
+    if review is None:
+        # Reuse the prior material only for its reviewed inputs.
+        lock_proof = prove_baseline_lock_metadata(
+            git('show', BASELINE_COMMIT + ':pubspec.lock'), git('show', commit + ':pubspec.lock'))
+        for path in ('Dockerfile.linux', 'linux/CMakeLists.txt'):
+            if git('show', BASELINE_COMMIT + ':' + path) != git('show', commit + ':' + path):
+                raise ValueError('Native baseline source changed: ' + path)
     manifest = yaml.safe_load(manifest_path.read_text(encoding='utf-8'))
     material_name = f'JMS-Linux-{build["versionName"]}-flatpak-native-materials.tar.gz'
     destination = output / material_name
@@ -180,12 +205,38 @@ def collect(manifest_path, output, commit):
     records = []
     with tempfile.TemporaryDirectory(prefix='jms-flatpak-sources-') as temporary:
         work = Path(temporary)
-        baseline = work / BASELINE_NAME
-        download(BASELINE_URL, baseline, BASELINE_SHA, limit=512 * 1024 * 1024)
-        if baseline.stat().st_size != BASELINE_SIZE:
-            raise ValueError('Pinned corresponding-source baseline size differs')
         with tarfile.open(destination, 'w:gz') as materials:
-            materials.add(baseline, arcname='unchanged-native-plugins/' + BASELINE_NAME)
+            if review is None:
+                baseline = work / BASELINE_NAME
+                download(BASELINE_URL, baseline, BASELINE_SHA, limit=512 * 1024 * 1024)
+                if baseline.stat().st_size != BASELINE_SIZE:
+                    raise ValueError('Pinned corresponding-source baseline size differs')
+                materials.add(baseline, arcname='unchanged-native-plugins/' + BASELINE_NAME)
+                baseline_record = {'module': 'unchanged-native-plugins', 'url': BASELINE_URL,
+                                   'sha256': BASELINE_SHA, 'sourceCommit': BASELINE_COMMIT,
+                                   'unchangedInputs': ['Dockerfile.linux', 'linux/CMakeLists.txt']}
+                if lock_proof is None:
+                    baseline_record['unchangedInputs'].insert(0, 'pubspec.lock')
+                else:
+                    baseline_record['lockMetadataEquivalence'] = lock_proof
+            else:
+                for source in review['archives']:
+                    target = work / Path(source['member']).name
+                    if 'archiveMember' in source:
+                        archive_path = target.with_suffix('.zip')
+                        download(source['url'], archive_path, source['archiveSha256'])
+                        with zipfile.ZipFile(archive_path) as upstream:
+                            member = upstream.getinfo(source['archiveMember'])
+                            if member.file_size > 4 * 1024 * 1024:
+                                raise ValueError('Flatpak upstream notice exceeds inspection limit')
+                            payload = upstream.read(member)
+                        if hashlib.sha256(payload).hexdigest() != source['sha256']:
+                            raise ValueError('Flatpak upstream notice differs')
+                        target.write_bytes(payload)
+                    else:
+                        download(source['url'], target, source['sha256'])
+                    materials.add(target, arcname=source['member'])
+                    records.append(source)
             for module in modules(manifest):
                 for index, source in enumerate(module.get('sources', [])):
                     kind = source['type']
@@ -217,17 +268,14 @@ def collect(manifest_path, output, commit):
                                         'sha256': item(source_archive)['sha256'], 'member': archived})
                     else:
                         raise ValueError('Unsupported external native source type: ' + kind)
-            baseline_record = {'module': 'unchanged-native-plugins', 'url': BASELINE_URL, 'sha256': BASELINE_SHA,
-                               'sourceCommit': BASELINE_COMMIT,
-                               'unchangedInputs': ['Dockerfile.linux', 'linux/CMakeLists.txt']}
-            if lock_proof is None:
-                baseline_record['unchangedInputs'].insert(0, 'pubspec.lock')
-            else:
-                baseline_record['lockMetadataEquivalence'] = lock_proof
-            records.append(baseline_record)
-            evidence = json.dumps({'build': build, 'sources': records,
-                                   'runtime': {'id': manifest['runtime'], 'branch': manifest['runtime-version'],
-                                               'sourceProject': 'https://gitlab.gnome.org/GNOME/gnome-build-meta'}}, indent=2).encode()
+            if review is None:
+                records.append(baseline_record)
+            receipt = {'build': build, 'sources': records,
+                       'runtime': {'id': manifest['runtime'], 'branch': manifest['runtime-version'],
+                                   'sourceProject': 'https://gitlab.gnome.org/GNOME/gnome-build-meta'}}
+            if review is not None:
+                receipt['application'] = {key: review[key] for key in ('inputs', 'binaries')}
+            evidence = json.dumps(receipt, indent=2).encode()
             info = tarfile.TarInfo('source-materials.json')
             info.size = len(evidence)
             materials.addfile(info, io.BytesIO(evidence))

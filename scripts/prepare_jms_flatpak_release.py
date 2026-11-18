@@ -68,7 +68,7 @@ def ci_identity(directory, build, run_id):
             or runner.get('BUILD_ID') != build['buildId'] or runner.get('GITHUB_RUN_ID') != str(run_id)
             or not isinstance(verification, str) or not re.fullmatch('[a-f0-9]{40}', verification)
             or not isinstance(parent, str) or (parent and not re.fullmatch('[1-9][0-9]*', parent))
-            or (verification != commit and not parent)):
+            or (verification != commit and 'NATIVE_BUILD_RUN_ID' not in runner)):
         raise ReleaseError('Flatpak CI runner source/verification identity is invalid')
     verify_flatpak_verification_inputs(commit, verification)
     ci = {'runId': run_id, 'artifactName': 'jms-flatpak-' + commit}

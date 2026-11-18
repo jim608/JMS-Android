@@ -1,0 +1,152 @@
+{
+  "versionName": "0.12.0-jms.60",
+  "inputs": {
+    "pubspec.lock": "7df75c91b30a588ee1c5e69889ca991d5cf64dc6f1b7ff7fa96a8c7e8ed6b938",
+    "Dockerfile.linux": "c2b06e0c48e92a547438c087631195d4831034203b080e4562aca2407fbc7657",
+    "linux/CMakeLists.txt": "bfec6164904c496e332b510ae89ac1378025ba3860db04730fd72a92727e5c60",
+    "linux/flutter/generated_plugins.cmake": "6c9d9cc5b9df1dfd57bba759f0885fdcf21c33add9b1a8fbe8cfd541520f2735"
+  },
+  "binaries": {
+    "libapp.so": [
+      "corresponding-application-source-zip"
+    ],
+    "libapp_links_linux_plugin.so": [
+      "app_links_linux"
+    ],
+    "libdesktop_drop_plugin.so": [
+      "desktop_drop"
+    ],
+    "libdesktop_multi_window_plugin.so": [
+      "desktop_multi_window"
+    ],
+    "libdynamic_color_plugin.so": [
+      "dynamic_color"
+    ],
+    "libflutter_linux_gtk.so": [
+      "flutter-framework-license",
+      "flutter-engine-deps",
+      "flutter-engine-notices"
+    ],
+    "libmedia_kit_libs_linux_plugin.so": [
+      "media_kit_libs_linux"
+    ],
+    "libmedia_kit_video_plugin.so": [
+      "corresponding-application-source-zip:vendor/media_kit_video"
+    ],
+    "libscreen_retriever_linux_plugin.so": [
+      "screen_retriever_linux"
+    ],
+    "libsqlite3.so": [
+      "sqlite3",
+      "sqlite3-upstream-build",
+      "sqlite-amalgamation"
+    ],
+    "liburl_launcher_linux_plugin.so": [
+      "url_launcher_linux"
+    ],
+    "libvolume_controller_plugin.so": [
+      "volume_controller"
+    ],
+    "libwindow_manager_plugin.so": [
+      "window_manager"
+    ]
+  },
+  "archives": [
+    {
+      "module": "app_links_linux",
+      "url": "https://pub.dev/api/archives/app_links_linux-1.0.5.tar.gz",
+      "sha256": "734aa57a2f65d1b35c3643384ccfbe668730157a08479bfa488e10a9da847853",
+      "member": "application-sources/app_links_linux-1.0.5.tar.gz"
+    },
+    {
+      "module": "desktop_drop",
+      "url": "https://pub.dev/api/archives/desktop_drop-0.8.4.tar.gz",
+      "sha256": "47ded09c85909edfed644fd4cbb5051b040d0aed5c79e7e062ea4b3b7156dbe4",
+      "member": "application-sources/desktop_drop-0.8.4.tar.gz"
+    },
+    {
+      "module": "desktop_multi_window",
+      "url": "https://pub.dev/api/archives/desktop_multi_window-0.3.0.tar.gz",
+      "sha256": "60ba38725b8887b60e44d15afdcf0c3813568b5da2ccaf1e7f6fd09a380a6e24",
+      "member": "application-sources/desktop_multi_window-0.3.0.tar.gz"
+    },
+    {
+      "module": "dynamic_color",
+      "url": "https://pub.dev/api/archives/dynamic_color-2.1.0.tar.gz",
+      "sha256": "869b3bce0100eb519768ecd71c0111f0b5ea679f5f62e1f59c49d80067e730c5",
+      "member": "application-sources/dynamic_color-2.1.0.tar.gz"
+    },
+    {
+      "module": "media_kit_libs_linux",
+      "url": "https://codeload.github.com/DonutWare/media-kit/tar.gz/cb56b5a6149f1e51086eba473c7e48041c54ab12",
+      "sha256": "478ae1a09a0195bcbd25d8eac67343cddbc0929222f939df746b2ddcbed53660",
+      "member": "application-sources/media-kit-source.tar.gz"
+    },
+    {
+      "module": "screen_retriever_linux",
+      "url": "https://pub.dev/api/archives/screen_retriever_linux-0.2.0.tar.gz",
+      "sha256": "f7f8120c92ef0784e58491ab664d01efda79a922b025ff286e29aa123ea3dd18",
+      "member": "application-sources/screen_retriever_linux-0.2.0.tar.gz"
+    },
+    {
+      "module": "sqlite3",
+      "url": "https://pub.dev/api/archives/sqlite3-3.9.1.tar.gz",
+      "sha256": "8765980411f9b6733534efe9d014fad0750fa649590598772c04692deb34886b",
+      "member": "application-sources/sqlite3-3.9.1.tar.gz"
+    },
+    {
+      "module": "sqlite3-upstream-build",
+      "url": "https://codeload.github.com/simolus3/sqlite3.dart/tar.gz/f144d1c56b22d5772d164c7c3f20eb1df482fcf3",
+      "sha256": "17fddbce2e4b408f7134eed22fecee064232443e93c847ce492ff89233bd0ab6",
+      "member": "application-sources/sqlite3.dart-source.tar.gz"
+    },
+    {
+      "module": "sqlite-amalgamation",
+      "url": "https://sqlite.org/2026/sqlite-amalgamation-3540100.zip",
+      "sha256": "0a9c8e34352dad46006aa82836d5383bff9dc6bc9ce5a60553c05aa30e6ad1f9",
+      "member": "application-sources/sqlite-amalgamation-3540100.zip",
+      "version": "3.54.1",
+      "sourceId": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "upstreamBinaryURL": "https://github.com/simolus3/sqlite3.dart/releases/download/sqlite3-3.9.1/libsqlite3.x64.linux.so",
+      "upstreamBinarySHA256": "0a65852703763619a7a34633b4959b3b86c4103804a4dfe4e8b27b5de1c0647b"
+    },
+    {
+      "module": "url_launcher_linux",
+      "url": "https://pub.dev/api/archives/url_launcher_linux-3.2.2.tar.gz",
+      "sha256": "d5e14138b3bc193a0f63c10a53c94b91d399df0512b1f29b94a043db7482384a",
+      "member": "application-sources/url_launcher_linux-3.2.2.tar.gz"
+    },
+    {
+      "module": "volume_controller",
+      "url": "https://pub.dev/api/archives/volume_controller-3.7.1.tar.gz",
+      "sha256": "a77534cf64fab42c47b7fc7a9fdc85fb8566c9477790bd1de53e3ed7991f0c94",
+      "member": "application-sources/volume_controller-3.7.1.tar.gz"
+    },
+    {
+      "module": "window_manager",
+      "url": "https://pub.dev/api/archives/window_manager-0.5.1.tar.gz",
+      "sha256": "7eb6d6c4164ec08e1bf978d6e733f3cebe792e2a23fb07cbca25c2872bfdbdcd",
+      "member": "application-sources/window_manager-0.5.1.tar.gz"
+    },
+    {
+      "module": "flutter-framework-license",
+      "url": "https://raw.githubusercontent.com/flutter/flutter/ab2912035e160d9cad6306df307576da6128ebdb/LICENSE",
+      "sha256": "a598db94b6290ffbe10b5ecf911057b6a943351c727fdda9e5f2891d68700a20",
+      "member": "application-sources/flutter-framework-LICENSE.txt"
+    },
+    {
+      "module": "flutter-engine-deps",
+      "url": "https://raw.githubusercontent.com/flutter/flutter/371f77202a73e8dff57a8b3bff75bca55c090aee/DEPS",
+      "sha256": "ddb3789ac1184df68929f229f5033584a61ba2328427742ad9f2fead3c50a38a",
+      "member": "application-sources/flutter-engine-DEPS.txt"
+    },
+    {
+      "module": "flutter-engine-notices",
+      "url": "https://storage.googleapis.com/flutter_infra_release/flutter/371f77202a73e8dff57a8b3bff75bca55c090aee/sky_engine.zip",
+      "sha256": "0d5050142d6b4605704d8844fcd5656ac23e718cf8f7d1e41149950da5edb4ef",
+      "member": "application-sources/flutter-engine-LICENSE.txt",
+      "archiveSha256": "02cc795dd6e8c7add0bf92c77210392f6e4c8788bc17cb5c7f8c652a56a8b461",
+      "archiveMember": "sky_engine/LICENSE"
+    }
+  ]
+}

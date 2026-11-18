@@ -191,6 +191,63 @@ class FlatpakPackageTests(unittest.TestCase):
         for name in ('files/lib/libfirst.so', 'files/lib/libsecond.so'):
             self.assertEqual(verification['members'][name], hashlib.sha256(content).hexdigest())
 
+    def test_updated_native_materials_require_reviewed_inputs_and_installed_libraries(self):
+        build = package.identity(self.commit)
+        manifest = self.workspace / 'manifest.yaml'
+        manifest.write_text('runtime: org.gnome.Platform\nruntime-version: "50"\n', encoding='utf-8')
+        self.output.mkdir()
+        installed = self.output / 'flatpak-build-manifest.json'
+        binaries = {'files/lib/jms/lib/libfixture_plugin.so': 'a' * 64}
+        installed.write_text(json.dumps({'build': build, 'binaries': binaries}), encoding='utf-8')
+        locked = {'pubspec.lock': b'new lock', 'Dockerfile.linux': b'new SDK',
+                  'linux/CMakeLists.txt': b'new native assets',
+                  'linux/flutter/generated_plugins.cmake': b'new plugins'}
+        public = b'fixture corresponding source'
+        reviewed = {
+            'versionName': build['versionName'],
+            'inputs': {name: hashlib.sha256(data).hexdigest() for name, data in locked.items()},
+            'binaries': {'libfixture_plugin.so': ['fixture']},
+            'archives': [{'module': 'fixture', 'url': 'https://example.invalid/source.tar.gz',
+                          'sha256': hashlib.sha256(public).hexdigest(),
+                          'member': 'application-sources/fixture.source.tar.gz'}],
+        }
+        review_file = self.workspace / 'review.json'
+        review_file.write_text(json.dumps(reviewed), encoding='utf-8')
+
+        def git_source(command, target):
+            self.assertEqual(command, 'show')
+            self.assertEqual(target.split(':')[0], self.commit)
+            return locked[target.split(':')[1]]
+
+        def fetch(url, destination, digest):
+            self.assertEqual(url, reviewed['archives'][0]['url'])
+            self.assertEqual(digest, reviewed['archives'][0]['sha256'])
+            destination.write_bytes(public)
+
+        with (
+            mock.patch.object(sources, 'APP_SOURCE_REVIEW', review_file),
+            mock.patch.object(sources, 'git', side_effect=git_source),
+            mock.patch.object(sources, 'download', side_effect=fetch) as download,
+        ):
+            locked['pubspec.lock'] = b'unreviewed lock'
+            with self.assertRaisesRegex(ValueError, 'Reviewed Flatpak source changed: pubspec.lock'):
+                sources.collect(manifest, self.output, self.commit)
+            locked['pubspec.lock'] = b'new lock'
+            original = installed.read_bytes()
+            binaries['files/lib/jms/lib/libunknown.so'] = 'b' * 64
+            installed.write_text(json.dumps({'build': build, 'binaries': binaries}), encoding='utf-8')
+            with self.assertRaisesRegex(ValueError, 'Unreviewed installed Flatpak application libraries'):
+                sources.collect(manifest, self.output, self.commit)
+            download.assert_not_called()
+            installed.write_bytes(original)
+            sources.collect(manifest, self.output, self.commit)
+
+        archive = next(self.output.glob('*native-materials.tar.gz'))
+        with tarfile.open(archive, 'r:gz') as material:
+            self.assertEqual(material.extractfile(reviewed['archives'][0]['member']).read(), public)
+            self.assertEqual(json.load(material.extractfile('source-materials.json'))['application'],
+                             {'inputs': reviewed['inputs'], 'binaries': reviewed['binaries']})
+
     def test_source_reuse_rejects_each_changed_native_input_before_download(self):
         manifest = self.workspace / 'manifest.yaml'
         manifest.write_text('modules: []\n', encoding='utf-8')

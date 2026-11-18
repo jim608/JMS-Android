@@ -111,6 +111,18 @@ class FlatpakPreparationTests(unittest.TestCase):
         self.assertNotIn('nativeBuildRunId', record['flatpak']['ci'])
         self.assertNotIn('nativeBuildOrigin', record['flatpak']['ci'])
 
+    def test_fresh_ci_accepts_separate_verification_tools_with_all_build_inputs_unchanged(self):
+        verification = 'e' * 40
+        runner = {'SOURCE_COMMIT': self.build['sourceCommit'], 'VERSION': self.build['versionName'],
+                  'BUILD_ID': self.build['buildId'], 'GITHUB_RUN_ID': '123',
+                  'VERIFICATION_COMMIT': verification, 'NATIVE_BUILD_RUN_ID': ''}
+        (self.directory / 'runner-source.json').write_text(json.dumps(runner), encoding='utf-8')
+        with patch.object(preparation, 'verify_flatpak_verification_inputs') as inputs:
+            record = preparation.ci_identity(self.directory, self.build, 123)
+        inputs.assert_called_once_with(self.build['sourceCommit'], verification)
+        self.assertEqual(record['verificationCommit'], verification)
+        self.assertNotIn('nativeBuildRunId', record)
+
     def test_resumed_ci_records_verification_head_without_rebinding_source_or_public_assets(self):
         runner = json.loads((self.directory / 'runner-source.json').read_text())
         runner.update(VERIFICATION_COMMIT='d' * 40, NATIVE_BUILD_RUN_ID='99')

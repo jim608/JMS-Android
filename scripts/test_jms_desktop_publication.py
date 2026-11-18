@@ -462,6 +462,7 @@ class FlatpakPublicationTests(unittest.TestCase):
                       'BUILD_ID': self.record['buildId'], 'GITHUB_RUN_ID': '100'}
             if 'verificationCommit' in flatpak['ci']:
                 runner['VERIFICATION_COMMIT'] = flatpak['ci']['verificationCommit']
+                runner['NATIVE_BUILD_RUN_ID'] = ''
             if 'nativeBuildRunId' in flatpak['ci']:
                 runner['NATIVE_BUILD_RUN_ID'] = str(flatpak['ci']['nativeBuildRunId'])
                 archive.writestr('native-build-origin.json', json.dumps(flatpak['ci']['nativeBuildOrigin']))
@@ -544,6 +545,41 @@ class FlatpakPublicationTests(unittest.TestCase):
         with self.assertRaisesRegex(ReleaseError, 'asset size differs|candidate differs'):
             self.verify_ci(run, artifact, content)
 
+    def test_flatpak_fresh_split_binds_successful_native_and_verification_steps(self):
+        verification = 'd' * 40
+        self.record['flatpak']['ci']['verificationCommit'] = verification
+        run, artifact, content = self.ci_fixture()
+        required = desktop.FLATPAK_VERIFICATION_STEPS + desktop.FLATPAK_BUILD_STEPS + (
+            '核對已提交且已推送的共用來源', '核對驗證工具及未變更的 App／原生建置輸入',
+        )
+        jobs = self.ci_jobs(100, required)
+        with patch.object(desktop, 'verify_flatpak_verification_inputs') as inputs, \
+                patch.object(desktop, 'verify_flatpak_native_origin') as origin:
+            self.assertEqual(self.verify_ci(run, artifact, content, jobs=jobs), self.digest(content))
+            inputs.assert_called_once_with('a' * 40, verification)
+            for missing in (*desktop.FLATPAK_BUILD_STEPS, required[-1]):
+                remaining = tuple(name for name in required if name != missing)
+                with self.subTest(step=missing), self.assertRaisesRegex(ReleaseError, 'required step did not succeed'):
+                    self.verify_ci(run, artifact, content, jobs=self.ci_jobs(100, remaining))
+            with self.assertRaisesRegex(ReleaseError, 'pinned JMS build'):
+                self.verify_ci(dict(run, conclusion='failure'), artifact, content, jobs=jobs)
+            origin.assert_not_called()
+
+    def test_flatpak_fresh_split_rejects_an_unbound_native_origin_receipt(self):
+        self.record['flatpak']['ci']['verificationCommit'] = 'd' * 40
+        run, artifact, content = self.ci_fixture()
+        stream = io.BytesIO(content)
+        with zipfile.ZipFile(stream, 'a') as archive:
+            archive.writestr('native-build-origin.json', '{}')
+        content = stream.getvalue()
+        artifact.update(size_in_bytes=len(content), digest='sha256:' + self.digest(content))
+        required = desktop.FLATPAK_VERIFICATION_STEPS + desktop.FLATPAK_BUILD_STEPS + (
+            '核對已提交且已推送的共用來源', '核對驗證工具及未變更的 App／原生建置輸入',
+        )
+        with patch.object(desktop, 'verify_flatpak_verification_inputs'), \
+                self.assertRaisesRegex(ReleaseError, 'unexpected native origin receipt'):
+            self.verify_ci(run, artifact, content, jobs=self.ci_jobs(100, required))
+
     def test_flatpak_resume_preserves_source_and_independently_verifies_parent_bundle(self):
         parent = self.resumed_ci_fixture()
         run, artifact, content = self.ci_fixture()
@@ -606,12 +642,7 @@ class FlatpakPublicationTests(unittest.TestCase):
             with self.subTest(step=required), self.assertRaisesRegex(ReleaseError, 'required step did not succeed'):
                 self.verify_ci(run, artifact, content, jobs=jobs)
 
-    def test_flatpak_resume_cannot_omit_parent_or_rebind_runner_source(self):
-        self.record['flatpak']['ci']['verificationCommit'] = 'd' * 40
-        run, artifact, content = self.ci_fixture()
-        with self.assertRaisesRegex(ReleaseError, 'Invalid Flatpak CI identity'):
-            self.verify_ci(run, artifact, content)
-        self.record['flatpak']['ci'].pop('verificationCommit')
+    def test_flatpak_cannot_rebind_runner_source(self):
         run, artifact, content = self.ci_fixture()
         stream = io.BytesIO()
         with zipfile.ZipFile(io.BytesIO(content)) as old, zipfile.ZipFile(stream, 'w') as new:
@@ -636,7 +667,7 @@ class FlatpakVerificationCommitTests(unittest.TestCase):
         self.command('init', '--quiet')
         self.command('config', 'user.name', 'fixture')
         self.command('config', 'user.email', 'fixture@users.noreply.github.com')
-        self.inputs = ['Dockerfile.linux', 'pubspec.lock', '.fvmrc', 'lib/main.dart',
+        self.inputs = ['Dockerfile.linux', 'pubspec.lock', 'pubspec.test.yaml', '.fvmrc', 'lib/main.dart',
                        'linux/CMakeLists.txt', 'flatpak/jms-flatpak', 'LICENSE', '.dockerignore',
                        'vendor/media_kit_video/lib/video.dart']
         for name in self.inputs:

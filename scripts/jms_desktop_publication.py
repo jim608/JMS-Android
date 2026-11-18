@@ -21,12 +21,15 @@ REPOSITORIES = {'windows': 'jim608/JMS-Desktop', 'linux': 'jim608/JMS-Linux', 'w
 FLATPAK_WORKFLOW = '.github/workflows/jms-flatpak.yml'
 MAX_CI_ARCHIVE_BYTES = 512 * 1024 * 1024
 FLATPAK_BUILD_INPUTS = (
-    'Dockerfile.linux', 'pubspec.yaml', 'pubspec.lock', '.fvmrc', 'lib', 'linux',
+    'Dockerfile.linux', 'pubspec.*', '.fvmrc', 'lib', 'linux',
     'third_party', 'vendor', 'flatpak', 'assets', 'icons', 'LICENSE', 'l10n.yaml',
     '.dockerignore', '.gitattributes', '.gitmodules',
 )
 FLATPAK_BUILD_STEPS = ('建置鎖定的 Flutter Linux 來源', '建置原生依賴與 Flatpak')
 FLATPAK_VERIFICATION_STEPS = ('在隔離帳號驗證真正的 Flatpak 沙箱', '封存相應來源與建置材料')
+FLATPAK_SOURCE_BINDING_STEPS = (
+    '核對已提交且已推送的共用來源', '核對驗證工具及未變更的 App／原生建置輸入',
+)
 FLATPAK_REQUIRED_LICENSES = (
     'jms/LICENSE', 'ffmpeg/COPYING.GPLv3', 'ffmpeg/LICENSE.md', 'libass/COPYING',
     'libplacebo/LICENSE', 'mpv/Copyright', 'mpv/LICENSE.GPL', 'mpv/LICENSE.LGPL',
@@ -405,13 +408,16 @@ def verify_flatpak_ci(record, files):
     resumed = ci.get('nativeBuildRunId') is not None
     if (type(run_id) is not int or run_id <= 0
             or ci.get('artifactName') != 'jms-flatpak-' + record['sourceCommit']
-            or (verification != record['sourceCommit'] and not resumed)
             or (not resumed and ci.get('nativeBuildOrigin') is not None)):
         raise ReleaseError('Invalid Flatpak CI identity')
     verify_flatpak_verification_inputs(record['sourceCommit'], verification)
     github = Github(repository='jim608/JMS-Android')
     flatpak_ci_run(github, run_id, verification, 'success')
-    required_steps = FLATPAK_VERIFICATION_STEPS + (() if resumed else FLATPAK_BUILD_STEPS)
+    required_steps = FLATPAK_VERIFICATION_STEPS
+    if not resumed:
+        required_steps += FLATPAK_BUILD_STEPS
+        if verification != record['sourceCommit']:
+            required_steps += FLATPAK_SOURCE_BINDING_STEPS
     flatpak_ci_steps(github, run_id, required_steps, 'success')
     artifact = flatpak_ci_artifact(github, run_id, ci['artifactName'], verification)
     digest = artifact['digest']
@@ -439,10 +445,14 @@ def verify_flatpak_ci(record, files):
                     or runner.get('BUILD_ID') != record['buildId']
                     or runner.get('GITHUB_RUN_ID') != str(run_id)
                     or runner.get('VERIFICATION_COMMIT', record['sourceCommit']) != verification
+                    or (verification != record['sourceCommit'] and 'NATIVE_BUILD_RUN_ID' not in runner)
                     or runner.get('NATIVE_BUILD_RUN_ID', '') != (str(ci['nativeBuildRunId']) if resumed else '')):
                 raise ReleaseError('Flatpak CI runner source/verification identity differs')
-            if resumed and flatpak_ci_json(archive, 'native-build-origin.json') != ci.get('nativeBuildOrigin'):
-                raise ReleaseError('Flatpak CI native origin receipt differs')
+            if resumed:
+                if flatpak_ci_json(archive, 'native-build-origin.json') != ci.get('nativeBuildOrigin'):
+                    raise ReleaseError('Flatpak CI native origin receipt differs')
+            elif 'native-build-origin.json' in names:
+                raise ReleaseError('Fresh Flatpak CI artifact contains an unexpected native origin receipt')
     if resumed:
         verify_flatpak_native_origin(github, record, files)
     return digest.removeprefix('sha256:')
