@@ -543,7 +543,14 @@
       "sha256": "789714a9076571c580cf531bdcebec776a4d889c12c3c1108adafc6e4338710a",
       "release": "0.12.0-jms.60",
       "bundledTextSha256": "9a65a5736b9ffa916297907761958b12a7844968094fc8a8a024a6d34bd45230"
+    },
+    {
+      "origin": "sqlite3.dart-f144d1c56b22.zip",
+      "entry": "sqlite3.dart-f144d1c56b22d5772d164c7c3f20eb1df482fcf3/sqlite3/LICENSE",
+      "sha256": "67e5d73a3a0c6e41f33d688a672b1161bf7f16e04da9ae48a7a14f1ba7436a4d",
+      "release": "0.12.0-jms.60",
+      "bundledTextSha256": "67e5d73a3a0c6e41f33d688a672b1161bf7f16e04da9ae48a7a14f1ba7436a4d"
     }
   ],
-  "assetSha256": "e3a884ab5c1e3732669fc8ff22a47314b07bf74b18ffb0662056248813a0eb77"
+  "assetSha256": "79c5f3f4a618e04c3f37b12d3172401d8d41a7023bbcc75491dbd579246f2579"
 }
