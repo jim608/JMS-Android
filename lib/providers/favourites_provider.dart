@@ -1,15 +1,15 @@
-import 'package:chopper/chopper.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart';
 import 'package:fladder/models/favourites_model.dart';
 import 'package:fladder/models/item_base_model.dart';
-import 'package:fladder/models/view_model.dart';
 import 'package:fladder/providers/api_provider.dart';
-import 'package:fladder/providers/views_provider.dart';
+import 'package:fladder/providers/service_provider.dart';
+import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/util/item_base_model/item_base_model_extensions.dart';
 
 final favouritesProvider = StateNotifierProvider<FavouritesNotifier, FavouritesModel>((ref) {
+  ref.watch(userProvider.select((user) => (user?.id, user?.credentials.serverId, user?.credentials.url)));
   return FavouritesNotifier(ref);
 });
 
@@ -18,36 +18,25 @@ class FavouritesNotifier extends StateNotifier<FavouritesModel> {
 
   final Ref ref;
 
-  late final api = ref.read(jellyApiProvider);
+  late final JellyService api = ref.read(jellyApiProvider);
+  int _refreshGeneration = 0;
+
+  bool _isCurrent(int generation) => mounted && generation == _refreshGeneration;
 
   Future<void> fetchFavourites() async {
+    if (!mounted || state.loading) return;
+    final generation = ++_refreshGeneration;
+    state = state.copyWith(loading: true);
     try {
-      if (state.loading) return;
-
-      state = state.copyWith(loading: true);
-      await _fetchMoviesAndSeries();
-      await _fetchPeople();
+      if (!_isCurrent(generation)) return;
+      await Future.wait([_fetchMediaFavourites(generation), _fetchPeople(generation)]);
     } finally {
-      state = state.copyWith(loading: false);
+      if (_isCurrent(generation)) state = state.copyWith(loading: false);
     }
   }
 
-  Future<void> _fetchMoviesAndSeries() async {
-    final views = ref.read(viewsProvider);
-
-    final mappedList = await Future.wait(views.dashboardViews.map((viewModel) => _loadLibrary(viewModel: viewModel)));
-
-    state = state.copyWith(
-        favourites: (mappedList
-                .expand((innerList) => innerList ?? [])
-                .where((item) => item != null)
-                .cast<ItemBaseModel>()
-                .toList())
-            .groupedItems);
-  }
-
-  Future<List<ItemBaseModel>?> _loadLibrary({ViewModel? viewModel}) async {
-    final kinds = [
+  Future<void> _fetchMediaFavourites(int generation) async {
+    const kinds = [
       BaseItemKind.movie,
       BaseItemKind.episode,
       BaseItemKind.series,
@@ -58,23 +47,24 @@ class FavouritesNotifier extends StateNotifier<FavouritesModel> {
       BaseItemKind.musicalbum,
       BaseItemKind.audio,
     ];
-    final futures = kinds.map((kind) => fetchTypes(viewModel?.id, [kind])).toList();
-    final results = await Future.wait(futures);
-    return results.expand((list) => list).toList();
+    final rows = await Future.wait(kinds.map(_fetchType));
+    if (_isCurrent(generation)) {
+      state = state.copyWith(favourites: rows.expand((row) => row).toList().groupedItems);
+    }
   }
 
-  Future<List<ItemBaseModel>> fetchTypes(String? id, List<BaseItemKind>? includeItemTypes) async {
+  Future<List<ItemBaseModel>> _fetchType(BaseItemKind kind) async {
     return (await api.itemsGet(
-          parentId: id,
           isFavorite: true,
           recursive: true,
           limit: 15,
+          enableTotalRecordCount: false,
           fields: [
             ItemFields.overview,
             ItemFields.genres,
             ItemFields.parentid,
           ],
-          includeItemTypes: includeItemTypes,
+          includeItemTypes: [kind],
           sortOrder: [SortOrder.ascending],
           sortBy: [ItemSortBy.seriessortname, ItemSortBy.sortname, ItemSortBy.datelastcontentadded],
         ))
@@ -83,13 +73,18 @@ class FavouritesNotifier extends StateNotifier<FavouritesModel> {
         [];
   }
 
-  Future<Response<List<ItemBaseModel>>?> _fetchPeople() async {
+  Future<void> _fetchPeople(int generation) async {
     final response = await api.personsGet(
       limit: 20,
       isFavorite: true,
     );
-    state = state.copyWith(people: response.body ?? []);
-    return response;
+    if (_isCurrent(generation)) {
+      final people = [...?response.body]..sort((a, b) {
+          final byName = a.name.compareTo(b.name);
+          return byName == 0 ? a.id.compareTo(b.id) : byName;
+        });
+      state = state.copyWith(people: people);
+    }
   }
 
   void setSearch(String value) {
@@ -97,6 +92,7 @@ class FavouritesNotifier extends StateNotifier<FavouritesModel> {
   }
 
   void clear() {
+    _refreshGeneration++;
     state = FavouritesModel();
   }
 }
