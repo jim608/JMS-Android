@@ -19,6 +19,7 @@ abstract class HomeSettingsModel with _$HomeSettingsModel {
     @Default({...LayoutMode.values}) Set<LayoutMode> screenLayouts,
     @Default({...ViewSize.values}) Set<ViewSize> layoutStates,
     @Default(HomeBanner.carousel) HomeBanner homeBanner,
+    @Default(false) bool useClassicBannerStyle,
     @Default(HomeCarouselSettings.combined) HomeCarouselSettings carouselSettings,
     @JsonKey(unknownEnumValue: HomeNextUp.separate) @Default(HomeNextUp.separate) HomeNextUp nextUp,
   }) = _HomeSettingsModel;

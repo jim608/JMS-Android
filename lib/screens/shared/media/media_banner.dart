@@ -21,11 +21,13 @@ class MediaBanner extends ConsumerStatefulWidget {
   final PageController? controller;
   final List<ItemBaseModel> items;
   final double maxHeight;
+  final bool useClassicStyle;
 
   const MediaBanner({
     this.controller,
     required this.items,
     this.maxHeight = 250,
+    this.useClassicStyle = false,
     super.key,
   });
 
@@ -256,7 +258,7 @@ class _MediaBannerState extends ConsumerState<MediaBanner> {
                         ),
                       ],
                     ),
-                    BannerPlayButton(item: currentItem),
+                    BannerPlayButton(item: currentItem, useClassicStyle: widget.useClassicStyle),
                   ],
                 ),
               ),

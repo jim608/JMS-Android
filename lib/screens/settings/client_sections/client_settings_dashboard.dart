@@ -13,6 +13,7 @@ import 'package:fladder/widgets/shared/item_actions.dart';
 
 List<Widget> buildClientSettingsDashboard(BuildContext context, WidgetRef ref) {
   final clientSettings = ref.watch(clientSettingsProvider);
+  final banner = ref.watch(homeSettingsProvider.select((settings) => settings.homeBanner));
   return settingsListGroup(
     context,
     SettingsLabelDivider(label: context.localized.dashboard),
@@ -20,11 +21,7 @@ List<Widget> buildClientSettingsDashboard(BuildContext context, WidgetRef ref) {
       SettingsListTileEnum(
         label: Text(context.localized.settingsHomeBannerTitle),
         subLabel: Text(context.localized.settingsHomeBannerDescription),
-        current: ref.watch(
-          homeSettingsProvider.select(
-            (value) => value.homeBanner.label(context),
-          ),
-        ),
+        current: banner.label(context),
         itemBuilder: (context) => HomeBanner.values
             .map(
               (entry) => ItemActionButton(
@@ -35,7 +32,15 @@ List<Widget> buildClientSettingsDashboard(BuildContext context, WidgetRef ref) {
             )
             .toList(),
       ),
-      if (ref.watch(homeSettingsProvider.select((value) => value.homeBanner)) != HomeBanner.hide)
+      if (banner == HomeBanner.carousel || banner == HomeBanner.banner)
+        SettingsListTileCheckbox(
+          label: Text(context.localized.useClassicBannerStyle),
+          value: ref.watch(homeSettingsProvider.select((settings) => settings.useClassicBannerStyle)),
+          onChanged: (value) => ref
+              .read(homeSettingsProvider.notifier)
+              .update((settings) => settings.copyWith(useClassicBannerStyle: value ?? false)),
+        ),
+      if (banner != HomeBanner.hide)
         SettingsListTileEnum(
           label: Text(context.localized.settingsHomeBannerInformationTitle),
           subLabel: Text(context.localized.settingsHomeBannerInformationDesc),

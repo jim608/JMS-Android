@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$HomeSettingsModel {
 
- Set<LayoutMode> get screenLayouts; Set<ViewSize> get layoutStates; HomeBanner get homeBanner; HomeCarouselSettings get carouselSettings;@JsonKey(unknownEnumValue: HomeNextUp.separate) HomeNextUp get nextUp;
+ Set<LayoutMode> get screenLayouts; Set<ViewSize> get layoutStates; HomeBanner get homeBanner; bool get useClassicBannerStyle; HomeCarouselSettings get carouselSettings;@JsonKey(unknownEnumValue: HomeNextUp.separate) HomeNextUp get nextUp;
 /// Create a copy of HomeSettingsModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -32,7 +32,7 @@ $HomeSettingsModelCopyWith<HomeSettingsModel> get copyWith => _$HomeSettingsMode
 @override
 String toString() {
   final _this = this as HomeSettingsModel;
-  return 'HomeSettingsModel(screenLayouts: ${_this.screenLayouts}, layoutStates: ${_this.layoutStates}, homeBanner: ${_this.homeBanner}, carouselSettings: ${_this.carouselSettings}, nextUp: ${_this.nextUp})';
+  return 'HomeSettingsModel(screenLayouts: ${_this.screenLayouts}, layoutStates: ${_this.layoutStates}, homeBanner: ${_this.homeBanner}, useClassicBannerStyle: ${_this.useClassicBannerStyle}, carouselSettings: ${_this.carouselSettings}, nextUp: ${_this.nextUp})';
 }
 
 
@@ -43,7 +43,7 @@ abstract mixin class $HomeSettingsModelCopyWith<$Res>  {
   factory $HomeSettingsModelCopyWith(HomeSettingsModel value, $Res Function(HomeSettingsModel) _then) = _$HomeSettingsModelCopyWithImpl;
 @useResult
 $Res call({
- Set<LayoutMode> screenLayouts, Set<ViewSize> layoutStates, HomeBanner homeBanner, HomeCarouselSettings carouselSettings,@JsonKey(unknownEnumValue: HomeNextUp.separate) HomeNextUp nextUp
+ Set<LayoutMode> screenLayouts, Set<ViewSize> layoutStates, HomeBanner homeBanner, bool useClassicBannerStyle, HomeCarouselSettings carouselSettings,@JsonKey(unknownEnumValue: HomeNextUp.separate) HomeNextUp nextUp
 });
 
 
@@ -60,12 +60,13 @@ class _$HomeSettingsModelCopyWithImpl<$Res>
 
 /// Create a copy of HomeSettingsModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? screenLayouts = null,Object? layoutStates = null,Object? homeBanner = null,Object? carouselSettings = null,Object? nextUp = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? screenLayouts = null,Object? layoutStates = null,Object? homeBanner = null,Object? useClassicBannerStyle = null,Object? carouselSettings = null,Object? nextUp = null,}) {
   return _then(HomeSettingsModel(
 screenLayouts: null == screenLayouts ? _self.screenLayouts : screenLayouts // ignore: cast_nullable_to_non_nullable
 as Set<LayoutMode>,layoutStates: null == layoutStates ? _self.layoutStates : layoutStates // ignore: cast_nullable_to_non_nullable
 as Set<ViewSize>,homeBanner: null == homeBanner ? _self.homeBanner : homeBanner // ignore: cast_nullable_to_non_nullable
-as HomeBanner,carouselSettings: null == carouselSettings ? _self.carouselSettings : carouselSettings // ignore: cast_nullable_to_non_nullable
+as HomeBanner,useClassicBannerStyle: null == useClassicBannerStyle ? _self.useClassicBannerStyle : useClassicBannerStyle // ignore: cast_nullable_to_non_nullable
+as bool,carouselSettings: null == carouselSettings ? _self.carouselSettings : carouselSettings // ignore: cast_nullable_to_non_nullable
 as HomeCarouselSettings,nextUp: null == nextUp ? _self.nextUp : nextUp // ignore: cast_nullable_to_non_nullable
 as HomeNextUp,
   ));
@@ -152,10 +153,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( Set<LayoutMode> screenLayouts,  Set<ViewSize> layoutStates,  HomeBanner homeBanner,  HomeCarouselSettings carouselSettings, @JsonKey(unknownEnumValue: HomeNextUp.separate)  HomeNextUp nextUp)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( Set<LayoutMode> screenLayouts,  Set<ViewSize> layoutStates,  HomeBanner homeBanner,  bool useClassicBannerStyle,  HomeCarouselSettings carouselSettings, @JsonKey(unknownEnumValue: HomeNextUp.separate)  HomeNextUp nextUp)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _HomeSettingsModel() when $default != null:
-return $default(_that.screenLayouts,_that.layoutStates,_that.homeBanner,_that.carouselSettings,_that.nextUp);case _:
+return $default(_that.screenLayouts,_that.layoutStates,_that.homeBanner,_that.useClassicBannerStyle,_that.carouselSettings,_that.nextUp);case _:
   return orElse();
 
 }
@@ -173,10 +174,10 @@ return $default(_that.screenLayouts,_that.layoutStates,_that.homeBanner,_that.ca
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( Set<LayoutMode> screenLayouts,  Set<ViewSize> layoutStates,  HomeBanner homeBanner,  HomeCarouselSettings carouselSettings, @JsonKey(unknownEnumValue: HomeNextUp.separate)  HomeNextUp nextUp)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( Set<LayoutMode> screenLayouts,  Set<ViewSize> layoutStates,  HomeBanner homeBanner,  bool useClassicBannerStyle,  HomeCarouselSettings carouselSettings, @JsonKey(unknownEnumValue: HomeNextUp.separate)  HomeNextUp nextUp)  $default,) {final _that = this;
 switch (_that) {
 case _HomeSettingsModel():
-return $default(_that.screenLayouts,_that.layoutStates,_that.homeBanner,_that.carouselSettings,_that.nextUp);case _:
+return $default(_that.screenLayouts,_that.layoutStates,_that.homeBanner,_that.useClassicBannerStyle,_that.carouselSettings,_that.nextUp);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -193,10 +194,10 @@ return $default(_that.screenLayouts,_that.layoutStates,_that.homeBanner,_that.ca
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( Set<LayoutMode> screenLayouts,  Set<ViewSize> layoutStates,  HomeBanner homeBanner,  HomeCarouselSettings carouselSettings, @JsonKey(unknownEnumValue: HomeNextUp.separate)  HomeNextUp nextUp)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( Set<LayoutMode> screenLayouts,  Set<ViewSize> layoutStates,  HomeBanner homeBanner,  bool useClassicBannerStyle,  HomeCarouselSettings carouselSettings, @JsonKey(unknownEnumValue: HomeNextUp.separate)  HomeNextUp nextUp)?  $default,) {final _that = this;
 switch (_that) {
 case _HomeSettingsModel() when $default != null:
-return $default(_that.screenLayouts,_that.layoutStates,_that.homeBanner,_that.carouselSettings,_that.nextUp);case _:
+return $default(_that.screenLayouts,_that.layoutStates,_that.homeBanner,_that.useClassicBannerStyle,_that.carouselSettings,_that.nextUp);case _:
   return null;
 
 }
@@ -208,7 +209,7 @@ return $default(_that.screenLayouts,_that.layoutStates,_that.homeBanner,_that.ca
 @JsonSerializable()
 
 class _HomeSettingsModel extends HomeSettingsModel {
-   _HomeSettingsModel({ Set<LayoutMode> screenLayouts = const {...LayoutMode.values},  Set<ViewSize> layoutStates = const {...ViewSize.values}, this.homeBanner = HomeBanner.carousel, this.carouselSettings = HomeCarouselSettings.combined, @JsonKey(unknownEnumValue: HomeNextUp.separate) this.nextUp = HomeNextUp.separate}): _screenLayouts = screenLayouts,_layoutStates = layoutStates,super._();
+   _HomeSettingsModel({ Set<LayoutMode> screenLayouts = const {...LayoutMode.values},  Set<ViewSize> layoutStates = const {...ViewSize.values}, this.homeBanner = HomeBanner.carousel, this.useClassicBannerStyle = false, this.carouselSettings = HomeCarouselSettings.combined, @JsonKey(unknownEnumValue: HomeNextUp.separate) this.nextUp = HomeNextUp.separate}): _screenLayouts = screenLayouts,_layoutStates = layoutStates,super._();
   factory _HomeSettingsModel.fromJson(Map<String, dynamic> json) => _$HomeSettingsModelFromJson(json);
 
  final  Set<LayoutMode> _screenLayouts;
@@ -226,6 +227,7 @@ class _HomeSettingsModel extends HomeSettingsModel {
 }
 
 @override@JsonKey() final  HomeBanner homeBanner;
+@override@JsonKey() final  bool useClassicBannerStyle;
 @override@JsonKey() final  HomeCarouselSettings carouselSettings;
 @override@JsonKey(unknownEnumValue: HomeNextUp.separate) final  HomeNextUp nextUp;
 
@@ -244,7 +246,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-    return 'HomeSettingsModel(screenLayouts: $screenLayouts, layoutStates: $layoutStates, homeBanner: $homeBanner, carouselSettings: $carouselSettings, nextUp: $nextUp)';
+    return 'HomeSettingsModel(screenLayouts: $screenLayouts, layoutStates: $layoutStates, homeBanner: $homeBanner, useClassicBannerStyle: $useClassicBannerStyle, carouselSettings: $carouselSettings, nextUp: $nextUp)';
 }
 
 
@@ -255,7 +257,7 @@ abstract mixin class _$HomeSettingsModelCopyWith<$Res> implements $HomeSettingsM
   factory _$HomeSettingsModelCopyWith(_HomeSettingsModel value, $Res Function(_HomeSettingsModel) _then) = __$HomeSettingsModelCopyWithImpl;
 @override @useResult
 $Res call({
- Set<LayoutMode> screenLayouts, Set<ViewSize> layoutStates, HomeBanner homeBanner, HomeCarouselSettings carouselSettings,@JsonKey(unknownEnumValue: HomeNextUp.separate) HomeNextUp nextUp
+ Set<LayoutMode> screenLayouts, Set<ViewSize> layoutStates, HomeBanner homeBanner, bool useClassicBannerStyle, HomeCarouselSettings carouselSettings,@JsonKey(unknownEnumValue: HomeNextUp.separate) HomeNextUp nextUp
 });
 
 
@@ -272,12 +274,13 @@ class __$HomeSettingsModelCopyWithImpl<$Res>
 
 /// Create a copy of HomeSettingsModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? screenLayouts = null,Object? layoutStates = null,Object? homeBanner = null,Object? carouselSettings = null,Object? nextUp = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? screenLayouts = null,Object? layoutStates = null,Object? homeBanner = null,Object? useClassicBannerStyle = null,Object? carouselSettings = null,Object? nextUp = null,}) {
   return _then(_HomeSettingsModel(
 screenLayouts: null == screenLayouts ? _self._screenLayouts : screenLayouts // ignore: cast_nullable_to_non_nullable
 as Set<LayoutMode>,layoutStates: null == layoutStates ? _self._layoutStates : layoutStates // ignore: cast_nullable_to_non_nullable
 as Set<ViewSize>,homeBanner: null == homeBanner ? _self.homeBanner : homeBanner // ignore: cast_nullable_to_non_nullable
-as HomeBanner,carouselSettings: null == carouselSettings ? _self.carouselSettings : carouselSettings // ignore: cast_nullable_to_non_nullable
+as HomeBanner,useClassicBannerStyle: null == useClassicBannerStyle ? _self.useClassicBannerStyle : useClassicBannerStyle // ignore: cast_nullable_to_non_nullable
+as bool,carouselSettings: null == carouselSettings ? _self.carouselSettings : carouselSettings // ignore: cast_nullable_to_non_nullable
 as HomeCarouselSettings,nextUp: null == nextUp ? _self.nextUp : nextUp // ignore: cast_nullable_to_non_nullable
 as HomeNextUp,
   ));

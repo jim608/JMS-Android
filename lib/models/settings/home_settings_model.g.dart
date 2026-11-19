@@ -21,6 +21,7 @@ _HomeSettingsModel _$HomeSettingsModelFromJson(Map<String, dynamic> json) =>
       homeBanner:
           $enumDecodeNullable(_$HomeBannerEnumMap, json['homeBanner']) ??
           HomeBanner.carousel,
+      useClassicBannerStyle: json['useClassicBannerStyle'] as bool? ?? false,
       carouselSettings:
           $enumDecodeNullable(
             _$HomeCarouselSettingsEnumMap,
@@ -46,6 +47,7 @@ Map<String, dynamic> _$HomeSettingsModelToJson(
       .map((e) => _$ViewSizeEnumMap[e]!)
       .toList(),
   'homeBanner': _$HomeBannerEnumMap[instance.homeBanner]!,
+  'useClassicBannerStyle': instance.useClassicBannerStyle,
   'carouselSettings': _$HomeCarouselSettingsEnumMap[instance.carouselSettings]!,
   'nextUp': _$HomeNextUpEnumMap[instance.nextUp]!,
 };

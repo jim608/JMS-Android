@@ -1,6 +1,10 @@
 import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart' as dto;
 import 'package:fladder/localization_delegates.dart';
 import 'package:fladder/models/items/movie_model.dart';
+import 'package:fladder/models/settings/home_settings_model.dart';
+import 'package:fladder/providers/settings/home_settings_provider.dart';
+import 'package:fladder/providers/shared_provider.dart';
+import 'package:fladder/screens/dashboard/home_banner_widget.dart';
 import 'package:fladder/screens/shared/media/banner_play_button.dart';
 import 'package:fladder/screens/shared/media/carousel_banner.dart';
 import 'package:fladder/theme.dart';
@@ -15,6 +19,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:square_progress_indicator/square_progress_indicator.dart';
 
 import 'helpers/interface_typography_environment_stub.dart'
     if (dart.library.js_interop) 'helpers/interface_typography_environment_web.dart';
@@ -22,7 +28,14 @@ import 'helpers/interface_typography_environment_stub.dart'
 const _title = '在海岸的盡頭等待最後一班列車';
 const _locale = Locale('zh', 'TW');
 
-Future<void> _mount(WidgetTester tester, Size size, {int count = 1, double scale = 1, bool rtl = false}) async {
+Future<void> _mount(
+  WidgetTester tester,
+  Size size, {
+  int count = 1,
+  double scale = 1,
+  bool rtl = false,
+  SharedPreferences? preferences,
+}) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = size;
   addTearDown(tester.view.reset);
@@ -39,6 +52,10 @@ Future<void> _mount(WidgetTester tester, Size size, {int count = 1, double scale
   );
   await tester.pumpWidget(
     ProviderScope(
+      overrides: [
+        if (preferences != null)
+          sharedUtilityProvider.overrideWith((ref) => SharedUtility(ref: ref, sharedPreferences: preferences)),
+      ],
       child: MaterialApp(
         locale: _locale,
         supportedLocales: const [_locale],
@@ -66,7 +83,7 @@ Future<void> _mount(WidgetTester tester, Size size, {int count = 1, double scale
                     statusBarHeight: 0,
                   ),
                   child: Scaffold(
-                    body: CarouselBanner(items: movies, maxHeight: (size.shortestSide * 0.6).clamp(125, 375)),
+                    body: HomeBannerWidget(posters: movies, onSelect: (_) {}),
                   ),
                 ),
               ),
@@ -140,6 +157,36 @@ void main() {
     await tester.tap(find.byTooltip(l10n.previousPageTooltip));
     await tester.pumpAndSettle();
     expect(position.pixels, closeTo(start, 1));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('changing banner style reaches the visible carousel and slideshow without restarting', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final preferences = await SharedPreferences.getInstance();
+    await _mount(tester, const Size(390, 844), preferences: preferences);
+    final container = ProviderScope.containerOf(tester.element(find.byType(HomeBannerWidget)), listen: false);
+    final settings = container.read(homeSettingsProvider.notifier);
+    final squareProgress = find.descendant(
+      of: find.byType(BannerPlayButton),
+      matching: find.byType(SquareProgressIndicator),
+    );
+
+    expect(squareProgress, findsNothing);
+    settings.update((state) => state.copyWith(useClassicBannerStyle: true));
+    await tester.pumpAndSettle();
+    expect(tester.widget<CarouselBanner>(find.byType(CarouselBanner)).useClassicStyle, isTrue);
+    expect(squareProgress, findsOneWidget);
+    expect(_play.hitTestable(), findsOneWidget);
+
+    settings.update((state) => state.copyWith(homeBanner: HomeBanner.banner));
+    await tester.pumpAndSettle();
+    expect(find.byType(CarouselBanner), findsNothing);
+    expect(squareProgress, findsOneWidget);
+    settings.update((state) => state.copyWith(useClassicBannerStyle: false));
+    await tester.pumpAndSettle();
+    expect(squareProgress, findsNothing);
+    expect(_play.hitTestable(), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
     expect(tester.takeException(), isNull);
   });
 }

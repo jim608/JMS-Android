@@ -466,6 +466,8 @@
   "@homeBannerSlideshow": {},
   "homeBannerCarousel": "Carousel",
   "@homeBannerCarousel": {},
+  "useClassicBannerStyle": "Use classic banner style",
+  "@useClassicBannerStyle": {},
   "homeBannerDetailed": "Detailed",
   "@homeBannerDetailed": {},
   "homeBannerTV": "TV",

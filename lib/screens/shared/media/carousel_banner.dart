@@ -11,6 +11,7 @@ import 'package:fladder/util/fladder_image.dart';
 import 'package:fladder/util/focus_provider.dart';
 import 'package:fladder/util/item_base_model/item_base_model_extensions.dart';
 import 'package:fladder/util/localization_helper.dart';
+import 'package:fladder/util/themes_data.dart';
 import 'package:fladder/widgets/shared/ensure_visible.dart';
 import 'package:fladder/widgets/shared/item_actions.dart';
 import 'package:fladder/widgets/shared/modal_bottom_sheet.dart';
@@ -19,7 +20,14 @@ class CarouselBanner extends ConsumerStatefulWidget {
   final PageController? controller;
   final List<ItemBaseModel> items;
   final double maxHeight;
-  const CarouselBanner({this.controller, required this.items, this.maxHeight = 250, super.key});
+  final bool useClassicStyle;
+  const CarouselBanner({
+    this.controller,
+    required this.items,
+    this.maxHeight = 250,
+    this.useClassicStyle = false,
+    super.key,
+  });
 
   @override
   ConsumerState<ConsumerStatefulWidget> createState() => _CarouselBannerState();
@@ -27,7 +35,6 @@ class CarouselBanner extends ConsumerStatefulWidget {
 
 class _CarouselBannerState extends ConsumerState<CarouselBanner> {
   final carouselController = CarouselController();
-  static const border = BorderRadius.all(Radius.circular(20));
   bool showControls = false;
 
   @override
@@ -49,13 +56,19 @@ class _CarouselBannerState extends ConsumerState<CarouselBanner> {
   @override
   Widget build(BuildContext context) {
     final pointer = AdaptiveLayout.inputDeviceOf(context) == InputDevice.pointer;
+    final classic = widget.useClassicStyle;
     return ConstrainedBox(
       constraints: BoxConstraints(maxHeight: widget.maxHeight),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final width = constraints.maxWidth;
           if (width <= 0 || constraints.maxHeight <= 0) return const SizedBox.shrink();
-          final extent = widget.items.length == 1 ? width : math.min(width * 0.90, constraints.maxHeight * 1.85);
+          final cardWidth = classic
+              ? (constraints.maxHeight * 2.1)
+                    .clamp(250.0, math.max(251.0, MediaQuery.sizeOf(context).shortestSide * 0.75))
+                    .toDouble()
+              : math.min(width * 0.90, constraints.maxHeight * 1.85);
+          final extent = widget.items.length == 1 ? width : math.min(width, cardWidth);
           final canPage = pointer && widget.items.length > 1 && widget.items.length * extent > width;
           return MouseRegion(
             onEnter: (_) => setState(() => showControls = true),
@@ -71,15 +84,18 @@ class _CarouselBannerState extends ConsumerState<CarouselBanner> {
                     controller: carouselController,
                     itemExtent: extent,
                     itemCount: widget.items.length,
-                    itemBuilder: (context, index) => _buildCard(widget.items[index]),
+                    itemBuilder: (context, index) => _buildCard(widget.items[index], cardWidth),
                   ),
                   if (canPage && showControls)
                     Align(
-                      alignment: AlignmentDirectional.topEnd,
+                      alignment: classic ? Alignment.center : AlignmentDirectional.topEnd,
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        padding: classic
+                            ? const EdgeInsets.symmetric(horizontal: 16)
+                            : const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                         child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                          mainAxisSize: classic ? MainAxisSize.max : MainAxisSize.min,
+                          mainAxisAlignment: classic ? MainAxisAlignment.spaceBetween : MainAxisAlignment.start,
                           spacing: 4,
                           children: [
                             IconButton.filledTonal(
@@ -105,19 +121,31 @@ class _CarouselBannerState extends ConsumerState<CarouselBanner> {
     );
   }
 
-  Widget _buildCard(ItemBaseModel item) {
+  Widget _buildCard(ItemBaseModel item, double cardWidth) {
+    final classic = widget.useClassicStyle;
+    final border = BorderRadius.circular(classic ? 18 : 20);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
       child: Material(
         color: Theme.of(context).colorScheme.surfaceContainerHigh,
-        borderRadius: border,
+        elevation: classic ? 3 : 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: border,
+          side: classic ? const BorderSide(color: Color(0x1AFFFFFF)) : BorderSide.none,
+        ),
         clipBehavior: Clip.antiAlias,
         child: LayoutBuilder(
           builder: (context, constraints) {
             final showCaption = constraints.maxWidth >= 156;
             final spacious = constraints.maxWidth >= 480;
-            final inset = spacious ? 24.0 : 16.0;
+            final inset = spacious && !classic ? 24.0 : 16.0;
             final text = Theme.of(context).textTheme;
+            final titleStyle = classic
+                ? text.headlineMedium
+                : (spacious ? text.headlineMedium : text.headlineSmall)?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    height: 1.16,
+                  );
             final label = item.label(context.localized);
             final subtitle = label == null || label.isEmpty || label == item.title ? item.subText : label;
             final input = AdaptiveLayout.inputDeviceOf(context);
@@ -152,23 +180,39 @@ class _CarouselBannerState extends ConsumerState<CarouselBanner> {
                 fit: StackFit.expand,
                 children: [
                   FladderImage(image: item.bannerImage),
-                  const DecoratedBox(
+                  DecoratedBox(
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        stops: [0.20, 0.62, 1],
-                        colors: [Colors.transparent, Color(0x780A1018), Color(0xF0090E16)],
-                      ),
+                      gradient: classic
+                          ? LinearGradient(
+                              begin: AlignmentDirectional.bottomStart,
+                              end: Alignment.topCenter,
+                              colors: [
+                                ThemesData.of(context).dark.colorScheme.primaryContainer.withValues(
+                                  alpha: (constraints.maxWidth / cardWidth).clamp(0, 1),
+                                ),
+                                Colors.transparent,
+                              ],
+                            )
+                          : const LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              stops: [0.20, 0.62, 1],
+                              colors: [Colors.transparent, Color(0x780A1018), Color(0xF0090E16)],
+                            ),
                     ),
                   ),
                   if (showCaption)
                     Align(
                       alignment: AlignmentDirectional.bottomStart,
                       child: Padding(
-                        padding: EdgeInsetsDirectional.fromSTEB(inset, 8, 76, inset),
+                        padding: EdgeInsetsDirectional.fromSTEB(
+                          inset,
+                          8,
+                          classic ? math.max(76.0, constraints.maxWidth * 0.2) : 76,
+                          inset,
+                        ),
                         child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 600),
+                          constraints: BoxConstraints(maxWidth: classic ? double.infinity : 600),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -178,11 +222,7 @@ class _CarouselBannerState extends ConsumerState<CarouselBanner> {
                                   item.title,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
-                                  style: (spacious ? text.headlineMedium : text.headlineSmall)?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                    height: 1.16,
-                                  ),
+                                  style: titleStyle?.copyWith(color: Colors.white),
                                 ),
                               ),
                               if (subtitle != null && subtitle.isNotEmpty && subtitle != item.title)
@@ -192,7 +232,9 @@ class _CarouselBannerState extends ConsumerState<CarouselBanner> {
                                     subtitle,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: text.bodyMedium?.copyWith(color: const Color(0xE6FFFFFF)),
+                                    style: classic
+                                        ? text.titleMedium?.copyWith(color: Colors.white)
+                                        : text.bodyMedium?.copyWith(color: const Color(0xE6FFFFFF)),
                                   ),
                                 ),
                             ],
@@ -204,7 +246,12 @@ class _CarouselBannerState extends ConsumerState<CarouselBanner> {
                     Semantics(label: item.title),
                 ],
               ),
-              overlays: [if (showCaption) ExcludeFocus(child: BannerPlayButton(item: item))],
+              overlays: [
+                if (showCaption)
+                  ExcludeFocus(
+                    child: BannerPlayButton(item: item, useClassicStyle: classic),
+                  ),
+              ],
             );
           },
         ),
