@@ -13,6 +13,7 @@ import 'package:fladder/models/recommended_model.dart';
 import 'package:fladder/models/view_model.dart';
 import 'package:fladder/providers/library_screen_provider.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
+import 'package:fladder/providers/settings/home_settings_provider.dart';
 import 'package:fladder/routes/auto_router.gr.dart';
 import 'package:fladder/screens/home_screen.dart';
 import 'package:fladder/screens/metadata/refresh_metadata.dart';
@@ -73,6 +74,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> with SingleTicker
     final viewTypes = libraryScreenState.viewType;
     final genres = libraryScreenState.genres;
     final padding = AdaptiveLayout.adaptivePadding(context);
+    final classic = ref.watch(classicInterfaceProvider);
 
     final useTVExpandedLayout = ref.watch(clientSettingsProvider.select((value) => value.useTVExpandedLayout));
 
@@ -111,6 +113,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> with SingleTicker
                     child: LibraryRow(
                       padding: padding,
                       views: views,
+                      modern: !classic,
                       selectedView: libraryScreenState.selectedViewModel,
                       onSelected: (view) =>
                           _refresh(() => ref.read(libraryScreenProvider.notifier).selectLibrary(view)),
@@ -120,7 +123,52 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> with SingleTicker
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.only(top: 24, bottom: 16),
-                      child: SizedBox(
+                      child: !classic && AdaptiveLayout.viewSizeOf(context) == ViewSize.phone
+                          ? Padding(
+                              padding: padding,
+                              child: Row(
+                                spacing: 4,
+                                children: [
+                                  Expanded(
+                                    child: FilledButton.icon(
+                                      onPressed: () =>
+                                          context.pushRoute(LibrarySearchRoute(parentId: [selectedView.id])),
+                                      icon: const Icon(IconsaxPlusLinear.search_normal),
+                                      label: Text(
+                                        "${context.localized.search} ${selectedView.name}",
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ),
+                                  PopupMenuButton<LibraryViewType>(
+                                    tooltip: context.localized.filter(2),
+                                    icon: const Icon(Icons.tune),
+                                    itemBuilder: (context) => [
+                                      for (final type in LibraryViewType.values)
+                                        CheckedPopupMenuItem(
+                                          value: type,
+                                          checked: viewTypes.contains(type),
+                                          child: Text(type.label(context)),
+                                        ),
+                                    ],
+                                    onSelected: (type) => ref
+                                        .read(libraryScreenProvider.notifier)
+                                        .setViewType(
+                                          viewTypes.contains(type)
+                                              ? ({...viewTypes}..remove(type))
+                                              : {...viewTypes, type},
+                                        ),
+                                  ),
+                                  IconButton(
+                                    tooltip: context.localized.scanLibrary,
+                                    onPressed: () => showRefreshPopup(context, selectedView.id, selectedView.name),
+                                    icon: const Icon(IconsaxPlusLinear.refresh),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : SizedBox(
                         height: 40,
                         child: ListView(
                           padding: padding,
@@ -260,6 +308,7 @@ class LibraryRow extends ConsumerWidget {
     this.onLongPress,
     this.viewActions,
     this.enableImageCache = true,
+    this.modern = false,
   });
 
   final List<ViewModel> views;
@@ -269,13 +318,14 @@ class LibraryRow extends ConsumerWidget {
   final FutureOr Function(ViewModel selected)? onLongPress;
   final List<ItemActionButton> Function(ViewModel item)? viewActions;
   final bool enableImageCache;
+  final bool modern;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return HorizontalList(
       label: context.localized.library(views.length),
       items: views,
-      height: 155,
+      height: modern ? 112 + 2 * (MediaQuery.textScalerOf(context).scale(16) - 16).clamp(0.0, 80.0) : 155,
       autoFocus: true,
       startIndex: selectedView != null ? views.indexOf(selectedView!) : null,
       contentPadding: padding,
@@ -295,28 +345,108 @@ class LibraryRow extends ConsumerWidget {
           ),
           ...?viewActions?.call(view),
         ];
+        Widget focusCard(Widget child) => FocusButton(
+          key: Key(view.id),
+          onTap: isSelected ? null : () => onSelected?.call(view),
+          onLongPress: onLongPress != null
+              ? () => onLongPress?.call(view)
+              : () => context.pushRoute(LibrarySearchRoute(parentId: [view.id])),
+          onSecondaryTapDown: (details) async {
+            Offset localPosition = details.globalPosition;
+            RelativeRect position = RelativeRect.fromLTRB(
+              localPosition.dx,
+              localPosition.dy,
+              localPosition.dx,
+              localPosition.dy,
+            );
+            await showMenu(
+              context: context,
+              position: position,
+              items: combinedViewActions.popupMenuItems(useIcons: true),
+            );
+          },
+          child: child,
+        );
+        if (modern) {
+          final scheme = Theme.of(context).colorScheme;
+          final hasImage = view.imageData?.primary != null;
+          return MergeSemantics(
+            child: Semantics(
+              button: true,
+              selected: isSelected,
+              child: focusCard(
+                Container(
+                  width: AdaptiveLayout.viewSizeOf(context) == ViewSize.phone ? 172 : 224,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    color: isSelected ? scheme.secondaryContainer : scheme.surfaceContainerHigh,
+                    borderRadius: FladderTheme.smallShape.borderRadius,
+                  ),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (hasImage) ...[
+                        FladderImage(image: view.imageData?.primary, fit: BoxFit.cover, cachedImage: enableImageCache),
+                        const DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Colors.transparent, Color(0xEA101316)],
+                            ),
+                          ),
+                        ),
+                      ] else
+                        PositionedDirectional(
+                          top: 12,
+                          start: 14,
+                          child: Icon(
+                            view.collectionType.icon,
+                            color: isSelected ? scheme.onSecondaryContainer : scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      if (isSelected)
+                        PositionedDirectional(
+                          top: 8,
+                          end: 8,
+                          child: CircleAvatar(
+                            radius: 12,
+                            backgroundColor: scheme.primary,
+                            child: Icon(Icons.check, size: 16, color: scheme.onPrimary),
+                          ),
+                        ),
+                      PositionedDirectional(
+                        start: 14,
+                        end: 12,
+                        bottom: 10,
+                        child: Text(
+                          view.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: hasImage
+                                ? Colors.white
+                                : isSelected
+                                ? scheme.onSecondaryContainer
+                                : scheme.onSurface,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
         return Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            FocusButton(
-              key: Key(view.id),
-              onTap: isSelected ? null : () => onSelected?.call(view),
-              onLongPress: onLongPress != null
-                  ? () => onLongPress?.call(view)
-                  : () => context.pushRoute(LibrarySearchRoute(parentId: [view.id])),
-              onSecondaryTapDown: (details) async {
-                Offset localPosition = details.globalPosition;
-                RelativeRect position =
-                    RelativeRect.fromLTRB(localPosition.dx, localPosition.dy, localPosition.dx, localPosition.dy);
-                await showMenu(
-                  context: context,
-                  position: position,
-                  items: combinedViewActions.popupMenuItems(useIcons: true),
-                );
-              },
-              child: AnimatedContainer(
+            focusCard(
+              AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surface,
