@@ -7,6 +7,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fladder/providers/settings/client_settings_provider.dart';
+import 'package:fladder/providers/settings/home_settings_provider.dart';
 import 'package:fladder/providers/shared_provider.dart';
 import 'package:fladder/routes/auto_router.gr.dart';
 import 'package:fladder/screens/settings/client_sections/client_settings_advanced.dart';
@@ -44,7 +45,7 @@ class _ClientSettingsPageState extends ConsumerState<ClientSettingsPage> {
     final clientSettings = ref.watch(clientSettingsProvider);
 
     return SettingsScaffold(
-      label: Brand.name,
+      label: ref.watch(classicInterfaceProvider) ? Brand.name : context.localized.general,
       items: [
         const SettingsBackupTile(),
         ...buildClientSettingsDownload(context, ref, setState),

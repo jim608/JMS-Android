@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:fladder/providers/settings/home_settings_provider.dart';
 import 'package:fladder/screens/crash_screen/crash_screen.dart';
 import 'package:fladder/screens/settings/settings_scaffold.dart';
 import 'package:fladder/screens/settings/widgets/settings_update_information.dart';
@@ -26,7 +27,7 @@ class AboutSettingsPage extends ConsumerWidget {
     final applicationInfo = ref.watch(applicationInfoProvider);
 
     return SettingsScaffold(
-      label: "",
+      label: ref.watch(classicInterfaceProvider) ? "" : context.localized.about,
       items: [
         const FladderLogo(),
         Column(

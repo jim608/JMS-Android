@@ -5,6 +5,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fladder/providers/arguments_provider.dart';
+import 'package:fladder/providers/settings/home_settings_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/screens/shared/user_icon.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
@@ -37,6 +38,8 @@ class SettingsScaffold extends ConsumerWidget {
     final padding = MediaQuery.paddingOf(context);
     final singleLayout =
         AdaptiveLayout.layoutModeOf(context) == LayoutMode.single;
+    final classic = ref.watch(classicInterfaceProvider);
+    final showNestedBack = showBackButtonNested && !ref.watch(argumentsStateProvider.select((value) => value.htpcMode));
     return Scaffold(
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: floatingActionButton,
@@ -50,7 +53,40 @@ class SettingsScaffold extends ConsumerWidget {
                 builder: (context, controller) => CustomScrollView(
                   controller: controller,
                   slivers: [
-                    if (singleLayout)
+                    if (!classic)
+                      PinnedHeaderSliver(
+                        child: Material(
+                          color: Theme.of(context).scaffoldBackgroundColor,
+                          child: SafeArea(
+                            bottom: false,
+                            child: Padding(
+                              padding: const EdgeInsetsDirectional.fromSTEB(8, 8, 16, 8),
+                              child: Row(
+                                children: [
+                                  if (singleLayout || showNestedBack)
+                                    BackButton(onPressed: () => backAction(context)),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Semantics(
+                                      header: true,
+                                      child: Text(label, style: Theme.of(context).textTheme.headlineSmall),
+                                    ),
+                                  ),
+                                  if (showUserIcon)
+                                    Padding(
+                                      padding: const EdgeInsetsDirectional.only(start: 12),
+                                      child: SizedBox.square(
+                                        dimension: 32,
+                                        child: UserIcon(user: ref.watch(userProvider), cornerRadius: 200),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                    else if (singleLayout)
                       SliverAppBar.large(
                         leading: BackButton(
                           onPressed: () => backAction(context),
@@ -92,8 +128,7 @@ class SettingsScaffold extends ConsumerWidget {
                               MediaQuery.paddingOf(context).copyWith(bottom: 0),
                           child: Row(
                             children: [
-                              if (showBackButtonNested &&
-                                  !ref.read(argumentsStateProvider).htpcMode)
+                              if (showNestedBack)
                                 BackButton(
                                   onPressed: () => backAction(context),
                                 )

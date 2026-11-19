@@ -8,6 +8,7 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 
 import 'package:fladder/providers/arguments_provider.dart';
 import 'package:fladder/providers/auth_provider.dart';
+import 'package:fladder/providers/settings/home_settings_provider.dart';
 import 'package:fladder/providers/update_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/routes/auto_router.gr.dart';
@@ -38,6 +39,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final classic = ref.watch(classicInterfaceProvider);
     return AutoTabsRouter(
       builder: (context, content) {
         checkForNullIndex(context);
@@ -53,7 +55,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   elevation: 0,
                   child: Stack(
                     children: [
-                      _leftPane(context),
+                      _leftPane(context, classic),
                       TabBackGesture(
                         enabled: context.tabsRouter.activeIndex != 0,
                         onBack: () => context.tabsRouter.setActiveIndex(0),
@@ -62,21 +64,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ],
                   ),
                 )
-              : Row(
-                  mainAxisSize: MainAxisSize.max,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(flex: 2, child: _leftPane(context)),
-                    Expanded(
-                      flex: 3,
-                      child: Padding(
-                        padding: EdgeInsets.only(
-                          left: MediaQuery.paddingOf(context).left,
+              : LayoutBuilder(
+                  builder: (context, constraints) {
+                    final categoryWidth = constraints.maxWidth * 0.4;
+                    return Row(
+                      mainAxisSize: MainAxisSize.max,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SizedBox(
+                          width: classic
+                              ? categoryWidth
+                              : categoryWidth.clamp(0.0, AdaptiveLayout.of(context).sideBarWidth + 336),
+                          child: _leftPane(context, classic),
                         ),
-                        child: content,
-                      ),
-                    ),
-                  ],
+                        Expanded(
+                          child: Padding(
+                            padding: EdgeInsets.only(left: MediaQuery.paddingOf(context).left),
+                            child: content,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
         );
       },
@@ -109,20 +118,46 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  Widget _leftPane(BuildContext context) {
+  Widget _leftPane(BuildContext context, bool classic) {
     void navigateTo(PageRouteInfo route) => context.tabsRouter.navigate(route);
 
     bool containsRoute(PageRouteInfo route) =>
         AdaptiveLayout.layoutModeOf(context) == LayoutMode.dual && context.tabsRouter.current.name == route.routeName;
 
-    final quickConnectAvailable =
-        ref.watch(userProvider.select((value) => value?.serverConfiguration?.quickConnectAvailable ?? false));
+    final quickConnectAvailable = ref.watch(
+      userProvider.select((value) => value?.serverConfiguration?.quickConnectAvailable ?? false),
+    );
 
     final newRelease = kIsWeb ? null : ref.watch(updateProvider.select((value) => value.latestRelease));
 
     final hasNewUpdate = ref.watch(hasNewUpdateProvider);
 
     final isAdmin = ref.watch(userProvider.select((value) => value?.policy?.isAdministrator ?? false));
+
+    Widget category(
+      PageRouteInfo route,
+      String label, {
+      String? description,
+      IconData? icon,
+      Widget? leading,
+      bool autoFocus = false,
+    }) {
+      final selected = containsRoute(route);
+      final tile = SettingsListTile(
+        label: Text(label),
+        subLabel: classic || description == null ? null : Text(description),
+        icon: icon,
+        leading: leading,
+        autoFocus: autoFocus,
+        selected: selected,
+        onTap: () => navigateTo(route),
+      );
+      return classic
+          ? tile
+          : MergeSemantics(
+              child: Semantics(button: true, selected: selected, child: tile),
+            );
+    }
 
     return Padding(
       padding: EdgeInsetsDirectional.only(start: AdaptiveLayout.of(context).sideBarWidth),
@@ -146,12 +181,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
               const SizedBox(height: 8),
             ],
-            SettingsListTile(
-              label: Text(context.localized.general),
+            category(
+              const ClientSettingsRoute(),
+              context.localized.general,
+              description: context.localized.settingsClientDesc,
               autoFocus: true,
-              selected: containsRoute(const ClientSettingsRoute()),
               icon: deviceIcon,
-              onTap: () => navigateTo(const ClientSettingsRoute()),
             ),
             if (isAdmin)
               SettingsListTile(
@@ -161,34 +196,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 icon: IconsaxPlusLinear.chart_3,
                 onTap: () => const ControlPanelSelectionRoute().navigate(context),
               ),
-            SettingsListTile(
-              label: Text(context.localized.settingsProfileTitle),
-              selected: containsRoute(const ProfileSettingsRoute()),
+            category(
+              const ProfileSettingsRoute(),
+              context.localized.settingsProfileTitle,
+              description: context.localized.settingsProfileDesc,
               icon: IconsaxPlusLinear.security_user,
-              onTap: () => navigateTo(const ProfileSettingsRoute()),
             ),
-            SettingsListTile(
-              label: Text(context.localized.settingsPlayerTitle),
-              selected: containsRoute(const PlayerSettingsRoute()),
+            category(
+              const PlayerSettingsRoute(),
+              context.localized.settingsPlayerTitle,
+              description: context.localized.settingsPlayerDesc,
               icon: IconsaxPlusLinear.video_play,
-              onTap: () => navigateTo(const PlayerSettingsRoute()),
             ),
-            SettingsListTile(
-              label: Text(context.localized.about),
-              selected: containsRoute(const AboutSettingsRoute()),
+            category(
+              const AboutSettingsRoute(),
+              context.localized.about,
               leading: Opacity(
                 opacity: 1,
-                child: FladderIconOutlined(
-                  size: 24,
-                  color: context.colors.onSurfaceVariant,
-                ),
+                child: FladderIconOutlined(size: 24, color: context.colors.onSurfaceVariant),
               ),
-              onTap: () => navigateTo(const AboutSettingsRoute()),
             ),
-            const FractionallySizedBox(
-              widthFactor: 0.25,
-              child: Divider(),
-            ),
+            const FractionallySizedBox(widthFactor: 0.25, child: Divider()),
             if (quickConnectAvailable)
               SettingsListTile(
                 label: Text(context.localized.settingsQuickConnectTitle),
@@ -241,10 +269,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       context.localized.logoutUserPopupContent(user?.name ?? "", user?.credentials.url ?? ""),
                     ),
                     actions: [
-                      ElevatedButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: Text(context.localized.cancel),
-                      ),
+                      ElevatedButton(onPressed: () => Navigator.pop(context), child: Text(context.localized.cancel)),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom().copyWith(
                           iconColor: WidgetStatePropertyAll(Theme.of(context).colorScheme.onErrorContainer),

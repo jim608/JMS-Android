@@ -73,7 +73,7 @@ void main() {
           supportedLocales: const [locale],
           localizationsDelegates: FladderLocalizations.localizationsDelegates,
           builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(2)),
+            data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(2)),
             child: AdaptiveLayout(
               data: AdaptiveLayoutModel(
                 viewSize: ViewSize.phone,

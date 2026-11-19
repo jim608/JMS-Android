@@ -193,7 +193,7 @@ class _PlayerSettingsPageState extends ConsumerState<PlayerSettingsPage> {
           context,
           SettingsLabelDivider(label: context.localized.shortCuts),
           [
-            if (userSettings != null)
+            if (userSettings != null) ...[
               SettingsListTile(
                 label: Text(context.localized.skipBackLength),
                 trailing: IntInputField(
@@ -211,23 +211,24 @@ class _PlayerSettingsPageState extends ConsumerState<PlayerSettingsPage> {
                   },
                 ),
               ),
-            SettingsListTile(
-              label: Text(context.localized.skipForwardLength),
-              trailing: IntInputField(
-                suffix: context.localized.seconds(10),
-                controller: TextEditingController(text: userSettings!.skipForwardDuration.inSeconds.toString()),
-                onChanged: (value) {
-                  if (value != null) {
-                    ref.read(userProvider.notifier).setForwardSpeed(value);
-                  }
-                },
-                onSubmitted: (value) {
-                  if (value != null) {
-                    ref.read(userProvider.notifier).setForwardSpeed(value);
-                  }
-                },
+              SettingsListTile(
+                label: Text(context.localized.skipForwardLength),
+                trailing: IntInputField(
+                  suffix: context.localized.seconds(10),
+                  controller: TextEditingController(text: userSettings.skipForwardDuration.inSeconds.toString()),
+                  onChanged: (value) {
+                    if (value != null) {
+                      ref.read(userProvider.notifier).setForwardSpeed(value);
+                    }
+                  },
+                  onSubmitted: (value) {
+                    if (value != null) {
+                      ref.read(userProvider.notifier).setForwardSpeed(value);
+                    }
+                  },
+                ),
               ),
-            ),
+            ],
             if (AdaptiveLayout.inputDeviceOf(context) != InputDevice.touch)
               ExpansionTile(
                 title: Text(
