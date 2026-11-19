@@ -1,3 +1,15 @@
+# JMS 0.12.0-jms.62
+
+## Fixed
+
+- Fixed media details such as series and episodes showing a gray screen with only the toolbar.
+- Movies without subtitles now show available versions and audio tracks.
+- Fixed a blank General pane when opening desktop settings without specifying a tab.
+
+## Known issues
+
+- This is a prerelease. Upgrades on physical devices, notification permissions, biometric unlock, and Quick Connect still need device testing.
+
 # JMS 0.12.0-jms.61
 
 ## Added

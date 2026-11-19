@@ -25,6 +25,15 @@
   </developer>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.12.0-jms.62" date="2026-11-19">
+      <description>
+        <ul>
+          <li>Fixes a gray screen when opening media details for series and episodes.</li>
+          <li>Shows available movie versions and audio tracks for titles without subtitles.</li>
+          <li>Fixes the initial General pane in desktop settings.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.12.0-jms.61" date="2026-11-19">
       <description>
         <p>Features one title at a time on Home and adds a classic interface option in the theme settings.</p>
