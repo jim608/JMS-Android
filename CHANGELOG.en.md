@@ -1,3 +1,23 @@
+# JMS 0.12.0-jms.61
+
+## Added
+
+- Home now features one title at a time with a play or resume action. Enable the classic interface in the theme settings to switch back.
+
+## Changed
+
+- Search suggestions use more screen space on phones and show the title, media type and year. Library search, filters and scanning are within reach on the mobile toolbar.
+- Media details show the selected version, audio and subtitles. These controls wrap at larger text sizes. Desktop settings identify the active category, and mobile settings keep the title and back button visible while scrolling.
+
+## Fixed
+
+- Pressing Enter on a highlighted search suggestion opens the title. The Home detail and play actions can be reached separately with a keyboard or screen reader.
+- Player settings open while account preferences are loading. Series with no production year no longer show a null value.
+
+## Known issues
+
+- This is a prerelease. The interface has been exercised in Flutter tests. Physical-device use, in-place upgrades and search latency on a live server still need verification.
+
 # JMS 0.12.0-jms.60
 
 ## Added

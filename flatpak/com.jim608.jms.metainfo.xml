@@ -25,6 +25,12 @@
   </developer>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.12.0-jms.61" date="2026-11-19">
+      <description>
+        <p>Features one title at a time on Home and adds a classic interface option in the theme settings.</p>
+        <p>Improves keyboard search, library navigation, audio and subtitle selection, and settings at larger text sizes.</p>
+      </description>
+    </release>
     <release version="0.12.0-jms.60" date="2026-11-18">
       <description>
         <p>Integrates Fladder 0.12.0 and adds saved library filters to Home.</p>
