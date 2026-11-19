@@ -110,9 +110,9 @@ class SeerrDetailsScreen extends ConsumerWidget {
       backDrops: currentPoster?.images,
       onRefresh: notifier.fetch,
       posterFillsContent: true,
-      content: (context, padding) => currentPoster == null
-          ? const SizedBox.shrink()
-          : Padding(
+      content: (context, padding) => [
+        if (currentPoster != null)
+          Padding(
               padding: const EdgeInsets.only(bottom: 64, top: 64),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -417,6 +417,7 @@ class SeerrDetailsScreen extends ConsumerWidget {
                 ].addPadding(const EdgeInsets.symmetric(vertical: 16)),
               ),
             ),
+      ],
     );
   }
 }

@@ -90,8 +90,9 @@ class _ItemDetailScreenState extends ConsumerState<MovieDetailScreen> {
       ),
       onRefresh: _refreshDetails,
       backDrops: details?.images,
-      content: (detailsContext, padding) => details != null
-          ? Padding(
+      content: (detailsContext, padding) => [
+        if (details != null)
+          Padding(
               padding: const EdgeInsets.only(bottom: 64),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
@@ -182,7 +183,7 @@ class _ItemDetailScreenState extends ConsumerState<MovieDetailScreen> {
                     studios: details.overview.studios,
                     officialRating: details.overview.parentalRating,
                     communityRating: details.overview.communityRating,
-                    mediaStreamHelper: details.mediaStreams.isNotEmpty
+                    mediaStreamHelper: details.mediaStreams.versionStreams.isNotEmpty
                         ? MediaStreamHelper(
                             mediaStream: details.mediaStreams,
                             onItemChanged: (changed) {
@@ -250,7 +251,8 @@ class _ItemDetailScreenState extends ConsumerState<MovieDetailScreen> {
                 ].addPadding(const EdgeInsets.symmetric(vertical: 16)),
               ),
             )
-          : Padding(
+        else
+          Padding(
               padding: padding,
               child: DetailLoadState(
                 loading: _loadingDetails,
@@ -258,6 +260,7 @@ class _ItemDetailScreenState extends ConsumerState<MovieDetailScreen> {
                 onBack: () => context.router.popBack(),
               ),
             ),
+      ],
     );
   }
 }

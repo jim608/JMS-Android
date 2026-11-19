@@ -48,7 +48,7 @@ class DetailScaffold extends ConsumerStatefulWidget {
   final List<ItemAction>? Function(BuildContext context)? actions;
   final Color? backgroundColor;
   final ImagesData? backDrops;
-  final Function(BuildContext context, EdgeInsets padding) content;
+  final List<Widget> Function(BuildContext context, EdgeInsets padding) content;
   final Future<void> Function()? onRefresh;
   final bool posterFillsContent;
   final Color? dominantColor;
@@ -326,9 +326,9 @@ class _DetailScaffoldState extends ConsumerState<DetailScaffold> {
                             minHeight: size.height,
                             maxWidth: size.width,
                           ),
-                          child: widget.content(
-                            context,
-                            contentPadding,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: widget.content(context, contentPadding),
                           ),
                         ),
                       ),
