@@ -129927,6 +129927,10 @@
       {
         "archiveSha256": "ff4da646db0bd4df828dfcac2f30a9d8fc71e205e7821529f8b6aee6b4bd0be1",
         "member": "JMS-Windows-0.12.0-jms.61-x64/libdovi.dll"
+      },
+      {
+        "archiveSha256": "ce9efdabcd0aa04774ed514d7477cf9777db930ec1d23092f0d4841389474af9",
+        "member": "JMS-Windows-0.12.0-jms.62-x64/libdovi.dll"
       }
     ]
   },
@@ -129958,6 +129962,10 @@
       {
         "archiveSha256": "ff4da646db0bd4df828dfcac2f30a9d8fc71e205e7821529f8b6aee6b4bd0be1",
         "member": "JMS-Windows-0.12.0-jms.61-x64/libgio-2.0-0.dll"
+      },
+      {
+        "archiveSha256": "ce9efdabcd0aa04774ed514d7477cf9777db930ec1d23092f0d4841389474af9",
+        "member": "JMS-Windows-0.12.0-jms.62-x64/libgio-2.0-0.dll"
       }
     ]
   },
@@ -130034,6 +130042,10 @@
       {
         "archiveSha256": "ff4da646db0bd4df828dfcac2f30a9d8fc71e205e7821529f8b6aee6b4bd0be1",
         "member": "JMS-Windows-0.12.0-jms.61-x64/libgnutls-30.dll"
+      },
+      {
+        "archiveSha256": "ce9efdabcd0aa04774ed514d7477cf9777db930ec1d23092f0d4841389474af9",
+        "member": "JMS-Windows-0.12.0-jms.62-x64/libgnutls-30.dll"
       }
     ]
   },
@@ -130064,6 +130076,10 @@
       {
         "archiveSha256": "ff4da646db0bd4df828dfcac2f30a9d8fc71e205e7821529f8b6aee6b4bd0be1",
         "member": "JMS-Windows-0.12.0-jms.61-x64/libmpv-2.dll"
+      },
+      {
+        "archiveSha256": "ce9efdabcd0aa04774ed514d7477cf9777db930ec1d23092f0d4841389474af9",
+        "member": "JMS-Windows-0.12.0-jms.62-x64/libmpv-2.dll"
       }
     ]
   },
@@ -130300,6 +130316,10 @@
       {
         "archiveSha256": "ff4da646db0bd4df828dfcac2f30a9d8fc71e205e7821529f8b6aee6b4bd0be1",
         "member": "JMS-Windows-0.12.0-jms.61-x64/librav1e.dll"
+      },
+      {
+        "archiveSha256": "ce9efdabcd0aa04774ed514d7477cf9777db930ec1d23092f0d4841389474af9",
+        "member": "JMS-Windows-0.12.0-jms.62-x64/librav1e.dll"
       }
     ]
   },
@@ -133914,6 +133934,10 @@
       {
         "archiveSha256": "ff4da646db0bd4df828dfcac2f30a9d8fc71e205e7821529f8b6aee6b4bd0be1",
         "member": "JMS-Windows-0.12.0-jms.61-x64/librsvg-2-2.dll"
+      },
+      {
+        "archiveSha256": "ce9efdabcd0aa04774ed514d7477cf9777db930ec1d23092f0d4841389474af9",
+        "member": "JMS-Windows-0.12.0-jms.62-x64/librsvg-2-2.dll"
       }
     ]
   },
@@ -133952,6 +133976,10 @@
       {
         "archiveSha256": "ff4da646db0bd4df828dfcac2f30a9d8fc71e205e7821529f8b6aee6b4bd0be1",
         "member": "JMS-Windows-0.12.0-jms.61-x64/libssh.dll"
+      },
+      {
+        "archiveSha256": "ce9efdabcd0aa04774ed514d7477cf9777db930ec1d23092f0d4841389474af9",
+        "member": "JMS-Windows-0.12.0-jms.62-x64/libssh.dll"
       }
     ]
   },
