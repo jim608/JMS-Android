@@ -8,6 +8,7 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:fladder/models/items/images_models.dart';
 import 'package:fladder/models/items/item_shared_models.dart';
 import 'package:fladder/models/items/media_streams_model.dart';
+import 'package:fladder/providers/settings/home_settings_provider.dart';
 import 'package:fladder/models/items/watched_state.dart';
 import 'package:fladder/screens/details_screens/components/media_stream_information.dart';
 import 'package:fladder/screens/shared/media/components/media_header.dart';
@@ -85,6 +86,7 @@ class OverviewHeader extends ConsumerWidget {
         (MediaQuery.sizeOf(context).height - (MediaQuery.paddingOf(context).top + 50)).clamp(50, 1250).toDouble();
 
     final isPhone = AdaptiveLayout.viewSizeOf(context) == ViewSize.phone;
+    final alignTitleStart = !ref.watch(classicInterfaceProvider) && !isPhone && logoAlignment == Alignment.bottomCenter;
 
     final crossAlignment = !isPhone ? CrossAxisAlignment.start : CrossAxisAlignment.stretch;
 
@@ -219,12 +221,16 @@ class OverviewHeader extends ConsumerWidget {
                     ?poster,
                     Flexible(
                       child: ExcludeFocus(
-                        child: Center(
+                        child: Align(
+                          alignment: alignTitleStart ? AlignmentDirectional.centerStart : Alignment.center,
                           child: MediaHeader(
                             name: name,
                             logo: image?.logo,
                             onTap: onTitleClicked,
-                            alignment: logoAlignment,
+                            alignment: alignTitleStart
+                                ? AlignmentDirectional.bottomStart.resolve(Directionality.of(context))
+                                : logoAlignment,
+                            textAlign: alignTitleStart ? TextAlign.start : TextAlign.center,
                           ),
                         ),
                       ),

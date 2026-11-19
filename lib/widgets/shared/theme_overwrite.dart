@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fladder/providers/settings/client_settings_provider.dart';
+import 'package:fladder/providers/settings/home_settings_provider.dart';
 import 'package:fladder/screens/shared/detail_scaffold.dart';
 import 'package:fladder/theme.dart';
 
@@ -55,13 +56,14 @@ class _ThemeOverwriteState extends ConsumerState<ThemeOverwrite> {
     if (!deriveColorFromItem) return widget.child(context);
 
     final schemeVariant = ref.watch(clientSettingsProvider.select((value) => value.schemeVariant));
+    final classic = ref.watch(classicInterfaceProvider);
     final amoledBlack = ref.watch(clientSettingsProvider.select((value) => value.amoledBlack));
     final isDarkTheme = Theme.brightnessOf(context) == Brightness.dark;
     final effectiveColor = widget.image != null ? _dominantColor : widget.color;
     final amoledOverwrite = amoledBlack && isDarkTheme ? Colors.black : null;
 
     final locale = Localizations.localeOf(context);
-    final themeKey = (effectiveColor, Theme.brightnessOf(context), schemeVariant, amoledOverwrite, locale);
+    final themeKey = (effectiveColor, isDarkTheme, schemeVariant, amoledOverwrite, locale, classic);
     if (effectiveColor != null && themeKey != _cachedThemeKey) {
       final newColorScheme = ColorScheme.fromSeed(
         seedColor: effectiveColor,
@@ -69,7 +71,7 @@ class _ThemeOverwriteState extends ConsumerState<ThemeOverwrite> {
         dynamicSchemeVariant: schemeVariant,
       );
       _cachedThemeKey = themeKey;
-      _cachedTheme = FladderTheme.theme(newColorScheme, schemeVariant, locale: locale).copyWith(
+      _cachedTheme = FladderTheme.theme(newColorScheme, schemeVariant, locale: locale, useClassicInterface: classic).copyWith(
         scaffoldBackgroundColor: amoledOverwrite,
         cardColor: amoledOverwrite,
         canvasColor: amoledOverwrite,

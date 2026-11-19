@@ -27,6 +27,7 @@ class UserIcon extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final avatar = user?.avatar.trim() ?? '';
     Widget placeHolder() {
       return Container(
         color: Theme.of(context).colorScheme.primaryContainer,
@@ -57,14 +58,17 @@ class UserIcon extends ConsumerWidget {
               alignment: Alignment.center,
               fit: StackFit.expand,
               children: [
-                CachedNetworkImage(
-                  imageUrl: user?.avatar ?? "",
-                  cacheManager: CustomCacheManager.instance,
-                  progressIndicatorBuilder: (context, url, progress) => placeHolder(),
-                  errorWidget: (context, url, error) => placeHolder(),
-                  memCacheHeight: 128,
-                  fit: BoxFit.cover,
-                ),
+                if (avatar.isEmpty)
+                  placeHolder()
+                else
+                  CachedNetworkImage(
+                    imageUrl: avatar,
+                    cacheManager: CustomCacheManager.instance,
+                    progressIndicatorBuilder: (context, url, progress) => placeHolder(),
+                    errorWidget: (context, url, error) => placeHolder(),
+                    memCacheHeight: 128,
+                    fit: BoxFit.cover,
+                  ),
                 FlatButton(
                   onTap: onTap,
                   onLongPress: onLongPress,

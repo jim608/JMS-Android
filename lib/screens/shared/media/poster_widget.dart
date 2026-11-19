@@ -8,6 +8,7 @@ import 'package:fladder/models/item_base_model.dart';
 import 'package:fladder/models/items/album_model.dart';
 import 'package:fladder/models/items/artist_model.dart';
 import 'package:fladder/models/items/item_shared_models.dart';
+import 'package:fladder/providers/settings/home_settings_provider.dart';
 import 'package:fladder/screens/shared/media/components/poster_image.dart';
 import 'package:fladder/theme.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
@@ -58,11 +59,23 @@ class PosterWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final opacity = 0.65;
+    final classic = ref.watch(classicInterfaceProvider);
+    final text = Theme.of(context).textTheme;
+    final opacity = classic ? 0.65 : 0.82;
+    final metadataStyle = classic
+        ? text.titleSmall?.copyWith(fontWeight: FontWeight.bold)
+        : text.bodySmall?.copyWith(fontWeight: FontWeight.w500, height: 1.35);
+    final showTitles = !inlineTitle && underTitle;
+    final subText = showTitles ? poster.subText ?? '' : '';
+    final shortText = showTitles && maxLines > 1 ? poster.subTextShort(context.localized) ?? '' : '';
+    final firstLine = subText.isNotEmpty ? subText : shortText;
+    final secondLine = subText.isNotEmpty && (classic || subText != shortText) ? shortText : '';
+    final hasFirstLine = subTitle != null || firstLine.isNotEmpty;
+    final metadataLines = (hasFirstLine ? 1 : 0) + (secondLine.isNotEmpty ? 1 : 0);
     final subtitleClick = switch (poster) {
       AlbumModel album => () {
-          album.parentBaseModel.navigateTo(context);
-        },
+        album.parentBaseModel.navigateTo(context);
+      },
       _ => null,
     };
     return AspectRatio(
@@ -87,68 +100,61 @@ class PosterWidget extends ConsumerWidget {
               showSyncStatus: showSyncStatus,
             ),
           ),
-          if (!inlineTitle && underTitle)
+          if (showTitles)
             ExcludeFocus(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Flexible(
-                    child: ClickableText(
-                      onTap: AdaptiveLayout.inputDeviceOf(context) == InputDevice.pointer
-                          ? () => switch (poster) {
+                    child: Padding(
+                      padding: EdgeInsets.only(top: classic ? 0 : 6),
+                      child: ClickableText(
+                        onTap: AdaptiveLayout.inputDeviceOf(context) == InputDevice.pointer
+                            ? () => switch (poster) {
                                 ArtistModel artist => artist.navigateTo(context),
                                 AlbumModel album => album.navigateTo(context),
                                 _ => poster.parentBaseModel.navigateTo(context),
                               }
-                          : null,
-                      text: poster.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                            : null,
+                        text: poster.title,
+                        maxLines: !classic && maxLines - metadataLines >= 2 ? 2 : 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: text.titleMedium?.copyWith(
+                          fontWeight: classic ? FontWeight.bold : FontWeight.w600,
+                          height: classic ? null : 1.22,
+                        ),
+                      ),
                     ),
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      if (subTitle != null) ...[
-                        Flexible(
-                          child: subTitle!,
-                        ),
+                  if (classic || hasFirstLine)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        if (subTitle != null) ...[Flexible(child: subTitle!)],
+                        if (classic || firstLine.isNotEmpty)
+                          Flexible(
+                            child: ClickableText(
+                              onTap: subtitleClick,
+                              opacity: opacity,
+                              text: firstLine,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: metadataStyle,
+                            ),
+                          ),
                       ],
-                      if (poster.subText?.isNotEmpty ?? false)
-                        Flexible(
-                          child: ClickableText(
-                            onTap: subtitleClick,
-                            opacity: opacity,
-                            text: poster.subText ?? "",
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                        )
-                      else
-                        Flexible(
-                          child: ClickableText(
-                            onTap: subtitleClick,
-                            opacity: opacity,
-                            text: poster.subTextShort(context.localized) ?? "",
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                    ],
-                  ),
-                  Flexible(
-                    child: ClickableText(
-                      opacity: opacity,
-                      text: poster.subText?.isNotEmpty ?? false ? poster.subTextShort(context.localized) ?? "" : "",
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
                     ),
-                  ),
+                  if (classic || secondLine.isNotEmpty)
+                    Flexible(
+                      child: ClickableText(
+                        opacity: opacity,
+                        text: secondLine,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: metadataStyle,
+                      ),
+                    ),
                 ].take(maxLines).toList(),
               ),
             ),
@@ -161,11 +167,7 @@ class PosterWidget extends ConsumerWidget {
 class PosterPlaceHolder extends StatelessWidget {
   final Function() onTap;
   final double aspectRatio;
-  const PosterPlaceHolder({
-    required this.onTap,
-    required this.aspectRatio,
-    super.key,
-  });
+  const PosterPlaceHolder({required this.onTap, required this.aspectRatio, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -190,14 +192,8 @@ class PosterPlaceHolder extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   spacing: 8,
                   children: [
-                    const Icon(
-                      IconsaxPlusLinear.more_square,
-                      size: 46,
-                    ),
-                    Text(
-                      context.localized.showMore,
-                      style: Theme.of(context).textTheme.labelMedium,
-                    )
+                    const Icon(IconsaxPlusLinear.more_square, size: 46),
+                    Text(context.localized.showMore, style: Theme.of(context).textTheme.labelMedium),
                   ],
                 ),
               ),

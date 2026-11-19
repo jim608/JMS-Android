@@ -35,8 +35,7 @@ class SyncPlayNavigationButton extends StatelessWidget {
           constraints: const BoxConstraints(minHeight: 48),
           child: NavigationButton(
             label: title,
-            icon: Icon(Icons.group_outlined,
-                semanticLabel: expanded ? null : title),
+            icon: const Icon(Icons.group_outlined),
             selectedIcon: const Icon(Icons.group),
             horizontal: true,
             expanded: expanded,

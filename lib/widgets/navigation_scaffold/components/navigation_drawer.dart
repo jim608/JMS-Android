@@ -9,6 +9,7 @@ import 'package:fladder/models/view_model.dart';
 import 'package:fladder/routes/auto_router.gr.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
 import 'package:fladder/util/localization_helper.dart';
+import 'package:fladder/providers/settings/home_settings_provider.dart';
 import 'package:fladder/widgets/navigation_scaffold/components/destination_model.dart';
 import 'package:fladder/widgets/navigation_scaffold/components/navigation_button.dart';
 import 'package:fladder/widgets/navigation_scaffold/components/settings_user_icon.dart';
@@ -34,24 +35,35 @@ class NestedNavigationDrawer extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final classic = ref.watch(classicInterfaceProvider);
+    final theme = Theme.of(context);
     return NavigationDrawer(
       key: const Key('navigation_drawer'),
       backgroundColor: isExpanded ? Colors.transparent : null,
       surfaceTintColor: isExpanded ? Colors.transparent : null,
       children: [
         Padding(
-          padding: EdgeInsets.fromLTRB(8, AdaptiveLayout.of(context).isDesktop || kIsWeb ? 0 : 16, 16, 0),
+          padding: EdgeInsetsDirectional.fromSTEB(
+            classic ? 8 : 20,
+            AdaptiveLayout.of(context).isDesktop || kIsWeb ? 0 : 16,
+            16,
+            classic ? 0 : 6,
+          ),
           child: Row(
             children: [
               Expanded(
                 child: Text(
                   context.localized.navigation,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.75),
-                      ),
+                  style: classic
+                      ? theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.75))
+                      : theme.textTheme.titleLarge?.copyWith(
+                            color: theme.colorScheme.onSurface,
+                            fontWeight: FontWeight.w700,
+                          ),
                 ),
               ),
               IconButton(
+                tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
                 onPressed: () => toggleExpanded(false),
                 icon: const Icon(IconsaxPlusLinear.sidebar_left),
               ),

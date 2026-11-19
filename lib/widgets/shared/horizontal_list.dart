@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 
 import 'package:fladder/providers/settings/client_settings_provider.dart';
+import 'package:fladder/providers/settings/home_settings_provider.dart';
 import 'package:fladder/screens/shared/media/poster_widget.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
 import 'package:fladder/util/focus_provider.dart';
@@ -77,6 +78,7 @@ class _HorizontalListState extends ConsumerState<HorizontalList> with TickerProv
   double? contentWidth;
   double? _firstItemWidth;
   bool hasFocus = false;
+  bool _hasOverflow = false;
   static _HorizontalListState? _lastRevealed;
 
   AnimationController? _scrollAnimation;
@@ -259,6 +261,8 @@ class _HorizontalListState extends ConsumerState<HorizontalList> with TickerProv
   @override
   Widget build(BuildContext context) {
     final hasPointer = AdaptiveLayout.inputDeviceOf(context) == InputDevice.pointer;
+    final classic = ref.watch(classicInterfaceProvider);
+    final canPage = hasPointer && (classic || _hasOverflow);
     final titleBarWidget = Padding(
       padding: widget.contentPadding,
       child: Row(
@@ -292,26 +296,27 @@ class _HorizontalListState extends ConsumerState<HorizontalList> with TickerProv
               ],
             ),
           ),
-          if (widget.items.length > 1)
+          if (widget.items.length > 1 && (canPage || widget.startIndex != null))
             ExcludeFocus(
               child: Card(
-                elevation: 5,
-                color: Theme.of(context).colorScheme.surface,
+                elevation: classic ? 5 : 0,
+                color: classic ? Theme.of(context).colorScheme.surface : Theme.of(context).colorScheme.surfaceContainerHigh,
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    if (hasPointer)
+                    if (canPage)
                       GestureDetector(
                         onLongPress: () => _scrollToStart(),
                         child: IconButton(
+                            tooltip: MaterialLocalizations.of(context).previousPageTooltip,
                             onPressed: () {
                               _scrollController.animateTo(
                                   _scrollController.offset + -(MediaQuery.of(context).size.width / 1.75),
                                   duration: const Duration(milliseconds: 250),
                                   curve: Curves.easeInOut);
                             },
-                            icon: const Icon(
-                              IconsaxPlusLinear.arrow_left_1,
+                            icon: Icon(
+                              classic ? IconsaxPlusLinear.arrow_left_1 : Icons.chevron_left,
                               size: 20,
                             )),
                       ),
@@ -323,18 +328,19 @@ class _HorizontalListState extends ConsumerState<HorizontalList> with TickerProv
                             Icons.circle,
                             size: 16,
                           )),
-                    if (hasPointer)
+                    if (canPage)
                       GestureDetector(
                         onLongPress: () => _scrollToEnd(),
                         child: IconButton(
+                            tooltip: MaterialLocalizations.of(context).nextPageTooltip,
                             onPressed: () {
                               _scrollController.animateTo(
                                   _scrollController.offset + (MediaQuery.of(context).size.width / 1.75),
                                   duration: const Duration(milliseconds: 250),
                                   curve: Curves.easeInOut);
                             },
-                            icon: const Icon(
-                              IconsaxPlusLinear.arrow_right_3,
+                            icon: Icon(
+                              classic ? IconsaxPlusLinear.arrow_right_3 : Icons.chevron_right,
                               size: 20,
                             )),
                       ),
@@ -346,7 +352,7 @@ class _HorizontalListState extends ConsumerState<HorizontalList> with TickerProv
       ),
     );
     final hasLabel = widget.label != null || widget.titleActions.isNotEmpty;
-    return RepaintBoundary(
+    final rail = RepaintBoundary(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.start,
@@ -442,6 +448,16 @@ class _HorizontalListState extends ConsumerState<HorizontalList> with TickerProv
           if (hasLabel && widget.titleActionsPosition == VerticalDirection.down) titleBarWidget,
         ],
       ),
+    );
+    return NotificationListener<ScrollMetricsNotification>(
+      onNotification: (event) {
+        if (event.depth == 0 && event.metrics.axis == Axis.horizontal) {
+          final overflow = event.metrics.maxScrollExtent > event.metrics.minScrollExtent;
+          if (_hasOverflow != overflow) setState(() => _hasOverflow = overflow);
+        }
+        return false;
+      },
+      child: rail,
     );
   }
 

@@ -32,14 +32,6 @@ List<Widget> buildClientSettingsDashboard(BuildContext context, WidgetRef ref) {
             )
             .toList(),
       ),
-      if (banner == HomeBanner.carousel || banner == HomeBanner.banner)
-        SettingsListTileCheckbox(
-          label: Text(context.localized.useClassicBannerStyle),
-          value: ref.watch(homeSettingsProvider.select((settings) => settings.useClassicBannerStyle)),
-          onChanged: (value) => ref
-              .read(homeSettingsProvider.notifier)
-              .update((settings) => settings.copyWith(useClassicBannerStyle: value ?? false)),
-        ),
       if (banner != HomeBanner.hide)
         SettingsListTileEnum(
           label: Text(context.localized.settingsHomeBannerInformationTitle),

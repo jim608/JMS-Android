@@ -22,8 +22,8 @@ class HomeBannerWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final (bannerType, useClassicStyle) =
-        ref.watch(homeSettingsProvider.select((value) => (value.homeBanner, value.useClassicBannerStyle)));
+    final bannerType = ref.watch(homeSettingsProvider.select((settings) => settings.homeBanner));
+    final useClassicStyle = ref.watch(classicInterfaceProvider);
     final maxHeight = (MediaQuery.sizeOf(context).shortestSide * 0.6).clamp(125.0, 375.0);
 
     return switch (bannerType) {

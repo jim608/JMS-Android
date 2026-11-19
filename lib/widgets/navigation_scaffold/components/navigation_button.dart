@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:fladder/providers/settings/home_settings_provider.dart';
 import 'package:fladder/util/localization_helper.dart';
 import 'package:fladder/widgets/navigation_scaffold/components/side_navigation_bar.dart';
 import 'package:fladder/widgets/shared/item_actions.dart';
@@ -48,22 +49,24 @@ class _NavigationButtonState extends ConsumerState<NavigationButton> {
   bool hasFocus = false;
   @override
   Widget build(BuildContext context) {
-    final foreGroundColor = widget.selected
-        ? widget.expanded
-            ? Theme.of(context).colorScheme.onPrimary
-            : Theme.of(context).colorScheme.primary
-        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45);
+    final classic = ref.watch(classicInterfaceProvider);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final foreground = switch ((classic, widget.selected)) {
+      (false, true) => colors.onPrimaryContainer,
+      (false, false) => colors.onSurfaceVariant,
+      (true, true) => widget.expanded ? colors.onPrimary : colors.primary,
+      (true, false) => colors.onSurface.withValues(alpha: 0.45),
+    };
     final isFocused = onHover || hasFocus;
-
-    final backgroundColor = Theme.of(context).colorScheme.primary.withAlpha(widget.expanded && widget.selected
-        ? 255
-        : isFocused
-            ? 25
-            : 0);
-
-    return Padding(
+    final background = widget.selected && (!classic || widget.expanded)
+        ? (classic ? colors.primary : colors.primaryContainer)
+        : colors.primary.withAlpha(isFocused ? 25 : 0);
+    final radius = BorderRadius.circular(classic ? 16 : 12);
+    final button = Padding(
       padding: EdgeInsets.symmetric(horizontal: widget.horizontal ? 6 : 0),
       child: InkWell(
+        borderRadius: classic ? null : radius,
         focusNode: widget.navFocusNode ? navBarNode : null,
         onHover: (value) => setState(() => onHover = value),
         onFocusChange: (value) => setState(() => hasFocus = value),
@@ -75,20 +78,22 @@ class _NavigationButtonState extends ConsumerState<NavigationButton> {
           margin: EdgeInsets.zero,
           padding: EdgeInsets.zero,
           decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(16),
+            color: background,
+            borderRadius: radius,
             border: Border.all(
               width: 3.0,
               strokeAlign: BorderSide.strokeAlignInside,
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: isFocused ? 6 : 0),
+              color: colors.primary.withValues(alpha: (classic ? isFocused : hasFocus) ? 1 : 0),
             ),
           ),
           child: DefaultTextStyle(
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: foreGroundColor) ??
-                TextStyle(color: foreGroundColor),
+            style: (theme.textTheme.bodyMedium ?? const TextStyle()).copyWith(
+              color: foreground,
+              fontWeight: !classic && widget.selected ? FontWeight.w700 : null,
+            ),
             child: IconTheme(
               data: IconThemeData(
-                color: foreGroundColor,
+                color: foreground,
                 size: 24,
               ),
               child: ExcludeFocusTraversal(
@@ -106,15 +111,14 @@ class _NavigationButtonState extends ConsumerState<NavigationButton> {
                             children: [
                               AnimatedContainer(
                                 duration: const Duration(milliseconds: 250),
-                                height: widget.selected ? 16 : 0,
+                                height: widget.selected ? (classic ? 16 : 20) : 0,
                                 margin: const EdgeInsets.only(top: 1.5),
-                                width: 6,
+                                width: classic ? 6 : 3,
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(8),
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .primary
-                                      .withValues(alpha: widget.selected && !widget.expanded ? 1 : 0),
+                                  color: colors.primary.withValues(
+                                    alpha: widget.selected && (!classic || !widget.expanded) ? 1 : 0,
+                                  ),
                                 ),
                               ),
                               widget.customIcon ??
@@ -158,7 +162,7 @@ class _NavigationButtonState extends ConsumerState<NavigationButton> {
                                 if (widget.trailing.isNotEmpty && onHover)
                                   PopupMenuButton(
                                     tooltip: context.localized.options,
-                                    iconColor: foreGroundColor,
+                                    iconColor: foreground,
                                     iconSize: 18,
                                     itemBuilder: (context) => widget.trailing.popupMenuItems(useIcons: true),
                                   )
@@ -212,6 +216,11 @@ class _NavigationButtonState extends ConsumerState<NavigationButton> {
           ),
         ),
       ),
+    );
+    return Semantics(
+      selected: widget.selected ? true : null,
+      label: widget.horizontal && widget.expanded ? null : widget.label,
+      child: button,
     );
   }
 }

@@ -6,6 +6,7 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 
 import 'package:fladder/models/settings/client_settings_model.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
+import 'package:fladder/providers/settings/home_settings_provider.dart';
 import 'package:fladder/routes/auto_router.dart';
 import 'package:fladder/routes/auto_router.gr.dart';
 import 'package:fladder/screens/shared/animated_fade_size.dart';
@@ -40,6 +41,7 @@ class SideNavigationRail extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final classic = ref.watch(classicInterfaceProvider);
     final textDirection = Directionality.of(context);
     final isRtl = textDirection == TextDirection.rtl;
     final expandedSideBar = ref.watch(clientSettingsProvider.select((value) => value.expandSideBar));
@@ -160,7 +162,18 @@ class SideNavigationRail extends ConsumerWidget {
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 14),
                             child: CollapseButton(
-                              label: shouldExpand ? Expanded(child: Text(context.localized.navigation)) : null,
+                              label: shouldExpand
+                                  ? Expanded(
+                                      child: Text(
+                                        context.localized.navigation,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: classic
+                                            ? null
+                                            : Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                                      ),
+                                    )
+                                  : null,
                               keepVisible: !(largeBar && expandedSideBar),
                               icon: Icon(
                                 largeBar && expandedSideBar ? IconsaxPlusLinear.sidebar_left : IconsaxPlusLinear.menu,

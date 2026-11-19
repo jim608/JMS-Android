@@ -7,6 +7,7 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 
 import 'package:fladder/models/settings/client_settings_model.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
+import 'package:fladder/providers/settings/home_settings_provider.dart';
 import 'package:fladder/routes/auto_router.dart';
 import 'package:fladder/routes/auto_router.gr.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
@@ -45,7 +46,9 @@ class TopNavigationBar extends ConsumerWidget {
     final barHeight = 55.0;
 
     final height = barHeight + (MediaQuery.paddingOf(context).top + 12);
-    final buttonShape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(16));
+    final classic = ref.watch(classicInterfaceProvider);
+    final colors = Theme.of(context).colorScheme;
+    final buttonShape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(classic ? 16 : 12));
 
     final useBlurredBackground = ref.watch(clientSettingsProvider.select(
           (value) => value.backgroundImage == BackgroundType.blurred && value.enableBlurEffects,
@@ -170,6 +173,9 @@ class TopNavigationBar extends ConsumerWidget {
                                       (index, destination) {
                                         final isActive = currentIndex == index;
                                         final icon = isActive ? destination.selectedIcon : destination.icon;
+                                        final foreground = classic
+                                            ? (isActive ? colors.primary : null)
+                                            : (isActive ? colors.onPrimaryContainer : colors.onSurfaceVariant);
                                         return Padding(
                                           padding: const EdgeInsets.symmetric(horizontal: 8.0),
                                           child: FocusButton(
@@ -181,16 +187,15 @@ class TopNavigationBar extends ConsumerWidget {
                                             borderRadius: buttonShape.borderRadius,
                                             child: Container(
                                               decoration: BoxDecoration(
-                                                color:
-                                                    Theme.of(context).colorScheme.primary.withAlpha(isActive ? 50 : 0),
+                                                color: classic
+                                                    ? colors.primary.withAlpha(isActive ? 50 : 0)
+                                                    : (isActive ? colors.primaryContainer : Colors.transparent),
                                                 borderRadius: buttonShape.borderRadius,
                                               ),
                                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                               child: IconTheme(
                                                 data: Theme.of(context).iconTheme.copyWith(
-                                                      color: isActive
-                                                          ? Theme.of(context).colorScheme.primary
-                                                          : Theme.of(context).iconTheme.color,
+                                                      color: foreground,
                                                     ),
                                                 child: Row(
                                                   spacing: 8,
@@ -199,9 +204,8 @@ class TopNavigationBar extends ConsumerWidget {
                                                     Text(
                                                       destination.label,
                                                       style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                                                            color: isActive
-                                                                ? Theme.of(context).colorScheme.primary
-                                                                : Theme.of(context).textTheme.titleMedium!.color,
+                                                            color: foreground,
+                                                            fontWeight: !classic && isActive ? FontWeight.w700 : null,
                                                           ),
                                                     ),
                                                   ],

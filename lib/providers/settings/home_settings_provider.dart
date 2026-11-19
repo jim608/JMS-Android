@@ -9,6 +9,11 @@ final homeSettingsProvider = StateNotifierProvider<HomeSettingsNotifier, HomeSet
   return HomeSettingsNotifier(ref);
 });
 
+// Keep the original banner preference key so existing interface choices survive upgrades.
+final classicInterfaceProvider = Provider<bool>((ref) => ref.watch(
+      homeSettingsProvider.select((settings) => settings.useClassicBannerStyle),
+    ));
+
 class HomeSettingsNotifier extends StateNotifier<HomeSettingsModel> {
   HomeSettingsNotifier(this.ref) : super(HomeSettingsModel.defaultModel());
 

@@ -7,19 +7,23 @@ import 'package:fladder/localization_delegates.dart';
 import 'package:fladder/models/settings/home_settings_model.dart';
 import 'package:fladder/providers/settings/home_settings_provider.dart';
 import 'package:fladder/providers/shared_provider.dart';
-import 'package:fladder/screens/settings/client_sections/client_settings_dashboard.dart';
+import 'package:fladder/screens/settings/client_sections/client_settings_theme.dart';
 import 'package:fladder/screens/settings/settings_list_tile.dart';
+import 'package:fladder/screens/settings/widgets/settings_list_group.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout_model.dart';
 import 'package:fladder/util/poster_defaults.dart';
 
 void main() {
-  testWidgets('classic banner switch restores from disk and appears only for supported styles', (tester) async {
-    SharedPreferences.setMockInitialValues({'homeSettings': '{"homeBanner":"carousel","nextUp":"combined"}'});
+  testWidgets('interface setting honors older preferences and stays available for every banner mode', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'homeSettings': '{"useClassicBannerStyle":true,"homeBanner":"hide","nextUp":"combined"}',
+    });
     final prefs = await SharedPreferences.getInstance();
     final storage = SharedHelper(sharedPreferences: prefs);
     final legacy = storage.homeSettings;
-    expect(legacy.useClassicBannerStyle, isFalse);
+    expect(HomeSettingsModel.fromJson({}).useClassicBannerStyle, isFalse);
+    expect(legacy.useClassicBannerStyle, isTrue);
     expect(legacy.nextUp, HomeNextUp.combined);
     final container = ProviderContainer(
       overrides: [sharedUtilityProvider.overrideWith((ref) => SharedUtility(ref: ref, sharedPreferences: prefs))],
@@ -46,30 +50,34 @@ void main() {
               statusBarHeight: 0,
             ),
             child: Scaffold(
-              body: Consumer(
-                builder: (context, ref, _) => ListView(children: buildClientSettingsDashboard(context, ref)),
-              ),
+              body: Consumer(builder: (context, ref, _) => ListView(children: buildClientSettingsTheme(context, ref))),
             ),
           ),
         ),
       ),
     );
-    final toggle = find.widgetWithText(SettingsListTileCheckbox, 'Use classic banner style');
+    final toggle = find.widgetWithText(SettingsListTileCheckbox, 'Use classic interface');
+    final group = find.ancestor(of: toggle, matching: find.byType(SettingsListChild));
+    final rowSurface = find.descendant(of: group, matching: find.byType(Material)).first;
+    Radius rowTop() => tester.widget<Material>(rowSurface).borderRadius!.resolve(TextDirection.ltr).topLeft;
+    expect(tester.widget<SettingsListTileCheckbox>(toggle).value, isTrue);
+    expect(rowTop(), const Radius.circular(6));
+    await tester.tapAt(tester.getCenter(toggle));
+    await tester.pumpAndSettle();
+    await prefs.reload();
+    expect(storage.homeSettings.toJson(), legacy.copyWith(useClassicBannerStyle: false).toJson());
+    expect(rowTop(), const Radius.circular(16));
+
+    for (final banner in HomeBanner.values) {
+      notifier.update((settings) => settings.copyWith(homeBanner: banner));
+      await tester.pumpAndSettle();
+      expect(toggle, findsOneWidget);
+    }
     expect(tester.widget<SettingsListTileCheckbox>(toggle).value, isFalse);
     await tester.tapAt(tester.getCenter(toggle));
     await tester.pumpAndSettle();
     await prefs.reload();
-    expect(storage.homeSettings.toJson(), legacy.copyWith(useClassicBannerStyle: true).toJson());
-
-    for (final banner in [HomeBanner.hide, HomeBanner.detailedBanner, HomeBanner.tvSliderBanner, HomeBanner.banner]) {
-      notifier.update((settings) => settings.copyWith(homeBanner: banner));
-      await tester.pumpAndSettle();
-      expect(toggle, banner == HomeBanner.banner ? findsOneWidget : findsNothing);
-    }
-    expect(tester.widget<SettingsListTileCheckbox>(toggle).value, isTrue);
-    await tester.tapAt(tester.getCenter(toggle));
-    await tester.pumpAndSettle();
-    await prefs.reload();
-    expect(storage.homeSettings.toJson(), legacy.copyWith(homeBanner: HomeBanner.banner).toJson());
+    expect(storage.homeSettings.toJson(), legacy.copyWith(homeBanner: HomeBanner.values.last).toJson());
+    expect(rowTop(), const Radius.circular(6));
   });
 }

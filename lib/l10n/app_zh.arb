@@ -818,7 +818,7 @@
     },
     "settingsHomeBannerDescription": "显示为幻灯片、轮播或隐藏横幅",
     "homeBannerCarousel": "轮播",
-    "useClassicBannerStyle": "使用旧版横幅外观",
+    "useClassicInterface": "使用旧版界面",
     "settingsHomeBannerTitle": "主页横幅",
     "addItemsToPlaylist": "将 {itemLength} 个项目添加到播放列表",
     "@addItemsToPlaylist": {

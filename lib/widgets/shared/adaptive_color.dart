@@ -6,6 +6,7 @@ import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fladder/providers/settings/client_settings_provider.dart';
+import 'package:fladder/providers/settings/home_settings_provider.dart';
 import 'package:fladder/theme.dart';
 import 'package:fladder/util/themes_data.dart';
 
@@ -86,17 +87,19 @@ class AdaptiveColorState extends ConsumerState<AdaptiveColor> with WidgetsBindin
         WidgetsBinding.instance.platformDispatcher.locale;
     final themeColor = ref.watch(clientSettingsProvider.select((value) => value.themeColor));
     final schemeVariant = ref.watch(clientSettingsProvider.select((value) => value.schemeVariant));
-
-    final fallbackLight = FladderTheme.defaultScheme(Brightness.light);
-    final fallbackDark = FladderTheme.defaultScheme(Brightness.dark);
-
-    final baseLightTheme = themeColor == null
-        ? FladderTheme.theme(_light ?? fallbackLight, schemeVariant, locale: locale)
-        : FladderTheme.theme(themeColor.schemeLight, schemeVariant, locale: locale);
-
-    final baseDarkTheme = themeColor == null
-        ? FladderTheme.theme(_dark ?? fallbackDark, schemeVariant, locale: locale)
-        : FladderTheme.theme(themeColor.schemeDark, schemeVariant, locale: locale);
+    final classic = ref.watch(classicInterfaceProvider);
+    final baseLightTheme = FladderTheme.theme(
+      themeColor?.schemeLight ?? _light ?? FladderTheme.defaultScheme(Brightness.light),
+      schemeVariant,
+      locale: locale,
+      useClassicInterface: classic,
+    );
+    final baseDarkTheme = FladderTheme.theme(
+      themeColor?.schemeDark ?? _dark ?? FladderTheme.defaultScheme(Brightness.dark),
+      schemeVariant,
+      locale: locale,
+      useClassicInterface: classic,
+    );
 
     // Apply fonts
     final lightTheme = isLinux

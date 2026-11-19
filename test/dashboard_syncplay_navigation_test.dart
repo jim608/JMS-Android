@@ -18,6 +18,7 @@ import 'package:fladder/providers/jellyfin_websocket_provider.dart';
 import 'package:fladder/providers/music_dashboard_provider.dart';
 import 'package:fladder/providers/playlist_provider.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
+import 'package:fladder/providers/settings/home_settings_provider.dart';
 import 'package:fladder/providers/syncplay_provider.dart';
 import 'package:fladder/providers/update_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
@@ -27,13 +28,16 @@ import 'package:fladder/routes/auto_router.gr.dart';
 import 'package:fladder/screens/dashboard/dashboard_screen.dart';
 import 'package:fladder/screens/dashboard/music_dashboard_screen.dart';
 import 'package:fladder/screens/home_screen.dart';
+import 'package:fladder/screens/shared/user_icon.dart';
 import 'package:fladder/screens/video_player/components/syncplay_dialog.dart';
 import 'package:fladder/services/syncplay/syncplay_models.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout_model.dart';
 import 'package:fladder/util/poster_defaults.dart';
+import 'package:fladder/util/string_extensions.dart';
 import 'package:fladder/widgets/navigation_scaffold/components/collapse_button.dart';
 import 'package:fladder/widgets/navigation_scaffold/components/destination_model.dart';
+import 'package:fladder/widgets/navigation_scaffold/components/navigation_button.dart';
 import 'package:fladder/widgets/navigation_scaffold/components/side_navigation_bar.dart';
 import 'package:fladder/widgets/navigation_scaffold/components/syncplay_navigation_button.dart';
 import 'package:fladder/widgets/navigation_scaffold/navigation_scaffold.dart';
@@ -44,6 +48,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 final _account = AccountModel(
   name: 'Synthetic navigation fixture',
@@ -170,6 +175,7 @@ void main() {
     bool phone = false,
     bool controller = false,
     bool signedIn = true,
+    bool? classic,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
@@ -181,6 +187,7 @@ void main() {
     addTearDown(() => messenger.setMockMethodCallHandler(
         const MethodChannel('window_manager'), null));
     final container = ProviderContainer(overrides: [
+      if (classic != null) classicInterfaceProvider.overrideWithValue(classic),
       userProvider.overrideWith(() => _User(signedIn)),
       jellyfinWebSocketProvider.overrideWith((_) => const Stream.empty()),
       viewsProvider.overrideWith((ref) => _Views(ref)),
@@ -283,6 +290,32 @@ void main() {
   }
 
   Finder entry() => find.byType(SyncPlayNavigationButton).hitTestable();
+  for (final classic in [false, true]) {
+    for (final phone in [false, true]) {
+      testWidgets('selected destination uses the chosen style: classic=$classic, drawer=$phone', (tester) async {
+        await dashboard(tester, classic: classic, expanded: true, phone: phone,
+            size: phone ? const Size(390, 844) : const Size(1280, 800));
+        if (phone) {
+          await tester.tap(find.byIcon(IconsaxPlusLinear.menu));
+          await tester.pumpAndSettle();
+        }
+        final active = find.byWidgetPredicate((widget) =>
+            widget is NavigationButton && widget.selected && widget.label == HomeTabs.dashboard.name).hitTestable();
+        expect(active, findsOneWidget);
+        final scheme = Theme.of(tester.element(active)).colorScheme;
+        final tile = tester.widget<AnimatedContainer>(
+          find.descendant(of: active, matching: find.byType(AnimatedContainer)).first,
+        );
+        expect((tile.decoration! as BoxDecoration).color, classic ? scheme.primary : scheme.primaryContainer);
+        final label = find.descendant(of: active, matching: find.text(HomeTabs.dashboard.name));
+        expect(DefaultTextStyle.of(tester.element(label)).style.color,
+            classic ? scheme.onPrimary : scheme.onPrimaryContainer);
+        final avatars = find.byType(UserIcon);
+        expect(find.descendant(of: avatars, matching: find.byType(CachedNetworkImage)), findsNothing);
+        expect(find.descendant(of: avatars, matching: find.text(_account.name.getInitials())), findsWidgets);
+      });
+    }
+  }
   Finder entryInk() =>
       find.descendant(of: entry(), matching: find.byType(InkWell)).first;
   void expectSideNavigationGeometry(WidgetTester tester) {

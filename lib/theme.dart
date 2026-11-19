@@ -43,7 +43,10 @@ class FladderTheme {
         border: Border.all(width: 1, color: Colors.white.withAlpha(45)),
       );
 
-  static ThemeData theme(ColorScheme? colorScheme, DynamicSchemeVariant dynamicSchemeVariant, {Locale? locale}) {
+  static ThemeData theme(ColorScheme? colorScheme, DynamicSchemeVariant dynamicSchemeVariant, {
+    Locale? locale,
+    bool useClassicInterface = false,
+  }) {
     final ColorScheme? scheme = generateDynamicColourSchemes(colorScheme, dynamicSchemeVariant);
 
     final buttonSides = WidgetStateProperty.resolveWith(
@@ -85,11 +88,17 @@ class FladderTheme {
         ),
       ),
       cardTheme: CardThemeData(
-        elevation: 3,
+        elevation: useClassicInterface ? 3 : 0,
         clipBehavior: Clip.antiAlias,
         margin: EdgeInsets.zero,
-        shape: smallShape,
+        shape: useClassicInterface ? smallShape : defaultShape,
       ),
+      inputDecorationTheme: useClassicInterface
+          ? null
+          : const InputDecorationThemeData(
+              filled: true,
+              border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+            ),
       expansionTileTheme: ExpansionTileThemeData(
         shape: RoundedRectangleBorder(borderRadius: FladderTheme.defaultShape.borderRadius),
         collapsedShape: RoundedRectangleBorder(borderRadius: FladderTheme.defaultShape.borderRadius),
@@ -127,7 +136,9 @@ class FladderTheme {
         trackOutlineWidth: const WidgetStatePropertyAll(1),
       ),
       navigationBarTheme: const NavigationBarThemeData(),
-      dialogTheme: DialogThemeData(shape: defaultShape),
+      dialogTheme: DialogThemeData(
+        shape: useClassicInterface ? defaultShape : RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      ),
       scrollbarTheme: ScrollbarThemeData(
           radius: const Radius.circular(16),
           thumbColor: WidgetStateProperty.resolveWith((states) {
@@ -150,10 +161,11 @@ class FladderTheme {
         shape: defaultShape,
       ),
       popupMenuTheme: PopupMenuThemeData(
-        shape: defaultShape,
-        color: scheme?.secondaryContainer,
-        iconColor: scheme?.onSecondaryContainer,
-        surfaceTintColor: scheme?.onSecondaryContainer,
+        shape: useClassicInterface ? defaultShape : smallShape,
+        color: useClassicInterface ? scheme?.secondaryContainer : scheme?.surfaceContainerHigh,
+        iconColor: useClassicInterface ? scheme?.onSecondaryContainer : scheme?.onSurfaceVariant,
+        surfaceTintColor: useClassicInterface ? scheme?.onSecondaryContainer : Colors.transparent,
+        elevation: useClassicInterface ? null : 2,
       ),
       listTileTheme: ListTileThemeData(
         shape: defaultShape,
@@ -172,7 +184,7 @@ class FladderTheme {
             return scheme?.surfaceContainer;
           }),
           padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(vertical: 8, horizontal: 12)),
-          elevation: const WidgetStatePropertyAll(5),
+          elevation: WidgetStatePropertyAll(useClassicInterface ? 5 : 0),
           side: const WidgetStatePropertyAll(BorderSide.none),
         ),
       ),

@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 
 import 'package:fladder/models/item_base_model.dart';
+import 'package:fladder/models/items/movie_model.dart';
+import 'package:fladder/providers/settings/home_settings_provider.dart';
 import 'package:fladder/screens/shared/animated_fade_size.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
 import 'package:fladder/util/focus_provider.dart';
@@ -31,33 +33,34 @@ class MediaPlayButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final progress = (item?.progress ?? 0) / 100.0;
     final showRestart = progress != 0 && showRestartOption;
-    final radius = BorderRadius.circular(16);
+    final classic = ref.watch(classicInterfaceProvider);
     final smallRadius = const Radius.circular(4);
     final theme = Theme.of(context);
+    final strings = context.localized;
+    final movie = item is MovieModel && !classic ? item : null;
+    final label = movie == null ? item?.playButtonLabel(strings) ?? '' : (progress > 0 ? strings.resumeVideo : strings.playLabel);
 
     Widget buttonTitle(Color contentColor) {
-      return Padding(
-        padding: const EdgeInsets.all(10.0),
+      final icon = Icon(IconsaxPlusBold.play, color: contentColor);
+      return Container(
+        constraints: classic ? null : const BoxConstraints(minHeight: 48),
+        padding: classic ? const EdgeInsets.all(10) : const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
+          spacing: classic ? 4 : 8,
           children: [
+            if (!classic) icon,
             Flexible(
               child: Text(
-                item?.playButtonLabel(context.localized) ?? "",
+                label,
+                semanticsLabel: movie == null ? null : (progress > 0 ? strings.resume(movie.name) : strings.play(movie.name)),
                 maxLines: 1,
                 overflow: TextOverflow.fade,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: contentColor,
-                ),
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, color: contentColor),
               ),
             ),
-            const SizedBox(width: 4),
-            Icon(
-              IconsaxPlusBold.play,
-              color: contentColor,
-            ),
+            if (classic) icon,
           ],
         ),
       );
@@ -83,7 +86,7 @@ class MediaPlayButton extends ConsumerWidget {
                       progress: progress,
                       buttonTitle: buttonTitle,
                       theme: theme,
-                      radius: radius,
+                      classic: classic,
                       smallRadius: smallRadius,
                       showRestart: showRestart,
                     ),
@@ -97,7 +100,7 @@ class MediaPlayButton extends ConsumerWidget {
                       onLongPressed: onLongPressed,
                       forceFocusOutline: forceFocusOutline,
                       theme: theme,
-                      radius: radius,
+                      classic: classic,
                       smallRadius: smallRadius,
                     ),
                   ),
@@ -115,7 +118,7 @@ class _PlayButton extends StatelessWidget {
   final double progress;
   final Widget Function(Color) buttonTitle;
   final ThemeData theme;
-  final BorderRadius radius;
+  final bool classic;
   final Radius smallRadius;
   final bool showRestart;
 
@@ -127,7 +130,7 @@ class _PlayButton extends StatelessWidget {
     required this.progress,
     required this.buttonTitle,
     required this.theme,
-    required this.radius,
+    required this.classic,
     required this.smallRadius,
     required this.showRestart,
   });
@@ -135,10 +138,10 @@ class _PlayButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final position = PositionProvider.of(context);
-    final borderRadius = BorderRadius.horizontal(
-      left: position == PositionContext.first ? const Radius.circular(16) : smallRadius,
-      right: showRestart || position == PositionContext.last ? smallRadius : const Radius.circular(16),
-    );
+    final borderRadius = BorderRadiusDirectional.horizontal(
+      start: position == PositionContext.first ? const Radius.circular(16) : smallRadius,
+      end: showRestart || position == PositionContext.last ? smallRadius : const Radius.circular(16),
+    ).resolve(classic ? TextDirection.ltr : Directionality.of(context));
 
     return FocusButton(
       onTap: () => onPressed?.call(false),
@@ -154,25 +157,37 @@ class _PlayButton extends StatelessWidget {
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer,
+                color: classic ? theme.colorScheme.primaryContainer : theme.colorScheme.primary,
                 borderRadius: borderRadius,
               ),
             ),
           ),
           // Button content
-          buttonTitle(theme.colorScheme.onPrimaryContainer),
-          Positioned.fill(
-            child: ClipRect(
-              clipper: _ProgressClipper(progress),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary,
-                  borderRadius: borderRadius,
+          buttonTitle(classic ? theme.colorScheme.onPrimaryContainer : theme.colorScheme.onPrimary),
+          if (!classic && progress > 0)
+            Positioned(
+              bottom: 3,
+              left: 12,
+              right: 12,
+              child: ExcludeSemantics(
+                child: LinearProgressIndicator(
+                  value: progress.clamp(0, 1),
+                  minHeight: 2,
+                  color: theme.colorScheme.onPrimary,
+                  backgroundColor: theme.colorScheme.onPrimary.withValues(alpha: 0.25),
                 ),
-                child: buttonTitle(theme.colorScheme.onPrimary),
               ),
             ),
-          ),
+          if (classic)
+            Positioned.fill(
+              child: ClipRect(
+                clipper: _ProgressClipper(progress),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(color: theme.colorScheme.primary, borderRadius: borderRadius),
+                  child: buttonTitle(theme.colorScheme.onPrimary),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -184,7 +199,7 @@ class _RestartButton extends StatelessWidget {
   final Function(bool restart)? onLongPressed;
   final bool forceFocusOutline;
   final ThemeData theme;
-  final BorderRadius radius;
+  final bool classic;
   final Radius smallRadius;
 
   const _RestartButton({
@@ -192,17 +207,17 @@ class _RestartButton extends StatelessWidget {
     required this.onLongPressed,
     required this.forceFocusOutline,
     required this.theme,
-    required this.radius,
+    required this.classic,
     required this.smallRadius,
   });
 
   @override
   Widget build(BuildContext context) {
     final position = PositionProvider.of(context);
-    final borderRadius = BorderRadius.horizontal(
-      left: position == PositionContext.first ? const Radius.circular(16) : smallRadius,
-      right: position == PositionContext.last ? const Radius.circular(16) : smallRadius,
-    );
+    final borderRadius = BorderRadiusDirectional.horizontal(
+      start: position == PositionContext.first ? const Radius.circular(16) : smallRadius,
+      end: position == PositionContext.last ? const Radius.circular(16) : smallRadius,
+    ).resolve(classic ? TextDirection.ltr : Directionality.of(context));
 
     return FocusButton(
       onTap: () => onPressed?.call(true),
@@ -211,22 +226,19 @@ class _RestartButton extends StatelessWidget {
       forceFocusOutline: forceFocusOutline,
       onFocusChanged: (value) {
         if (value) {
-          context.ensureVisible(
-            alignment: 1.0,
-          );
+          context.ensureVisible(alignment: 1.0);
         }
       },
       child: Container(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.primaryContainer,
-          borderRadius: borderRadius,
-        ),
+        constraints: classic ? null : const BoxConstraints(minHeight: 48, minWidth: 48),
+        decoration: BoxDecoration(color: theme.colorScheme.primaryContainer, borderRadius: borderRadius),
         child: Padding(
           padding: const EdgeInsets.all(7.5),
           child: Icon(
             IconsaxPlusBold.refresh,
             size: 29,
             color: theme.colorScheme.onPrimaryContainer,
+            semanticLabel: context.localized.restart,
           ),
         ),
       ),
