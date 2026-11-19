@@ -1,6 +1,5 @@
 import 'package:material_ui/material_ui.dart';
 
-import 'package:collection/collection.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
@@ -90,115 +89,7 @@ class OverviewHeader extends ConsumerWidget {
 
     final crossAlignment = !isPhone ? CrossAxisAlignment.start : CrossAxisAlignment.stretch;
 
-    final streamHeight = 43.0;
-
-    final streamOptionsButtons = [
-      SizedBox(
-        height: streamHeight,
-        child: EnumBox(
-          onFocusChanged: (focused) {
-            if (focused) {
-              context.ensureVisible(alignment: 1.0);
-            }
-          },
-          currentWidget: Row(
-            mainAxisSize: MainAxisSize.min,
-            spacing: 8,
-            children: [
-              Icon(
-                IconsaxPlusLinear.video_square,
-                color: Theme.of(context).colorScheme.onPrimaryContainer,
-              ),
-              Text(
-                mediaStreamHelper?.mediaStream.currentVersionStream?.detailedResolutionLabel ?? "",
-              ),
-            ],
-          ),
-          itemBuilder: (context) => mediaStreamHelper!.mediaStream.versionStreams
-              .mapIndexed((index, e) => ItemActionButton(
-                    selected: mediaStreamHelper!.mediaStream.currentVersionStream == e,
-                    label: Text(e.name),
-                    action: () {
-                      final newItem = mediaStreamHelper!.mediaStream.copyWith(
-                        versionStreamIndex: e.index,
-                      );
-                      mediaStreamHelper!.onItemChanged?.call(newItem);
-                    },
-                  ))
-              .toList(),
-        ),
-      ),
-      SizedBox(
-        height: streamHeight,
-        child: EnumBox(
-          onFocusChanged: (focused) {
-            if (focused) {
-              context.ensureVisible(alignment: 1.0);
-            }
-          },
-          currentWidget: Row(
-            mainAxisSize: MainAxisSize.min,
-            spacing: 8,
-            children: [
-              Icon(
-                IconsaxPlusLinear.audio_square,
-                color: Theme.of(context).colorScheme.onPrimaryContainer,
-              ),
-              Text(
-                mediaStreamHelper?.mediaStream.currentAudioStream?.shortTitle ?? "",
-              ),
-            ],
-          ),
-          itemBuilder: (context) => [AudioStreamModel.no(), ...mediaStreamHelper!.mediaStream.audioStreams]
-              .mapIndexed((index, e) => ItemActionButton(
-                    selected: mediaStreamHelper!.mediaStream.currentAudioStream == e,
-                    label: Text(e.displayTitle),
-                    action: () {
-                      final newItem = mediaStreamHelper!.mediaStream.copyWith(
-                        defaultAudioStreamIndex: e.index,
-                      );
-                      mediaStreamHelper!.onItemChanged?.call(newItem);
-                    },
-                  ))
-              .toList(),
-        ),
-      ),
-      SizedBox(
-        height: streamHeight,
-        child: EnumBox(
-          onFocusChanged: (focused) {
-            if (focused) {
-              context.ensureVisible(alignment: 1.0);
-            }
-          },
-          currentWidget: Row(
-            mainAxisSize: MainAxisSize.min,
-            spacing: 8,
-            children: [
-              Icon(
-                IconsaxPlusLinear.subtitle,
-                color: Theme.of(context).colorScheme.onPrimaryContainer,
-              ),
-              Text(
-                (mediaStreamHelper?.mediaStream.currentSubStream?.shortTitle ?? context.localized.off).toUpperCase(),
-              ),
-            ],
-          ),
-          itemBuilder: (context) => [SubStreamModel.no(), ...mediaStreamHelper!.mediaStream.subStreams]
-              .mapIndexed((index, e) => ItemActionButton(
-                    selected: mediaStreamHelper!.mediaStream.currentSubStream == e,
-                    label: Text(e.displayTitle),
-                    action: () {
-                      final newItem = mediaStreamHelper!.mediaStream.copyWith(
-                        defaultSubStreamIndex: e.index,
-                      );
-                      mediaStreamHelper!.onItemChanged?.call(newItem);
-                    },
-                  ))
-              .toList(),
-        ),
-      )
-    ].withPositionProvider(context: context);
+    final streamOptions = mediaStreamHelper == null ? null : _StreamOptions(helper: mediaStreamHelper!);
 
     return ConstrainedBox(
       constraints: BoxConstraints(
@@ -314,16 +205,7 @@ class OverviewHeader extends ConsumerWidget {
                 spacing: 6,
                 children: [
                   ?mainButton,
-                  if (mediaStreamHelper != null)
-                    Center(
-                      child: FittedBox(
-                        child: Row(
-                          spacing: 4,
-                          mainAxisSize: MainAxisSize.min,
-                          children: streamOptionsButtons,
-                        ),
-                      ),
-                    ),
+                  ?streamOptions,
                   ?centerButtons,
                 ].addInBetween(
                   Center(
@@ -348,12 +230,7 @@ class OverviewHeader extends ConsumerWidget {
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       mainButton,
-                      if (mediaStreamHelper != null)
-                        Row(
-                          spacing: 4,
-                          mainAxisSize: MainAxisSize.min,
-                          children: streamOptionsButtons,
-                        ),
+                      streamOptions,
                       centerButtons,
                     ].nonNulls.toList().addInBetween(
                           Container(
@@ -371,6 +248,108 @@ class OverviewHeader extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _StreamOptions extends ConsumerWidget {
+  const _StreamOptions({required this.helper});
+
+  final MediaStreamHelper helper;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final classic = ref.watch(classicInterfaceProvider);
+    final phone = AdaptiveLayout.viewSizeOf(context) == ViewSize.phone;
+    final streams = helper.mediaStream;
+    final strings = context.localized;
+    final version = streams.currentVersionStream;
+    final audio = streams.currentAudioStream;
+    final subtitles = streams.currentSubStream;
+    final color = Theme.of(context).colorScheme.onPrimaryContainer;
+    final versionName = version?.name.trim() ?? '';
+    final showVersionName =
+        !classic && versionName.isNotEmpty && (streams.versionStreams.length > 1 || streams.videoStreams.isEmpty);
+    final resolution = !classic && streams.videoStreams.isEmpty
+        ? strings.unknown
+        : version?.detailedResolutionLabel ?? '';
+    final subtitleLabel = subtitles == null || subtitles.index == -1 ? strings.off : subtitles.shortTitle;
+
+    Widget option(IconData icon, String label, String value, List<ItemAction> items) {
+      final box = EnumBox(
+        onFocusChanged: (focused) {
+          if (focused) context.ensureVisible(alignment: 1.0);
+        },
+        currentWidget: classic
+            ? Row(mainAxisSize: MainAxisSize.min, spacing: 8, children: [Icon(icon, color: color), Text(value)])
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(color: color)),
+                  Text(value, maxLines: 2, overflow: TextOverflow.ellipsis),
+                ],
+              ),
+        itemBuilder: (_) => items,
+      );
+      if (classic) return SizedBox(height: 43, child: box);
+      return MergeSemantics(
+        child: ConstrainedBox(constraints: const BoxConstraints(minHeight: 48), child: box),
+      );
+    }
+
+    final choices = <Widget>[
+      if (classic || streams.versionStreams.isNotEmpty)
+        option(IconsaxPlusLinear.video_square, strings.version, showVersionName ? versionName : resolution, [
+          for (final stream in streams.versionStreams)
+            ItemActionButton(
+              selected: version?.index == stream.index,
+              label: Text(stream.name),
+              action: () => helper.onItemChanged?.call(streams.copyWith(versionStreamIndex: stream.index)),
+            ),
+        ]),
+      if (classic || streams.audioStreams.isNotEmpty)
+        option(
+          IconsaxPlusLinear.audio_square,
+          strings.audio(1),
+          !classic && audio?.index == -1 ? strings.off : audio?.shortTitle ?? '',
+          [
+            for (final track in [AudioStreamModel.no(), ...streams.audioStreams])
+              ItemActionButton(
+                selected: audio?.index == track.index,
+                label: Text(track.index == -1 ? strings.off : track.displayTitle),
+                action: () => helper.onItemChanged?.call(streams.copyWith(defaultAudioStreamIndex: track.index)),
+              ),
+          ],
+        ),
+      if (classic || streams.subStreams.isNotEmpty)
+        option(
+          IconsaxPlusLinear.subtitle,
+          strings.subtitles,
+          classic ? (subtitles?.shortTitle ?? strings.off).toUpperCase() : subtitleLabel,
+          [
+            for (final track in [SubStreamModel.no(), ...streams.subStreams])
+              ItemActionButton(
+                selected: subtitles?.index == track.index,
+                label: Text(track.index == -1 ? strings.off : track.displayTitle),
+                action: () => helper.onItemChanged?.call(streams.copyWith(defaultSubStreamIndex: track.index)),
+              ),
+          ],
+        ),
+    ];
+    if (classic) {
+      final row = Row(
+        mainAxisSize: MainAxisSize.min,
+        spacing: 4,
+        children: choices.withPositionProvider(context: context),
+      );
+      return phone ? Center(child: FittedBox(child: row)) : row;
+    }
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      alignment: phone ? WrapAlignment.center : WrapAlignment.start,
+      children: choices,
     );
   }
 }
