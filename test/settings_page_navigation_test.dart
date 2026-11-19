@@ -1,15 +1,24 @@
 import 'dart:ui' show Tristate;
 
 import 'package:auto_route/auto_route.dart';
+import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart';
 import 'package:fladder/localization_delegates.dart';
 import 'package:fladder/models/account_model.dart';
 import 'package:fladder/models/credentials_model.dart';
+import 'package:fladder/models/syncing/sync_settings_model.dart';
 import 'package:fladder/providers/connectivity_provider.dart' as network;
+import 'package:fladder/providers/cultures_provider.dart';
 import 'package:fladder/providers/settings/home_settings_provider.dart';
 import 'package:fladder/providers/shared_provider.dart';
+import 'package:fladder/providers/sync_provider.dart';
+import 'package:fladder/providers/update_notifications_provider.dart';
 import 'package:fladder/providers/update_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/routes/auto_router.gr.dart';
+import 'package:fladder/screens/settings/about_settings_page.dart';
+import 'package:fladder/screens/settings/client_settings_page.dart';
+import 'package:fladder/screens/settings/player_settings_page.dart';
+import 'package:fladder/screens/settings/profile_settings_page.dart';
 import 'package:fladder/screens/settings/settings_list_tile.dart';
 import 'package:fladder/screens/settings/settings_scaffold.dart';
 import 'package:fladder/theme.dart';
@@ -21,6 +30,7 @@ import 'package:fladder/util/update_checker.dart';
 import 'package:fladder/util/update_controller.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -28,6 +38,22 @@ import 'package:shared_preferences/shared_preferences.dart';
 class _Offline extends network.ConnectivityStatus {
   @override
   network.ConnectionState build() => network.ConnectionState.offline;
+}
+
+class _Cultures extends Cultures {
+  @override
+  List<CultureDto> build() => const [];
+}
+
+class _Downloads extends StateNotifier<SyncSettingsModel>
+    implements SyncNotifier {
+  _Downloads() : super(SyncSettingsModel());
+
+  @override
+  String? get savePath => null;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _Viewer extends User {
@@ -49,12 +75,14 @@ class _Viewer extends User {
   );
 }
 
-Future<void> _mount(
+Future<RootStackRouter> _mount(
   WidgetTester tester, {
   required bool phone,
   bool classic = false,
   double scale = 1,
   bool preferencesLoaded = true,
+  bool allCategories = false,
+  bool startAtHome = false,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = phone ? const Size(320, 700) : const Size(1280, 800);
@@ -70,12 +98,20 @@ Future<void> _mount(
   );
   final router = RootStackRouter.build(
     routes: [
+      if (startAtHome)
+        AutoRoute(
+          page: PageInfo('TestHome', builder: (_) => const SizedBox.shrink()),
+          path: '/',
+        ),
       AutoRoute(
         page: SettingsRoute.page,
-        path: '/',
+        path: startAtHome ? '/settings' : '/',
         children: [
           AutoRoute(page: SettingsSelectionRoute.page, path: '', initial: true),
-          AutoRoute(page: PlayerSettingsRoute.page, path: 'player'),
+          if (allCategories) AutoRoute(page: ClientSettingsRoute.page, path: 'client', maintainState: false),
+          if (allCategories) AutoRoute(page: ProfileSettingsRoute.page, path: 'security', maintainState: false),
+          AutoRoute(page: PlayerSettingsRoute.page, path: 'player', maintainState: !allCategories),
+          if (allCategories) AutoRoute(page: AboutSettingsRoute.page, path: 'about'),
         ],
       ),
     ],
@@ -89,7 +125,10 @@ Future<void> _mount(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         sharedUtilityProvider.overrideWith((ref) => SharedUtility(ref: ref, sharedPreferences: prefs)),
-        classicInterfaceProvider.overrideWithValue(classic),
+        if (!allCategories) classicInterfaceProvider.overrideWithValue(classic),
+        syncProvider.overrideWith((ref) => _Downloads()),
+        culturesProvider.overrideWith(_Cultures.new),
+        supportsNotificationsProvider.overrideWithValue(false),
         network.connectivityStatusProvider.overrideWith(_Offline.new),
         userProvider.overrideWith(() => _Viewer(preferencesLoaded ? UserSettings() : null)),
         updateProvider.overrideWith(
@@ -124,9 +163,145 @@ Future<void> _mount(
     ),
   );
   await tester.pumpAndSettle();
+  return router;
 }
 
 void main() {
+  for (final phone in [true, false]) {
+    final layout = phone ? 'phone' : 'desktop';
+    testWidgets('all settings categories open from the $layout menu', (
+      tester,
+    ) async {
+      await _mount(tester, phone: phone, allCategories: true);
+      final strings = tester
+          .element(find.byType(SettingsScaffold).first)
+          .localized;
+      if (!phone) expect(find.byType(ClientSettingsPage), findsOneWidget);
+      for (final (label, pageType) in [
+        (strings.general, ClientSettingsPage),
+        (strings.settingsProfileTitle, ProfileSettingsPage),
+        (strings.settingsPlayerTitle, PlayerSettingsPage),
+        (strings.about, AboutSettingsPage),
+      ]) {
+        final entry = find.widgetWithText(SettingsListTile, label).first;
+        await tester.ensureVisible(entry);
+        await tester.tap(
+          find.descendant(of: entry, matching: find.byType(InkWell)).first,
+        );
+        await tester.pumpAndSettle();
+        final page = find.byType(pageType);
+        expect(page, findsOneWidget);
+        expect(
+          find.descendant(of: page, matching: find.text(label)).hitTestable(),
+          findsWidgets,
+        );
+        if (phone) {
+          await tester.tap(
+            find.descendant(of: page, matching: find.byType(BackButton)),
+          );
+          await tester.pumpAndSettle();
+          expect(entry.hitTestable(), findsOneWidget);
+        }
+        expect(tester.takeException(), isNull);
+      }
+    });
+  }
+
+  testWidgets('an explicit settings tab opens first and re-entering uses the desktop default', (tester) async {
+    final router = await _mount(tester, phone: false, allCategories: true, startAtHome: true);
+
+    router.push(const SettingsRoute(children: [ProfileSettingsRoute()]));
+    await tester.pumpAndSettle();
+    expect(find.byType(ProfileSettingsPage), findsOneWidget);
+    expect(find.byType(ClientSettingsPage), findsNothing);
+
+    await router.maybePop();
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsScaffold), findsNothing);
+
+    router.push(const ClientSettingsRoute());
+    await tester.pumpAndSettle();
+    expect(find.byType(ClientSettingsPage), findsOneWidget);
+    expect(find.byType(ProfileSettingsPage), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('switching to classic and back saves the interface preference', (
+    tester,
+  ) async {
+    await _mount(tester, phone: false, allCategories: true);
+    final page = find.byType(ClientSettingsPage);
+    final context = tester.element(page);
+    final strings = context.localized;
+    final storage = ProviderScope.containerOf(
+      context,
+    ).read(sharedUtilityProvider);
+    final preference = find.widgetWithText(
+      SettingsListTileCheckbox,
+      strings.useClassicInterface,
+    );
+    final scrollable = find
+        .descendant(of: page, matching: find.byType(Scrollable))
+        .first;
+
+    for (final classic in [true, false]) {
+      await tester.scrollUntilVisible(preference, 300, scrollable: scrollable);
+      final toggle = find.descendant(
+        of: preference,
+        matching: find.byType(Switch),
+      );
+      final action = find.descendant(of: preference, matching: find.byType(InkWell));
+      await Scrollable.ensureVisible(tester.element(action), alignment: 0.5);
+      await tester.tap(action.hitTestable());
+      await tester.pumpAndSettle();
+      expect(storage.homeSettings.useClassicBannerStyle, classic);
+      expect(tester.widget<Switch>(toggle).value, classic);
+      expect(
+        find.byType(PinnedHeaderSliver),
+        classic ? findsNothing : findsNWidgets(2),
+      );
+      expect(tester.takeException(), isNull);
+    }
+  });
+
+  testWidgets('phone double-tap seeking switch saves its value', (
+    tester,
+  ) async {
+    await _mount(tester, phone: true, allCategories: true);
+    final context = tester.element(find.byType(SettingsScaffold));
+    final strings = context.localized;
+    final storage = ProviderScope.containerOf(
+      context,
+    ).read(sharedUtilityProvider);
+    final entry = find.widgetWithText(
+      SettingsListTile,
+      strings.settingsPlayerTitle,
+    );
+    await tester.tap(
+      find.descendant(of: entry, matching: find.byType(InkWell)),
+    );
+    await tester.pumpAndSettle();
+
+    final page = find.byType(PlayerSettingsPage);
+    final scrollable = find
+        .descendant(of: page, matching: find.byType(Scrollable))
+        .first;
+    final seekTile = find.widgetWithText(
+      SettingsListTile,
+      strings.enableDoubleTapSeekTitle,
+    );
+    await tester.scrollUntilVisible(seekTile, 300, scrollable: scrollable);
+    final toggle = find.descendant(of: seekTile, matching: find.byType(Switch));
+    final action = find.descendant(of: seekTile, matching: find.byType(InkWell));
+    await Scrollable.ensureVisible(tester.element(action), alignment: 0.5);
+    final previous = storage.videoPlayerSettings.enableDoubleTapSeek;
+    await tester.tap(action.hitTestable());
+    await tester.pumpAndSettle();
+    expect(storage.videoPlayerSettings.enableDoubleTapSeek, !previous);
+    expect(tester.widget<Switch>(toggle).value, !previous);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('settings categories explain their contents and the selected pane names the category', (tester) async {
     await _mount(tester, phone: false);
     final strings = tester.element(find.byType(SettingsScaffold).first).localized;

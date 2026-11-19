@@ -42,7 +42,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final classic = ref.watch(classicInterfaceProvider);
     return AutoTabsRouter(
       builder: (context, content) {
-        checkForNullIndex(context);
+        _selectDefaultDesktopTab(context);
         return PopScope(
           canPop: context.tabsRouter.activeIndex == 0 || AdaptiveLayout.layoutModeOf(context) == LayoutMode.dual,
           onPopInvokedWithResult: (didPop, result) {
@@ -92,11 +92,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  //We have to navigate to the first screen after switching layouts && index == 0 otherwise the dual-layout is empty
-  void checkForNullIndex(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final currentIndex = context.tabsRouter.activeIndex;
-      if (AdaptiveLayout.layoutModeOf(context) == LayoutMode.dual && currentIndex == 0) {
+  void _selectDefaultDesktopTab(BuildContext context) {
+    if (AdaptiveLayout.layoutModeOf(context) != LayoutMode.dual || context.tabsRouter.activeIndex != 0) return;
+
+    // Switch after the scheduler is idle so lazy tab loading and router notification stay in sync.
+    WidgetsBinding.instance.endOfFrame.then((_) {
+      if (context.mounted &&
+          AdaptiveLayout.layoutModeOf(context) == LayoutMode.dual &&
+          context.tabsRouter.activeIndex == 0) {
         context.tabsRouter.setActiveIndex(1);
       }
     });
