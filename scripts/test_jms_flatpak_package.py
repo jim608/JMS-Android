@@ -205,7 +205,7 @@ class FlatpakPackageTests(unittest.TestCase):
                   'linux/flutter/generated_plugins.cmake': b'new plugins'}
         public = b'fixture corresponding source'
         reviewed = {
-            'versionName': build['versionName'],
+            'versionNames': [build['versionName']],
             'inputs': {name: hashlib.sha256(data).hexdigest() for name, data in locked.items()},
             'binaries': {'libfixture_plugin.so': ['fixture']},
             'archives': [{'module': 'fixture', 'url': 'https://example.invalid/source.tar.gz',
@@ -248,6 +248,15 @@ class FlatpakPackageTests(unittest.TestCase):
             self.assertEqual(material.extractfile(reviewed['archives'][0]['member']).read(), public)
             self.assertEqual(json.load(material.extractfile('source-materials.json'))['application'],
                              {'inputs': reviewed['inputs'], 'binaries': reviewed['binaries']})
+
+    def test_application_source_review_selects_each_approved_version_only(self):
+        review = json.loads(sources.APP_SOURCE_REVIEW.read_bytes())
+        for version in ('0.12.0-jms.60', '0.12.0-jms.61'):
+            with self.subTest(version=version):
+                self.assertIn(version, review['versionNames'])
+        for version in ('0.12.0-jms.6', '0.12.0-jms.9999'):
+            with self.subTest(version=version):
+                self.assertIsNone(sources.reviewed_application_sources(self.commit, {'versionName': version}, self.output))
 
     def test_reviewed_media_reuse_verifies_manifest_commit_and_immutable_archive_members(self):
         public = b'fixture pinned corresponding source'

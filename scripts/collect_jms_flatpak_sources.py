@@ -170,7 +170,7 @@ def prove_baseline_lock_metadata(before, current):
 
 def reviewed_application_sources(commit, build, output):
     review = json.loads(APP_SOURCE_REVIEW.read_bytes())
-    if build['versionName'] != review['versionName']:
+    if build['versionName'] not in review['versionNames']:
         return None
 
     for path in APP_SOURCE_INPUTS:
