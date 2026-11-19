@@ -7,13 +7,15 @@ import 'package:fladder/providers/shared_provider.dart';
 import 'package:fladder/screens/dashboard/home_banner_widget.dart';
 import 'package:fladder/screens/shared/media/banner_play_button.dart';
 import 'package:fladder/screens/shared/media/carousel_banner.dart';
+import 'package:fladder/screens/shared/media/components/media_play_button.dart';
 import 'package:fladder/theme.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout_model.dart';
+import 'package:fladder/util/focus_provider.dart';
+import 'package:fladder/util/localization_helper.dart';
 import 'package:fladder/util/poster_defaults.dart';
 import 'package:fladder/util/themes_data.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,8 +27,8 @@ import 'package:square_progress_indicator/square_progress_indicator.dart';
 import 'helpers/interface_typography_environment_stub.dart'
     if (dart.library.js_interop) 'helpers/interface_typography_environment_web.dart';
 
-const _title = '在海岸的盡頭等待最後一班列車';
-const _locale = Locale('zh', 'TW');
+const _title = '在海岸的盡頭等待最後一班穿越山谷的夜行列車';
+const _locale = Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant');
 
 Future<void> _mount(
   WidgetTester tester,
@@ -47,8 +49,15 @@ Future<void> _mount(
   );
   final movies = List.generate(
     count,
-    (i) =>
-        MovieModel.fromBaseDto(dto.BaseItemDto(id: '$i', name: i == 0 ? _title : '電影 $i', productionYear: 2026), null),
+    (i) => MovieModel.fromBaseDto(
+      dto.BaseItemDto(
+        id: '$i',
+        name: i == 0 ? _title : '電影 $i',
+        productionYear: 2026,
+        userData: dto.UserItemDataDto(playedPercentage: i == 0 ? 38 : 0),
+      ),
+      null,
+    ),
   );
   await tester.pumpWidget(
     ProviderScope(
@@ -98,6 +107,15 @@ Future<void> _mount(
 
 Finder get _play => find.descendant(of: find.byType(BannerPlayButton), matching: find.byType(IconButton));
 
+Finder _featureAction(String label) => find
+    .ancestor(
+      of: find.text(label),
+      matching: find.byElementPredicate(
+        (e) => e.widget is FocusButton && e.findAncestorWidgetOfExactType<MediaPlayButton>() != null,
+      ),
+    )
+    .hitTestable();
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   final restoreEnvironment = useBundledTypographyFonts();
@@ -112,19 +130,20 @@ void main() {
   });
 
   for (final (size, scale, rtl) in [(const Size(390, 844), 1.0, false), (const Size(320, 568), 2.0, true)]) {
-    testWidgets('Chinese title wraps beside the hit-testable play button at ${size.width}px, text scale $scale', (
-      tester,
-    ) async {
+    testWidgets('Chinese title and resume action stay separate at ${size.width}px, text scale $scale', (tester) async {
       await _mount(tester, size, scale: scale, rtl: rtl);
       final title = find.text(_title);
       expect(title, findsOneWidget);
-      if (scale == 1) expect(find.text('2026'), findsOneWidget);
+      final context = tester.element(find.byType(HomeBannerWidget));
+      final play = _featureAction(context.localized.resumeVideo);
+      if (scale == 1) expect(find.textContaining('2026'), findsOneWidget);
       final text = tester.renderObject<RenderParagraph>(title);
       final boxes = text.getBoxesForSelection(const TextSelection(baseOffset: 0, extentOffset: _title.length));
       expect(boxes.map((box) => box.top).toSet(), hasLength(2));
-      final card = tester.getRect(find.byType(CarouselView));
-      final button = tester.getRect(_play.hitTestable());
-      expect(button.center.dx, rtl ? lessThan(card.center.dx) : greaterThan(card.center.dx));
+      final card = tester.getRect(find.byType(HomeBannerWidget));
+      final button = tester.getRect(play);
+      expect(card.contains(button.center), isTrue);
+      expect(button.height, greaterThanOrEqualTo(48));
       for (final box in boxes) {
         final line = box.toRect().shift(text.localToGlobal(Offset.zero));
         expect(card.intersect(line), line);
@@ -134,29 +153,86 @@ void main() {
     });
   }
 
-  testWidgets('desktop only offers paging when there is somewhere to scroll', (tester) async {
-    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
-    await mouse.addPointer(location: const Offset(50, 50));
-    addTearDown(mouse.removePointer);
-    await _mount(tester, const Size(1280, 800));
-    await mouse.moveTo(const Offset(100, 50));
-    await tester.pumpAndSettle();
-    final l10n = MaterialLocalizations.of(tester.element(find.byType(CarouselBanner)));
-    final next = find.byTooltip(l10n.nextPageTooltip);
-    expect(find.byType(IconButton), findsOneWidget);
-    expect(next, findsNothing);
-    expect(find.byTooltip(l10n.previousPageTooltip), findsNothing);
-    expect(_play.hitTestable(), findsOneWidget);
+  for (final (size, rtl) in [
+    (const Size(390, 844), false),
+    (const Size(390, 844), true),
+    (const Size(1280, 800), false),
+  ]) {
+    testWidgets('the feature pages by one complete film at ${size.width}px, rtl=$rtl', (tester) async {
+      await _mount(tester, size, rtl: rtl);
+      final context = tester.element(find.byType(HomeBannerWidget));
+      final l10n = MaterialLocalizations.of(context);
+      final next = find.byTooltip(l10n.nextPageTooltip);
+      final previous = find.byTooltip(l10n.previousPageTooltip);
+      expect(next, findsNothing);
+      expect(previous, findsNothing);
+      expect(_featureAction(context.localized.resumeVideo), findsOneWidget);
 
-    await _mount(tester, const Size(1280, 800), count: 5);
-    final position = tester.state<ScrollableState>(find.byType(Scrollable)).position;
-    final start = position.pixels;
-    await tester.tap(next);
+      await _mount(tester, size, count: 3, rtl: rtl);
+      IconButton pager(Finder tooltip) => tester.widget(find.ancestor(of: tooltip, matching: find.byType(IconButton)));
+      void expectPage(int number) {
+        expect(find.text('${l10n.formatDecimal(number)} / ${l10n.formatDecimal(3)}'), findsOneWidget);
+        expect(find.bySemanticsLabel(l10n.tabLabel(tabIndex: number, tabCount: 3)), findsOneWidget);
+      }
+
+      expectPage(1);
+      expect(pager(previous).onPressed, isNull);
+      final scroll = find.descendant(of: find.byType(HomeBannerWidget), matching: find.byType(Scrollable));
+      final position = tester.state<ScrollableState>(scroll).position;
+      expect(_featureAction(context.localized.playLabel), findsNothing);
+      await tester.tap(next);
+      await tester.pumpAndSettle();
+      expect(position.pixels, closeTo(position.viewportDimension, 1));
+      expect(tester.getRect(scroll).contains(tester.getCenter(find.text('電影 1'))), isTrue);
+      expectPage(2);
+      expect(_featureAction(context.localized.playLabel), findsOneWidget);
+
+      await tester.tap(previous);
+      await tester.pumpAndSettle();
+      expect(position.pixels, closeTo(0, 1));
+      expectPage(1);
+      final viewport = tester.getRect(scroll);
+      await tester.dragFrom(viewport.center, Offset(viewport.width * (rtl ? 0.8 : -0.8), 0));
+      await tester.pumpAndSettle();
+      expect(position.pixels, closeTo(position.viewportDimension, 1));
+      expectPage(2);
+      await tester.tap(next);
+      await tester.pumpAndSettle();
+      expectPage(3);
+      expect(pager(next).onPressed, isNull);
+
+      await _mount(tester, size, rtl: rtl);
+      expect(next, findsNothing);
+      expect(_featureAction(context.localized.resumeVideo), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('keyboard traversal reaches the active resume button separately from film details', (tester) async {
+    await _mount(tester, const Size(1280, 800), count: 3);
+    final context = tester.element(find.byType(HomeBannerWidget));
+    final action = tester.widget<FocusButton>(_featureAction(context.localized.resumeVideo));
+
+    FocusButton? focusedButton() => FocusManager.instance.primaryFocus?.context?.findAncestorWidgetOfExactType();
+    for (var tab = 0; tab < 6 && focusedButton() != action; tab++) {
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pumpAndSettle();
+    }
+    expect(focusedButton(), same(action));
+    final playFocus = FocusManager.instance.primaryFocus;
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     await tester.pumpAndSettle();
-    expect(position.pixels, greaterThan(start));
-    await tester.tap(find.byTooltip(l10n.previousPageTooltip));
+    expect(FocusManager.instance.primaryFocus, isNot(same(playFocus)));
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
     await tester.pumpAndSettle();
-    expect(position.pixels, closeTo(start, 1));
+    expect(FocusManager.instance.primaryFocus, same(playFocus));
+    final buttons = tester.semantics.simulatedAccessibilityTraversal().where(
+      (node) => node.getSemanticsData().hasAction(SemanticsAction.tap),
+    );
+    expect(buttons.where((node) => node.label == _title), hasLength(1));
+    expect(buttons.where((node) => node.label.contains(context.localized.resume(_title))), hasLength(1));
     expect(tester.takeException(), isNull);
   });
 

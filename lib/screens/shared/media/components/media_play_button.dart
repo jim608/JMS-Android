@@ -17,6 +17,7 @@ class MediaPlayButton extends ConsumerWidget {
   final ItemBaseModel? item;
   final bool forceFocusOutline;
   final bool showRestartOption;
+  final bool autofocusOnDpad;
   final Function(bool restart)? onPressed;
   final Function(bool restart)? onLongPressed;
 
@@ -24,6 +25,7 @@ class MediaPlayButton extends ConsumerWidget {
     required this.item,
     this.forceFocusOutline = false,
     this.showRestartOption = true,
+    this.autofocusOnDpad = true,
     this.onPressed,
     this.onLongPressed,
     super.key,
@@ -81,7 +83,7 @@ class MediaPlayButton extends ConsumerWidget {
                     child: _PlayButton(
                       onPressed: onPressed,
                       onLongPressed: onLongPressed,
-                      autoFocus: AdaptiveLayout.inputDeviceOf(context) == InputDevice.dPad,
+                      autoFocus: autofocusOnDpad && AdaptiveLayout.inputDeviceOf(context) == InputDevice.dPad,
                       forceFocusOutline: forceFocusOutline,
                       progress: progress,
                       buttonTitle: buttonTitle,

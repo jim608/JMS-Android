@@ -24,7 +24,8 @@ class HomeBannerWidget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final bannerType = ref.watch(homeSettingsProvider.select((settings) => settings.homeBanner));
     final useClassicStyle = ref.watch(classicInterfaceProvider);
-    final maxHeight = (MediaQuery.sizeOf(context).shortestSide * 0.6).clamp(125.0, 375.0);
+    final shortestSide = MediaQuery.sizeOf(context).shortestSide;
+    final maxHeight = (shortestSide * 0.6).clamp(125.0, 375.0);
 
     return switch (bannerType) {
       HomeBanner.carousel => Column(
@@ -32,7 +33,10 @@ class HomeBannerWidget extends ConsumerWidget {
           children: [
             CarouselBanner(
               items: posters,
-              maxHeight: maxHeight,
+              maxHeight: useClassicStyle
+                  ? maxHeight
+                  : (shortestSide * 0.8).clamp(240.0, 400.0) +
+                      (MediaQuery.textScalerOf(context).scale(48) - 48).clamp(0.0, 120.0),
               useClassicStyle: useClassicStyle,
             ),
             const SizedBox(height: 24)
