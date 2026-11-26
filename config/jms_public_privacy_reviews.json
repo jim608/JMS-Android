@@ -129931,6 +129931,10 @@
       {
         "archiveSha256": "ce9efdabcd0aa04774ed514d7477cf9777db930ec1d23092f0d4841389474af9",
         "member": "JMS-Windows-0.12.0-jms.62-x64/libdovi.dll"
+      },
+      {
+        "archiveSha256": "bf73627b3e678fcf305bea0f0199ec3137726aca0f4d331acbbf1112d5a17d42",
+        "member": "JMS-Windows-0.12.1-jms.63-x64/libdovi.dll"
       }
     ]
   },
@@ -129966,6 +129970,10 @@
       {
         "archiveSha256": "ce9efdabcd0aa04774ed514d7477cf9777db930ec1d23092f0d4841389474af9",
         "member": "JMS-Windows-0.12.0-jms.62-x64/libgio-2.0-0.dll"
+      },
+      {
+        "archiveSha256": "bf73627b3e678fcf305bea0f0199ec3137726aca0f4d331acbbf1112d5a17d42",
+        "member": "JMS-Windows-0.12.1-jms.63-x64/libgio-2.0-0.dll"
       }
     ]
   },
@@ -130046,6 +130054,10 @@
       {
         "archiveSha256": "ce9efdabcd0aa04774ed514d7477cf9777db930ec1d23092f0d4841389474af9",
         "member": "JMS-Windows-0.12.0-jms.62-x64/libgnutls-30.dll"
+      },
+      {
+        "archiveSha256": "bf73627b3e678fcf305bea0f0199ec3137726aca0f4d331acbbf1112d5a17d42",
+        "member": "JMS-Windows-0.12.1-jms.63-x64/libgnutls-30.dll"
       }
     ]
   },
@@ -130080,6 +130092,10 @@
       {
         "archiveSha256": "ce9efdabcd0aa04774ed514d7477cf9777db930ec1d23092f0d4841389474af9",
         "member": "JMS-Windows-0.12.0-jms.62-x64/libmpv-2.dll"
+      },
+      {
+        "archiveSha256": "bf73627b3e678fcf305bea0f0199ec3137726aca0f4d331acbbf1112d5a17d42",
+        "member": "JMS-Windows-0.12.1-jms.63-x64/libmpv-2.dll"
       }
     ]
   },
@@ -130320,6 +130336,10 @@
       {
         "archiveSha256": "ce9efdabcd0aa04774ed514d7477cf9777db930ec1d23092f0d4841389474af9",
         "member": "JMS-Windows-0.12.0-jms.62-x64/librav1e.dll"
+      },
+      {
+        "archiveSha256": "bf73627b3e678fcf305bea0f0199ec3137726aca0f4d331acbbf1112d5a17d42",
+        "member": "JMS-Windows-0.12.1-jms.63-x64/librav1e.dll"
       }
     ]
   },
@@ -133938,6 +133958,10 @@
       {
         "archiveSha256": "ce9efdabcd0aa04774ed514d7477cf9777db930ec1d23092f0d4841389474af9",
         "member": "JMS-Windows-0.12.0-jms.62-x64/librsvg-2-2.dll"
+      },
+      {
+        "archiveSha256": "bf73627b3e678fcf305bea0f0199ec3137726aca0f4d331acbbf1112d5a17d42",
+        "member": "JMS-Windows-0.12.1-jms.63-x64/librsvg-2-2.dll"
       }
     ]
   },
@@ -133980,6 +134004,10 @@
       {
         "archiveSha256": "ce9efdabcd0aa04774ed514d7477cf9777db930ec1d23092f0d4841389474af9",
         "member": "JMS-Windows-0.12.0-jms.62-x64/libssh.dll"
+      },
+      {
+        "archiveSha256": "bf73627b3e678fcf305bea0f0199ec3137726aca0f4d331acbbf1112d5a17d42",
+        "member": "JMS-Windows-0.12.1-jms.63-x64/libssh.dll"
       }
     ]
   },
@@ -148911,6 +148939,46 @@
   {
     "source": "https://github.com/media-kit/libmpv-android-video-build/releases/download/v1.1.8/full-arm64-v8a.jar",
     "archiveSha256": "5e7acf5cf456af27a7d4851f2ac025a20a9c4ff62dcc5239381f204ea876bf0e",
+    "member": "lib/arm64-v8a/libmpv.so",
+    "sha256": "c0d797517822ac8e3006318cc5b80a5331a086282690043881448a9fbc843678",
+    "rules": [
+      "personal filesystem path",
+      "credential pattern"
+    ],
+    "evidence": {
+      "kind": "upstream-build-or-format-reference",
+      "archiveSha256": "9969088c86eb89f6f0a131e699c46ff57058288410f2087bd0d308f65e9fccb5",
+      "member": "mbedtls-3.4.0/library/pkparse.c",
+      "sha256": "bd38ba42e9954cbc45448220feee1cdc0cd38f359ffa0c3a0f201ec3e495c4cc"
+    },
+    "additionalEvidence": [
+      {
+        "archiveSha256": "9969088c86eb89f6f0a131e699c46ff57058288410f2087bd0d308f65e9fccb5",
+        "member": "mbedtls-3.4.0/library/pkwrite.c",
+        "sha256": "c35c263f9041a8b534489c36a31c49e2a54e293bc744032338249c15777c14e2"
+      }
+    ],
+    "explanation": "This exact JMS APK member is byte-identical to the pinned official media-kit ARM64 JAR and prior anonymous JMS .59 APK. Path matches are upstream GitHub runner build prefixes. The six key-shaped matches are complete NUL-terminated PEM format labels with no key data and match the pinned mbedTLS parser constants."
+  },
+  {
+    "source": "https://repo.maven.apache.org/maven2/io/github/peerless2012/ass-kt/0.5.1/ass-kt-0.5.1.aar",
+    "archiveSha256": "71cf8ef2c0fa69558633ab1e0c5dd4d8a2b494ab42abb418dccd2f3869ccf47f",
+    "member": "lib/arm64-v8a/libass.so",
+    "sha256": "f13e8a925ddaa73074105f9af89123b2206edbe4b502d748a6217a261dc62df4",
+    "rules": [
+      "personal filesystem path"
+    ],
+    "explanation": "This exact JMS APK member is byte-identical to the pinned official ass-kt ARM64 AAR member. The 25 matched strings are upstream GitHub runner build paths for libass-android and contain no local user path or credential.",
+    "evidence": {
+      "kind": "upstream-build-or-format-reference",
+      "archiveSha256": "d5296afc6571d50c38418471fde3f5433ca408ffe4ff9bf9d540f194c93efa95",
+      "member": "libass-android-504f64a325059ab5188c4c9d0eddc99c9356a23a/.github/workflows/publish.yml",
+      "sha256": "e929ab3386f6810a5084e1c3d0d3fd49ffde349f310ab2cad5139d1dc92a787b"
+    }
+  },
+  {
+    "source": "https://github.com/media-kit/libmpv-android-video-build/releases/download/v1.1.8/full-arm64-v8a.jar",
+    "archiveSha256": "71cf8ef2c0fa69558633ab1e0c5dd4d8a2b494ab42abb418dccd2f3869ccf47f",
     "member": "lib/arm64-v8a/libmpv.so",
     "sha256": "c0d797517822ac8e3006318cc5b80a5331a086282690043881448a9fbc843678",
     "rules": [
