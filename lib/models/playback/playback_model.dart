@@ -392,18 +392,20 @@ class PlaybackModelHelper {
         .read(mediaPlaybackProvider.notifier)
         .update((state) => state.copyWith(buffering: true));
     final currentModel = ref.read(playBackModel);
-    final newModel = (await createPlaybackModel(
-          null,
-          newItem,
-          oldModel: currentModel,
-        )) ??
-        await _createOfflinePlaybackModel(
-          newItem,
-          null,
-          await ref.read(syncProvider.notifier).getSyncedItem(newItem.id),
-          oldModel: currentModel,
-        );
-    if (newModel == null) return null;
+    final newModel = await createPlaybackModel(
+      null,
+      newItem,
+      oldModel: currentModel,
+    );
+    if (!ref.mounted || !identical(ref.read(playBackModel), currentModel)) {
+      return null;
+    }
+    if (newModel == null) {
+      ref
+          .read(mediaPlaybackProvider.notifier)
+          .update((state) => state.copyWith(buffering: false));
+      return null;
+    }
     final advancedQueue = currentModel?.playbackQueue
         .advanceFromCurrentTo(currentModel.item.id, newItem.id);
     final modelToLoad = advancedQueue != null
@@ -456,6 +458,31 @@ class PlaybackModelHelper {
         .loadPlaybackItem(newModel, Duration.zero);
   }
 
+  Future<SyncedItem?> _downloadedItemFor(ItemBaseModel item) async {
+    final downloads = ref.read(syncProvider.notifier);
+    final savedItem = await downloads.getSyncedItem(item.id);
+    if (!ref.mounted || savedItem == null || savedItem.markedForDelete) {
+      return null;
+    }
+    if (item is! SeriesModel && item is! SeasonModel) return savedItem;
+
+    final episodes = <EpisodeModel>[];
+    final completed = <String, SyncedItem>{};
+    for (final child in await downloads.getNestedChildren(savedItem)) {
+      if (child.markedForDelete || child.status != TaskStatus.complete) continue;
+      final episode = child.itemModel;
+      if (episode is EpisodeModel) {
+        episodes.add(episode);
+        completed[episode.id] = child;
+      }
+    }
+    episodes.sort((a, b) {
+      final seasonOrder = a.season.compareTo(b.season);
+      return seasonOrder == 0 ? a.episode.compareTo(b.episode) : seasonOrder;
+    });
+    return completed[(episodes.nextUp ?? episodes.firstOrNull)?.id];
+  }
+
   Future<OfflinePlaybackModel?> _createOfflinePlaybackModel(
     ItemBaseModel item,
     MediaStreamsModel? streamModel,
@@ -463,19 +490,21 @@ class PlaybackModelHelper {
     PlaybackModel? oldModel,
     PlaybackQueueSource? queueSource,
   }) async {
-    final ItemBaseModel? syncedItemModel = syncedItem?.itemModel;
-    if (syncedItemModel == null ||
-        syncedItem == null ||
+    if (syncedItem == null ||
+        syncedItem.markedForDelete ||
         !await syncedItem.videoFile.exists()) {
       return null;
     }
-
+    if (!ref.mounted) return null;
+    final syncedItemModel = syncedItem.itemModel;
+    if (syncedItemModel == null) return null;
     final children =
         await ref.read(syncProvider.notifier).getSiblings(syncedItem);
+    if (!ref.mounted) return null;
 
-    final syncedItems =
-        children.where((element) => element.videoFile.existsSync()).toList();
-    final itemQueue = syncedItems.map((e) => e.itemModel).nonNulls;
+    final syncedItems = children
+        .where((entry) => !entry.markedForDelete && entry.videoFile.existsSync())
+        .toList();
 
     return OfflinePlaybackModel(
       item: syncedItemModel,
@@ -483,11 +512,11 @@ class PlaybackModelHelper {
       trickPlay: syncedItem.trickPlayModel,
       mediaSegments: syncedItem.mediaSegments,
       media: Media(url: syncedItem.videoFile.path),
-      queue: itemQueue.nonNulls.toList(),
+      queue: syncedItems.map((entry) => entry.itemModel).nonNulls.toList(),
       playbackQueue: oldModel?.playbackQueue,
       queueSource: queueSource ?? oldModel?.queueSource,
       syncedQueue: children,
-      mediaStreams: item.streamModel ?? syncedItemModel.streamModel,
+      mediaStreams: syncedItemModel.streamModel ?? streamModel ?? item.streamModel,
     );
   }
 
@@ -524,9 +553,35 @@ class PlaybackModelHelper {
         return null;
       }
 
+      final effectiveQueueSource = oldModel?.queueSource ?? queueSource;
+
+      Future<PlaybackModel?> getOfflineModel(
+        ItemBaseModel target, {
+        SyncedItem? downloaded,
+      }) async {
+        final savedItem = downloaded ?? await _downloadedItemFor(target);
+        if (!ref.mounted || reportingCapture?.isCurrent == false) return null;
+        final model = await _createOfflinePlaybackModel(
+          target,
+          item.streamModel,
+          savedItem,
+          oldModel: oldModel,
+          queueSource: effectiveQueueSource,
+        );
+        if (!ref.mounted || reportingCapture?.isCurrent == false) return null;
+        diagnostics.record(attempt, PlaybackStage.streamSelection,
+            event:
+                model == null ? PlaybackEvent.failed : PlaybackEvent.succeeded,
+            detail: model == null ? 'offline_unavailable' : 'offline',
+            sourceKind: PlaybackSourceKind.localFile);
+        return model;
+      }
+
+      if (ref.read(offlineStateProvider)) {
+        return await getOfflineModel(item);
+      }
       final queue = oldModel?.queue ?? libraryQueue ?? await collectQueue(item);
       if (reportingCapture != null && !reportingCapture.isCurrent) return null;
-      final effectiveQueueSource = oldModel?.queueSource ?? queueSource;
 
       final firstItemToPlay = switch (item) {
         SeriesModel _ ||
@@ -538,7 +593,7 @@ class PlaybackModelHelper {
       if (firstItemToPlay == null) {
         diagnostics.record(attempt, stage,
             event: PlaybackEvent.failed, detail: 'empty_queue');
-        return null;
+        return await getOfflineModel(item);
       }
 
       step = 'item_request';
@@ -555,7 +610,11 @@ class PlaybackModelHelper {
             event: PlaybackEvent.failed,
             httpStatus: fullItemResponse.statusCode,
             detail: 'empty_item_response');
-        return null;
+        return await getOfflineModel(item);
+      }
+      // JellyService reports a saved local item as an HTTP 202 fallback.
+      if (fullItemResponse.statusCode == 202 || ref.read(offlineStateProvider)) {
+        return await getOfflineModel(item);
       }
       diagnostics.record(attempt, stage,
           event: PlaybackEvent.succeeded,
@@ -567,8 +626,9 @@ class PlaybackModelHelper {
       SyncedItem? syncedItem =
           await ref.read(syncProvider.notifier).getSyncedItem(fullItem.id);
 
-      final firstItemIsSynced =
-          syncedItem != null && syncedItem.status == TaskStatus.complete;
+      final firstItemIsSynced = syncedItem != null &&
+          !syncedItem.markedForDelete &&
+          syncedItem.status == TaskStatus.complete;
 
       final actualStartPosition =
           startPosition ?? fullItem.userData.playBackPosition;
@@ -579,40 +639,15 @@ class PlaybackModelHelper {
         if (firstItemIsSynced) PlaybackType.offline,
       };
 
-      final isOffline = ref.read(offlineStateProvider);
-
       if (firstItemToPlay is AudioModel && firstItemIsSynced) {
-        final offlinePlayback = await _createOfflinePlaybackModel(
+        final offlinePlayback = await getOfflineModel(
           fullItem,
-          item.streamModel,
-          syncedItem,
-          oldModel: oldModel,
-          queueSource: effectiveQueueSource,
+          downloaded: syncedItem,
         );
 
         if (offlinePlayback != null) {
-          diagnostics.record(attempt, stage,
-              event: PlaybackEvent.succeeded,
-              detail: 'offline',
-              sourceKind: PlaybackSourceKind.localFile);
           return offlinePlayback;
         }
-      }
-
-      Future<PlaybackModel?> getOfflineModel() async {
-        final model = await _createOfflinePlaybackModel(
-          fullItem,
-          item.streamModel,
-          syncedItem,
-          oldModel: oldModel,
-          queueSource: effectiveQueueSource,
-        );
-        diagnostics.record(attempt, PlaybackStage.streamSelection,
-            event:
-                model == null ? PlaybackEvent.failed : PlaybackEvent.succeeded,
-            detail: model == null ? 'offline_unavailable' : 'offline',
-            sourceKind: PlaybackSourceKind.localFile);
-        return model;
       }
 
       Future<PlaybackModel?> getServerModel(PlaybackType type) =>
@@ -628,8 +663,7 @@ class PlaybackModelHelper {
             reportingCapture: reportingCapture,
           );
 
-      if (((showPlaybackOptions || firstItemIsSynced) && !isOffline) &&
-          context != null) {
+      if ((showPlaybackOptions || firstItemIsSynced) && context != null) {
         final playbackType = await showPlaybackTypeSelection(
           context: context,
           options: options,
@@ -646,16 +680,14 @@ class PlaybackModelHelper {
           PlaybackType.transcode ||
           PlaybackType.tv =>
             await getServerModel(playbackType),
-          PlaybackType.offline => await getOfflineModel(),
+          PlaybackType.offline =>
+            await getOfflineModel(fullItem, downloaded: syncedItem),
         };
       }
 
-      if (isOffline) {
-        return await getOfflineModel();
-      }
-
       return await getServerModel(PlaybackType.directStream) ??
-          await getOfflineModel();
+          await getOfflineModel(item,
+              downloaded: firstItemIsSynced ? syncedItem : null);
     } catch (error) {
       diagnostics.record(attempt, stage,
           event: PlaybackEvent.failed,

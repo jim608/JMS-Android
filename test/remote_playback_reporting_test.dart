@@ -13,6 +13,7 @@ import 'package:fladder/models/items/overview_model.dart';
 import 'package:fladder/models/playback/direct_playback_model.dart';
 import 'package:fladder/models/playback/playback_model.dart';
 import 'package:fladder/models/playback/transcode_playback_model.dart';
+import 'package:fladder/providers/connectivity_provider.dart';
 import 'package:fladder/providers/primary_subtitle_selection_provider.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/util/subtitle_selection_failure.dart';
@@ -106,6 +107,7 @@ void main() {
     final capture = PlaybackReportingCapture(
         api: _Api(), isCurrent: () => current, isPlaybackCurrent: (_) => true);
     final container = ProviderContainer.test(overrides: [
+      offlineStateProvider.overrideWithValue(false),
       userProvider.overrideWithValue(AccountModel(
         name: 'fixture',
         id: 'account-A',

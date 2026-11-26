@@ -29,6 +29,9 @@ class _PausedPlayer extends Fake implements MediaControlsWrapper {
   var pauses = 0;
 
   @override
+  bool get syncPlayActive => false;
+
+  @override
   Future<void> dispose() async {}
 
   @override
@@ -78,8 +81,8 @@ class _TvModel extends Fake implements TvPlaybackModel {
   ItemBaseModel get item => throw StateError('Generic VOD reload path entered');
 }
 
-class _RejectedTvRequest extends PlaybackModelHelper {
-  const _RejectedTvRequest({required super.ref});
+class _RejectedPlaybackRequest extends PlaybackModelHelper {
+  const _RejectedPlaybackRequest({required super.ref});
 
   @override
   Future<PlaybackModel?> createPlaybackModel(
@@ -206,8 +209,22 @@ void main() {
       syncProvider.overrideWith((ref) => _NoOfflineItem()),
     ]);
 
-    await _RejectedTvRequest(ref: playbackTestRef(container)).loadTVChannel(_Channel());
+    await _RejectedPlaybackRequest(ref: playbackTestRef(container)).loadTVChannel(_Channel());
 
+    expect(player.pauses, 1);
+    expect(container.read(mediaPlaybackProvider).buffering, isFalse);
+  });
+
+  test('unavailable queue item clears buffering without loading another player', () async {
+    final player = _PausedPlayer();
+    final container = ProviderContainer.test(overrides: [
+      videoPlayerProvider.overrideWith((ref) => _PausedPlayerNotifier(ref, player)),
+      syncProvider.overrideWith((ref) => _NoOfflineItem()),
+    ]);
+
+    final model = await _RejectedPlaybackRequest(ref: playbackTestRef(container)).loadNewVideo(_Channel());
+
+    expect(model, isNull);
     expect(player.pauses, 1);
     expect(container.read(mediaPlaybackProvider).buffering, isFalse);
   });

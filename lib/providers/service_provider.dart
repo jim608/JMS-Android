@@ -15,7 +15,6 @@ import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart';
 import 'package:fladder/models/account_model.dart';
 import 'package:fladder/models/credentials_model.dart';
 import 'package:fladder/models/item_base_model.dart';
-import 'package:fladder/models/items/episode_model.dart';
 import 'package:fladder/models/items/item_shared_models.dart';
 import 'package:fladder/models/items/media_segments_model.dart';
 import 'package:fladder/models/items/photos_model.dart';
@@ -846,14 +845,25 @@ class JellyService {
     ShowsSeriesIdEpisodesGetSortBy? sortBy,
   }) async {
     Future<Response<BaseItemDtoQueryResult>> fetchOfflineEpisodes() async {
-      final seriesItem = await ref.read(syncProvider.notifier).getSyncedItem(seriesId);
+      final downloads = ref.read(syncProvider.notifier);
+      final seriesItem = await downloads.getSyncedItem(seriesId);
       if (seriesItem != null) {
-        final episodes = await ref.read(syncProvider.notifier).getNestedChildren(seriesItem)
-          ..where((e) => e.itemModel is EpisodeModel);
+        final entries = await downloads.getNestedChildren(seriesItem);
+        final episodes = entries
+            .where((entry) =>
+                !entry.markedForDelete &&
+                (seasonId == null || entry.parentId == seasonId) &&
+                entry.videoFile.existsSync())
+            .map((entry) => entry.data)
+            .nonNulls
+            .where((episode) =>
+                episode.type == BaseItemKind.episode &&
+                (season == null || episode.parentIndexNumber == season))
+            .toList();
         return Response<BaseItemDtoQueryResult>(
           http.Response("", 200),
           BaseItemDtoQueryResult(
-            items: episodes.map((e) => e.data).nonNulls.toList(),
+            items: episodes,
             totalRecordCount: episodes.length,
             startIndex: 0,
           ),

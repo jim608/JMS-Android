@@ -99,15 +99,17 @@ class VideoPlayerImplementation(
                     ".m3u8",
                     ignoreCase = true
                 )
+                val offline = playbackData.value?.mediaInfo?.playbackType == PlaybackType.OFFLINE
                 val subTitles = playbackData.value?.subtitleTracks ?: listOf()
                 val mediaItemBuilder = MediaItem.Builder()
-                    .setUri(url)
+                    .setUri(nativePlaybackUri(url, offline))
                     .setTag(playbackData.value?.currentItem?.title)
                     .setMediaId(playbackData.value?.currentItem?.id ?: "")
                     .setSubtitleConfigurations(
                         subTitles.filter { it.external && !it.url.isNullOrEmpty() }.map { sub ->
-                            MediaItem.SubtitleConfiguration.Builder(sub.url!!.toUri())
-                                .setMimeType(guessSubtitleMimeType(sub.url, sub.codec))
+                            val subtitleUri = nativePlaybackUri(sub.url!!, offline)
+                            MediaItem.SubtitleConfiguration.Builder(subtitleUri.toUri())
+                                .setMimeType(guessSubtitleMimeType(subtitleUri, sub.codec))
                                 .setLanguage(sub.languageCode)
                                 .setLabel(sub.name)
                                 .build()
