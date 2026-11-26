@@ -321,8 +321,6 @@ class LibMPV extends BasePlayer {
   @override
   Stream<PlayerState> get stateStream => _stateController.stream;
 
-  StreamSubscription<bool>? _onCompleted;
-
   bool _replayGainFallbackLogged = false;
   VideoPlayerSettingsModel _settings = VideoPlayerSettingsModel();
   bool _lowResourceMode = false;
@@ -341,6 +339,8 @@ class LibMPV extends BasePlayer {
 
   bool _musicPaused = false;
   bool _loopFile = false;
+  mpv.PlaylistMode get _playlistMode =>
+      _loopFile ? mpv.PlaylistMode.single : mpv.PlaylistMode.none;
   bool _finishCrossfade = false;
   int pauseCount = 0;
   final StreamController<int> _playlistIndexController = StreamController.broadcast();
@@ -410,7 +410,9 @@ class LibMPV extends BasePlayer {
     _initializationPhase = 'player_construct';
     mpv.MediaKit.ensureInitialized();
 
-    _player = _createPlayer();
+    final createdPlayer = _player = _createPlayer();
+    await createdPlayer.setPlaylistMode(_playlistMode);
+    if (createdPlayer != _player) return;
 
     if (_player != null) {
       configureAmbientVideoCapture(_player!.platform);
@@ -486,7 +488,6 @@ class LibMPV extends BasePlayer {
       await nativePlayer.setProperty('network-timeout', '60');
       await nativePlayer.setProperty('stream-buffer-size', '4M');
       await nativePlayer.setProperty('prefetch-playlist', 'yes');
-      await nativePlayer.setProperty('loop-file', _loopFile ? 'inf' : 'no');
       await nativePlayer.setProperty('sub-ass-override', 'no');
       await nativePlayer.setProperty('embeddedfonts', 'yes');
       // Pinned Android libmpv supports primary delay but predates independent
@@ -540,10 +541,7 @@ class LibMPV extends BasePlayer {
   Future<void> setLoopFile(bool enabled) async {
     if (_loopFile == enabled) return;
     _loopFile = enabled;
-    final player = _player;
-    if (player?.platform is mpv.NativePlayer) {
-      await (player!.platform as dynamic).setProperty('loop-file', enabled ? 'inf' : 'no');
-    }
+    await _player?.setPlaylistMode(_playlistMode);
   }
 
   @override
@@ -603,8 +601,6 @@ class LibMPV extends BasePlayer {
     _fadeTimer = null;
     _crossfadeGeneration++;
     _cancelPlayerStreams();
-    _onCompleted?.cancel();
-    _onCompleted = null;
     _player = null;
     _controller = null;
     _retryTimer?.cancel();
@@ -743,13 +739,13 @@ class LibMPV extends BasePlayer {
     final steps = math.max(1, _settings.crossfadeDurationMs ~/ stepMs);
 
     final incomingPlayer = _createPlayer();
+    await incomingPlayer.setPlaylistMode(_playlistMode);
 
     if (incomingPlayer.platform is mpv.NativePlayer) {
       final native = incomingPlayer.platform as dynamic;
       await native.setProperty('force-seekable', 'yes');
       await native.setProperty('gapless-audio', 'weak');
       await native.setProperty('demuxer-max-bytes', _lowResourceMode ? '64M' : '150M');
-      await native.setProperty('loop-file', _loopFile ? 'inf' : 'no');
       if (defaultTargetPlatform == TargetPlatform.android) {
         await native.setProperty('ao', 'audiotrack');
       }
@@ -795,6 +791,10 @@ class LibMPV extends BasePlayer {
     _hdrToneMapper = _createHdrToneMapper(incomingPlayer);
     _controller = null;
     _setupPlayerStreams(incomingPlayer);
+    // A repeat toggle during the fade was applied to the outgoing player.
+    if (incomingPlayer.state.playlistMode != _playlistMode) {
+      await incomingPlayer.setPlaylistMode(_playlistMode);
+    }
 
     _retryTimer?.cancel();
     _retryTimer = null;
@@ -1992,17 +1992,7 @@ class LibMPV extends BasePlayer {
   }
 
   @override
-  Future<void> loop(bool loop) async {
-    if (loop && _onCompleted == null) {
-      _onCompleted = _player?.stream.completed.listen((completed) {
-        if (completed) {
-          _player?.play();
-        }
-      });
-    } else {
-      _onCompleted?.cancel();
-    }
-  }
+  Future<void> loop(bool loop) => setLoopFile(loop);
 }
 
 class _VideoSubtitles extends ConsumerStatefulWidget {

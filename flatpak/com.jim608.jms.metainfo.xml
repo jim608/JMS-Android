@@ -25,6 +25,15 @@
   </developer>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.12.1-jms.63" date="2026-11-26">
+      <description>
+        <ul>
+          <li>Plays downloaded videos directly while offline.</li>
+          <li>Skips unavailable episodes in offline TV playback.</li>
+          <li>Includes Fladder 0.12.1 translation and MPV looping updates.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.12.0-jms.62" date="2026-11-19">
       <description>
         <ul>

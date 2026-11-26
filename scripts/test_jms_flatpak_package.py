@@ -251,7 +251,7 @@ class FlatpakPackageTests(unittest.TestCase):
 
     def test_application_source_review_selects_each_approved_version_only(self):
         review = json.loads(sources.APP_SOURCE_REVIEW.read_bytes())
-        for version in ('0.12.0-jms.60', '0.12.0-jms.61', '0.12.0-jms.62'):
+        for version in ('0.12.0-jms.60', '0.12.0-jms.61', '0.12.0-jms.62', '0.12.1-jms.63'):
             with self.subTest(version=version):
                 self.assertIn(version, review['versionNames'])
         for version in ('0.12.0-jms.6', '0.12.0-jms.9999'):

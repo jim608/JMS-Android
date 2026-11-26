@@ -1,3 +1,20 @@
+# JMS 0.12.1-jms.63
+
+## Changed
+
+- Integrated Fladder 0.12.1 translations and MPV looping updates.
+
+## Fixed
+
+- Play downloaded files directly when offline. If a Jellyfin request fails and finds a local copy, the player opens it without asking the server to start a stream.
+- Offline TV playback chooses downloaded episodes and skips pending or deleted files. Switching to an unavailable video clears the buffering state.
+- Android's native player opens downloaded videos and external subtitles whose filenames include characters such as `#` and `%`.
+
+## Known issues
+
+- Windows users can download the installer from the release page if the in-app update check fails.
+- This is a prerelease. Playback in airplane mode and upgrades on physical Android devices still need device testing.
+
 # JMS 0.12.0-jms.62
 
 ## Fixed
