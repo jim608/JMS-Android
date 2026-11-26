@@ -56,6 +56,7 @@ class _SeasonDetailScreenState extends ConsumerState<SeasonDetailScreen> {
       content: (context, padding) => details != null
           ? [
               OverviewHeader(
+                hasBackdrop: details.parentImages?.hasBackdrop == true,
                 name: details.seriesName,
                 image: details.parentImages,
                 padding: padding,

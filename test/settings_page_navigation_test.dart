@@ -305,6 +305,10 @@ void main() {
   testWidgets('settings categories explain their contents and the selected pane names the category', (tester) async {
     await _mount(tester, phone: false);
     final strings = tester.element(find.byType(SettingsScaffold).first).localized;
+    final selected = find.widgetWithText(SettingsListTile, strings.settingsPlayerTitle);
+    final general = find.widgetWithText(SettingsListTile, strings.general).first;
+    expect(find.descendant(of: selected, matching: find.byIcon(Icons.check_rounded)), findsOneWidget);
+    expect(find.descendant(of: general, matching: find.byIcon(Icons.chevron_right)), findsOneWidget);
     expect(find.text(strings.settingsClientDesc), findsOneWidget);
     expect(find.text(strings.settingsPlayerDesc), findsOneWidget);
     expect(find.text(strings.settingsPlayerTitle), findsNWidgets(2));
@@ -324,6 +328,8 @@ void main() {
   testWidgets('classic settings keep their original category list and desktop header', (tester) async {
     await _mount(tester, phone: false, classic: true);
     final strings = tester.element(find.byType(SettingsScaffold).first).localized;
+    final category = find.widgetWithText(SettingsListTile, strings.settingsPlayerTitle);
+    expect(find.descendant(of: category, matching: find.byIcon(Icons.check_rounded)), findsNothing);
     expect(find.text(strings.settingsClientDesc), findsNothing);
     expect(find.text(strings.settingsPlayerTitle), findsOneWidget);
     expect(find.byType(PinnedHeaderSliver), findsNothing);
@@ -342,6 +348,8 @@ void main() {
     final strings = tester.element(find.byType(SettingsScaffold).first).localized;
     final entry = find.widgetWithText(SettingsListTile, strings.settingsPlayerTitle);
     await tester.ensureVisible(entry);
+    final indicator = find.descendant(of: entry, matching: find.byIcon(Icons.chevron_right));
+    expect(tester.getRect(entry).contains(tester.getCenter(indicator)), isTrue);
     await tester.tap(find.descendant(of: entry, matching: find.byType(InkWell)));
     await tester.pumpAndSettle();
     final page = find.byType(SettingsScaffold).last;

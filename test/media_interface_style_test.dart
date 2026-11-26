@@ -2,9 +2,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:transparent_image/transparent_image.dart';
 
 import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart' as jelly;
 import 'package:fladder/localization_delegates.dart';
+import 'package:fladder/models/items/images_models.dart';
 import 'package:fladder/models/items/movie_model.dart';
 import 'package:fladder/providers/settings/home_settings_provider.dart';
 import 'package:fladder/screens/shared/media/components/media_header.dart';
@@ -16,7 +18,26 @@ import 'package:fladder/util/poster_defaults.dart';
 import 'package:fladder/util/localization_helper.dart';
 import 'package:fladder/widgets/shared/clickable_text.dart';
 
+class _MemoryLogo extends ImageData {
+  @override
+  final imageProvider = MemoryImage(kTransparentImage);
+}
+
 void main() {
+  testWidgets('modern media header shows the title until its logo is ready', (tester) async {
+    final logo = _MemoryLogo();
+    await tester.pumpWidget(ProviderScope(
+      overrides: [classicInterfaceProvider.overrideWithValue(false)],
+      child: MaterialApp(home: Scaffold(body: MediaHeader(name: '海邊電影院', logo: logo))),
+    ));
+    expect(find.text('海邊電影院'), findsOneWidget);
+    final context = tester.element(find.byType(MediaHeader));
+    await tester.runAsync(() => precacheImage(logo.imageProvider, context));
+    await tester.pump();
+    expect(find.text('海邊電影院'), findsNothing);
+    expect(find.bySemanticsLabel('海邊電影院'), findsOneWidget);
+  });
+
   for (final classic in [false, true]) {
     testWidgets('poster captions and detail playback respect classic=$classic', (tester) async {
       final calls = <bool>[];

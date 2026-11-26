@@ -53,6 +53,7 @@ class _ItemDetailScreenState extends ConsumerState<EpisodeDetailScreen> {
         AdaptiveLayout.viewSizeOf(context) != ViewSize.phone ? WrapAlignment.start : WrapAlignment.center;
 
     final actors = details.episode?.overview.people ?? [];
+    final backdropImages = details.episode?.images ?? details.series?.images;
 
     return DetailScaffold(
       label: widget.item.name,
@@ -72,10 +73,11 @@ class _ItemDetailScreenState extends ConsumerState<EpisodeDetailScreen> {
         },
       ),
       onRefresh: () async => await ref.read(providerInstance.notifier).fetchDetails(widget.item),
-      backDrops: details.episode?.images ?? details.series?.images,
+      backDrops: backdropImages,
       content: (detailsContext, padding) => seasonDetails != null && episodeDetails != null
           ? [
               OverviewHeader(
+                hasBackdrop: backdropImages?.hasBackdrop == true,
                 name: details.series?.name ?? "",
                 image: seasonDetails.images,
                 mainButton: episodeDetails.playAble

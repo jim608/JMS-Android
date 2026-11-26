@@ -55,6 +55,10 @@ class MediaHeader extends ConsumerWidget {
                   image: logo,
                   disableBlur: true,
                   alignment: alignment,
+                  frameBuilder: classic
+                      ? null
+                      : (context, child, frame, _) =>
+                          frame == null ? textWidget : Semantics(image: true, label: name, child: child),
                   imageErrorBuilder: (context, object, stack) => textWidget,
                   placeHolder: const SizedBox(height: 0),
                   fit: BoxFit.contain,

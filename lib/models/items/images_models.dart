@@ -35,6 +35,8 @@ class ImagesData {
     return primary ?? thumb ?? backDrop?.firstOrNull;
   }
 
+  bool get hasBackdrop => primary != null || backDrop?.isNotEmpty == true;
+
   ImageData? get randomBackDrop => (backDrop?.toList()?..shuffle())?.firstOrNull ?? primary;
 
   static ImagesData? fromBaseItem(

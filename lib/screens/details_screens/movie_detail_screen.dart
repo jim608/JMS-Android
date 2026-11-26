@@ -99,6 +99,7 @@ class _ItemDetailScreenState extends ConsumerState<MovieDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   OverviewHeader(
+                    hasBackdrop: details.images?.hasBackdrop == true,
                     name: details.name,
                     image: details.images,
                     padding: padding,

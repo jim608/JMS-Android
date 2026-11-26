@@ -75,6 +75,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
       content: (detailsContext, padding) => details != null
           ? [
               OverviewHeader(
+                hasBackdrop: details.images?.hasBackdrop == true,
                 name: details.name,
                 image: details.images,
                 mainButton: currentEpisode != null

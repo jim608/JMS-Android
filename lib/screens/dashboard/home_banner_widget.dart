@@ -39,7 +39,7 @@ class HomeBannerWidget extends ConsumerWidget {
                       (MediaQuery.textScalerOf(context).scale(48) - 48).clamp(0.0, 120.0),
               useClassicStyle: useClassicStyle,
             ),
-            const SizedBox(height: 24)
+            SizedBox(height: !useClassicStyle && posters.length > 1 ? 8 : 24),
           ],
         ),
       HomeBanner.banner => Padding(

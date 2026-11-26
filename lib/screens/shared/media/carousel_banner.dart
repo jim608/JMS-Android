@@ -146,56 +146,59 @@ class _CarouselBannerState extends ConsumerState<CarouselBanner> {
     final strings = MaterialLocalizations.of(context);
     final count = widget.items.length;
     final current = _page.clamp(0, count - 1);
-    return SizedBox(
-      height: widget.maxHeight,
-      child: Padding(
-        padding: const EdgeInsetsDirectional.fromSTEB(10, 6, 10, 0),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            PageView.builder(
+    final next = current + 1 < count ? widget.items[current + 1] : null;
+    return Padding(
+      padding: const EdgeInsetsDirectional.fromSTEB(10, 6, 10, 0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            height: widget.maxHeight - 6,
+            child: PageView.builder(
               controller: _pageController,
               allowImplicitScrolling: true,
               onPageChanged: (page) => setState(() => _page = page),
               itemCount: count,
               itemBuilder: (context, index) => _buildCard(widget.items[index]),
             ),
-            if (count > 1)
-              PositionedDirectional(
-                top: 12,
-                end: 12,
-                child: Material(
-                  color: const Color(0xD6191C22),
-                  shape: const StadiumBorder(),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        color: Colors.white,
-                        disabledColor: Colors.white38,
-                        tooltip: strings.previousPageTooltip,
-                        onPressed: current == 0 ? null : () => _goToPage(current - 1),
-                        icon: const Icon(Icons.chevron_left),
-                      ),
-                      Text(
-                        '${strings.formatDecimal(current + 1)} / ${strings.formatDecimal(count)}',
-                        textDirection: TextDirection.ltr,
-                        semanticsLabel: strings.tabLabel(tabIndex: current + 1, tabCount: count),
-                        style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.white),
-                      ),
-                      IconButton(
-                        color: Colors.white,
-                        disabledColor: Colors.white38,
-                        tooltip: strings.nextPageTooltip,
-                        onPressed: current == count - 1 ? null : () => _goToPage(current + 1),
-                        icon: const Icon(Icons.chevron_right),
-                      ),
-                    ],
+          ),
+          if (count > 1)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Row(
+                children: [
+                  IconButton(
+                    tooltip: strings.previousPageTooltip,
+                    onPressed: current == 0 ? null : () => _goToPage(current - 1),
+                    icon: const Icon(Icons.chevron_left),
                   ),
-                ),
+                  Text(
+                    '${strings.formatDecimal(current + 1)} / ${strings.formatDecimal(count)}',
+                    textDirection: TextDirection.ltr,
+                    semanticsLabel: strings.tabLabel(tabIndex: current + 1, tabCount: count),
+                    style: Theme.of(context).textTheme.labelMedium,
+                  ),
+                  Expanded(
+                    child: Align(
+                      alignment: AlignmentDirectional.centerEnd,
+                      child: Tooltip(
+                        message: strings.nextPageTooltip,
+                        child: TextButton.icon(
+                          onPressed: next == null ? null : () => _goToPage(current + 1),
+                          style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
+                          iconAlignment: IconAlignment.end,
+                          icon: const Icon(Icons.chevron_right),
+                          label: next == null
+                              ? const SizedBox.shrink()
+                              : Text(next.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
@@ -338,7 +341,6 @@ class _CarouselBannerState extends ConsumerState<CarouselBanner> {
                   subtitle: subtitle,
                   wide: wide,
                   size: constraints.biggest,
-                  hasPager: widget.items.length > 1,
                 ),
               ],
             );
@@ -355,14 +357,12 @@ class _SpotlightCaption extends ConsumerWidget {
     required this.subtitle,
     required this.size,
     required this.wide,
-    required this.hasPager,
   });
 
   final ItemBaseModel item;
   final String? subtitle;
   final Size size;
   final bool wide;
-  final bool hasPager;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -385,7 +385,7 @@ class _SpotlightCaption extends ConsumerWidget {
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: wide ? math.min(size.width * 0.49, 620) : size.width),
         child: Padding(
-          padding: EdgeInsetsDirectional.fromSTEB(inset, !wide && hasPager ? 64 : inset, inset, inset),
+          padding: EdgeInsets.all(inset),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,

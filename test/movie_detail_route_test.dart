@@ -160,6 +160,14 @@ void main() {
         expect(find.text('海邊電影院').hitTestable(), findsOneWidget);
         expect(find.byType(MediaPlayButton).hitTestable(), findsOneWidget);
         expect(find.byType(EnumBox), findsNWidgets(classic ? 3 : 2));
+        final titleTop = tester.getTopLeft(find.text('海邊電影院')).dy;
+        if (classic) {
+          expect(titleTop, greaterThan(300));
+        } else {
+          expect(titleTop, greaterThan(tester.getBottomLeft(find.byType(BackButtonIcon)).dy));
+          expect(titleTop, lessThan(180));
+          expect(tester.getBottomLeft(find.byType(MediaPlayButton)).dy, lessThan(390));
+        }
 
         await tester.tap(find.byType(BackButtonIcon));
         await tester.pumpAndSettle();

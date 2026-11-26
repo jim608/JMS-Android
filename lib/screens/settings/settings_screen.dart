@@ -137,6 +137,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     final isAdmin = ref.watch(userProvider.select((value) => value?.policy?.isAdministrator ?? false));
 
+    Widget? categoryIndicator(bool selected) => classic
+        ? null
+        : Icon(
+            selected ? Icons.check_rounded : Icons.chevron_right,
+            size: 20,
+            color: selected ? context.colors.primary : context.colors.onSurfaceVariant,
+          );
+
     Widget category(
       PageRouteInfo route,
       String label, {
@@ -148,9 +156,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       final selected = containsRoute(route);
       final tile = SettingsListTile(
         label: Text(label),
-        subLabel: classic || description == null ? null : Text(description),
+        subLabel: classic || description == null
+            ? null
+            : Text(
+                description,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: context.colors.onSurfaceVariant),
+              ),
         icon: icon,
         leading: leading,
+        trailing: categoryIndicator(selected),
         autoFocus: autoFocus,
         selected: selected,
         onTap: () => navigateTo(route),
@@ -161,6 +175,42 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: Semantics(button: true, selected: selected, child: tile),
             );
     }
+
+    final categories = [
+      category(
+        const ClientSettingsRoute(),
+        context.localized.general,
+        description: context.localized.settingsClientDesc,
+        autoFocus: true,
+        icon: deviceIcon,
+      ),
+      if (isAdmin)
+        SettingsListTile(
+          label: Text(context.localized.controlPanel),
+          subLabel: Text(context.localized.controlPanelDesc),
+          selected: containsRoute(const ControlPanelSelectionRoute()),
+          icon: IconsaxPlusLinear.chart_3,
+          trailing: categoryIndicator(containsRoute(const ControlPanelSelectionRoute())),
+          onTap: () => const ControlPanelSelectionRoute().navigate(context),
+        ),
+      category(
+        const ProfileSettingsRoute(),
+        context.localized.settingsProfileTitle,
+        description: context.localized.settingsProfileDesc,
+        icon: IconsaxPlusLinear.security_user,
+      ),
+      category(
+        const PlayerSettingsRoute(),
+        context.localized.settingsPlayerTitle,
+        description: context.localized.settingsPlayerDesc,
+        icon: IconsaxPlusLinear.video_play,
+      ),
+      category(
+        const AboutSettingsRoute(),
+        context.localized.about,
+        leading: FladderIconOutlined(size: 24, color: context.colors.onSurfaceVariant),
+      ),
+    ];
 
     return Padding(
       padding: EdgeInsetsDirectional.only(start: AdaptiveLayout.of(context).sideBarWidth),
@@ -184,42 +234,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
               const SizedBox(height: 8),
             ],
-            category(
-              const ClientSettingsRoute(),
-              context.localized.general,
-              description: context.localized.settingsClientDesc,
-              autoFocus: true,
-              icon: deviceIcon,
-            ),
-            if (isAdmin)
-              SettingsListTile(
-                label: Text(context.localized.controlPanel),
-                subLabel: Text(context.localized.controlPanelDesc),
-                selected: containsRoute(const ControlPanelSelectionRoute()),
-                icon: IconsaxPlusLinear.chart_3,
-                onTap: () => const ControlPanelSelectionRoute().navigate(context),
+            if (classic) ...[
+              ...categories,
+              const FractionallySizedBox(widthFactor: 0.25, child: Divider()),
+            ] else
+              Card.filled(
+                margin: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+                clipBehavior: Clip.antiAlias,
+                child: Column(children: categories),
               ),
-            category(
-              const ProfileSettingsRoute(),
-              context.localized.settingsProfileTitle,
-              description: context.localized.settingsProfileDesc,
-              icon: IconsaxPlusLinear.security_user,
-            ),
-            category(
-              const PlayerSettingsRoute(),
-              context.localized.settingsPlayerTitle,
-              description: context.localized.settingsPlayerDesc,
-              icon: IconsaxPlusLinear.video_play,
-            ),
-            category(
-              const AboutSettingsRoute(),
-              context.localized.about,
-              leading: Opacity(
-                opacity: 1,
-                child: FladderIconOutlined(size: 24, color: context.colors.onSurfaceVariant),
-              ),
-            ),
-            const FractionallySizedBox(widthFactor: 0.25, child: Divider()),
             if (quickConnectAvailable)
               SettingsListTile(
                 label: Text(context.localized.settingsQuickConnectTitle),
@@ -251,7 +274,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             SettingsListTile(
               label: Text(context.localized.switchUser),
               icon: IconsaxPlusLinear.arrow_swap_horizontal,
-              contentColor: Colors.greenAccent,
+              contentColor: classic ? Colors.greenAccent : context.colors.primary,
               onTap: () async {
                 await ref.read(userProvider.notifier).logoutUser();
                 context.router.replaceAll([LoginRoute()]);

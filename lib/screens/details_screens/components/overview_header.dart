@@ -26,6 +26,7 @@ import 'package:fladder/widgets/shared/item_actions.dart';
 class OverviewHeader extends ConsumerWidget {
   final String name;
   final double? minHeight;
+  final bool hasBackdrop;
   final bool disableheader;
   final ImagesData? image;
   final Widget? mainButton;
@@ -49,6 +50,7 @@ class OverviewHeader extends ConsumerWidget {
   const OverviewHeader({
     required this.name,
     this.minHeight,
+    this.hasBackdrop = true,
     this.disableheader = false,
     this.image,
     this.mainButton,
@@ -85,7 +87,10 @@ class OverviewHeader extends ConsumerWidget {
         (MediaQuery.sizeOf(context).height - (MediaQuery.paddingOf(context).top + 50)).clamp(50, 1250).toDouble();
 
     final isPhone = AdaptiveLayout.viewSizeOf(context) == ViewSize.phone;
-    final alignTitleStart = !ref.watch(classicInterfaceProvider) && !isPhone && logoAlignment == Alignment.bottomCenter;
+    final classic = ref.watch(classicInterfaceProvider);
+    final alignTitleStart = !classic && !isPhone && logoAlignment == Alignment.bottomCenter;
+    final compactHeader = !classic && !hasBackdrop;
+    final headerPadding = padding ?? EdgeInsets.zero;
 
     final crossAlignment = !isPhone ? CrossAxisAlignment.start : CrossAxisAlignment.stretch;
 
@@ -93,10 +98,15 @@ class OverviewHeader extends ConsumerWidget {
 
     return ConstrainedBox(
       constraints: BoxConstraints(
-        minHeight: minHeight ?? fullHeight,
+        minHeight: minHeight ?? (compactHeader ? 0 : fullHeight),
       ),
       child: Padding(
-        padding: padding ?? EdgeInsets.zero,
+        padding: compactHeader
+            ? headerPadding + EdgeInsets.only(
+                top: MediaQuery.paddingOf(context).top + AdaptiveLayout.of(context).topBarHeight + kToolbarHeight + 24,
+                bottom: 16,
+              )
+            : headerPadding,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
           crossAxisAlignment: crossAlignment,

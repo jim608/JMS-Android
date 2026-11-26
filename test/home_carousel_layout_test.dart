@@ -28,6 +28,7 @@ import 'helpers/interface_typography_environment_stub.dart'
     if (dart.library.js_interop) 'helpers/interface_typography_environment_web.dart';
 
 const _title = '在海岸的盡頭等待最後一班穿越山谷的夜行列車';
+const _nextTitle = '在黎明前穿過落雪的群峰與沉睡的城市';
 const _locale = Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant');
 
 Future<void> _mount(
@@ -52,7 +53,7 @@ Future<void> _mount(
     (i) => MovieModel.fromBaseDto(
       dto.BaseItemDto(
         id: '$i',
-        name: i == 0 ? _title : '電影 $i',
+        name: switch (i) { 0 => _title, 1 => _nextTitle, _ => '電影 $i' },
         productionYear: 2026,
         userData: dto.UserItemDataDto(playedPercentage: i == 0 ? 38 : 0),
       ),
@@ -169,21 +170,24 @@ void main() {
       expect(_featureAction(context.localized.resumeVideo), findsOneWidget);
 
       await _mount(tester, size, count: 3, rtl: rtl);
-      IconButton pager(Finder tooltip) => tester.widget(find.ancestor(of: tooltip, matching: find.byType(IconButton)));
+      IconButton previousButton() => tester.widget(find.ancestor(of: previous, matching: find.byType(IconButton)));
+      TextButton nextButton() => tester.widget(find.descendant(of: next, matching: find.byType(TextButton)));
       void expectPage(int number) {
         expect(find.text('${l10n.formatDecimal(number)} / ${l10n.formatDecimal(3)}'), findsOneWidget);
         expect(find.bySemanticsLabel(l10n.tabLabel(tabIndex: number, tabCount: 3)), findsOneWidget);
       }
 
       expectPage(1);
-      expect(pager(previous).onPressed, isNull);
+      expect(previousButton().onPressed, isNull);
       final scroll = find.descendant(of: find.byType(HomeBannerWidget), matching: find.byType(Scrollable));
       final position = tester.state<ScrollableState>(scroll).position;
+      expect(tester.getRect(next).top, greaterThanOrEqualTo(tester.getRect(scroll).bottom));
+      expect(find.descendant(of: next, matching: find.text(_nextTitle)), findsOneWidget);
       expect(_featureAction(context.localized.playLabel), findsNothing);
       await tester.tap(next);
       await tester.pumpAndSettle();
       expect(position.pixels, closeTo(position.viewportDimension, 1));
-      expect(tester.getRect(scroll).contains(tester.getCenter(find.text('電影 1'))), isTrue);
+      expect(tester.getRect(scroll).contains(tester.getCenter(find.text(_nextTitle))), isTrue);
       expectPage(2);
       expect(_featureAction(context.localized.playLabel), findsOneWidget);
 
@@ -199,7 +203,7 @@ void main() {
       await tester.tap(next);
       await tester.pumpAndSettle();
       expectPage(3);
-      expect(pager(next).onPressed, isNull);
+      expect(nextButton().onPressed, isNull);
 
       await _mount(tester, size, rtl: rtl);
       expect(next, findsNothing);
@@ -207,6 +211,19 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets('the film navigation fits below the artwork with large RTL text', (tester) async {
+    await _mount(tester, const Size(320, 568), count: 3, rtl: true, scale: 2);
+    final context = tester.element(find.byType(HomeBannerWidget));
+    final strings = MaterialLocalizations.of(context);
+    final next = find.byTooltip(strings.nextPageTooltip);
+    final previous = find.byTooltip(strings.previousPageTooltip);
+    final card = tester.getRect(find.byType(PageView));
+    expect(tester.getRect(next).top, greaterThanOrEqualTo(card.bottom));
+    expect(tester.getRect(next).right, lessThan(tester.getRect(previous).left));
+    expect(tester.getRect(next).height, greaterThanOrEqualTo(48));
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('keyboard traversal reaches the active resume button separately from film details', (tester) async {
     await _mount(tester, const Size(1280, 800), count: 3);
