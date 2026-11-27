@@ -21,6 +21,7 @@ import 'package:fladder/screens/settings/player_settings_page.dart';
 import 'package:fladder/screens/settings/profile_settings_page.dart';
 import 'package:fladder/screens/settings/settings_list_tile.dart';
 import 'package:fladder/screens/settings/settings_scaffold.dart';
+import 'package:fladder/screens/shared/user_icon.dart';
 import 'package:fladder/theme.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout_model.dart';
@@ -345,6 +346,11 @@ void main() {
 
   testWidgets('large text on a small phone keeps the player title and back action after scrolling', (tester) async {
     await _mount(tester, phone: true, scale: 2);
+    final avatar = find.byType(UserIcon).first;
+    final initial = tester.renderObject<RenderParagraph>(find.descendant(of: avatar, matching: find.text('觀')));
+    final ink = initial.getBoxesForSelection(const TextSelection(baseOffset: 0, extentOffset: 1)).single.toRect();
+    final bounds = tester.getRect(avatar);
+    expect(initial.localToGlobal(ink.bottomRight).dy, lessThanOrEqualTo(bounds.bottom));
     final strings = tester.element(find.byType(SettingsScaffold).first).localized;
     final entry = find.widgetWithText(SettingsListTile, strings.settingsPlayerTitle);
     await tester.ensureVisible(entry);

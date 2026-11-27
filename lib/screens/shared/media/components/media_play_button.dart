@@ -18,6 +18,7 @@ class MediaPlayButton extends ConsumerWidget {
   final bool forceFocusOutline;
   final bool showRestartOption;
   final bool autofocusOnDpad;
+  final bool wrapLabel;
   final Function(bool restart)? onPressed;
   final Function(bool restart)? onLongPressed;
 
@@ -26,6 +27,7 @@ class MediaPlayButton extends ConsumerWidget {
     this.forceFocusOutline = false,
     this.showRestartOption = true,
     this.autofocusOnDpad = true,
+    this.wrapLabel = false,
     this.onPressed,
     this.onLongPressed,
     super.key,
@@ -57,7 +59,7 @@ class MediaPlayButton extends ConsumerWidget {
               child: Text(
                 label,
                 semanticsLabel: movie == null ? null : (progress > 0 ? strings.resume(movie.name) : strings.play(movie.name)),
-                maxLines: 1,
+                maxLines: wrapLabel ? null : 1,
                 overflow: TextOverflow.fade,
                 style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, color: contentColor),
               ),

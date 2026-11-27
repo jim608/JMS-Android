@@ -221,6 +221,8 @@ void main() {
     final card = tester.getRect(find.byType(PageView));
     expect(tester.getRect(next).top, greaterThanOrEqualTo(card.bottom));
     expect(tester.getRect(next).right, lessThan(tester.getRect(previous).left));
+    final count = find.text('1 / 3');
+    expect(tester.getRect(count).left - tester.getRect(next).right, greaterThanOrEqualTo(8));
     expect(tester.getRect(next).height, greaterThanOrEqualTo(48));
     expect(tester.takeException(), isNull);
   });

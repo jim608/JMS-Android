@@ -82,6 +82,7 @@ class _ItemDetailScreenState extends ConsumerState<EpisodeDetailScreen> {
                 image: seasonDetails.images,
                 mainButton: episodeDetails.playAble
                     ? MediaPlayButton(
+                        wrapLabel: true,
                         item: episodeDetails,
                         onPressed: (restart) async {
                           await details.episode.play(

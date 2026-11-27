@@ -179,6 +179,7 @@ class _CarouselBannerState extends ConsumerState<CarouselBanner> {
                     semanticsLabel: strings.tabLabel(tabIndex: current + 1, tabCount: count),
                     style: Theme.of(context).textTheme.labelMedium,
                   ),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Align(
                       alignment: AlignmentDirectional.centerEnd,

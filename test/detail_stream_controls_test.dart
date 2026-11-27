@@ -91,16 +91,14 @@ void main() {
       final labels = tester.element(find.byType(OverviewHeader)).localized;
       expect(options, findsNWidgets(3));
       expect(find.text(labels.subtitles), classic ? findsNothing : findsOneWidget);
-      if (!classic) {
-        final rects = [for (final option in options.evaluate()) tester.getRect(find.byWidget(option.widget))];
-        expect(rects.last.top, greaterThan(rects.first.top));
-        for (final rect in rects) {
-          expect(rect.height, greaterThanOrEqualTo(48));
-          expect(rect.left, greaterThanOrEqualTo(0));
-          expect(rect.right, lessThanOrEqualTo(320));
-        }
-        expect(find.text(labels.off), findsOneWidget);
+      final rects = [for (final option in options.evaluate()) tester.getRect(find.byWidget(option.widget))];
+      expect(rects.last.top, greaterThan(rects.first.top));
+      for (final rect in rects) {
+        expect(rect.height, greaterThanOrEqualTo(48));
+        expect(rect.left, greaterThanOrEqualTo(0));
+        expect(rect.right, lessThanOrEqualTo(320));
       }
+      if (!classic) expect(find.text(labels.off), findsOneWidget);
       await tester.tap(options.last);
       await tester.pumpAndSettle();
       await tester.tap(find.text('繁體中文').last);

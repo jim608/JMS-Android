@@ -101,10 +101,10 @@ class OverviewHeader extends ConsumerWidget {
         minHeight: minHeight ?? (compactHeader ? 0 : fullHeight),
       ),
       child: Padding(
-        padding: compactHeader
+        padding: compactHeader || minHeight == null
             ? headerPadding + EdgeInsets.only(
                 top: MediaQuery.paddingOf(context).top + AdaptiveLayout.of(context).topBarHeight + kToolbarHeight + 24,
-                bottom: 16,
+                bottom: compactHeader ? 16 : 0,
               )
             : headerPadding,
         child: Column(
@@ -169,7 +169,6 @@ class OverviewHeader extends ConsumerWidget {
                       subTitle ?? "",
                       textAlign: TextAlign.center,
                       style: mainStyle,
-                      maxLines: 1,
                     ),
                   ),
                 if (name.toLowerCase() != originalTitle?.toLowerCase() && originalTitle != null)
@@ -291,7 +290,11 @@ class _StreamOptions extends ConsumerWidget {
           if (focused) context.ensureVisible(alignment: 1.0);
         },
         currentWidget: classic
-            ? Row(mainAxisSize: MainAxisSize.min, spacing: 8, children: [Icon(icon, color: color), Text(value)])
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                spacing: 8,
+                children: [Icon(icon, color: color), Flexible(child: Text(value))],
+              )
             : Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -302,7 +305,6 @@ class _StreamOptions extends ConsumerWidget {
               ),
         itemBuilder: (_) => items,
       );
-      if (classic) return SizedBox(height: 43, child: box);
       return MergeSemantics(
         child: ConstrainedBox(constraints: const BoxConstraints(minHeight: 48), child: box),
       );
@@ -347,19 +349,11 @@ class _StreamOptions extends ConsumerWidget {
           ],
         ),
     ];
-    if (classic) {
-      final row = Row(
-        mainAxisSize: MainAxisSize.min,
-        spacing: 4,
-        children: choices.withPositionProvider(context: context),
-      );
-      return phone ? Center(child: FittedBox(child: row)) : row;
-    }
     return Wrap(
-      spacing: 8,
+      spacing: classic ? 4 : 8,
       runSpacing: 8,
       alignment: phone ? WrapAlignment.center : WrapAlignment.start,
-      children: choices,
+      children: classic ? choices.withPositionProvider(context: context) : choices,
     );
   }
 }

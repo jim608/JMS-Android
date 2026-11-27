@@ -15,10 +15,12 @@ import 'package:fladder/providers/settings/home_settings_provider.dart';
 import 'package:fladder/providers/sync_provider.dart';
 import 'package:fladder/routes/nested_details_screen.dart';
 import 'package:fladder/screens/details_screens/components/overview_header.dart';
+import 'package:fladder/screens/shared/media/components/media_header.dart';
 import 'package:fladder/screens/shared/media/components/media_play_button.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout_model.dart';
 import 'package:fladder/util/poster_defaults.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -124,7 +126,7 @@ void main() {
               locale: locale,
               supportedLocales: const [locale],
               localizationsDelegates: FladderLocalizations.localizationsDelegates,
-              builder: (_, child) => AdaptiveLayout(
+              builder: (context, child) => AdaptiveLayout(
                 data: const AdaptiveLayoutModel(
                   viewSize: ViewSize.phone,
                   layoutMode: LayoutMode.single,
@@ -137,7 +139,10 @@ void main() {
                   topBarHeight: 0,
                   statusBarHeight: 24,
                 ),
-                child: child!,
+                child: MediaQuery(
+                  data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(2)),
+                  child: child!,
+                ),
               ),
               home: Scaffold(
                 body: DetailsScreen(id: item.id, item: item),
@@ -148,7 +153,12 @@ void main() {
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
         expect(find.byType(OverviewHeader), findsOneWidget);
-        expect(find.byType(MediaPlayButton), findsOneWidget);
+        final toolbar = find.ancestor(of: find.byType(BackButtonIcon), matching: find.byType(IconButton));
+        expect(tester.getTopLeft(find.byType(MediaHeader)).dy, greaterThanOrEqualTo(tester.getBottomLeft(toolbar).dy));
+        final play = find.byType(MediaPlayButton);
+        final caption = find.descendant(of: play, matching: find.byType(Text)).first;
+        expect(tester.renderObject<RenderParagraph>(caption).didExceedMaxLines, isFalse);
+
         expect(find.byType(ErrorWidget), findsNothing);
         expect(find.text(item.overview.summary, findRichText: true), findsOneWidget);
         await tester.pumpWidget(const SizedBox.shrink());

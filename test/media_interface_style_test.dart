@@ -38,6 +38,25 @@ void main() {
     expect(find.bySemanticsLabel('海邊電影院'), findsOneWidget);
   });
 
+  testWidgets('a wrapped classic title remains completely visible with large text', (tester) async {
+    const title = '海邊電影院';
+    await tester.pumpWidget(ProviderScope(
+      overrides: [classicInterfaceProvider.overrideWithValue(true)],
+      child: MaterialApp(
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(2)),
+          child: child!,
+        ),
+        home: const Scaffold(
+          body: SingleChildScrollView(child: SizedBox(width: 320, child: MediaHeader(name: title, logo: null))),
+        ),
+      ),
+    ));
+    final text = tester.state<EditableTextState>(find.byType(EditableText)).renderEditable;
+    final last = text.getLocalRectForCaret(const TextPosition(offset: title.length));
+    expect(last.bottom, lessThanOrEqualTo(text.size.height + 1));
+  });
+
   for (final classic in [false, true]) {
     testWidgets('poster captions and detail playback respect classic=$classic', (tester) async {
       final calls = <bool>[];
@@ -92,7 +111,7 @@ void main() {
       final heading = tester.widget<SelectableText>(
         find.descendant(of: find.byType(MediaHeader), matching: find.byType(SelectableText)),
       );
-      expect(heading.style!.fontSize, classic ? 55 : closeTo(28.8, 0.01));
+      expect(heading.style!.fontSize, closeTo(classic ? 35.2 : 28.8, 0.01));
       final controls = find.byType(MediaPlayButton);
       final strings = tester.element(controls).localized;
       if (!classic) {

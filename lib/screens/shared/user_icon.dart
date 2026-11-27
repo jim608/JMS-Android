@@ -31,7 +31,9 @@ class UserIcon extends ConsumerWidget {
     Widget placeHolder() {
       return Container(
         color: Theme.of(context).colorScheme.primaryContainer,
-        child: Center(
+        padding: const EdgeInsets.all(3),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
           child: Text(
             user?.name.getInitials() ?? "",
             style: (labelStyle ?? Theme.of(context).textTheme.titleMedium)?.copyWith(

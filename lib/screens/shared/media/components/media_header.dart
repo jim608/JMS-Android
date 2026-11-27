@@ -27,13 +27,15 @@ class MediaHeader extends ConsumerWidget {
     final classic = ref.watch(classicInterfaceProvider);
     final textWidget = LayoutBuilder(
       builder: (context, constraints) => Container(
-        constraints: BoxConstraints(minHeight: 10, maxHeight: classic ? 200 : double.infinity),
+        constraints: const BoxConstraints(minHeight: 10),
         alignment: alignment,
         child: SelectableText(
           name,
           textAlign: textAlign,
           style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-            fontSize: classic ? 55 : (constraints.maxWidth * 0.09).clamp(28, 48).toDouble(),
+            fontSize: classic
+                ? (constraints.maxWidth * 0.11).clamp(28, 55).toDouble()
+                : (constraints.maxWidth * 0.09).clamp(28, 48).toDouble(),
             fontWeight: classic ? null : FontWeight.w700,
             height: classic ? null : 1.16,
           ),
@@ -43,7 +45,7 @@ class MediaHeader extends ConsumerWidget {
 
     return ConstrainedBox(
       constraints: BoxConstraints(
-        maxHeight: classic || logo != null
+        maxHeight: logo != null
             ? (MediaQuery.sizeOf(context).height * 0.275).clamp(0, maxSize)
             : double.infinity,
         maxWidth: MediaQuery.sizeOf(context).width.clamp(0, maxSize),

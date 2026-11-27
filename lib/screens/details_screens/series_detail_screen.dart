@@ -80,6 +80,7 @@ class _SeriesDetailScreenState extends ConsumerState<SeriesDetailScreen> {
                 image: details.images,
                 mainButton: currentEpisode != null
                     ? MediaPlayButton(
+                        wrapLabel: true,
                         item: currentEpisode,
                         onPressed: (restart) async {
                           await currentEpisode.play(
