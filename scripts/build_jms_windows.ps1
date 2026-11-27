@@ -166,6 +166,11 @@ if (-not $PortableOnly) {
     if (-not $iscc) { throw "Portable ZIP is ready at $zipPath; Inno Setup 6 is required for the installer" }
     & rtk proxy $iscc "/DJMS_VERSION=$version" "/DJMS_VERSION_CODE=$versionCode" "/DJMS_BUNDLE=$stageDir" "/O$artifactDir" "/F$setupBase" 'windows/windows_setup.iss'
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $setupPath)) { throw 'Inno Setup installer build failed' }
+    $expectedPeVersion = [version]"$($version.Split('-')[0]).$versionCode"
+    $setupVersion = (Get-Item -LiteralPath $setupPath).VersionInfo
+    if ($setupVersion.FileVersionRaw -ne $expectedPeVersion -or $setupVersion.ProductVersionRaw -ne $expectedPeVersion) {
+        throw "Installer numeric version must match the Windows build version $expectedPeVersion"
+    }
 }
 
 $outputs = @($zipPath)

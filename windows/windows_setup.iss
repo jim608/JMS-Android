@@ -8,15 +8,18 @@
   #define JMS_VERSION "latest"
 #endif
 
-#ifndef JMS_VERSION_CODE
-  #define JMS_VERSION_CODE 1
+#define BundleVersion GetVersionNumbersString(AddBackslash(JMS_BUNDLE) + "jms.exe")
+#ifdef JMS_VERSION_CODE
+  #define InstallerVersion Copy(BundleVersion, 1, RPos(".", BundleVersion)) + Str(JMS_VERSION_CODE)
+#else
+  #define InstallerVersion BundleVersion
 #endif
 
 [Setup]
 AppId={{F5D9A17D-C069-4C53-A7AB-BD37E15BE558}
 AppName="JMS"
 AppVersion={#JMS_VERSION}
-VersionInfoVersion=0.11.1.{#JMS_VERSION_CODE}
+VersionInfoVersion={#InstallerVersion}
 VersionInfoProductTextVersion={#JMS_VERSION}
 VersionInfoProductName=JMS
 AppPublisher="Jim608"

@@ -8,6 +8,7 @@
 ## Fixed
 
 - Opening downloaded series details while offline could leave the loading indicator onscreen. Seasons and episodes now follow their numeric order, and offline playback continues through completed downloads in that order.
+- The Windows installer's file properties now show the application's numeric version.
 
 ## Known issues
 

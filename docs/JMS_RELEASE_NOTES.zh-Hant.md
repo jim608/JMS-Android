@@ -10,6 +10,7 @@
 ### 修正
 
 - 修正離線開啟已同步影集詳情時可能一直等待的問題。季與集依編號排列，離線連播依序使用已完成下載的集數。
+- Windows 安裝檔的檔案版本會隨應用程式更新，檔案內容頁可查到正確的版本號碼。
 
 ### 已知問題
 
@@ -25,6 +26,7 @@
 ### Fixed
 
 - Opening downloaded series details while offline could leave the loading indicator onscreen. Seasons and episodes now follow their numeric order, and offline playback continues through completed downloads in that order.
+- The Windows installer's file properties now show the application's numeric version.
 
 ### Known issues
 
