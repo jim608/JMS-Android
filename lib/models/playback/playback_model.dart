@@ -5,7 +5,7 @@ import 'package:material_ui/material_ui.dart' hide ConnectionState;
 
 import 'package:background_downloader/background_downloader.dart';
 import 'package:chopper/chopper.dart';
-import 'package:collection/collection.dart';
+import 'package:collection/collection.dart' hide mergeSort;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart';
@@ -476,7 +476,7 @@ class PlaybackModelHelper {
         completed[episode.id] = child;
       }
     }
-    episodes.sort((a, b) {
+    mergeSort(episodes, compare: (a, b) {
       final seasonOrder = a.season.compareTo(b.season);
       return seasonOrder == 0 ? a.episode.compareTo(b.episode) : seasonOrder;
     });

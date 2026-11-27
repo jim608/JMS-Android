@@ -13,6 +13,15 @@ import 'package:fladder/providers/sync_provider.dart';
 import 'package:fladder/screens/shared/fladder_notification_overlay.dart';
 import 'package:fladder/util/string_extensions.dart';
 
+Future<http.Response> _getSyncAsset(String url) async {
+  final client = http.Client();
+  try {
+    return await client.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
+  } finally {
+    client.close();
+  }
+}
+
 extension SyncMediaHelpers on SyncNotifier {
   Future<List<SubStreamModel>> saveExternalSubtitles(List<SubStreamModel>? subtitles, SyncedItem item) async {
     if (subtitles == null) return [];
@@ -27,7 +36,7 @@ extension SyncMediaHelpers on SyncNotifier {
       final canDownload = element.isExternal || (element.supportsExternalStream && element.url != null);
       if (canDownload) {
         try {
-          final response = await http.get(Uri.parse(element.url!));
+          final response = await _getSyncAsset(element.url!);
           if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
             final ext = subtitleExtension(element.codec);
             final file = File(path.join(directory.path, 'subtitle-${element.index}-$position.$ext'));
@@ -90,7 +99,7 @@ extension SyncMediaHelpers on SyncNotifier {
       final fileName = '$safeName.jpg';
 
       try {
-        final response = await http.get(Uri.parse(event.imageUrl));
+        final response = await _getSyncAsset(event.imageUrl);
         if (response.statusCode != 200 || response.bodyBytes.isEmpty) return event;
 
         final file = File(path.joinAll([saveDirectory.path, fileName]));
@@ -110,12 +119,21 @@ extension SyncMediaHelpers on SyncNotifier {
   }
 
   Future<ImageData?> urlDataToFileData(ImageData? data, Directory directory, String fileName) async {
-    if (data?.path == null) return null;
-    final response = await http.get(Uri.parse(data?.path ?? ""));
-
+    if (data == null) return null;
     final file = File(path.joinAll([directory.path, fileName]));
-    file.writeAsBytesSync(response.bodyBytes);
-
-    return data?.copyWith(path: fileName);
+    http.Response? response;
+    try {
+      response = await _getSyncAsset(data.path);
+    } on Exception {
+      // Artwork is optional. A cached copy can still be used offline.
+    }
+    final mimeType = response?.headers['content-type']?.split(';').first.trim().toLowerCase();
+    if (response?.statusCode == 200 && response!.bodyBytes.isNotEmpty &&
+        (mimeType == null || mimeType.startsWith('image/') || mimeType == 'application/octet-stream')) {
+      await file.writeAsBytes(response.bodyBytes);
+    } else if (!await file.exists() || await file.length() == 0) {
+      return null;
+    }
+    return data.copyWith(path: fileName);
   }
 }

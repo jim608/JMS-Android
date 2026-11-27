@@ -66,7 +66,7 @@ class SyncOptionsButton extends ConsumerWidget {
               spacing: 12,
               children: [
                 const Icon(IconsaxPlusLinear.arrow_right),
-                Text(context.localized.showDetails),
+                Flexible(child: Text(context.localized.showDetails)),
               ],
             ),
             onTap: () {
@@ -79,7 +79,7 @@ class SyncOptionsButton extends ConsumerWidget {
               spacing: 12,
               children: [
                 const Icon(IconsaxPlusLinear.refresh_2),
-                Text(context.localized.refreshMetadata),
+                Flexible(child: Text(context.localized.refreshMetadata)),
               ],
             ),
             onTap: () => context.refreshData(),
@@ -152,7 +152,7 @@ class SyncOptionsButton extends ConsumerWidget {
                 spacing: 12,
                 children: [
                   const Icon(IconsaxPlusLinear.trash),
-                  Text(context.localized.syncDeleteAll),
+                  Flexible(child: Text(context.localized.syncDeleteAll)),
                 ],
               ),
               onTap: () async => _deleteSyncedItems(context, syncedItem, syncedChildren, ref),
@@ -164,7 +164,7 @@ class SyncOptionsButton extends ConsumerWidget {
                 spacing: 12,
                 children: [
                   const Icon(IconsaxPlusLinear.play),
-                  Text(context.localized.syncResumeAll),
+                  Flexible(child: Text(context.localized.syncResumeAll)),
                 ],
               ),
               onTap: () => ref
@@ -177,7 +177,7 @@ class SyncOptionsButton extends ConsumerWidget {
                 spacing: 12,
                 children: [
                   const Icon(IconsaxPlusLinear.pause),
-                  Text(context.localized.syncPauseAll),
+                  Flexible(child: Text(context.localized.syncPauseAll)),
                 ],
               ),
               onTap: () {
@@ -192,7 +192,7 @@ class SyncOptionsButton extends ConsumerWidget {
                 spacing: 12,
                 children: [
                   const Icon(IconsaxPlusLinear.stop),
-                  Text(context.localized.syncStopAll),
+                  Flexible(child: Text(context.localized.syncStopAll)),
                 ],
               ),
               onTap: () {
@@ -264,14 +264,9 @@ Future<dynamic> _syncRemainingItems(
         ElevatedButton(onPressed: () => Navigator.of(context).pop(), child: Text(context.localized.cancel)),
         FilledButtonAwait(
           onPressed: () async {
-            final syncList = unSyncedChildren.map((e) => ref.read(syncProvider.notifier).syncSyncedItem(
-                  context,
-                  e,
-                  transcodeModel: transcodeModel,
-                  musicTranscodeModel: musicTranscodeModel,
-                ));
-            await Future.wait(syncList);
+            final downloads = ref.read(syncProvider.notifier);
             Navigator.of(context).pop();
+            await downloads.queueDownloads(unSyncedChildren, transcodeModel: transcodeModel, musicTranscodeModel: musicTranscodeModel);
           },
           child: Text(
             context.localized.sync,

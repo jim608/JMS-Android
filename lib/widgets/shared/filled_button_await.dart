@@ -49,7 +49,7 @@ class FilledButtonAwaitState extends State<FilledButtonAwait> {
                   } catch (e) {
                     log(e.toString());
                   } finally {
-                    setState(() => loading = false);
+                    if (mounted) setState(() => loading = false);
                   }
                 },
           child: AnimatedFadeSize(
@@ -80,7 +80,7 @@ class FilledButtonAwaitState extends State<FilledButtonAwait> {
                 } catch (e) {
                   log(e.toString());
                 } finally {
-                  setState(() => loading = false);
+                  if (mounted) setState(() => loading = false);
                 }
               },
         child: AnimatedFadeSize(

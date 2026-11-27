@@ -124,6 +124,7 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
   final _replayRequested = <(String, String)>{};
 
   StreamSubscription<List<SyncedItem>>? _subscription;
+  int _queryGeneration = 0;
   final _offlineTrickPlay = <String, _OfflineTrickPlay>{};
 
   @override
@@ -225,11 +226,7 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
         if (previous?.id != next?.id || previous?.credentials != next?.credentials) {
           _offlineAccountChanged();
         }
-        if (previous?.id != next?.id) {
-          if (next?.id != null) {
-            _initializeQueryStream(id: next!.id);
-          }
-        }
+        if (previous?.id != next?.id) _initializeQueryStream();
       },
     );
     ref.listen(serverUrlProvider, (previous, next) {
@@ -244,28 +241,19 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
     _initializeQueryStream();
   }
 
-  void _initializeQueryStream({String? id}) async {
-    final userId = id ?? ref.read(userProvider)?.id;
+  void _initializeQueryStream() async {
+    final generation = ++_queryGeneration;
     _subscription?.cancel();
     state = state.copyWith(items: []);
 
-    if (userId == null) return;
+    if (ref.read(userProvider) == null) return;
 
     await cleanUpEmptyDatabaseEntries();
 
-    final queryStream = _db.getAllItems.watch().map(_rootSyncItems);
-    final initItems = _rootSyncItems(await _db.getAllItems.get());
-
-    if (!mounted || ref.read(userProvider)?.id != userId) return;
-    state = state.copyWith(items: initItems);
-
-    _subscription = queryStream.listen((items) {
-      state = state.copyWith(items: items);
+    if (!mounted || generation != _queryGeneration) return;
+    _subscription = _db.getParentItems.watch().listen((items) {
+      if (mounted && generation == _queryGeneration) state = state.copyWith(items: items);
     });
-  }
-
-  List<SyncedItem> _rootSyncItems(List<SyncedItem> items) {
-    return items.where((item) => item.parentId == null).toList();
   }
 
   late final JellyService api = ref.read(jellyApiProvider);
@@ -315,7 +303,11 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
     super.dispose();
   }
 
-  Future<void> refresh() async => state = state.copyWith(items: _rootSyncItems(await _db.getAllItems.get()));
+  Future<void> refresh() async {
+    final generation = _queryGeneration;
+    final items = await _db.getParentItems.get();
+    if (mounted && generation == _queryGeneration) state = state.copyWith(items: items);
+  }
 
   Future<List<SyncedItem>> getNestedChildren(SyncedItem? item) async {
     if (item == null) return [];
@@ -325,7 +317,7 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
     return _db.getNestedChildrenRecursive(item.id);
   }
 
-  Future<List<SyncedItem>> getChildren(String parentId) async => await _db.getChildren(parentId).get();
+  Future<List<SyncedItem>> getChildren(String parentId) => _db.getChildren(parentId);
 
   Future<List<SyncedItem>> getChildrenForItem(SyncedItem item) async {
     if (item.itemModel?.type == FladderItemType.playlist) {
@@ -352,50 +344,31 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
     return await _db.getItem(id).getSingleOrNull();
   }
 
-  Stream<SyncedItem?> watchItem(String id) => _db.getItem(id).watchSingleOrNull();
-
-  Future<SyncedItem?> getParentItem(String id) async => await _db.getParent(id).getSingleOrNull();
+  Stream<SyncedItem?> watchItem(String id) => _db.watchItem(id);
 
   Future<SyncedItem> refreshSyncItem(SyncedItem item) async {
-    List<SyncedItem> itemsToSync = await getNestedChildren(item);
-
-    itemsToSync = [item, ...itemsToSync];
-
-    SyncedItem parentItem = item;
-
-    List<SyncedItem> newItems = [];
-
-    for (var i = 0; i < itemsToSync.length; i++) {
-      final itemToSync = itemsToSync[i];
+    final epoch = _offlineAccountEpoch;
+    bool currentAccount() => mounted && epoch == _offlineAccountEpoch && ref.read(userProvider)?.id == item.userId;
+    if (!currentAccount()) return item;
+    if (ref.read(offlineStateProvider)) return await getSyncedItem(item.id) ?? item;
+    final itemsToSync = [item, ...await getNestedChildren(item)];
+    for (final itemToSync in itemsToSync) {
+      if (!currentAccount() || ref.read(offlineStateProvider)) break;
       final itemResponse = await api.usersUserIdItemsItemIdGetBaseItem(
         itemId: itemToSync.id,
       );
-
+      if (itemResponse.statusCode == 202 || !currentAccount()) break;
       final itemModel = ItemBaseModel.fromBaseDto(itemResponse.bodyOrThrow, ref);
-
-      final syncedParent = await _db.getItem(itemToSync.parentId ?? "").getSingleOrNull();
-
-      SyncedItem newSyncedItem = await _syncItemData(syncedParent, itemModel, itemResponse.bodyOrThrow);
-
-      final updatedItem = itemToSync.copyWith(
-        itemModel: newSyncedItem.createItemModel(ref),
-        sortName: newSyncedItem.sortName,
-        syncing: false,
-        fImages: newSyncedItem.fImages,
-        subtitles: newSyncedItem.subtitles,
-        userData: UserData.determineLastUserData([item.userData, newSyncedItem.userData]),
-      );
-
-      newItems.add(updatedItem);
-
-      if (itemToSync.id == parentItem.id) {
-        parentItem = updatedItem;
-      }
+      if (!await itemToSync.directory.exists()) continue;
+      final parentId = itemToSync.parentId;
+      final parent = parentId == null ? null : await getSyncedItem(parentId);
+      final metadata = await _syncItemData(parent, itemModel, itemResponse.bodyOrThrow, directory: itemToSync.directory);
+      if (!currentAccount()) break;
+      await _db.refreshMetadata(itemToSync, metadata.copyWith(
+        userData: UserData.determineLastUserData([itemToSync.userData, itemModel.userData]),
+      ));
     }
-
-    await _db.insertMultipleEntries(newItems);
-
-    return parentItem;
+    return currentAccount() ? await getSyncedItem(item.id) ?? item : item;
   }
 
   Future<void> addSyncItem(BuildContext? context, ItemBaseModel item) async {
@@ -607,8 +580,24 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
     return _db.insertItem(syncedItem);
   }
 
+  Future<void> queueDownloads(Iterable<SyncedItem> items, {
+    TranscodeDownloadModel? transcodeModel,
+    TranscodeMusicDownloadModel? musicTranscodeModel,
+  }) async {
+    final epoch = _offlineAccountEpoch;
+    (Object, StackTrace)? firstError;
+    for (final item in items) {
+      if (!mounted || epoch != _offlineAccountEpoch || ref.read(userProvider)?.id != item.userId) break;
+      try {
+        await syncSyncedItem(item, transcodeModel: transcodeModel, musicTranscodeModel: musicTranscodeModel);
+      } catch (error, stack) {
+        firstError ??= (error, stack);
+      }
+    }
+    if (firstError != null) Error.throwWithStackTrace(firstError.$1, firstError.$2);
+  }
+
   Future<void> syncSyncedItem(
-    BuildContext context,
     SyncedItem syncedItem, {
     TranscodeDownloadModel? transcodeModel,
     TranscodeMusicDownloadModel? musicTranscodeModel,
@@ -1074,7 +1063,7 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
     try {
       if (kIsWeb) return;
       if (!mainDirectory.existsSync()) return;
-      final entries = await _db.getAllItems.get();
+      final entries = await _db.downloadLocations();
       final missingEntries = entries.where((entry) => !entry.directory.existsSync()).toList();
       if (missingEntries.isEmpty) return;
       await _db.deleteAllItems(missingEntries);
@@ -1088,29 +1077,18 @@ extension SyncNotifierHelpers on SyncNotifier {
   Future<SyncedItem> createSyncItem(BaseItemDto response, {SyncedItem? parent}) async {
     final ItemBaseModel item = ItemBaseModel.fromBaseDto(response, ref);
 
-    final existingSyncedItem = await getSyncedItem(item.id);
-
-    if (existingSyncedItem != null) return existingSyncedItem;
-
-    SyncedItem syncItem = await _syncItemData(parent, item, response);
-
-    if (parent == null) {
-      await _db.insertItem(syncItem);
-    }
+    final syncItem = await getSyncedItem(item.id) ?? await _syncItemData(parent, item, response);
 
     return syncItem.copyWith(
-      fileSize: response.mediaSources?.firstOrNull?.size ?? 0,
-      syncing: false,
-      videoFileName: response.path?.universalBasename ?? "",
+      fileSize: syncItem.fileSize ?? response.mediaSources?.firstOrNull?.size ?? 0,
+      videoFileName: syncItem.videoFileName ?? response.path?.universalBasename ?? "",
     );
   }
 
-  Future<SyncedItem> _syncItemData(SyncedItem? parent, ItemBaseModel item, BaseItemDto response) async {
+  Future<SyncedItem> _syncItemData(SyncedItem? parent, ItemBaseModel item, BaseItemDto response, {Directory? directory}) async {
     final Directory? parentDirectory = parent?.directory;
 
-    final directory = Directory(path.joinAll([(parentDirectory ?? saveDirectory)?.path ?? "", item.id]));
-
-    await directory.create(recursive: true);
+    directory ??= await Directory(path.joinAll([(parentDirectory ?? saveDirectory)?.path ?? "", item.id])).create(recursive: true);
 
     File dataFile = File(path.joinAll([directory.path, 'data.json']));
     await dataFile.writeAsString(jsonEncode(response.toJson()));
@@ -1121,7 +1099,6 @@ extension SyncNotifierHelpers on SyncNotifier {
     };
 
     SyncedItem syncItem = SyncedItem(
-      syncing: true,
       id: item.id,
       parentId: parent?.id,
       sortName: response.sortName,
@@ -1438,8 +1415,6 @@ extension SyncNotifierHelpers on SyncNotifier {
 
     List<SyncedItem> newItems = [];
 
-    List<SyncedItem>? itemsToDownload = [];
-
     SyncedItem seriesItem = await createSyncItem(response.bodyOrThrow);
     newItems.add(seriesItem);
     if (!seriesItem.directory.existsSync()) return null;
@@ -1501,27 +1476,17 @@ extension SyncNotifierHelpers on SyncNotifier {
 
       final episodes = episodesResponse.body?.items?.where((ep) => ep.seasonId == newSeason.id).toList() ?? [];
 
-      final episodeResults = await Future.wait(
-        episodes.map((ep) async {
-          final newEpisode = await createSyncItem(ep, parent: syncedSeason);
-          return (ep, newEpisode);
-        }),
-      );
-
-      for (final (ep, newEpisode) in episodeResults) {
-        newItems.add(newEpisode);
-        if (episode?.id == ep.id || newSeason.id == season?.id && !await newEpisode.videoFile.exists()) {
-          itemsToDownload.add(newEpisode);
-        }
-      }
+      newItems.addAll(await Future.wait(episodes.map((ep) => createSyncItem(ep, parent: syncedSeason))));
     }
 
     await _db.insertMultipleEntries(newItems);
 
-    for (var i = 0; i < itemsToDownload.length; i++) {
-      final item = itemsToDownload[i];
-      //No need to await file sync happens in the background
-      syncFile(item, false, transcodeModel: transcodeModel);
+    if (episode != null) {
+      final target = newItems.firstWhereOrNull((entry) => entry.id == episode.id);
+      if (target != null) await syncFile(target, false, transcodeModel: transcodeModel);
+    } else if (season != null) {
+      final children = await getChildren(season.id);
+      await queueDownloads(children.where((entry) => entry.itemModel is EpisodeModel), transcodeModel: transcodeModel);
     }
 
     return seriesItem;

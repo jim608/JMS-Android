@@ -76,7 +76,7 @@ class SyncedPhotoItem extends ConsumerWidget {
         ),
         if (!hasFile && !downloadTask.hasDownload)
           IconButtonAwait(
-            onPressed: () async => await ref.read(syncProvider.notifier).syncSyncedItem(context, syncedItem),
+            onPressed: () async => await ref.read(syncProvider.notifier).syncSyncedItem(syncedItem),
             icon: const Icon(IconsaxPlusLinear.import_3),
           )
         else if (hasFile)

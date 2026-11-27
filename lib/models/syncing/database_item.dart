@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:collection/collection.dart' show mergeSort;
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,10 +10,12 @@ import 'package:path_provider/path_provider.dart';
 
 import 'package:fladder/models/item_base_model.dart';
 import 'package:fladder/models/items/chapters_model.dart';
+import 'package:fladder/models/items/episode_model.dart';
 import 'package:fladder/models/items/images_models.dart';
 import 'package:fladder/models/items/item_shared_models.dart';
 import 'package:fladder/models/items/media_segments_model.dart';
 import 'package:fladder/models/items/media_streams_model.dart';
+import 'package:fladder/models/items/season_model.dart';
 import 'package:fladder/models/items/trick_play_model.dart';
 import 'package:fladder/models/syncing/sync_item.dart';
 import 'package:fladder/providers/user_provider.dart';
@@ -56,6 +59,14 @@ class AppDatabase extends _$AppDatabase {
   @override
   int get schemaVersion => 1;
 
+  @override
+  MigrationStrategy get migration => MigrationStrategy(beforeOpen: (details) async {
+        if (details.wasCreated) return;
+        // Older clients persisted the metadata preparation flag before committing the download tree.
+        await (update(databaseItems)..where((row) => row.syncing.equals(true)))
+            .write(const DatabaseItemsCompanion(syncing: Value(false)));
+      });
+
   Future<void> clearDatabase() async {
     final dbPath = await getApplicationSupportDirectory();
     final dbFile = File(p.join(dbPath.path, '$_databseName.sqlite'));
@@ -69,6 +80,7 @@ class AppDatabase extends _$AppDatabase {
     final currentUserId = userId;
     final allChildren = <SyncedItem>[];
     var currentLevelIds = {rootId};
+    final visited = {rootId};
 
     while (currentLevelIds.isNotEmpty) {
       final nextLevel = await managers.databaseItems
@@ -77,7 +89,9 @@ class AppDatabase extends _$AppDatabase {
 
       if (nextLevel.isEmpty) break;
 
-      final syncedItems = nextLevel.map(databaseConverter).toList();
+      final syncedItems = _orderSeriesChildren(
+        nextLevel.where((row) => visited.add(row.id)).map(databaseConverter).toList(),
+      );
       allChildren.addAll(syncedItems);
       currentLevelIds = syncedItems.map((e) => e.id).toSet();
     }
@@ -85,26 +99,59 @@ class AppDatabase extends _$AppDatabase {
     return allChildren;
   }
 
-  Selectable<SyncedItem> getItem(String id) =>
-      (select(databaseItems)..where((tbl) => tbl.id.equals(id) & tbl.userId.equals(userId))).map(databaseConverter);
+  Selectable<DatabaseItem> _itemRow(String id) =>
+      select(databaseItems)..where((tbl) => tbl.id.equals(id) & tbl.userId.equals(userId));
 
-  Selectable<SyncedItem> getParent(String id) =>
-      (select(databaseItems)..where((tbl) => tbl.parentId.equals(id) & tbl.userId.equals(userId)))
-          .map(databaseConverter);
+  Selectable<SyncedItem> getItem(String id) => _itemRow(id).map(databaseConverter);
+
+  Stream<SyncedItem?> watchItem(String id) =>
+      _itemRow(id).watchSingleOrNull().distinct().map((row) => row == null ? null : databaseConverter(row));
 
   Selectable<SyncedItem> get getParentItems =>
       ((select(databaseItems)..where((tbl) => (tbl.parentId.isNull() & tbl.userId.equals(userId))))
             ..orderBy([(t) => OrderingTerm(expression: t.sortName)]))
           .map(databaseConverter);
 
-  Selectable<SyncedItem> get getAllItems => ((select(databaseItems)..where((tbl) => tbl.userId.equals(userId)))
-        ..orderBy([(t) => OrderingTerm(expression: t.sortName)]))
-      .map(databaseConverter);
+  Future<List<SyncedItem>> downloadLocations() {
+    final items = databaseItems;
+    final account = userId;
+    return (selectOnly(items)
+          ..addColumns([items.id, items.path])
+          ..where(items.userId.equals(account)))
+        .map((row) => SyncedItem(id: row.read(items.id)!, path: row.read(items.path), userId: account))
+        .get();
+  }
 
-  Selectable<SyncedItem> getChildren(String parentId) =>
-      ((select(databaseItems)..where((tbl) => (tbl.parentId.equals(parentId) & tbl.userId.equals(userId))))
-            ..orderBy([(t) => OrderingTerm(expression: t.sortName)]))
-          .map(databaseConverter);
+  Future<List<SyncedItem>> getChildren(String parentId) async {
+    final rows = await (select(databaseItems)
+          ..where((tbl) => tbl.parentId.equals(parentId) & tbl.userId.equals(userId))
+          ..orderBy([(t) => OrderingTerm.asc(t.sortName)]))
+        .map(databaseConverter)
+        .get();
+    return _orderSeriesChildren(rows);
+  }
+
+  List<SyncedItem> _orderSeriesChildren(List<SyncedItem> items) {
+    ({int season, int episode})? position(SyncedItem item) => switch (item.itemModel) {
+          SeasonModel(:final season) => (season: season, episode: -1),
+          EpisodeModel(:final season, :final episode) => (season: season, episode: episode),
+          _ => null,
+        };
+    if (items.length < 2 || !items.any((item) => position(item) != null)) return items;
+    mergeSort(items, compare: (a, b) {
+      final left = position(a);
+      final right = position(b);
+      if (left == null) return right == null ? 0 : 1;
+      if (right == null) return -1;
+      final season = left.season.compareTo(right.season);
+      if (season != 0) return season;
+      final episode = left.episode.compareTo(right.episode);
+      if (episode != 0) return episode;
+      final title = (a.sortName ?? a.itemModel!.name).compareTo(b.sortName ?? b.itemModel!.name);
+      return title != 0 ? title : a.id.compareTo(b.id);
+    });
+    return items;
+  }
 
   Future<int> insertItem(SyncedItem item) => into(databaseItems).insertOnConflictUpdate(toDataBaseItem(item));
 
@@ -130,6 +177,19 @@ class AppDatabase extends _$AppDatabase {
 
   Expression<bool> _matchesDownload(DatabaseItems row, SyncedItem item) =>
       row.id.equals(item.id) & row.userId.equals(item.userId) & row.path.equalsNullable(item.path);
+
+  Future<void> refreshMetadata(SyncedItem original, SyncedItem updated) => batch((batch) {
+        final fields = toDataBaseItem(updated);
+        batch.update(databaseItems, DatabaseItemsCompanion(
+          sortName: fields.sortName, images: fields.images, syncing: const Value(false),
+        ), where: (row) => _matchesDownload(row, original));
+        // A download or offline playback update can finish during the network request.
+        if (!original.unSyncedData && updated.userData != original.userData) {
+          batch.update(databaseItems, DatabaseItemsCompanion(userData: fields.userData),
+              where: (row) => _matchesDownload(row, original) & row.unSyncedData.equals(false) &
+                  row.userData.equalsNullable(toDataBaseItem(original).userData.value));
+        }
+      });
 
   Future<String?> readTrickPlay(SyncedItem item) => (selectOnly(databaseItems)
         ..addColumns([databaseItems.trickPlayModel])
@@ -164,7 +224,7 @@ class AppDatabase extends _$AppDatabase {
     }
 
     for (var i = 0; i < maxDepth; i++) {
-      final futures = toProcess.map((item) => getChildren(item.id).get());
+      final futures = toProcess.map((item) => getChildren(item.id));
       final resultsList = await Future.wait(futures);
 
       final children = resultsList.expand((r) => r).toList();

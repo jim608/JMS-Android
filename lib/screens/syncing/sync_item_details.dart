@@ -11,6 +11,7 @@ import 'package:fladder/providers/sync/sync_provider_helpers.dart';
 import 'package:fladder/providers/sync_provider.dart';
 import 'package:fladder/screens/shared/adaptive_dialog.dart';
 import 'package:fladder/screens/shared/default_alert_dialog.dart';
+import 'package:fladder/screens/shared/fladder_notification_overlay.dart';
 import 'package:fladder/screens/shared/media/poster_widget.dart';
 import 'package:fladder/screens/syncing/sync_child_item.dart';
 import 'package:fladder/screens/syncing/sync_widgets.dart';
@@ -49,11 +50,16 @@ class SyncItemDetails extends ConsumerStatefulWidget {
   ConsumerState<ConsumerStatefulWidget> createState() => _SyncItemDetailsState();
 }
 
+final _syncDetailsRow = StreamProvider.autoDispose.family<SyncedItem?, String>(
+  (ref, id) => ref.watch(syncProvider.notifier).watchItem(id),
+);
+
 class _SyncItemDetailsState extends ConsumerState<SyncItemDetails> {
-  late SyncedItem syncedItem = widget.syncItem;
+  late SyncedItem _selectedItem = widget.syncItem;
 
   @override
   Widget build(BuildContext context) {
+    final syncedItem = ref.watch(_syncDetailsRow(_selectedItem.id)).value ?? _selectedItem;
     final baseItem = syncedItem.itemModel;
     final hasFile = syncedItem.videoFile.existsSync();
     final downloadTask = ref.watch(downloadTasksProvider(syncedItem.id));
@@ -65,10 +71,17 @@ class _SyncItemDetailsState extends ConsumerState<SyncItemDetails> {
     return PullToRefresh(
       refreshOnStart: false,
       onRefresh: () async {
-        final newItem = await ref.read(syncProvider.notifier).refreshSyncItem(syncedItem);
-        setState(() {
-          syncedItem = newItem;
-        });
+        try {
+          final updated = await ref.read(syncProvider.notifier).refreshSyncItem(syncedItem);
+          if (!mounted || _selectedItem.id != syncedItem.id) return;
+          setState(() => _selectedItem = updated);
+          ref.invalidate(_syncDetailsRow(updated.id));
+          ref.invalidate(syncedChildrenProvider);
+          ref.invalidate(syncedNestedChildrenProvider);
+        } catch (_) {
+          if (!mounted || _selectedItem.id != syncedItem.id) return;
+          FladderSnack.show(context.localized.unableToSyncItem(baseItem?.name ?? syncedItem.id), context: context);
+        }
       },
       child: (context) => Padding(
         padding: const EdgeInsets.all(12.0),
@@ -99,6 +112,8 @@ class _SyncItemDetailsState extends ConsumerState<SyncItemDetails> {
                 child: ListView(
                   shrinkWrap: true,
                   children: [
+                    if (syncedItem.syncing && !syncedItem.markedForDelete)
+                      LinearProgressIndicator(semanticsLabel: context.localized.syncOverlaySyncing),
                     if (baseItem != null) ...{
                       Row(
                         mainAxisSize: MainAxisSize.max,
@@ -208,7 +223,7 @@ class _SyncItemDetailsState extends ConsumerState<SyncItemDetails> {
                         child: Divider(),
                       ),
                       ...children!.map(
-                        (e) => ChildSyncWidget(syncedChild: e),
+                        (e) => ChildSyncWidget(key: ValueKey(e.id), syncedChild: e),
                       ),
                     ],
                   ],
@@ -243,11 +258,8 @@ class _SyncItemDetailsState extends ConsumerState<SyncItemDetails> {
                       onPressed: () async {
                         final parentItem =
                             await ref.read(syncProvider.notifier).getSyncedItem(baseItem!.parentBaseModel.id);
-                        setState(() {
-                          if (parentItem != null) {
-                            syncedItem = parentItem;
-                          }
-                        });
+                        if (!mounted || _selectedItem.id != syncedItem.id || parentItem == null) return;
+                        setState(() => _selectedItem = parentItem);
                       },
                       child: Text(context.localized.syncOpenParent),
                     )

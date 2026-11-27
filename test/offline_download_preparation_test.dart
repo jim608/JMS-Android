@@ -19,13 +19,18 @@ import 'package:fladder/models/item_base_model.dart';
 import 'package:fladder/models/items/item_shared_models.dart';
 import 'package:fladder/models/items/media_segments_model.dart';
 import 'package:fladder/models/items/media_streams_model.dart';
+import 'package:fladder/models/items/season_model.dart';
+import 'package:fladder/models/items/series_model.dart';
 import 'package:fladder/models/items/trick_play_model.dart';
 import 'package:fladder/models/syncing/database_item.dart';
 import 'package:fladder/models/syncing/sync_item.dart';
 import 'package:fladder/models/syncing/sync_settings_model.dart';
+import 'package:fladder/models/syncing/transcode_download_model.dart';
+import 'package:fladder/models/syncing/transcode_music_download_model.dart';
 import 'package:fladder/providers/api_provider.dart';
 import 'package:fladder/providers/connectivity_provider.dart';
 import 'package:fladder/providers/service_provider.dart';
+import 'package:fladder/providers/settings/client_settings_provider.dart';
 import 'package:fladder/providers/sync/background_download_provider.dart';
 import 'package:fladder/providers/sync/sync_provider_media.dart';
 import 'package:fladder/providers/sync_provider.dart';
@@ -41,6 +46,7 @@ class _FixtureUser extends User {
 class _FixtureConnectivity extends ConnectivityStatus {
   @override
   ConnectionState build() => ConnectionState.wifi;
+  void disconnect() => state = ConnectionState.offline;
 }
 
 class _FixtureJellyApi extends JellyApi {
@@ -71,6 +77,17 @@ class _Notifier extends SyncNotifier {
   Future<int> updateItem(SyncedItem item) => database.insertItem(item);
 }
 
+class _QueueProbe extends _Notifier {
+  _QueueProbe(super.ref, super.mobileDirectory, super.database, this.onItem);
+  final Future<void> Function(SyncedItem) onItem;
+
+  @override
+  Future<void> syncSyncedItem(SyncedItem item, {
+    TranscodeDownloadModel? transcodeModel,
+    TranscodeMusicDownloadModel? musicTranscodeModel,
+  }) => onItem(item);
+}
+
 class _FixturePaths extends PathProviderPlatform {
   _FixturePaths(this.path);
   final String path;
@@ -88,10 +105,12 @@ class _FixturePaths extends PathProviderPlatform {
 class _Downloader extends Fake implements FileDownloader {
   _Downloader(this.events);
   final List<String> events;
+  final enqueuedIds = <String>[];
   DownloadTask? downloadTask;
 
   @override
   Future<bool> enqueue(Task task) async {
+    enqueuedIds.add(task.taskId);
     downloadTask = task as DownloadTask;
     events.add('media');
     return true;
@@ -104,11 +123,50 @@ class _Downloader extends Fake implements FileDownloader {
   Future<bool> cancelTaskWithId(String taskId) async => true;
 }
 
+class _SeasonApi extends _Api {
+  final firstRequest = Completer<void>();
+  final allowFirst = Completer<void>();
+
+  @override
+  Future<Response<PlaybackInfoResponse>> itemsItemIdPlaybackInfoPost({
+    required String? itemId,
+    required PlaybackInfoDto? body,
+  }) async {
+    if (itemId == 'ep1') {
+      firstRequest.complete();
+      await allowFirst.future;
+    }
+    return super.itemsItemIdPlaybackInfoPost(itemId: itemId, body: body);
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) {
+    final children = switch (invocation.memberName) {
+      #showsSeriesIdSeasonsGet => [details['season']!],
+      #showsSeriesIdEpisodesGet => [details['ep2']!, details['ep1']!],
+      _ => null,
+    };
+    if (children == null) return super.noSuchMethod(invocation);
+    return Future.value(Response(http.Response('', 200), BaseItemDtoQueryResult(items: children)));
+  }
+
+  @override
+  Future<Response<TrickPlayModel>?> getTrickPlay({required ItemBaseModel? item, int? width, required Ref ref}) async => null;
+}
+
 class _Api extends Fake implements JellyService {
   _Api({this.manifestRequested, this.pendingManifest});
 
   final Completer<void>? manifestRequested;
   final Future<Response<TrickPlayModel>?>? pendingManifest;
+  final details = <String, BaseItemDto>{};
+  final requestedDetails = <String>[];
+
+  @override
+  Future<Response<BaseItemDto>> usersUserIdItemsItemIdGetBaseItem({String? itemId}) async {
+    requestedDetails.add(itemId!);
+    return Response(http.Response('', 200), details[itemId]!);
+  }
 
   @override
   Future<Response<PlaybackInfoResponse>> itemsItemIdPlaybackInfoPost({
@@ -225,6 +283,181 @@ void main() {
     return downloadFixture;
   }
 
+  test('metadata preparation publishes no partial root before the caller commits', () async {
+    await prepareSync([]);
+    await container.read(clientSettingsProvider.notifier).setSyncPath(directory.path);
+    const dto = BaseItemDto(id: 'track', name: 'Track', type: BaseItemKind.audio, path: '/library/track.flac');
+    final prepared = await notifier.createSyncItem(dto);
+    expect(await prepared.dataFile.exists(), isTrue);
+    expect(await notifier.getSyncedItem('track'), isNull);
+    await database.insertItem(prepared.copyWith(fileSize: null, videoFileName: null));
+    final retried = await notifier.createSyncItem(dto);
+    await database.insertItem(retried);
+    final committed = await notifier.getSyncedItem('track');
+    expect(committed?.syncing, isFalse);
+    expect(committed?.videoFileName, 'track.flac');
+  });
+
+  test('metadata recovery on reopen clears abandoned flags and preserves the download', () async {
+    await database.close();
+    final file = File(path.join(directory.path, 'old.sqlite'));
+    database = AppDatabase(ref, NativeDatabase(file));
+    final saved = item.copyWith(syncing: true, unSyncedData: true, fileSize: 3);
+    await saved.videoFile.writeAsBytes([1, 2, 3]);
+    await database.insertItem(saved);
+    await database.close();
+    database = AppDatabase(ref, NativeDatabase(file));
+    final row = await database.select(database.databaseItems).getSingle();
+    expect(row.syncing, isFalse);
+    expect(row.unSyncedData, isTrue);
+    expect(row.fileSize, 3);
+    expect(row.path, saved.path);
+    expect(row.videoFileName, saved.videoFileName);
+    expect(await saved.videoFile.readAsBytes(), [1, 2, 3]);
+  });
+
+  test('metadata for child rows is not decoded when refreshing the downloads root list', () async {
+    await prepareSync([]);
+    final child = item.copyWith(id: 'child', parentId: item.id, path: path.join(directory.path, 'child'));
+    await child.directory.create();
+    await child.dataFile.writeAsString('{');
+    await database.insertMultipleEntries([item, child]);
+    await notifier.refresh();
+  });
+
+  test('watching one download skips unrelated episode writes and reports its own changes', () async {
+    await prepareSync([]);
+    await database.insertItem(item);
+    final events = <String?>[];
+    final first = Completer<void>();
+    final edited = Completer<void>();
+    final removed = Completer<void>();
+    final subscription = notifier.watchItem(item.id).listen((row) {
+      final label = row == null ? null : row.sortName ?? 'initial';
+      events.add(label);
+      if (!first.isCompleted) first.complete();
+      if (label == 'updated' && !edited.isCompleted) edited.complete();
+      if (row == null && !removed.isCompleted) removed.complete();
+    });
+    try {
+      await first.future;
+      await database.insertItem(item.copyWith(id: 'unrelated', parentId: 'season'));
+      await database.getItem('unrelated').watchSingle().first;
+      await database.insertItem(item.copyWith(sortName: 'updated'));
+      await edited.future;
+      await database.deleteAllItems([item]);
+      await removed.future;
+      expect(events, ['initial', 'updated', null]);
+    } finally {
+      await subscription.cancel();
+    }
+  });
+
+  test('download details and playback siblings use season and episode numbers from saved metadata', () async {
+    await prepareSync([]);
+    for (final (id, parent, season, episode, title) in [
+      ('s10', 'show', 10, null, 'A'),
+      ('s2', 'show', 2, null, 'B'),
+      ('s0', 'show', 0, null, 'Z'),
+      ('e20', 's2', 2, 20, 'A'),
+      ('e1', 's2', 2, 1, 'Z'),
+      ('e10', 's2', 2, 10, 'B'),
+      ('e2b', 's2', 2, 2, 'C'),
+      ('e2a', 's2', 2, 2, 'C'),
+      ('special', 's0', 0, 1, 'Z'),
+      ('later', 's10', 10, 1, 'A'),
+    ]) {
+      final saved = SyncedItem(
+        id: id,
+        parentId: parent,
+        userId: 'user',
+        path: path.join(directory.path, id),
+        sortName: title,
+      );
+      await saved.directory.create();
+      final metadata = BaseItemDto(
+        id: id,
+        name: title,
+        type: episode == null ? BaseItemKind.season : BaseItemKind.episode,
+        indexNumber: episode ?? season,
+        parentIndexNumber: episode == null ? null : season,
+      );
+      await saved.dataFile.writeAsString(jsonEncode(metadata.toJson()));
+      await database.insertItem(saved);
+    }
+    final series = SyncedItem(id: 'show', userId: 'user');
+    final seasons = await notifier.getChildrenForItem(series);
+    expect(seasons.map((entry) => entry.id), ['s0', 's2', 's10']);
+    const episodeIds = ['e1', 'e2a', 'e2b', 'e10', 'e20'];
+    final season = seasons[1];
+    final episodes = await notifier.getNestedChildren(season);
+    expect(episodes.map((entry) => entry.id), episodeIds);
+    expect((await notifier.getSiblings(episodes.last)).map((entry) => entry.id), episodeIds);
+    expect(
+      (await notifier.getNestedChildren(series)).map((entry) => entry.id),
+      ['s0', 's2', 's10', 'special', ...episodeIds, 'later'],
+    );
+  });
+
+  test('a circular cached parent link cannot include the root in its descendants', () async {
+    await prepareSync([]);
+    final series = SyncedItem(id: 'show', parentId: 'season', userId: 'user');
+    final season = SyncedItem(id: 'season', parentId: 'show', userId: 'user');
+    await database.insertMultipleEntries([series, season]);
+    final children = await notifier.getNestedChildren(series).timeout(const Duration(seconds: 2));
+    expect(children.map((entry) => entry.id), ['season']);
+  });
+
+  test('a season waits for episode one to enqueue before a faster second episode', () async {
+    final api = _SeasonApi();
+    final downloader = await prepareSync([], api: api);
+    const show = BaseItemDto(id: 'show', name: 'Series', type: BaseItemKind.series);
+    const season = BaseItemDto(id: 'season', name: 'Season', type: BaseItemKind.season, parentId: 'show', indexNumber: 1);
+    for (final dto in [
+      show, season,
+      for (final n in [2, 1])
+        BaseItemDto(id: 'ep$n', name: 'Episode $n', type: BaseItemKind.episode, seasonId: 'season',
+            parentId: 'season', parentIndexNumber: 1, indexNumber: n, path: '/library/$n.mkv'),
+    ]) {
+      api.details[dto.id!] = dto;
+      final saved = SyncedItem(id: dto.id!, parentId: dto.parentId, userId: 'user', path: path.join(directory.path, dto.id));
+      await saved.directory.create();
+      await saved.dataFile.writeAsString(jsonEncode(dto.toJson()));
+      await database.insertItem(saved);
+    }
+    final pending = notifier.syncSeries(SeriesModel.fromBaseDto(show, null), season: SeasonModel.fromBaseDto(season, null));
+    try {
+      await api.firstRequest.future.timeout(const Duration(seconds: 2));
+      expect(downloader.enqueuedIds, isEmpty);
+    } finally {
+      api.allowFirst.complete();
+      await pending;
+    }
+    expect(downloader.enqueuedIds, ['ep1', 'ep2']);
+  });
+
+  test('a download batch continues after a failure and stops at an account change', () async {
+    await prepareSync([]);
+    final account = container.read(userProvider)!;
+    final calls = <String>[];
+    final failure = StateError('first row');
+    final probe = _QueueProbe(ref, directory, database, (row) async {
+      calls.add(row.id);
+      if (row.id == 'first') throw failure;
+      if (row.id == 'second') {
+        setAccount(account.copyWith(id: 'other-user'));
+        setAccount(account);
+      }
+    });
+    try {
+      final batch = [for (final id in ['first', 'second', 'third']) item.copyWith(id: id)];
+      await expectLater(probe.queueDownloads(batch), throwsA(same(failure)));
+      expect(calls, ['first', 'second']);
+    } finally {
+      probe.dispose();
+    }
+  });
+
   test('the main file enters the queue before an optional thumbnail failure', () async {
     final events = <String>[];
     final downloader = await prepareSync(events);
@@ -267,6 +500,56 @@ void main() {
     expect(clientClosed.isCompleted, isTrue);
     thumbnail.complete(http.Response('late', 200));
     expect(await item.trickPlayDirectory.list().toList(), isEmpty);
+  });
+
+  test('refreshing a series preserves each download and its pending playback position', () async {
+    await prepareSync([]);
+    await container.read(clientSettingsProvider.notifier).setSyncPath(directory.path);
+    const show = BaseItemDto(id: 'show', name: 'Series', type: BaseItemKind.series);
+    const episode = BaseItemDto(id: 'ep', name: 'Episode', type: BaseItemKind.episode, seriesId: 'show',
+        parentIndexNumber: 1, indexNumber: 2, sortName: 'New title');
+    service.details.addAll({'show': show, 'ep': episode});
+    await http.runWithClient(() async {
+      final parent = (await notifier.createSyncItem(show)).copyWith(
+        userData: UserData(playbackPositionTicks: 900, lastPlayed: DateTime.utc(2026, 11, 27)),
+      );
+      final child = (await notifier.createSyncItem(episode, parent: parent)).copyWith(
+        userData: UserData(playbackPositionTicks: 250, lastPlayed: DateTime.utc(2026, 11, 26)),
+        unSyncedData: true, subtitles: [_subtitle(2)], videoFileName: 'local.mkv',
+      );
+      await database.insertMultipleEntries([parent, child]);
+      await notifier.refreshSyncItem(parent);
+      final saved = (await notifier.getSyncedItem('ep'))!;
+      expect(saved.userData?.playbackPositionTicks, 250);
+      expect(saved.subtitles.single.index, 2);
+      expect(saved.videoFileName, 'local.mkv');
+      expect(saved.unSyncedData, isTrue);
+      expect(service.requestedDetails, ['show', 'ep']);
+      (container.read(connectivityStatusProvider.notifier) as _FixtureConnectivity).disconnect();
+      service.requestedDetails.clear();
+      await notifier.refreshSyncItem(parent);
+      expect(service.requestedDetails, isEmpty);
+    }, () => MockClient((_) async => http.Response('', 404)));
+  });
+
+  test('late metadata never undoes a newer download, pending progress or deletion', () async {
+    await prepareSync([]);
+    final original = item.copyWith(userData: const UserData(playbackPositionTicks: 10));
+    final downloaded = original.copyWith(
+      videoFileName: 'encoded.mkv', subtitles: [_subtitle(5)], unSyncedData: true,
+      userData: const UserData(playbackPositionTicks: 100),
+    );
+    await database.insertItem(downloaded);
+    final metadata = original.copyWith(sortName: 'Updated title', userData: const UserData(playbackPositionTicks: 20));
+    await database.refreshMetadata(original, metadata);
+    final saved = (await notifier.getSyncedItem(item.id))!;
+    expect(saved.sortName, 'Updated title');
+    expect(saved.videoFileName, 'encoded.mkv');
+    expect(saved.subtitles.single.index, 5);
+    expect(saved.userData?.playbackPositionTicks, 100);
+    await database.deleteAllItems([saved]);
+    await database.refreshMetadata(original, metadata);
+    expect(await notifier.getSyncedItem(item.id), isNull);
   });
 
   test('unrelated metadata updates preserve a committed preview', () async {

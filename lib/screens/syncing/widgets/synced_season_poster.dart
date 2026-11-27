@@ -109,18 +109,15 @@ class _SyncedSeasonPosterState extends ConsumerState<SyncedSeasonPoster> {
               ],
             ),
             trailing: SyncOptionsButton(syncedItem: syncedItem, children: children),
-            children: children.map(
-              (item) {
-                final baseItem = item.itemModel;
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: SyncedEpisodeItem(
-                    episode: baseItem as EpisodeModel,
-                    syncedItem: item,
+            children: [
+              for (final item in children)
+                if (item.itemModel case final EpisodeModel episode)
+                  Padding(
+                    key: ValueKey(item.id),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: SyncedEpisodeItem(episode: episode, syncedItem: item),
                   ),
-                );
-              },
-            ).toList(),
+            ],
           );
         },
       ),

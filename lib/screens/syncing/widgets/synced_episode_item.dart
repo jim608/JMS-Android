@@ -20,7 +20,7 @@ import 'package:fladder/util/localization_helper.dart';
 import 'package:fladder/util/size_formatting.dart';
 import 'package:fladder/widgets/shared/icon_button_await.dart';
 
-class SyncedEpisodeItem extends ConsumerStatefulWidget {
+class SyncedEpisodeItem extends ConsumerWidget {
   const SyncedEpisodeItem({
     super.key,
     required this.episode,
@@ -31,15 +31,9 @@ class SyncedEpisodeItem extends ConsumerStatefulWidget {
   final SyncedItem syncedItem;
 
   @override
-  ConsumerState<SyncedEpisodeItem> createState() => _SyncedEpisodeItemState();
-}
-
-class _SyncedEpisodeItemState extends ConsumerState<SyncedEpisodeItem> {
-  late SyncedItem syncedItem = widget.syncedItem;
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final downloadTask = ref.watch(downloadTasksProvider(syncedItem.id));
-    final hasFile = widget.syncedItem.videoFile.existsSync();
+    final hasFile = syncedItem.videoFile.existsSync();
     return IntrinsicHeight(
       child: Row(
         children: [
@@ -49,13 +43,13 @@ class _SyncedEpisodeItemState extends ConsumerState<SyncedEpisodeItem> {
               constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.3),
               child: FlatButton(
                 onTap: () {
-                  widget.episode.navigateTo(context);
+                  episode.navigateTo(context);
                   return context.maybePop();
                 },
                 child: SizedBox(
                   width: 175,
                   child: EpisodePoster(
-                    episode: widget.episode,
+                    episode: episode,
                     actions: [],
                     showLabel: false,
                     isCurrentEpisode: false,
@@ -77,7 +71,7 @@ class _SyncedEpisodeItemState extends ConsumerState<SyncedEpisodeItem> {
                     children: [
                       Flexible(
                         child: Text(
-                          widget.episode.name,
+                          episode.name,
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                       ),
@@ -85,7 +79,7 @@ class _SyncedEpisodeItemState extends ConsumerState<SyncedEpisodeItem> {
                         child: Opacity(
                           opacity: 0.75,
                           child: Text(
-                            widget.episode.seasonEpisodeLabel(context.localized),
+                            episode.seasonEpisodeLabel(context.localized),
                             style: Theme.of(context).textTheme.bodyLarge,
                           ),
                         ),

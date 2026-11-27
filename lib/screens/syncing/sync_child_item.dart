@@ -1,7 +1,5 @@
 import 'package:material_ui/material_ui.dart';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:fladder/models/items/album_model.dart';
 import 'package:fladder/models/items/audio_model.dart';
 import 'package:fladder/models/items/episode_model.dart';
@@ -15,7 +13,7 @@ import 'package:fladder/screens/syncing/widgets/synced_season_poster.dart';
 
 import 'widgets/synced_episode_item.dart';
 
-class ChildSyncWidget extends ConsumerStatefulWidget {
+class ChildSyncWidget extends StatelessWidget {
   final SyncedItem syncedChild;
   const ChildSyncWidget({
     required this.syncedChild,
@@ -23,14 +21,8 @@ class ChildSyncWidget extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<ConsumerStatefulWidget> createState() => _ChildSyncWidgetState();
-}
-
-class _ChildSyncWidgetState extends ConsumerState<ChildSyncWidget> {
-  late SyncedItem syncedItem = widget.syncedChild;
-
-  @override
   Widget build(BuildContext context) {
+    final syncedItem = syncedChild;
     final baseItem = syncedItem.itemModel;
     if (baseItem == null) {
       return const SizedBox.shrink();
