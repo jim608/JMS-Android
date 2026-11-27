@@ -1,3 +1,18 @@
+# JMS 0.12.1-jms.64
+
+## Changed
+
+- Home keeps playback actions easy to tap, and media details use a shorter header when backdrop artwork is missing. Settings, library and sign-in controls adapt to narrow screens and larger system text.
+- Downloaded episode rows keep episode numbers and download controls visible at larger text sizes. Chapter and playback controls fit in landscape, and MPV's single and dual plain-text subtitle overlays clear the playback toolbar.
+
+## Fixed
+
+- Opening downloaded series details while offline could leave the loading indicator onscreen. Seasons and episodes now follow their numeric order, and offline playback continues through completed downloads in that order.
+
+## Known issues
+
+- This is a prerelease. In-place upgrades and airplane-mode playback on a physical Android device still need verification.
+
 # JMS 0.12.1-jms.63
 
 ## Changed

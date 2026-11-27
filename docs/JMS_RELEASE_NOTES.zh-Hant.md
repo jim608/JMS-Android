@@ -1,35 +1,31 @@
-# JMS 0.12.1-jms.63
+# JMS 0.12.1-jms.64
 
 ## 繁體中文 / Traditional Chinese
 
 ### 調整
 
-- 整合 Fladder 0.12.1 的翻譯與 MPV 循環播放更新。
+- 首頁輪播保留播放鍵的點按空間，沒有背景圖的媒體詳情縮短頁首。設定、媒體庫和登入頁的按鈕與文字會配合窄螢幕和系統字級排列。
+- 已同步清單在大字級下仍可同時顯示季集與下載鍵。橫向播放時章節與播放控制可操作，以 MPV 顯示的單軌和雙軌純文字字幕會避開控制列。
 
 ### 修正
 
-- 斷網時直接從已下載的本機檔案播放。Jellyfin 連線失敗並取得本機副本後，播放器不會再要求伺服器開始串流。
-- 離線影集與單季播放會選擇已下載的集數，排除尚未完成或待刪除的檔案。切換到不可用的影片後，播放器會結束緩衝狀態。
-- Android 原生播放器可開啟檔名含 `#`、`%` 等字元的本機影片和外掛字幕。
+- 修正離線開啟已同步影集詳情時可能一直等待的問題。季與集依編號排列，離線連播依序使用已完成下載的集數。
 
 ### 已知問題
 
-- Windows 若無法透過程式內更新檢查取得新版，請從發布頁下載安裝檔。
-- 本版為預發行。Android 飛航模式實機播放及覆蓋升級仍待驗收。
+- 本版為預發行。Android 實機覆蓋安裝與飛航模式播放仍待驗證。
 
 ## English
 
 ### Changed
 
-- Integrated Fladder 0.12.1 translations and MPV looping updates.
+- Home keeps playback actions easy to tap, and media details use a shorter header when backdrop artwork is missing. Settings, library and sign-in controls adapt to narrow screens and larger system text.
+- Downloaded episode rows keep episode numbers and download controls visible at larger text sizes. Chapter and playback controls fit in landscape, and MPV's single and dual plain-text subtitle overlays clear the playback toolbar.
 
 ### Fixed
 
-- Play downloaded files directly when offline. If a Jellyfin request fails and finds a local copy, the player opens it without asking the server to start a stream.
-- Offline TV playback chooses downloaded episodes and skips pending or deleted files. Switching to an unavailable video clears the buffering state.
-- Android's native player opens downloaded videos and external subtitles whose filenames include characters such as `#` and `%`.
+- Opening downloaded series details while offline could leave the loading indicator onscreen. Seasons and episodes now follow their numeric order, and offline playback continues through completed downloads in that order.
 
 ### Known issues
 
-- Windows users can download the installer from the release page if the in-app update check fails.
-- This is a prerelease. Playback in airplane mode and upgrades on physical Android devices still need device testing.
+- This is a prerelease. In-place upgrades and airplane-mode playback on a physical Android device still need verification.

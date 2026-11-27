@@ -25,6 +25,15 @@
   </developer>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.12.1-jms.64" date="2026-11-27">
+      <description>
+        <ul>
+          <li>Opens downloaded series details offline and orders episodes by number.</li>
+          <li>Keeps playback actions and episode numbers visible at larger text sizes.</li>
+          <li>Fits chapter controls in landscape and keeps text subtitles above the toolbar.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.12.1-jms.63" date="2026-11-26">
       <description>
         <ul>
