@@ -169,6 +169,7 @@ class _CarouselBannerState extends ConsumerState<CarouselBanner> {
                 children: [
                   IconButton(
                     tooltip: strings.previousPageTooltip,
+                    style: IconButton.styleFrom(minimumSize: const Size.square(48), visualDensity: VisualDensity.standard),
                     onPressed: current == 0 ? null : () => _goToPage(current - 1),
                     icon: const Icon(Icons.chevron_left),
                   ),
@@ -185,7 +186,7 @@ class _CarouselBannerState extends ConsumerState<CarouselBanner> {
                         message: strings.nextPageTooltip,
                         child: TextButton.icon(
                           onPressed: next == null ? null : () => _goToPage(current + 1),
-                          style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
+                          style: TextButton.styleFrom(minimumSize: const Size.square(48), visualDensity: VisualDensity.standard),
                           iconAlignment: IconAlignment.end,
                           icon: const Icon(Icons.chevron_right),
                           label: next == null
