@@ -151,7 +151,10 @@ export function semanticLabelMatches(text, label) {
 
 export function semanticControlElement(element, label) {
   if (label !== 'Playback position' || element.getAttribute('role') === 'slider') return element;
-  return element.querySelector('[role="slider"]') || element;
+  const slider = element.querySelector('[role="slider"]');
+  if (!slider) return element;
+  // Flutter can expose only the thumb as an input. Use the labeled track for pointer input.
+  return element.getBoundingClientRect().width > slider.getBoundingClientRect().width ? element : slider;
 }
 
 class Page {
@@ -161,7 +164,27 @@ class Page {
   video() { return this.evaluate(readVideo); }
   async semantics() { return this.evaluate(`(()=>{${deepElements}return elements().map(e=>({role:e.getAttribute('role'),label:e.getAttribute('aria-label'),text:e.tagName==='FLT-SEMANTICS'?e.textContent:''})).filter(e=>e.role||e.label);})()`); }
   async rectangle(label) {
-    return this.evaluate(`(()=>{${deepElements}const label=${JSON.stringify(label)},matches=(${semanticLabelMatches.toString()}),control=(${semanticControlElement.toString()});const found=elements().filter(e=>{const aria=e.getAttribute('aria-label')||'';return matches(aria,label)||((e.tagName==='FLT-SEMANTICS'||e.getAttribute('role'))&&matches(e.textContent,label));}).map(e=>{const node=control(e,label),r=node.getBoundingClientRect(),role=node.getAttribute('role');const priority=label==='Playback position'?(role==='slider'?0:5):['button','switch','checkbox','combobox','option'].includes(role)?0:3;return{role,priority,x:r.x,y:r.y,width:r.width,height:r.height};}).filter(r=>r.width>0&&r.height>0);found.sort((a,b)=>a.priority-b.priority||(a.width*a.height)-(b.width*b.height));return found[0]||null;})()`);
+    return this.evaluate(`(() => {
+      ${deepElements}
+      const label = ${JSON.stringify(label)};
+      const matches = (${semanticLabelMatches.toString()});
+      const control = (${semanticControlElement.toString()});
+      const candidates = elements().filter(element => {
+        const aria = element.getAttribute('aria-label') || '';
+        return matches(aria, label) || ((element.tagName === 'FLT-SEMANTICS' || element.getAttribute('role')) &&
+          matches(element.textContent, label));
+      }).map(element => {
+        const node = control(element, label);
+        const role = node.getAttribute('role');
+        const bounds = node.getBoundingClientRect();
+        const interactive = label === 'Playback position'
+          ? role === 'slider' || node.querySelector('[role="slider"]') !== null
+          : ['button', 'switch', 'checkbox', 'combobox', 'option'].includes(role);
+        return { role, priority: interactive ? 0 : 1, x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height };
+      }).filter(bounds => bounds.width > 0 && bounds.height > 0);
+      candidates.sort((a, b) => a.priority - b.priority || a.width * a.height - b.width * b.height);
+      return candidates[0] || null;
+    })()`);
   }
   async point(x, y) {
     await this.cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y }, this.sessionId);
@@ -468,13 +491,15 @@ export function runHarnessUnitChecks() {
   assert.equal(semanticLabelMatches('Source A subtitles (eng)', 'Source A subtitles'), true);
   assert.equal(semanticLabelMatches('Playback device', 'Play'), false);
   assert.equal(semanticLabelMatches(null, 'Play'), false);
-  const slider = { getAttribute: () => 'slider' };
-  const group = { getAttribute: () => 'group', querySelector: () => slider };
+  const slider = { getAttribute: () => 'slider', getBoundingClientRect: () => ({ width: 48 }) };
+  const group = { getAttribute: () => 'group', querySelector: () => slider, getBoundingClientRect: () => ({ width: 48 }) };
   assert.equal(semanticControlElement(group, 'Playback position'), slider);
+  const track = { ...group, getBoundingClientRect: () => ({ width: 270 }) };
+  assert.equal(semanticControlElement(track, 'Playback position'), track);
   assert.equal(semanticControlElement(slider, 'Playback position'), slider);
   assert.equal(semanticControlElement(group, 'Play'), group);
   const fixture = runFixtureUnitChecks();
-  return { status: 'PASS', harnessChecks: 28, fixture, networkStarted: false, browserStarted: false };
+  return { status: 'PASS', harnessChecks: 29, fixture, networkStarted: false, browserStarted: false };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
