@@ -332,7 +332,7 @@ void main() {
         locale: const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'), textScale: 2);
     final context = tester.element(find.byType(LoginScreenCredentials));
     expect(tester.getSize(find.byType(TextField).first).width, greaterThanOrEqualTo(160));
-    final label = find.text(AppLocalizations.of(context)!.connectWithAuthLink);
+    final label = find.text(AppLocalizations.of(context).connectWithAuthLink);
     final button = find.ancestor(of: label, matching: find.bySubtype<FilledButton>());
     await tester.ensureVisible(button);
     expect(tester.getRect(button).contains(tester.getRect(label).topLeft), isTrue);
