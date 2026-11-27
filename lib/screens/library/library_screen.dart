@@ -123,7 +123,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> with SingleTicker
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.only(top: 24, bottom: 16),
-                      child: !classic && AdaptiveLayout.viewSizeOf(context) == ViewSize.phone
+                      child: AdaptiveLayout.viewSizeOf(context) == ViewSize.phone
                           ? Padding(
                               padding: padding,
                               child: Row(
@@ -168,48 +168,51 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> with SingleTicker
                                 ],
                               ),
                             )
-                          : SizedBox(
-                        height: 40,
-                        child: ListView(
-                          padding: padding,
-                          shrinkWrap: true,
-                          scrollDirection: Axis.horizontal,
-                          children: [
-                            FilledButton.tonalIcon(
-                              onPressed: () => context.pushRoute(LibrarySearchRoute(parentId: [selectedView.id])),
-                              label: Text("${context.localized.search} ${selectedView.name}..."),
-                              icon: const Icon(IconsaxPlusLinear.search_normal),
+                          : SingleChildScrollView(
+                              padding: padding,
+                              scrollDirection: Axis.horizontal,
+                              child: IntrinsicHeight(
+                                child: Row(
+                                  children: [
+                                    FilledButton.tonalIcon(
+                                      onPressed: () =>
+                                          context.pushRoute(LibrarySearchRoute(parentId: [selectedView.id])),
+                                      label: Text("${context.localized.search} ${selectedView.name}..."),
+                                      icon: const Icon(IconsaxPlusLinear.search_normal),
+                                    ),
+                                    const Padding(
+                                      padding: EdgeInsets.symmetric(horizontal: 4.0),
+                                      child: VerticalDivider(),
+                                    ),
+                                    ExpressiveButtonGroup(
+                                      multiSelection: true,
+                                      options: LibraryViewType.values
+                                          .map(
+                                            (element) => ButtonGroupOption(
+                                              value: element,
+                                              icon: Icon(element.icon),
+                                              selected: Icon(element.iconSelected),
+                                              child: Text(element.label(context)),
+                                            ),
+                                          )
+                                          .toList(),
+                                      selectedValues: viewTypes,
+                                      onSelected: (value) =>
+                                          ref.read(libraryScreenProvider.notifier).setViewType(value),
+                                    ),
+                                    const Padding(
+                                      padding: EdgeInsets.symmetric(horizontal: 4.0),
+                                      child: VerticalDivider(),
+                                    ),
+                                    ElevatedButton.icon(
+                                      onPressed: () => showRefreshPopup(context, selectedView.id, selectedView.name),
+                                      label: Text(context.localized.scanLibrary),
+                                      icon: const Icon(IconsaxPlusLinear.refresh),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                            const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 4.0),
-                              child: VerticalDivider(),
-                            ),
-                            ExpressiveButtonGroup(
-                              multiSelection: true,
-                              options: LibraryViewType.values
-                                  .map((element) => ButtonGroupOption(
-                                      value: element,
-                                      icon: Icon(element.icon),
-                                      selected: Icon(element.iconSelected),
-                                      child: Text(
-                                        element.label(context),
-                                      )))
-                                  .toList(),
-                              selectedValues: viewTypes,
-                              onSelected: (value) => ref.read(libraryScreenProvider.notifier).setViewType(value),
-                            ),
-                            const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 4.0),
-                              child: VerticalDivider(),
-                            ),
-                            ElevatedButton.icon(
-                              onPressed: () => showRefreshPopup(context, selectedView.id, selectedView.name),
-                              label: Text(context.localized.scanLibrary),
-                              icon: const Icon(IconsaxPlusLinear.refresh),
-                            ),
-                          ],
-                        ),
-                      ),
                     ),
                   ),
                 if (viewTypes.isEmpty)
@@ -322,10 +325,17 @@ class LibraryRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    const classicWidth = 200.0;
+    const classicAspectRatio = 1.6;
+    final labelStyle = Theme.of(context).textTheme.titleMedium!;
+    final scaler = MediaQuery.textScalerOf(context);
+    final captionHeight = scaler.scale(labelStyle.fontSize!) * (labelStyle.height ?? 1.5) * 2;
     return HorizontalList(
       label: context.localized.library(views.length),
       items: views,
-      height: modern ? 112 + 2 * (MediaQuery.textScalerOf(context).scale(16) - 16).clamp(0.0, 80.0) : 155,
+      height: modern
+          ? 112 + 2 * (scaler.scale(16) - 16).clamp(0.0, 80.0)
+          : classicWidth / classicAspectRatio + captionHeight.ceilToDouble() + 4,
       autoFocus: true,
       startIndex: selectedView != null ? views.indexOf(selectedView!) : null,
       contentPadding: padding,
@@ -440,76 +450,61 @@ class LibraryRow extends ConsumerWidget {
             ),
           );
         }
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            focusCard(
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: FladderTheme.smallShape.borderRadius,
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: isSelected ? 1.0 : 0.0),
-                    width: isSelected ? 3 : 0,
-                  ),
-                ),
-                clipBehavior: Clip.hardEdge,
-                width: 200,
-                child: ClipRRect(
-                  borderRadius: FladderTheme.smallShape.borderRadius,
-                  child: AspectRatio(
-                    aspectRatio: 1.60,
-                    child: FladderImage(
-                      image: view.imageData?.primary,
-                      fit: BoxFit.cover,
-                      cachedImage: enableImageCache,
-                      placeHolder: Center(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          spacing: 8,
-                          children: [
-                            Icon(view.collectionType.icon),
-                            Text(
-                              view.name,
-                              style: Theme.of(context).textTheme.titleMedium,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
+        return focusCard(
+          SizedBox(
+            width: classicWidth,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: 4,
+              children: [
+                AspectRatio(
+                  aspectRatio: classicAspectRatio,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: FladderTheme.smallShape.borderRadius,
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: isSelected ? 1.0 : 0.0),
+                        width: isSelected ? 3 : 0,
+                      ),
+                    ),
+                    clipBehavior: Clip.hardEdge,
+                    child: ClipRRect(
+                      borderRadius: FladderTheme.smallShape.borderRadius,
+                      child: FladderImage(
+                        image: view.imageData?.primary,
+                        fit: BoxFit.cover,
+                        cachedImage: enableImageCache,
+                        placeHolder: Center(child: Icon(view.collectionType.icon)),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ),
-            Row(
-              spacing: 8,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (isSelected)
-                  Container(
-                    height: 12,
-                    width: 12,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Theme.of(context).colorScheme.primary,
+                Row(
+                  spacing: 8,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (isSelected)
+                      Container(
+                        height: 12,
+                        width: 12,
+                        decoration: BoxDecoration(shape: BoxShape.circle, color: Theme.of(context).colorScheme.primary),
+                      ),
+                    Flexible(
+                      child: Text(
+                        view.name,
+                        style: labelStyle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.start,
+                      ),
                     ),
-                  ),
-                Text(
-                  view.name,
-                  style: Theme.of(context).textTheme.titleMedium,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.start,
-                )
+                  ],
+                ),
               ],
-            )
-          ],
+            ),
+          ),
         );
       },
     );

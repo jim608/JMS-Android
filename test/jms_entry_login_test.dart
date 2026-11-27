@@ -271,19 +271,27 @@ Future<_Fixture> _fixture({JmsEntrySettings? settings, bool hostedWeb = false}) 
   return fixture;
 }
 
-Future<void> _pumpLogin(WidgetTester tester, _Fixture fixture) async {
-  tester.view.physicalSize = const Size(1200, 1600);
+Future<void> _pumpLogin(WidgetTester tester, _Fixture fixture, {
+  Size size = const Size(1200, 1600),
+  Locale locale = const Locale('en'),
+  double textScale = 1,
+}) async {
+  tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
   await tester.pumpWidget(UncontrolledProviderScope(
     container: fixture.container,
     child: AdaptiveLayoutBuilder(
-      child: (_) => const MaterialApp(
-        locale: Locale('en'),
+      child: (_) => MaterialApp(
+        locale: locale,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(textScale)),
+          child: child!,
+        ),
         localizationsDelegates: FladderLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: Scaffold(
+        home: const Scaffold(
           body: SingleChildScrollView(
             child: Center(
               child: SizedBox(width: 600, child: LoginScreenCredentials()),
@@ -316,6 +324,21 @@ void main() {
   tearDown(() {
     FladderConfig.baseUrl = originalBaseUrl;
     FladderConfig.seerrBaseUrl = originalSeerr;
+  });
+
+  testWidgets('large text leaves room for the server address and auth link', (tester) async {
+    final fixture = await _fixture();
+    await _pumpLogin(tester, fixture, size: const Size(320, 568),
+        locale: const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'), textScale: 2);
+    final context = tester.element(find.byType(LoginScreenCredentials));
+    expect(tester.getSize(find.byType(TextField).first).width, greaterThanOrEqualTo(160));
+    final label = find.text(AppLocalizations.of(context)!.connectWithAuthLink);
+    final button = find.ancestor(of: label, matching: find.bySubtype<FilledButton>());
+    await tester.ensureVisible(button);
+    expect(tester.getRect(button).contains(tester.getRect(label).topLeft), isTrue);
+    expect(tester.getRect(label).right, lessThanOrEqualTo(tester.getRect(button).right));
+    expect(button.hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('hosted Web automatically connects without a server entry field', (tester) async {

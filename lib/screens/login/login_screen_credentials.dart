@@ -136,51 +136,48 @@ class _LoginScreenCredentialsState
       crossAxisAlignment: CrossAxisAlignment.center,
       spacing: 16,
       children: [
-        IntrinsicHeight(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            spacing: 8,
-            children: [
-              if (!hostedWeb || existingUsers.isNotEmpty)
-                AspectRatio(
-                  aspectRatio: 1,
-                  child: IconButton.filledTonal(
-                    onPressed: () => provider.goUserSelect(),
-                    icon: const Icon(
-                      IconsaxPlusLinear.arrow_left_2,
-                    ),
-                  ),
-                ),
-              if (!hostedWeb && !hasBaseUrl)
-                Expanded(
-                  child: OutlinedTextField(
-                    controller: serverTextController,
-                    onSubmitted: (value) => provider.setServer(value),
-                    autoFillHints: const [AutofillHints.url],
-                    keyboardType: TextInputType.url,
-                    autocorrect: false,
-                    textInputAction: TextInputAction.go,
-                    label: context.localized.server,
-                  ),
-                ),
-              AspectRatio(
-                aspectRatio: 1,
-                child: Tooltip(
-                  message: context.localized.retrievePublicListOfUsers,
-                  waitDuration: const Duration(seconds: 1),
-                  child: IconButton.filled(
-                    onPressed: loading
-                        ? null
-                        : () => provider.setServer(serverTextController.text),
-                    icon: const Icon(
-                      IconsaxPlusLinear.refresh,
-                    ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          spacing: 8,
+          children: [
+            if (!hostedWeb || existingUsers.isNotEmpty)
+              SizedBox.square(
+                dimension: kMinInteractiveDimension,
+                child: IconButton.filledTonal(
+                  onPressed: () => provider.goUserSelect(),
+                  icon: const Icon(
+                    IconsaxPlusLinear.arrow_left_2,
                   ),
                 ),
               ),
-            ],
-          ),
+            if (!hostedWeb && !hasBaseUrl)
+              Expanded(
+                child: OutlinedTextField(
+                  controller: serverTextController,
+                  onSubmitted: (value) => provider.setServer(value),
+                  autoFillHints: const [AutofillHints.url],
+                  keyboardType: TextInputType.url,
+                  autocorrect: false,
+                  textInputAction: TextInputAction.go,
+                  label: context.localized.server,
+                ),
+              ),
+            SizedBox.square(
+              dimension: kMinInteractiveDimension,
+              child: Tooltip(
+                message: context.localized.retrievePublicListOfUsers,
+                waitDuration: const Duration(seconds: 1),
+                child: IconButton.filled(
+                  onPressed: loading
+                      ? null
+                      : () => provider.setServer(serverTextController.text),
+                  icon: const Icon(
+                    IconsaxPlusLinear.refresh,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
         if (provider.entryResolution?.isSuccess == false || urlError != null)
           Semantics(
@@ -258,7 +255,7 @@ class _LoginScreenCredentialsState
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(context.localized.connectWithAuthLink),
+                    Flexible(child: Text(context.localized.connectWithAuthLink, textAlign: TextAlign.center)),
                     const SizedBox(width: 8),
                     const Icon(IconsaxPlusBold.link_square),
                   ],
@@ -358,7 +355,7 @@ class _LoginScreenCredentialsState
                               : Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Text(context.localized.login),
+                                    Flexible(child: Text(context.localized.login, textAlign: TextAlign.center)),
                                     const SizedBox(width: 8),
                                     const Icon(IconsaxPlusBold.send_1),
                                   ],
@@ -410,7 +407,7 @@ class _LoginScreenCredentialsState
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(context.localized.quickConnectLoginUsingCode),
+                          Flexible(child: Text(context.localized.quickConnectLoginUsingCode, textAlign: TextAlign.center)),
                           const SizedBox(width: 8),
                           const Icon(IconsaxPlusBold.scan_barcode),
                         ],

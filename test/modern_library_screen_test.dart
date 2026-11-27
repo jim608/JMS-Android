@@ -30,70 +30,95 @@ class _Library extends data.LibraryScreen {
   Future<void> selectLibrary(ViewModel viewModel) async => state = state.copyWith(selectedViewModel: viewModel);
 }
 
-void main() {
-  testWidgets('narrow library keeps search and tools visible and uses the selected library', (tester) async {
-    tester.view.physicalSize = const Size(320, 740);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    final container = ProviderContainer(
-      overrides: [
-        data.libraryScreenProvider.overrideWith(_Library.new),
-        hasNewUpdateProvider.overrideWithValue(false),
-        classicInterfaceProvider.overrideWithValue(false),
-      ],
-    );
-    final scroll = ScrollController();
-    final router = RootStackRouter.build(
-      routes: [
-        NamedRouteDef(
-          name: LibraryRoute.name,
-          path: '/',
-          builder: (_, _) => const Scaffold(body: LibraryScreen()),
-        ),
-        NamedRouteDef(
-          name: LibrarySearchRoute.name,
-          path: '/search',
-          builder: (_, route) => Text(route.argsAs<LibrarySearchRouteArgs>().parentId!.single),
-        ),
-      ],
-    );
-    addTearDown(() async {
-      await tester.pumpWidget(const SizedBox.shrink());
-      router.dispose();
-      scroll.dispose();
-      container.dispose();
-    });
-    const locale = Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant');
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: MaterialApp.router(
-          routerConfig: router.config(),
-          locale: locale,
-          supportedLocales: const [locale],
-          localizationsDelegates: FladderLocalizations.localizationsDelegates,
-          builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(2)),
-            child: AdaptiveLayout(
-              data: AdaptiveLayoutModel(
-                viewSize: ViewSize.phone,
-                layoutMode: LayoutMode.single,
-                inputDevice: InputDevice.touch,
-                isDesktop: false,
-                platform: TargetPlatform.android,
-                posterDefaults: const PosterDefaults(size: 240, ratio: .55),
-                sideBarWidth: 0,
-                topBarHeight: 0,
-                statusBarHeight: 0,
-                controller: {HomeTabs.library: scroll},
-              ),
-              child: child!,
+Future<ProviderContainer> _openLibrary(WidgetTester tester, {required bool classic}) async {
+  tester.view.physicalSize = const Size(320, 740);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+  final container = ProviderContainer(
+    overrides: [
+      data.libraryScreenProvider.overrideWith(_Library.new),
+      hasNewUpdateProvider.overrideWithValue(false),
+      classicInterfaceProvider.overrideWithValue(classic),
+    ],
+  );
+  final scroll = ScrollController();
+  final router = RootStackRouter.build(
+    routes: [
+      NamedRouteDef(
+        name: LibraryRoute.name,
+        path: '/',
+        builder: (_, _) => const Scaffold(body: LibraryScreen()),
+      ),
+      NamedRouteDef(
+        name: LibrarySearchRoute.name,
+        path: '/search',
+        builder: (_, route) => Text(route.argsAs<LibrarySearchRouteArgs>().parentId!.single),
+      ),
+    ],
+  );
+  addTearDown(() async {
+    await tester.pumpWidget(const SizedBox.shrink());
+    router.dispose();
+    scroll.dispose();
+    container.dispose();
+  });
+  const locale = Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant');
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp.router(
+        routerConfig: router.config(),
+        locale: locale,
+        supportedLocales: const [locale],
+        localizationsDelegates: FladderLocalizations.localizationsDelegates,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(2)),
+          child: AdaptiveLayout(
+            data: AdaptiveLayoutModel(
+              viewSize: ViewSize.phone,
+              layoutMode: LayoutMode.single,
+              inputDevice: InputDevice.touch,
+              isDesktop: false,
+              platform: TargetPlatform.android,
+              posterDefaults: const PosterDefaults(size: 240, ratio: .55),
+              sideBarWidth: 0,
+              topBarHeight: 0,
+              statusBarHeight: 0,
+              controller: {HomeTabs.library: scroll},
             ),
+            child: child!,
           ),
         ),
       ),
-    );
+    ),
+  );
+  await tester.pumpAndSettle();
+  return container;
+}
+
+void main() {
+  testWidgets('classic library keeps long names within the card at double text size', (tester) async {
+    final container = await _openLibrary(tester, classic: true);
+    final card = find.byKey(Key(_second.id));
+    await tester.ensureVisible(card);
     await tester.pumpAndSettle();
+    await tester.tap(card);
+    await tester.pumpAndSettle();
+    expect(container.read(data.libraryScreenProvider).selectedViewModel, same(_second));
+    expect(tester.getSize(find.text(_second.name)).width, lessThanOrEqualTo(tester.getSize(card).width));
+    final strings = tester.element(card).localized;
+    final search = find.ancestor(
+      of: find.text('${strings.search} ${_second.name}'),
+      matching: find.bySubtype<FilledButton>(),
+    );
+    expect(tester.getSize(search).width, lessThanOrEqualTo(320));
+    expect(tester.getSize(search).height, greaterThanOrEqualTo(kMinInteractiveDimension));
+    expect(find.byTooltip(strings.scanLibrary).hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('narrow library keeps search and tools visible and uses the selected library', (tester) async {
+    final container = await _openLibrary(tester, classic: false);
     final strings = tester.element(find.byType(LibraryScreen)).localized;
     final filters = find.byTooltip(strings.filter(2));
     expect(filters.hitTestable(), findsOneWidget);
