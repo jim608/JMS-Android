@@ -18,6 +18,7 @@ import 'package:fladder/providers/sync/background_download_provider.dart';
 import 'package:fladder/providers/sync/sync_provider_helpers.dart';
 import 'package:fladder/providers/sync_provider.dart';
 import 'package:fladder/util/localization_helper.dart';
+import 'package:fladder/util/size_formatting.dart';
 
 const _cancellableStatuses = {
   TaskStatus.canceled,
@@ -26,6 +27,61 @@ const _cancellableStatuses = {
   TaskStatus.waitingToRetry,
 };
 
+class SyncMediaRow extends StatelessWidget {
+  const SyncMediaRow({super.key, required this.poster, required this.information, required this.actions});
+
+  final Widget poster;
+  final Widget information;
+  final List<Widget> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Keep room for a readable title beside the artwork and trailing controls.
+        final minimumTextWidth = MediaQuery.textScalerOf(context).scale(16) * 7;
+        final compact = constraints.maxWidth - 190 < minimumTextWidth;
+        return Row(
+          spacing: compact ? 12 : 16,
+          children: [
+            if (compact)
+              SizedBox(
+                width: (constraints.maxWidth * 0.23).clamp(48.0, 80.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  spacing: 4,
+                  children: [
+                    FittedBox(fit: BoxFit.scaleDown, child: poster),
+                    ...actions,
+                  ],
+                ),
+              )
+            else
+              poster,
+            Expanded(child: information),
+            if (!compact) ...actions,
+          ],
+        );
+      },
+    );
+  }
+}
+
+class SyncSizeLabel extends ConsumerWidget {
+  const SyncSizeLabel({super.key, required this.item, required this.children, required this.status});
+
+  final SyncedItem item;
+  final List<SyncedItem> children;
+  final TaskStatus status;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final size = ref.watch(syncSizeProvider(item, children));
+    if (size == null || size == 0) return const SizedBox.shrink();
+    return SyncLabel(label: context.localized.totalSize(size.byteFormat!), status: status);
+  }
+}
+
 class SyncLabel extends ConsumerWidget {
   final String? label;
   final TaskStatus status;
@@ -33,9 +89,11 @@ class SyncLabel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = Theme.of(context).colorScheme;
+    final fill = Color.alphaBlend(status.color(context).withValues(alpha: 0.15), colors.surface);
     return Container(
       decoration: BoxDecoration(
-        color: status.color(context).withValues(alpha: 0.15),
+        color: fill,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Padding(
@@ -44,7 +102,7 @@ class SyncLabel extends ConsumerWidget {
           label ?? status.name(context),
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: status.color(context),
+                color: colors.onSurface,
               ),
         ),
       ),
@@ -154,15 +212,15 @@ class SyncSubtitle extends ConsumerWidget {
     final baseItem = syncItem.itemModel;
     final syncStatus = ref
         .watch(syncDownloadStatusProvider(syncItem, children).select((value) => value?.status ?? TaskStatus.notFound));
+    final colors = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-          color: syncStatus.color(context).withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+        color: Color.alphaBlend(syncStatus.color(context).withValues(alpha: 0.15), colors.surface),
+        borderRadius: BorderRadius.circular(10),
+      ),
       child: Material(
-        color: const Color.fromARGB(0, 208, 130, 130),
-        textStyle: Theme.of(context)
-            .textTheme
-            .bodyMedium
-            ?.copyWith(fontWeight: FontWeight.bold, color: syncStatus.color(context)),
+        color: Colors.transparent,
+        textStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold, color: colors.onSurface),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           child: switch (baseItem) {

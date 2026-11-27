@@ -6,7 +6,6 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 
 import 'package:fladder/models/item_base_model.dart';
 import 'package:fladder/models/syncing/sync_item.dart';
-import 'package:fladder/providers/sync/sync_provider_helpers.dart';
 import 'package:fladder/providers/sync_provider.dart';
 import 'package:fladder/screens/shared/default_alert_dialog.dart';
 import 'package:fladder/screens/syncing/sync_item_details.dart';
@@ -17,7 +16,6 @@ import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
 import 'package:fladder/util/fladder_image.dart';
 import 'package:fladder/util/focus_provider.dart';
 import 'package:fladder/util/localization_helper.dart';
-import 'package:fladder/util/size_formatting.dart';
 
 class SyncListItem extends ConsumerWidget {
   final SyncedItem syncedItem;
@@ -78,78 +76,67 @@ class SyncListItem extends ConsumerWidget {
             overlays: [
               Padding(
                 padding: const EdgeInsets.all(8),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  spacing: 16,
-                  children: [
-                    Container(
-                      height: 150,
-                      decoration: FladderTheme.defaultPosterDecoration,
-                      clipBehavior: Clip.hardEdge,
-                      child: AspectRatio(
-                          aspectRatio: baseItem?.primaryRatio ?? 0.67,
-                          child: FladderImage(
-                            image: baseItem?.getPosters?.primary,
-                            fit: BoxFit.cover,
-                          )),
+                child: SyncMediaRow(
+                  poster: Container(
+                    height: 150,
+                    decoration: FladderTheme.defaultPosterDecoration,
+                    clipBehavior: Clip.hardEdge,
+                    child: AspectRatio(
+                      aspectRatio: baseItem?.primaryRatio ?? 0.67,
+                      child: FladderImage(image: baseItem?.getPosters?.primary, fit: BoxFit.cover),
                     ),
-                    Expanded(
-                      child: FutureBuilder(
-                        future: ref.read(syncProvider.notifier).getNestedChildren(syncedItem),
-                        builder: (context, asyncSnapshot) {
-                          final nestedChildren = asyncSnapshot.data ?? [];
-                          return SyncProgressBuilder(
-                            item: syncedItem,
-                            children: nestedChildren,
-                            builder: (context, combinedStream) {
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.min,
-                                spacing: 6,
-                                children: [
-                                  Flexible(
-                                    child: IgnorePointer(
-                                      child: Text(
-                                        baseItem?.detailedName(context.localized) ?? "",
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: Theme.of(context).textTheme.titleMedium,
-                                      ),
-                                    ),
+                  ),
+                  information: FutureBuilder(
+                    future: ref.read(syncProvider.notifier).getNestedChildren(syncedItem),
+                    builder: (context, asyncSnapshot) {
+                      final nestedChildren = asyncSnapshot.data ?? [];
+                      return SyncProgressBuilder(
+                        item: syncedItem,
+                        children: nestedChildren,
+                        builder: (context, combinedStream) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            spacing: 6,
+                            children: [
+                              Flexible(
+                                child: IgnorePointer(
+                                  child: Text(
+                                    baseItem?.detailedName(context.localized) ?? "",
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context).textTheme.titleMedium,
                                   ),
-                                  IgnorePointer(
-                                    child: SyncSubtitle(
-                                      syncItem: syncedItem,
-                                      children: nestedChildren,
-                                    ),
-                                  ),
-                                  IgnorePointer(
-                                    child: Consumer(
-                                      builder: (context, ref, child) => SyncLabel(
-                                        label: context.localized.totalSize(
-                                            ref.watch(syncSizeProvider(syncedItem, nestedChildren)).byteFormat ?? '--'),
-                                        status: combinedStream?.status ?? TaskStatus.notFound,
-                                      ),
-                                    ),
-                                  ),
-                                  if (combinedStream != null && combinedStream.hasDownload == true)
-                                    SyncProgressBar(item: syncedItem, task: combinedStream)
-                                ],
-                              );
-                            },
+                                ),
+                              ),
+                              IgnorePointer(
+                                child: SyncSubtitle(syncItem: syncedItem, children: nestedChildren),
+                              ),
+                              IgnorePointer(
+                                child: SyncSizeLabel(
+                                  item: syncedItem,
+                                  children: nestedChildren,
+                                  status: combinedStream?.status ?? TaskStatus.notFound,
+                                ),
+                              ),
+                              if (combinedStream != null && combinedStream.hasDownload == true)
+                                SyncProgressBar(item: syncedItem, task: combinedStream),
+                            ],
                           );
                         },
-                      ),
-                    ),
+                      );
+                    },
+                  ),
+                  actions: [
                     IconButton(
                       onPressed: () => showSyncItemDetails(context, syncedItem, ref),
+                      tooltip: context.localized.showDetails,
                       icon: const Icon(IconsaxPlusLinear.more_square),
                     ),
                   ],
                 ),
-              )
+              ),
             ],
           ),
         ),

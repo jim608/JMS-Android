@@ -14,8 +14,6 @@ import 'package:fladder/screens/syncing/widgets/sync_options_button.dart';
 import 'package:fladder/screens/syncing/widgets/sync_progress_builder.dart';
 import 'package:fladder/screens/syncing/widgets/synced_episode_item.dart';
 import 'package:fladder/util/fladder_image.dart';
-import 'package:fladder/util/localization_helper.dart';
-import 'package:fladder/util/size_formatting.dart';
 
 class SyncedSeasonPoster extends ConsumerStatefulWidget {
   const SyncedSeasonPoster({
@@ -44,71 +42,65 @@ class _SyncedSeasonPosterState extends ConsumerState<SyncedSeasonPoster> {
           return ExpansionTile(
             tilePadding: EdgeInsets.zero,
             shape: const Border(),
-            title: Row(
-              spacing: 12,
-              children: [
-                SizedBox(
-                  width: 75,
-                  child: AspectRatio(
-                    aspectRatio: 0.65,
-                    child: FlatButton(
-                      onTap: () {
-                        season.navigateTo(context);
-                        return context.maybePop();
-                      },
-                      child: Card(
-                        child: FladderImage(
-                          image: season.getPosters?.primary ??
-                              season.parentImages?.backDrop?.firstOrNull ??
-                              season.parentImages?.primary,
-                        ),
+            showTrailingIcon: false,
+            title: SyncMediaRow(
+              poster: SizedBox(
+                width: 75,
+                child: AspectRatio(
+                  aspectRatio: 0.65,
+                  child: FlatButton(
+                    onTap: () {
+                      season.navigateTo(context);
+                      return context.maybePop();
+                    },
+                    child: Card(
+                      child: FladderImage(
+                        image: season.getPosters?.primary ??
+                            season.parentImages?.backDrop?.firstOrNull ??
+                            season.parentImages?.primary,
                       ),
                     ),
                   ),
                 ),
-                Flexible(
-                  child: SyncProgressBuilder(
-                    item: syncedItem,
-                    children: children,
-                    builder: (context, combinedStream) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        spacing: 4,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              season.name,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                          ),
-                          Flexible(
-                            child: SyncSubtitle(
-                              syncItem: syncedItem,
-                              children: children,
-                            ),
-                          ),
-                          Flexible(
-                            child: Consumer(
-                              builder: (context, ref, child) => SyncLabel(
-                                label: context.localized
-                                    .totalSize(ref.watch(syncSizeProvider(syncedItem, children))?.byteFormat ?? '--'),
-                                status: combinedStream?.status ?? TaskStatus.notFound,
-                              ),
-                            ),
-                          ),
-                          if (combinedStream != null && combinedStream.hasDownload == true)
-                            SyncProgressBar(item: syncedItem, task: combinedStream)
-                        ],
-                      );
-                    },
-                  ),
-                ),
-              ],
+              ),
+              information: SyncProgressBuilder(
+                item: syncedItem,
+                children: children,
+                builder: (context, combinedStream) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    spacing: 4,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          season.name,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ),
+                      Flexible(
+                        child: SyncSubtitle(
+                          syncItem: syncedItem,
+                          children: children,
+                        ),
+                      ),
+                      Flexible(
+                        child: SyncSizeLabel(
+                          item: syncedItem,
+                          children: children,
+                          status: combinedStream?.status ?? TaskStatus.notFound,
+                        ),
+                      ),
+                      if (combinedStream != null && combinedStream.hasDownload == true)
+                        SyncProgressBar(item: syncedItem, task: combinedStream)
+                    ],
+                  );
+                },
+              ),
+              actions: [SyncOptionsButton(syncedItem: syncedItem, children: children)],
             ),
-            trailing: SyncOptionsButton(syncedItem: syncedItem, children: children),
             children: [
               for (final item in children)
                 if (item.itemModel case final EpisodeModel episode)

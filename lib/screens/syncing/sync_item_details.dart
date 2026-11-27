@@ -23,7 +23,6 @@ import 'package:fladder/screens/syncing/widgets/sync_status_overlay.dart';
 import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
 import 'package:fladder/util/localization_helper.dart';
 import 'package:fladder/util/refresh_state.dart';
-import 'package:fladder/util/size_formatting.dart';
 import 'package:fladder/widgets/shared/alert_content.dart';
 import 'package:fladder/widgets/shared/icon_button_await.dart';
 import 'package:fladder/widgets/shared/pull_to_refresh.dart';
@@ -35,8 +34,9 @@ Future<void> showSyncItemDetails(
 ) async {
   await showDialogAdaptive(
     context: context,
-    builder: (context) => SyncItemDetails(
-      syncItem: syncItem,
+    builder: (context) => ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 760),
+      child: SyncItemDetails(syncItem: syncItem),
     ),
   );
   context.refreshData();
@@ -105,6 +105,7 @@ class _SyncItemDetailsState extends ConsumerState<SyncItemDetails> {
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
+                      tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
                       icon: const Icon(IconsaxPlusBold.close_circle),
                     )
                   ],
@@ -115,78 +116,65 @@ class _SyncItemDetailsState extends ConsumerState<SyncItemDetails> {
                     if (syncedItem.syncing && !syncedItem.markedForDelete)
                       LinearProgressIndicator(semanticsLabel: context.localized.syncOverlaySyncing),
                     if (baseItem != null) ...{
-                      Row(
-                        mainAxisSize: MainAxisSize.max,
-                        spacing: 16,
-                        children: [
-                          SyncItemPoster(
-                            item: syncedItem,
-                            child: SizedBox(
-                              height: (AdaptiveLayout.poster(context).size *
-                                      ref.watch(clientSettingsProvider.select((value) => value.posterSize))) *
-                                  0.6,
-                              child: IgnorePointer(
-                                child: PosterWidget(
-                                  aspectRatio: 0.70,
-                                  poster: baseItem,
-                                  underTitle: false,
-                                ),
+                      SyncMediaRow(
+                        poster: SyncItemPoster(
+                          item: syncedItem,
+                          child: SizedBox(
+                            height:
+                                (AdaptiveLayout.poster(context).size *
+                                    ref.watch(clientSettingsProvider.select((value) => value.posterSize))) *
+                                0.6,
+                            child: IgnorePointer(
+                              child: MediaQuery.withClampedTextScaling(
+                                maxScaleFactor: 1,
+                                child: PosterWidget(aspectRatio: 0.70, poster: baseItem, underTitle: false),
                               ),
                             ),
                           ),
-                          Expanded(
-                            child: switch (nestedChildren) {
-                              AsyncValue<List<SyncedItem>>(:final value) => Builder(
-                                  builder: (context) {
-                                    final nestedChildren = value ?? [];
-                                    return SyncProgressBuilder(
-                                      item: syncedItem,
-                                      children: nestedChildren,
-                                      builder: (context, combinedStream) {
-                                        return Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          mainAxisSize: MainAxisSize.min,
-                                          spacing: 4,
-                                          children: [
-                                            Flexible(
-                                              child: Text(
-                                                baseItem.detailedName(context.localized) ?? "",
-                                                maxLines: 3,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: Theme.of(context).textTheme.titleMedium,
-                                              ),
-                                            ),
-                                            Flexible(
-                                              child: SyncSubtitle(
-                                                syncItem: syncedItem,
-                                                children: nestedChildren,
-                                              ),
-                                            ),
-                                            Flexible(
-                                              child: Consumer(
-                                                builder: (context, ref, child) => SyncLabel(
-                                                  label: context.localized.totalSize(ref
-                                                          .watch(syncSizeProvider(syncedItem, nestedChildren))
-                                                          .byteFormat ??
-                                                      '--'),
-                                                  status: combinedStream?.status ?? TaskStatus.notFound,
-                                                ),
-                                              ),
-                                            ),
-                                            if (combinedStream != null && combinedStream.hasDownload == true)
-                                              SyncProgressBar(item: syncedItem, task: combinedStream)
-                                          ],
-                                        );
-                                      },
-                                    );
-                                  },
-                                ),
+                        ),
+                        information: switch (nestedChildren) {
+                          AsyncValue<List<SyncedItem>>(:final value) => Builder(
+                            builder: (context) {
+                              final nestedChildren = value ?? [];
+                              return SyncProgressBuilder(
+                                item: syncedItem,
+                                children: nestedChildren,
+                                builder: (context, combinedStream) {
+                                  return Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    spacing: 4,
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          baseItem.detailedName(context.localized) ?? "",
+                                          maxLines: 3,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: Theme.of(context).textTheme.titleMedium,
+                                        ),
+                                      ),
+                                      Flexible(
+                                        child: SyncSubtitle(syncItem: syncedItem, children: nestedChildren),
+                                      ),
+                                      Flexible(
+                                        child: SyncSizeLabel(
+                                          item: syncedItem,
+                                          children: nestedChildren,
+                                          status: combinedStream?.status ?? TaskStatus.notFound,
+                                        ),
+                                      ),
+                                      if (combinedStream != null && combinedStream.hasDownload == true)
+                                        SyncProgressBar(item: syncedItem, task: combinedStream),
+                                    ],
+                                  );
+                                },
+                              );
                             },
                           ),
+                        },
+                        actions: [
                           if (syncedItem.hasVideoFile && !hasFile && !downloadTask.hasDownload)
-                            SyncFileButton(
-                              syncedItem: syncedItem,
-                            )
+                            SyncFileButton(syncedItem: syncedItem)
                           else if (hasFile)
                             IconButtonAwait(
                               color: Theme.of(context).colorScheme.error,
@@ -207,13 +195,10 @@ class _SyncItemDetailsState extends ConsumerState<SyncItemDetails> {
                               icon: const Icon(IconsaxPlusLinear.trash),
                             ),
                           nestedChildren.when(
-                            data: (data) => SyncOptionsButton(
-                              syncedItem: syncedItem,
-                              children: data,
-                            ),
+                            data: (data) => SyncOptionsButton(syncedItem: syncedItem, children: data),
                             error: (error, stackTrace) => const SizedBox.shrink(),
                             loading: () => const SizedBox.shrink(),
-                          )
+                          ),
                         ],
                       ),
                     },
