@@ -274,10 +274,17 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
                         duration: fadeDuration,
                         opacity: controlsVisible ? 1 : 0,
                         child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             topButtons(context),
-                            const Spacer(),
-                            bottomButtons(context),
+                            Flexible(
+                              child: SingleChildScrollView(
+                                key: _bottomControlsKey,
+                                primary: false,
+                                reverse: true,
+                                child: bottomButtons(context),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -344,7 +351,9 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
 
   Widget topButtons(BuildContext context) {
     final currentItem = ref.watch(playBackModel.select((value) => value?.item));
-    final maxHeight = 150.clamp(50, (MediaQuery.sizeOf(context).height * 0.25).clamp(51, double.maxFinite)).toDouble();
+    final titleStyle = AdaptiveLayout.viewSizeOf(context) >= ViewSize.desktop
+        ? Theme.of(context).textTheme.titleLarge
+        : Theme.of(context).textTheme.titleMedium;
     return Container(
       decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -368,7 +377,7 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Row(
-                  spacing: 16,
+                  spacing: 8,
                   mainAxisSize: MainAxisSize.max,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -381,22 +390,20 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
                     ),
                     if (currentItem != null)
                       Expanded(
-                        child: Row(
-                          children: [
-                            Flexible(
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  maxHeight: maxHeight,
-                                ),
-                                child: ItemLogo(
-                                  item: currentItem,
-                                  imageAlignment: Alignment.topLeft,
-                                  textStyle: Theme.of(context).textTheme.headlineLarge,
+                        child: currentItem.getPosters?.logo == null
+                            ? Text(
+                                currentItem.parentBaseModel.name,
+                                style: titleStyle,
+                                maxLines: MediaQuery.orientationOf(context) == Orientation.portrait ? 2 : 1,
+                                overflow: TextOverflow.ellipsis,
+                              )
+                            : Align(
+                                alignment: Alignment.centerLeft,
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(maxHeight: 64),
+                                  child: ItemLogo(item: currentItem, imageAlignment: Alignment.topLeft, textStyle: titleStyle),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
                       ),
                     const SyncPlayButton(),
                     const RemoteControlEntry(),
@@ -424,7 +431,6 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
       final bitRateOptions = ref.watch(playBackModel.select((value) => value?.bitRateOptions));
       final isPhone = AdaptiveLayout.viewSizeOf(context) == ViewSize.phone;
       return Container(
-        key: _bottomControlsKey,
         decoration: BoxDecoration(
             gradient: LinearGradient(
           begin: Alignment.bottomCenter,
@@ -445,13 +451,7 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
                 child: Consumer(
                   builder: (context, ref, child) {
                     final mediaPlayback = ref.watch(mediaPlaybackProvider);
-                    return Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ChapterNavigationControls(controllerMode: AdaptiveLayout.of(context).controllerMode),
-                        progressBar(mediaPlayback),
-                      ],
-                    );
+                    return progressBar(mediaPlayback);
                   },
                 ),
               ),
@@ -463,6 +463,7 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
                   children: <Widget>[
                     IconButton(
                         onPressed: () => showVideoPlayerOptions(context, () => minimizePlayer(context)),
+                        tooltip: context.localized.moreOptions,
                         icon: const Icon(IconsaxPlusLinear.more)),
                     if (AdaptiveLayout.viewSizeOf(context) >= ViewSize.desktop) const SubtitleOffsetButton(),
                     if (pipPlatformSupported && MediaQuery.orientationOf(context) == Orientation.landscape)
@@ -523,18 +524,19 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       previousButton,
-                      seekBackwardButton(ref),
+                      seekButton(ref, forward: false),
                       IconButton.filledTonal(
                         focusNode: _playControl,
                         iconSize: 38,
                         onPressed: () {
                           ref.read(videoPlayerProvider).playOrPause();
                         },
+                        tooltip: context.localized.playPause,
                         icon: Icon(
                           playing ? IconsaxPlusBold.pause : IconsaxPlusBold.play,
                         ),
                       ),
-                      seekForwardButton(ref),
+                      seekButton(ref, forward: true),
                       nextVideoButton,
                     ].addInBetween(const SizedBox(width: 6)));
                 final trailing = Row(
@@ -598,6 +600,10 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
       builder: (context, ref, child) {
         final playbackModel = ref.watch(playBackModel);
         final item = playbackModel?.item;
+        final viewport = MediaQuery.sizeOf(context);
+        final controllerMode = AdaptiveLayout.of(context).controllerMode;
+        final inlineChapters = !controllerMode && viewport.height <= 420 && viewport.width >= 600;
+        final chapterButtons = ChapterNavigationControls(controllerMode: controllerMode);
         final List<String?> details = [
           if (AdaptiveLayout.of(context).isDesktop) item?.label(context.localized),
           context.localized.endsAt(DateTime.now().add(Duration(
@@ -610,8 +616,13 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            if (!inlineChapters) chapterButtons,
             Row(
               children: [
+                if (inlineChapters && playbackModel?.chapters?.isNotEmpty == true) ...[
+                  Flexible(child: chapterButtons),
+                  const SizedBox(width: 12),
+                ],
                 Expanded(
                   child: Text(
                     details.nonNulls.join(' - '),
@@ -619,7 +630,6 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
                     maxLines: 2,
                   ),
                 ),
-                const Spacer(),
                 if (playbackModel != null)
                   InkWell(
                     onTap: () => showVideoPlaybackInformation(context),
@@ -632,12 +642,12 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
                       ),
                     ),
                   ),
-                if (item != null) ...{
+                if (item?.streamModel?.mediaInfoTag case final tag?) ...{
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       child: Text(
-                        item.streamModel?.mediaInfoTag ?? "",
+                        tag,
                       ),
                     ),
                   ),
@@ -738,57 +748,27 @@ class _DesktopControlsState extends ConsumerState<DesktopControls> {
     return nextVideo != null && !buffering ? () => ref.read(playbackModelHelper).loadNewVideo(nextVideo) : null;
   }
 
-  Widget seekBackwardButton(WidgetRef ref) {
-    final backwardSpeed =
-        ref.read(userProvider.select((value) => value?.userSettings?.skipBackDuration.inSeconds ?? 30));
+  Widget seekButton(WidgetRef ref, {required bool forward}) {
+    final settings = ref.read(userProvider)?.userSettings;
+    final seconds = (forward ? settings?.skipForwardDuration : settings?.skipBackDuration)?.inSeconds ?? 30;
+    final label = forward ? seconds.toString() : '-$seconds';
+    final size = AdaptiveLayout.viewSizeOf(context) == ViewSize.phone ? 36.0 : 40.0;
     return IconButton(
-      onPressed: () => seekBack(ref, seconds: backwardSpeed),
-      tooltip: "-$backwardSpeed",
-      iconSize: AdaptiveLayout.viewSizeOf(context) == ViewSize.phone ? 32 : 40,
-      icon: Stack(
-        alignment: Alignment.center,
-        children: [
-          Icon(
-            IconsaxPlusBroken.refresh,
-            size: AdaptiveLayout.viewSizeOf(context) == ViewSize.phone ? 36 : 45,
-          ),
-          Transform.translate(
-            offset: const Offset(0, 1),
-            child: Text(
-              "-$backwardSpeed",
-              style: Theme.of(context).textTheme.bodySmall,
+      onPressed: () => forward ? seekForward(ref, seconds: seconds) : seekBack(ref, seconds: seconds),
+      tooltip: label,
+      iconSize: size,
+      icon: SizedBox.square(
+        dimension: size,
+        child: Stack(alignment: Alignment.center, children: [
+          Transform.flip(flipX: forward, child: Icon(IconsaxPlusBroken.refresh, size: size)),
+          Padding(
+            padding: EdgeInsets.all(size * 0.2),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(label, maxLines: 1, style: Theme.of(context).textTheme.labelSmall),
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget seekForwardButton(WidgetRef ref) {
-    final forwardSpeed =
-        ref.read(userProvider.select((value) => value?.userSettings?.skipForwardDuration.inSeconds ?? 30));
-    return IconButton(
-      onPressed: () => seekForward(ref, seconds: forwardSpeed),
-      tooltip: forwardSpeed.toString(),
-      iconSize: AdaptiveLayout.viewSizeOf(context) == ViewSize.phone ? 32 : 40,
-      icon: Stack(
-        alignment: Alignment.center,
-        children: [
-          Transform.flip(
-            flipX: true,
-            child: Icon(
-              IconsaxPlusBroken.refresh,
-              size: AdaptiveLayout.viewSizeOf(context) == ViewSize.phone ? 36 : 45,
-            ),
-          ),
-          Transform.translate(
-            offset: const Offset(0, 1),
-            child: Text(
-              forwardSpeed.toString(),
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ),
-        ],
+        ]),
       ),
     );
   }

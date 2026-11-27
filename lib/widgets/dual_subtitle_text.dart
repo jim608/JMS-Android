@@ -11,12 +11,14 @@ class DualSubtitleText extends StatelessWidget {
   final SubtitleSettingsModel settings;
   final EdgeInsets padding;
   final double bottomOffset;
+  final double minimumBottomInset;
   const DualSubtitleText({
     required this.primaryText,
     required this.secondaryText,
     required this.settings,
     this.padding = EdgeInsets.zero,
     this.bottomOffset = 0.1,
+    this.minimumBottomInset = 0,
     super.key,
   });
 
@@ -34,7 +36,10 @@ class DualSubtitleText extends StatelessWidget {
                   .clamp(0.0, 1.0));
           final fontSize = settings.fontSize * scale;
           final secondaryFontSize = fontSize * 0.60;
-          final bottom = constraints.maxHeight * bottomOffset.clamp(0.0, 0.85);
+          final bottom = math.max(
+            constraints.maxHeight * bottomOffset.clamp(0.0, 0.85),
+            (minimumBottomInset - padding.bottom - 16).clamp(0.0, constraints.maxHeight),
+          );
           final textScaler = MediaQuery.textScalerOf(context);
           final lineHeight = settings.style.height ?? 1.4;
           final primaryHeight = textScaler.scale(fontSize) * lineHeight * 3;

@@ -2021,6 +2021,7 @@ class _VideoSubtitlesState extends ConsumerState<_VideoSubtitles> {
 
     final settings = ref.watch(subtitleSettingsProvider);
     final padding = MediaQuery.paddingOf(context);
+    final minimumBottomInset = widget.showOverlay ? _cachedMenuHeight ?? 0.0 : 0.0;
 
     final offset = SubtitlePositionCalculator.calculateOffset(
       settings: settings,
@@ -2038,11 +2039,13 @@ class _VideoSubtitlesState extends ConsumerState<_VideoSubtitles> {
               settings: settings,
               padding: padding,
               bottomOffset: offset,
+              minimumBottomInset: minimumBottomInset,
             )
           : SubtitleText(
               subModel: settings,
               padding: padding,
               offset: offset,
+              minimumBottomInset: minimumBottomInset,
               text: text.primary),
     );
   }

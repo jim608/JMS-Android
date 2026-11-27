@@ -174,10 +174,12 @@ class SubtitleText extends ConsumerWidget {
   final EdgeInsets padding;
   final String text;
   final double offset;
+  final double minimumBottomInset;
   const SubtitleText({
     required this.subModel,
     required this.padding,
     required this.offset,
+    this.minimumBottomInset = 0,
     required this.text,
     super.key,
   });
@@ -195,21 +197,22 @@ class SubtitleText extends ConsumerWidget {
           .add(const EdgeInsets.all(16)),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final textScale = MediaQuery.textScalerOf(context).scale((fontSize *
+          final textScale = fontSize *
               math.sqrt(
                 ((constraints.maxWidth * constraints.maxHeight) /
                         (kTextScaleFactorReferenceWidth * kTextScaleFactorReferenceHeight))
                     .clamp(0.0, 1.0),
-              )));
+              );
 
           double getTextHeight(BuildContext context, String text, TextStyle style) {
             final TextPainter textPainter = TextPainter(
-              text: TextSpan(text: text, style: style),
-              textDirection: TextDirection.ltr,
+              text: TextSpan(text: text, style: DefaultTextStyle.of(context).style.merge(style)),
+              textDirection: Directionality.of(context),
               textScaler: MediaQuery.textScalerOf(context),
-            )..layout(minWidth: 0, maxWidth: double.infinity);
-
-            return textPainter.height;
+            )..layout(maxWidth: math.max(0, constraints.maxWidth - 32));
+            final height = textPainter.height;
+            textPainter.dispose();
+            return height;
           }
 
           double availableHeight = constraints.maxHeight;
@@ -219,7 +222,7 @@ class SubtitleText extends ConsumerWidget {
 
           final double desiredPosition = (safeAvailableHeight * offset).clamp(0.0, double.infinity);
 
-          double textHeight = getTextHeight(context, text, subModel.style);
+          double textHeight = getTextHeight(context, text, subModel.style.copyWith(fontSize: textScale));
           final double safeTextHeight = textHeight.isFinite ? textHeight : 0.0;
 
           final double maxPosition = math.max(0.0, safeAvailableHeight - safeTextHeight);
@@ -227,7 +230,8 @@ class SubtitleText extends ConsumerWidget {
           double position =
               (desiredPosition - safeTextHeight / 2).isFinite ? (desiredPosition - safeTextHeight / 2) : 0.0;
 
-          position = position.clamp(0.0, maxPosition);
+          final menuBottom = (minimumBottomInset - 16).clamp(0.0, safeAvailableHeight);
+          position = math.max(position.clamp(0.0, maxPosition), menuBottom);
 
           return Visibility(
             visible: text.isEmpty ? false : true,
@@ -238,7 +242,7 @@ class SubtitleText extends ConsumerWidget {
                   Positioned(
                     bottom: position,
                     child: Container(
-                      constraints: BoxConstraints(maxWidth: constraints.maxWidth, maxHeight: constraints.maxHeight),
+                      constraints: BoxConstraints(maxWidth: constraints.maxWidth, maxHeight: safeAvailableHeight - position),
                       decoration: BoxDecoration(
                         color: subModel.backGroundColor,
                         borderRadius: BorderRadius.circular(clampDouble(textScale / 10, 2, 12)),
@@ -256,7 +260,7 @@ class SubtitleText extends ConsumerWidget {
                   Positioned(
                     bottom: position,
                     child: Container(
-                      constraints: BoxConstraints(maxWidth: constraints.maxWidth, maxHeight: constraints.maxHeight),
+                      constraints: BoxConstraints(maxWidth: constraints.maxWidth, maxHeight: safeAvailableHeight - position),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Text(

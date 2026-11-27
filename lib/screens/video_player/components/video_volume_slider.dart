@@ -95,10 +95,11 @@ class _VideoVolumeSliderState extends ConsumerState<VideoVolumeSlider> {
                 ),
               ),
             ),
-            SizedBox(
-              width: 40,
+            ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 32),
               child: Text(
                 (volume).toStringAsFixed(0),
+                maxLines: 1,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
