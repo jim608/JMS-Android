@@ -139,8 +139,8 @@ base class Request {
     final Uri uri;
     try {
       uri = Uri.parse(url);
-    } catch (e) {
-      _log.fine('Invalid url: $url error: $e');
+    } catch (_) {
+      _log.fine('Invalid cookie request URL');
       return {};
     }
     final List<Cookie> cookieList = switch (cookies) {

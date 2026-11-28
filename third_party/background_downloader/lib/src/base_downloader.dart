@@ -305,7 +305,7 @@ abstract base class BaseDownloader {
     awaitTasks[taskToEnqueue] = taskCompleter;
     final enqueueSuccess = await enqueue(taskToEnqueue);
     if (!enqueueSuccess) {
-      log.warning('Could not enqueue task $taskToEnqueue');
+      log.warning('Could not enqueue taskId ${taskToEnqueue.taskId}');
       return Future.value(TaskStatusUpdate(taskToEnqueue, TaskStatus.failed,
           TaskException('Could not enqueue task $taskToEnqueue')));
     }

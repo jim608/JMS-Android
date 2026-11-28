@@ -79,8 +79,7 @@ Future<void> doDownloadTask(DownloadTask task, ResumeData? resumeData,
             downloadTask, response.headers, true);
         // update the filePath by replacing the last segment with the new filename
         filePath = p.join(p.dirname(filePath), downloadTask.filename);
-        log.finest(
-            'Suggested filename for taskId ${task.taskId}: ${task.filename}');
+        log.finest('Received suggested filename for taskId ${task.taskId}');
       }
       responseHeaders = response.headers;
       responseStatusCode = response.statusCode;
@@ -110,7 +109,7 @@ Future<void> doDownloadTask(DownloadTask task, ResumeData? resumeData,
       }
     }
   } catch (e) {
-    logError(downloadTask, e.toString());
+    logError(downloadTask, e);
     setTaskError(e);
   }
   if (isCanceled) {
@@ -202,7 +201,7 @@ Future<TaskStatus> processOkDownloadResponse(
         throw ArgumentError('Cannot process $transferBytesResult');
     }
   } catch (e) {
-    logError(downloadTask, e.toString());
+    logError(downloadTask, e);
     setTaskError(e);
   } finally {
     try {
@@ -219,7 +218,7 @@ Future<TaskStatus> processOkDownloadResponse(
         File(tempFilePath).deleteSync();
       }
     } catch (e) {
-      logError(downloadTask, 'Could not delete temp file $tempFilePath: $e');
+      log.fine('Could not delete temp file for taskId ${downloadTask.taskId}: ${e.runtimeType}');
     }
   }
   return resultStatus;
@@ -241,7 +240,7 @@ Future<bool> prepareResume(
   final contentRangeRegEx = RegExp(r"(\d+)-(\d+)/(\d+)");
   final matchResult = contentRangeRegEx.firstMatch(range);
   if (matchResult == null) {
-    log.fine('Could not process partial response Content-Range $range');
+    log.fine('Could not process malformed partial response Content-Range');
     taskException = TaskResumeException('Could not process '
         'partial response Content-Range $range');
     return false;
@@ -255,7 +254,7 @@ Future<bool> prepareResume(
       'Resume start=$start, end=$end of total=$total bytes, tempFile = $tempFileLength bytes');
   startByte = start - taskRangeStartByte; // relative to start of range
   if (startByte > tempFileLength) {
-    log.fine('Offered range not feasible: $range with startByte $startByte');
+    log.fine('Offered range not feasible: start $startByte exceeds file length $tempFileLength');
     taskException = TaskResumeException(
         'Offered range not feasible: $range with startByte $startByte');
     return false;
