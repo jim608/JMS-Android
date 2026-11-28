@@ -57,6 +57,9 @@ class _Item extends Fake implements ItemBaseModel {
 }
 
 class _Playback extends Fake implements PlaybackModel {
+  Duration? stoppedPosition;
+  Duration? stoppedDuration;
+
   @override
   bool get serverManagedQueue => false;
   @override
@@ -73,8 +76,11 @@ class _Playback extends Fake implements PlaybackModel {
       requestedStartPosition ?? Duration.zero;
   @override
   Future<PlaybackModel?> playbackStopped(
-          Duration position, Duration? duration, Ref ref) async =>
-      null;
+      Duration position, Duration? duration, Ref ref) async {
+    stoppedPosition = position;
+    stoppedDuration = duration;
+    return null;
+  }
   @override
   void dispose() {}
 }
@@ -383,6 +389,29 @@ void main() {
     expect(replacementCompleted, isTrue);
     await actual.dispose();
   });
+  test('stop reports the position and duration from before the renderer reset',
+      () async {
+    final actual =
+        container.read(Provider((ref) => MediaControlsWrapper(ref: ref)));
+    final player = _StatePlayer();
+    await actual.setup(player);
+    addTearDown(actual.dispose);
+    final model = _Playback();
+    container.read(playBackModel.notifier).state = model;
+    const position = Duration(minutes: 15);
+    const duration = Duration(hours: 1);
+    player.lastState.update(position: position, duration: duration);
+
+    final stopping = actual.stopFromSyncPlay();
+    expect(player.stops, 1);
+    player.lastState.update(position: Duration.zero, duration: Duration.zero);
+    player.stopped.complete();
+    await stopping;
+
+    expect(model.stoppedPosition, position);
+    expect(model.stoppedDuration, duration);
+  });
+
   test('cancelled current backend open stops only its own player', () async {
     final actual =
         container.read(Provider((ref) => MediaControlsWrapper(ref: ref)));

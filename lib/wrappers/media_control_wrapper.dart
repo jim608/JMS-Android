@@ -828,6 +828,9 @@ class MediaControlsWrapper extends BaseAudioHandler
     unawaited(_applyWakelock(false));
 
     final player = _player;
+    // Stopping the renderer can reset both values before its future completes.
+    final position = player?.lastState.position;
+    final totalDuration = player?.lastState.duration;
     try {
       await player?.stop();
     } catch (_) {
@@ -840,9 +843,6 @@ class MediaControlsWrapper extends BaseAudioHandler
       rethrow;
     }
     ref.read(windowTitleProvider.notifier).setPlayTitle(null);
-
-    final position = _player?.lastState.position;
-    final totalDuration = _player?.lastState.duration;
 
     // Small delay so we don't post right after playback/progress update
     await Future.delayed(const Duration(seconds: 1));
