@@ -16,15 +16,14 @@ class DownloadStream {
     required this.status,
   });
 
-  DownloadStream.empty()
-      : id = '',
-        task = null,
+  DownloadStream.empty({this.id = ''})
+      : task = null,
         progress = -1,
         downloadSpeed = "",
         isTranscoding = false,
         status = dl.TaskStatus.notFound;
 
-  bool get hasDownload => progress != -1.0 && status != dl.TaskStatus.notFound && status != dl.TaskStatus.complete;
+  bool get hasDownload => progress != -1.0 && status.isNotFinalState;
 
   bool get isEnqueuedOrDownloading => status == dl.TaskStatus.enqueued || status == dl.TaskStatus.running;
 

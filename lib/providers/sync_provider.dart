@@ -45,6 +45,7 @@ import 'package:fladder/providers/sync/sync_provider_overlay.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/screens/shared/fladder_notification_overlay.dart';
 import 'package:fladder/util/duration_extensions.dart';
+import 'package:fladder/util/jelly_id.dart';
 import 'package:fladder/util/localization_helper.dart';
 import 'package:fladder/util/string_extensions.dart';
 import 'package:fladder/util/jms_test_profile_policy.dart';
@@ -698,6 +699,7 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
 
         final downloadTask = DownloadTask(
           taskId: syncItem.id,
+          metaData: jellyId,
           url: downloadUrl,
           directory: syncItem.directory.path,
           filename: syncItem.videoFileName,
@@ -709,14 +711,7 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
           allowPause: true,
         );
 
-        ref.read(activeDownloadTasksProvider.notifier).update((state) {
-          final existingTasks = state.where((element) => element.taskId != downloadTask.taskId).toList();
-          return [...existingTasks, downloadTask];
-        });
-
-        final defaultDownloadStream = DownloadStream(id: syncItem.id, task: downloadTask, status: TaskStatus.enqueued);
-        ref.read(downloadTasksProvider(syncItem.id).notifier).update((state) => defaultDownloadStream);
-        return await ref.read(backgroundDownloaderProvider).enqueue(downloadTask);
+        return await ref.read(backgroundDownloaderProvider.notifier).enqueueDownload(downloadTask);
       }
     } catch (_) {
       log('Could not enqueue offline download');

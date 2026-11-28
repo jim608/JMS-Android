@@ -38,30 +38,51 @@ class BackgroundDownloader extends _$BackgroundDownloader {
     return downloader;
   }
 
+  Future<bool> enqueueDownload(DownloadTask task) async {
+    ref.read(activeDownloadTasksProvider.notifier).update((tasks) => [
+          ...tasks.where((other) => other.taskId != task.taskId),
+          task,
+        ]);
+    ref.read(downloadTasksProvider(task.taskId).notifier).state =
+        DownloadStream(
+            id: task.taskId, task: task, status: TaskStatus.enqueued);
+    var accepted = false;
+    try {
+      accepted = await state.enqueue(task);
+      return accepted;
+    } finally {
+      if (!accepted) updateTask(TaskStatusUpdate(task, TaskStatus.failed));
+    }
+  }
+
   void updateTask(TaskUpdate update) {
+    final details =
+        ref.read(downloadTasksProvider(update.task.taskId).notifier);
+    final current = details.state;
+    if (current.id == update.task.taskId && current.status.isFinalState) return;
+    final tracked = current.task;
+    // An item can be enqueued again before its old native callbacks arrive.
+    if (tracked != null && tracked.metaData != update.task.metaData) return;
     switch (update) {
       case TaskStatusUpdate():
         final status = update.status;
-        ref.read(downloadTasksProvider(update.task.taskId).notifier).update(
-              (state) => state.copyWith(status: status),
-            );
-
-        if (status == TaskStatus.complete || status == TaskStatus.canceled) {
-          ref
-              .read(downloadTasksProvider(update.task.taskId).notifier)
-              .update((state) => DownloadStream.empty());
+        details.state =
+            status == TaskStatus.complete || status == TaskStatus.canceled
+                ? DownloadStream.empty(id: update.task.taskId)
+                : details.state.copyWith(status: status);
+        if (status.isFinalState) {
           ref.read(activeDownloadTasksProvider.notifier).update((state) => state
               .where((element) => element.taskId != update.task.taskId)
               .toList());
         }
       case TaskProgressUpdate():
         final progress = update.progress;
-        ref.read(downloadTasksProvider(update.task.taskId).notifier).update(
-              (state) => state.copyWith(
-                progress: progress > 0 && progress < 1 ? progress : null,
-                downloadSpeed: update.networkSpeedAsString,
-              ),
-            );
+        details.update(
+          (state) => state.copyWith(
+            progress: progress > 0 && progress < 1 ? progress : null,
+            downloadSpeed: update.networkSpeedAsString,
+          ),
+        );
     }
   }
 
