@@ -12,7 +12,6 @@ import 'package:drift_db_viewer/drift_db_viewer.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 
 import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart';
 import 'package:fladder/models/api_result.dart';
@@ -107,7 +106,6 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
   }
 
   void _init() {
-    cleanupTemporaryFiles();
     ref.listen(
       userProvider,
       (previous, next) {
@@ -146,75 +144,6 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
 
   List<SyncedItem> _rootSyncItems(List<SyncedItem> items) {
     return items.where((item) => item.parentId == null).toList();
-  }
-
-  Future<void> cleanupTemporaryFiles() async {
-    if (kIsWeb) return;
-
-    final activeDownloads = ref.read(activeDownloadTasksProvider);
-    if (activeDownloads.isNotEmpty) return;
-
-    // List of directories to check
-    final directories = [
-      //Desktop directory
-      await getTemporaryDirectory(),
-      //Mobile directory
-      await getApplicationSupportDirectory(),
-    ];
-
-    for (final dir in directories) {
-      final List<FileSystemEntity> files = dir.listSync();
-
-      for (var file in files) {
-        if (file is File) {
-          final fileName = file.path.split(Platform.pathSeparator).last;
-          try {
-            final fileSize = await file.length();
-            if (fileName.startsWith('com.bbflight.background_downloader') && fileSize != 0) {
-              try {
-                await file.delete();
-                log('Deleted temporary file: $fileName from ${dir.path}');
-              } catch (e) {
-                log('Failed to delete file $fileName: $e');
-              }
-            }
-          } on PathAccessException {
-            // Skip files that are inaccessible
-            continue;
-          }
-        }
-      }
-    }
-  }
-
-  Future<List<String>> getTempFiles() async {
-    if (kIsWeb) return const [];
-
-    final tempFiles = <String>[];
-
-    // List of directories to check
-    final directories = [
-      //Desktop directory
-      await getTemporaryDirectory(),
-      //Mobile directory
-      await getApplicationSupportDirectory(),
-    ];
-
-    for (final dir in directories) {
-      final List<FileSystemEntity> files = dir.listSync();
-
-      for (var file in files) {
-        if (file is File) {
-          final fileName = file.path.split(Platform.pathSeparator).last;
-          final fileSize = await file.length();
-          if (fileName.startsWith('com.bbflight.background_downloader') && fileSize != 0) {
-            tempFiles.add(file.path);
-          }
-        }
-      }
-    }
-
-    return tempFiles;
   }
 
   late final JellyService api = ref.read(jellyApiProvider);
@@ -589,7 +518,6 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
       await _deleteSyncedItemAndFiles(syncedItem);
       ref.read(downloadTasksProvider(syncedItem.id).notifier).update((state) => DownloadStream.empty());
       await _cleanupOrphanedMusicParents([syncedItem]);
-      cleanupTemporaryFiles();
       refresh();
       return syncedItem;
     }
@@ -615,11 +543,11 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
 
       await _cleanupOrphanedMusicParents(removedTracks);
 
-      cleanupTemporaryFiles();
       refresh();
       return syncedItem;
     }
 
+    await ref.read(backgroundDownloaderProvider).cancelTaskWithId(syncedItem.id);
     await syncedItem.deleteDatFiles(ref);
 
     syncedItem = syncedItem.copyWith(
@@ -629,9 +557,6 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
 
     ref.read(downloadTasksProvider(syncedItem.id).notifier).update((state) => DownloadStream.empty());
 
-    ref.read(backgroundDownloaderProvider).cancelTaskWithId(syncedItem.id);
-
-    cleanupTemporaryFiles();
     refresh();
     return syncedItem;
   }
@@ -642,8 +567,6 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
     TranscodeDownloadModel? transcodeModel,
     TranscodeMusicDownloadModel? musicTranscodeModel,
   }) async {
-    cleanupTemporaryFiles();
-
     if (!skipDownload && syncItem.videoFile.existsSync()) {
       return true;
     }
@@ -691,7 +614,7 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
 
     final playbackData = playbackResponse.data;
     if (playbackData == null) {
-      log('No playback info received for item ${syncItem.id}');
+      log('No playback information received for offline download');
       return null;
     }
 
@@ -749,12 +672,12 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
         pathSegments: [isAudioItem ? 'Audio' : 'Videos', mediaSource.id!, 'stream'],
         queryParameters: directOptions,
       );
-      log('Using direct stream URL: $downloadUrl');
+      log('Using direct stream for offline download');
     } else if (mediaSource != null &&
         (mediaSource.supportsTranscoding ?? false) &&
         mediaSource.transcodingUrl != null) {
       downloadUrl = buildServerUrl(ref, relativeUrl: mediaSource.transcodingUrl);
-      log('Using transcode URL: $downloadUrl');
+      log('Using transcoded stream for offline download');
     } else {
       log('No supported playback method found');
       return null;
@@ -795,8 +718,8 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
         ref.read(downloadTasksProvider(syncItem.id).notifier).update((state) => defaultDownloadStream);
         return await ref.read(backgroundDownloaderProvider).enqueue(downloadTask);
       }
-    } catch (e) {
-      log(e.toString());
+    } catch (_) {
+      log('Could not enqueue offline download');
       return null;
     }
 
