@@ -299,6 +299,7 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
 
     var stage = PlaybackStage.playerInit;
     var step = 'wait_for_renderer';
+    var startRequested = false;
     diagnostics.record(attempt, stage,
         event: PlaybackEvent.started, detail: step);
     try {
@@ -343,16 +344,6 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
       final useMinimizedPlayer = model.item.type == FladderItemType.audio ||
           model.mediaStreams?.videoStreams.isEmpty == true;
 
-      mediaState.update((state) => state.copyWith(
-            state: useMinimizedPlayer
-                ? VideoPlayerState.minimized
-                : VideoPlayerState.fullScreen,
-            fullScreen: !useMinimizedPlayer,
-            buffering: true,
-            errorPlaying: false,
-            skippedSegments: {},
-          ));
-
       final media = model.media;
       PlaybackModel? newPlaybackModel = model;
       stage = PlaybackStage.resume;
@@ -364,6 +355,16 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
       if (!stillCurrent()) return false;
       diagnostics.record(attempt, stage,
           event: PlaybackEvent.succeeded, detail: step);
+
+      mediaState.update((state) => state.copyWith(
+            state: useMinimizedPlayer
+                ? VideoPlayerState.minimized
+                : VideoPlayerState.fullScreen,
+            fullScreen: !useMinimizedPlayer,
+            buffering: true,
+            errorPlaying: false,
+            skippedSegments: {},
+          ));
 
       if (media != null) {
         ref.read(playBackModel.notifier).update((state) => newPlaybackModel);
@@ -400,7 +401,10 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
 
         stage = PlaybackStage.lifecycle;
         step = 'start_requested';
-        if (playWhenReady) await state.play(userInitiated: false);
+        if (playWhenReady) {
+          startRequested = true;
+          await state.play(userInitiated: false);
+        }
         return stillCurrent();
       }
 
@@ -420,6 +424,17 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
           timedOut: error is TimeoutException,
           detail: step);
       rethrow;
+    } finally {
+      // The backend may already be playing while track or session setup waits.
+      if (isPlaybackAttemptCurrent(attempt) &&
+          identical(ref.read(playBackModel), model) &&
+          !(isCurrent?.call() ?? true)) {
+        if (startRequested) {
+          await state.stopBeforePlayback();
+        } else {
+          await state.cancelPendingVideo();
+        }
+      }
     }
   }
 

@@ -8,13 +8,19 @@ import 'package:smtc_windows/src/rust/api/api.dart';
 import 'package:smtc_windows/src/rust/frb_generated.dart';
 
 import 'package:fladder/models/playback/playback_model.dart';
+import 'package:fladder/l10n/generated/app_localizations.dart';
 import 'package:fladder/models/item_base_model.dart';
+import 'package:fladder/models/video_stream_model.dart';
 import 'package:fladder/models/items/media_streams_model.dart';
 import 'package:fladder/services/playback_diagnostics.dart';
 import 'package:fladder/models/settings/video_player_settings.dart';
 import 'package:fladder/models/settings/subtitle_settings_model.dart';
 import 'package:fladder/providers/video_player_provider.dart';
 import 'package:fladder/providers/sleep_timer_provider.dart';
+import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
+import 'package:fladder/util/adaptive_layout/adaptive_layout_model.dart';
+import 'package:fladder/util/item_base_model/play_item_helpers.dart';
+import 'package:fladder/util/poster_defaults.dart';
 import 'package:fladder/wrappers/media_control_wrapper.dart';
 import 'package:fladder/wrappers/players/base_player.dart';
 import 'package:fladder/wrappers/players/player_states.dart';
@@ -51,6 +57,8 @@ class _SmtcApi extends Fake implements RustLibApi {
 
 class _Item extends Fake implements ItemBaseModel {
   @override
+  bool get playAble => true;
+  @override
   String get id => 'synthetic-item';
   @override
   FladderItemType get type => FladderItemType.movie;
@@ -71,6 +79,8 @@ class _Playback extends Fake implements PlaybackModel {
   @override
   MediaStreamsModel? get mediaStreams => null;
   @override
+  Future<Duration> startDuration() async => Duration.zero;
+  @override
   Future<Duration> resolvedStartPosition(
           [Duration? requestedStartPosition]) async =>
       requestedStartPosition ?? Duration.zero;
@@ -81,8 +91,24 @@ class _Playback extends Fake implements PlaybackModel {
     stoppedDuration = duration;
     return null;
   }
+
   @override
   void dispose() {}
+}
+
+class _PreparedMedia extends Fake implements PlaybackModelHelper {
+  final model = _Playback();
+  @override
+  Future<PlaybackModel?> createPlaybackModel(
+          BuildContext? context, ItemBaseModel? item,
+          {PlaybackModel? oldModel,
+          List<ItemBaseModel>? libraryQueue,
+          PlaybackQueueSource? queueSource,
+          bool showPlaybackOptions = false,
+          PlaybackType? forcedPlaybackType,
+          Duration? startPosition,
+          PlaybackAttemptRef? diagnosticAttempt}) async =>
+      model;
 }
 
 class _Wrapper extends MediaControlsWrapper {
@@ -203,6 +229,48 @@ class _StatePlayer extends Fake implements BasePlayer {
   Stream<PlayerState> get stateStream => stream;
 }
 
+class _OpeningPlayer extends _StatePlayer {
+  final String pendingStage;
+  final pending = Completer<void>();
+  final events = <String>[];
+  bool playing = false;
+  _OpeningPlayer(this.pendingStage);
+
+  @override
+  set diagnosticAttempt(PlaybackAttemptRef? value) {}
+  @override
+  Future<void> loadVideo(String url, bool play,
+      {Duration startPosition = Duration.zero}) async {
+    events.add('open');
+    if (pendingStage == 'open') await pending.future;
+    playing = play;
+  }
+
+  @override
+  Future<void> setVolume(double volume) async {}
+  @override
+  Future<int> setAudioTrack(
+      AudioStreamModel? model, PlaybackModel playback) async {
+    events.add('audio');
+    if (pendingStage == 'audio') await pending.future;
+    return 0;
+  }
+
+  @override
+  Future<int> setSubtitleTrack(
+          SubStreamModel? model, PlaybackModel playback) async =>
+      0;
+  @override
+  Future<void> play() async => events.add('play');
+  @override
+  Future<void> open(BuildContext context) async => events.add('route');
+  @override
+  Future<void> stop() async {
+    stops++;
+    playing = false;
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   const wakelockChannel =
@@ -292,6 +360,71 @@ void main() {
     expect(PlaybackDiagnostics.instance.exportText(),
         isNot(contains('synthetic stale open')));
   });
+
+  for (final stage in ['open', 'audio']) {
+    testWidgets(
+        'closing the loader during $stage cancels its renderer and navigation',
+        (tester) async {
+      final media = _PreparedMedia();
+      final player = _OpeningPlayer(stage);
+      final scope = ProviderContainer(
+        overrides: [
+          playbackModelHelper.overrideWithValue(media),
+          videoPlayerProvider.overrideWith((ref) => VideoPlayerNotifier(ref)),
+        ],
+      );
+      addTearDown(scope.dispose);
+      await scope.read(videoPlayerProvider).setup(player);
+      await tester.pumpWidget(UncontrolledProviderScope(
+        container: scope,
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          builder: (_, child) => AdaptiveLayout(
+            data: const AdaptiveLayoutModel(
+              viewSize: ViewSize.desktop,
+              layoutMode: LayoutMode.dual,
+              inputDevice: InputDevice.pointer,
+              platform: TargetPlatform.linux,
+              isDesktop: true,
+              posterDefaults: PosterDefaults(size: 180, ratio: 0.7),
+              controller: {},
+              sideBarWidth: 0,
+              topBarHeight: 0,
+              statusBarHeight: 0,
+            ),
+            child: child!,
+          ),
+          home: Scaffold(
+              body: Consumer(
+                  builder: (context, ref, _) => TextButton(
+                        onPressed: () => <ItemBaseModel>[_Item()]
+                            .playLibraryItems(context, ref),
+                        child: const Text('Play video'),
+                      ))),
+        ),
+      ));
+
+      await tester.tap(find.text('Play video'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(player.events.last, stage);
+      await tester.tap(find.byTooltip('Close'));
+      await tester.pumpAndSettle();
+      expect(find.byType(Dialog), findsNothing);
+      player.pending.complete();
+      await tester.pumpAndSettle();
+      expect(player.stops, 1);
+      expect(player.playing, isFalse);
+      expect(player.events, isNot(contains('play')));
+      expect(player.events, isNot(contains('route')));
+      expect(scope.read(playBackModel), isNull);
+      expect(scope.read(mediaPlaybackProvider).buffering, isFalse);
+      expect(scope.read(mediaPlaybackProvider).fullScreen, isFalse);
+      expect(media.model.stoppedPosition, isNull);
+    });
+  }
 
   test('pending stop prevents the next media open', () async {
     final stopped = Completer<void>();
