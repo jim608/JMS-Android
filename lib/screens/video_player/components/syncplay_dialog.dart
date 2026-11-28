@@ -195,7 +195,7 @@ class _SyncPlayDialogState extends ConsumerState<SyncPlayDialog> {
                 (widget.joinFromHome
                     ? _notifier.canJoinFromHome
                     : _notifier.canJoin),
-            canCreate: !widget.joinFromHome && !_opening && _notifier.canCreate,
+            canCreate: !_opening && _notifier.canCreate,
             checkingPermission: _opening || _notifier.permissionChecking,
             permissionKnown: !_opening && _notifier.permissionKnown,
             signedIn: account != null &&
@@ -465,7 +465,11 @@ class _SyncPlayRoomPanelState extends State<SyncPlayRoomPanel> {
                     icon: const Icon(Icons.group_add_outlined),
                     label: Text(s.create),
                   ),
-                if (widget.canJoin && !widget.canCreate) Text(s.joinOnly),
+                if (widget.signedIn && widget.permissionKnown && widget.canJoin)
+                  if (!widget.canCreate)
+                    Text(s.joinOnly)
+                  else if (widget.joinFromHome)
+                    Text(s.createFromVideo),
                 const SizedBox(height: 16),
                 TextField(
                   controller: _code,

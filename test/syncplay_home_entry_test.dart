@@ -57,8 +57,6 @@ class _Room extends SyncPlayNotifier {
   @override
   bool get canJoin => true;
   @override
-  bool get canCreate => false;
-  @override
   bool get permissionKnown => true;
   @override
   Future<void> refreshPermission() async {}
@@ -133,7 +131,7 @@ void main() {
             permissionKnown: permissionKnown,
             joinFromHome: true,
             canJoin: signedIn,
-            canCreate: false,
+            canCreate: signedIn && permissionKnown,
             createRoom: () async {},
             joinRoom: join ?? (_) async {},
             leaveRoom: () async {},
@@ -189,6 +187,30 @@ void main() {
     expect(find.textContaining('Unable to confirm'), findsNothing);
     expect(tester.widget<TextField>(find.byType(TextField)).enabled, isFalse);
   });
+
+  for (final canCreate in [false, true]) {
+    testWidgets('home shows the account creation permission ($canCreate)',
+        (tester) async {
+      final account = _account.copyWith(
+        policy: _account.policy!.copyWith(
+          syncPlayAccess: canCreate
+              ? jellyfin.SyncPlayUserAccessType.createandjoingroups
+              : jellyfin.SyncPlayUserAccessType.joingroups,
+        ),
+      );
+      await tester.pumpWidget(ProviderScope(overrides: [
+        userProvider.overrideWith(() => _User(account)),
+        syncPlayProvider.overrideWith(_Room.new),
+      ], child: const MaterialApp(home: Scaffold(body: SyncPlayHomeEntry()))));
+      await tester.tap(find.text('Watch together'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('choose a video first'),
+          canCreate ? findsOneWidget : findsNothing);
+      expect(find.textContaining('cannot create'),
+          canCreate ? findsNothing : findsOneWidget);
+      expect(find.text('Create room with this video'), findsNothing);
+    });
+  }
 
   testWidgets('permission lookup failure offers a targeted retry',
       (tester) async {

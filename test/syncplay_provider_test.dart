@@ -25,6 +25,7 @@ import 'package:fladder/util/sleep_timer.dart';
 import 'package:fladder/wrappers/media_control_wrapper.dart';
 import 'package:fladder/wrappers/players/player_states.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart' show AppLifecycleState, WidgetsBinding;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -58,6 +59,7 @@ class _Server {
   int closedSockets = 0;
   String policyAccess = 'CreateAndJoinGroups';
   int policyStatus = 200;
+  int clockStatus = 200;
   Completer<void>? policyGate;
   Completer<void>? listGate, joinGate, itemGate;
   final listStarted = Completer<void>();
@@ -181,8 +183,10 @@ class _Server {
           }
         case 'GetUtcTime':
           final time = DateTime.now().toUtc().toIso8601String();
-          await _reply(request,
-              {'RequestReceptionTime': time, 'ResponseTransmissionTime': time});
+          await _reply(
+              request,
+              {'RequestReceptionTime': time, 'ResponseTransmissionTime': time},
+              clockStatus);
         case 'SetNewQueue':
           queue = {
             'Reason': 'NewPlaylist',
@@ -484,6 +488,37 @@ void main() {
     await scope.notifier.stop();
   });
 
+  test('home opens a loaded room after clock recovery without another Join',
+      () async {
+    WidgetsBinding.instance
+        .handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    final server = _Server()
+      ..name = 'JMS-123456'
+      ..queue = homeQueue()
+      ..clockStatus = 503;
+    final scope = await homeScope(server);
+    final ticket = scope.notifier.beginHomeJoin('123456')!;
+    await _until(
+        () =>
+            scope.state.readyHomeJoin == ticket &&
+            scope.state.room.failure?.code == SyncPlayFailureCode.server,
+        'video ready with failed clock');
+    expect(scope.notifier.consumeHomeJoin(ticket), isFalse);
+    server.clockStatus = 200;
+    WidgetsBinding.instance
+        .handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    WidgetsBinding.instance
+        .handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await _until(
+        () => scope.state.room.canControl && server.requests.contains('Ready'),
+        'clock and loaded item ready');
+    expect(scope.notifier.consumeHomeJoin(ticket), isTrue);
+    expect(scope.notifier.consumeHomeJoin(ticket), isFalse);
+    expect(server.requests.where((request) => request == 'Join'), hasLength(1));
+    expect(scope.video.loaded, hasLength(1));
+    await scope.notifier.stop();
+  });
+
   test('provider waits for measured media ahead while raw buffering is false',
       () async {
     final server = _Server();
@@ -660,7 +695,7 @@ void main() {
   });
 
   test(
-      'new reconnect ticket cannot revive a cancelled queued player preparation',
+      'a fresh join after confirmed departure cannot revive cancelled player preparation',
       () async {
     final server = _Server()
       ..name = 'JMS-123456'
@@ -672,15 +707,20 @@ void main() {
     await _until(() => scope.video.prepares == 1, 'first preparation pending');
     await scope.notifier.cancelHomeJoin(first);
     expect(scope.state.room.status, SyncPlayStatus.unknown);
-    final second = scope.notifier.beginHomeReconnect()!;
-    await _until(() => scope.video.prepares == 2, 'new exact-room preparation');
+    expect(scope.state.leavePending, isTrue);
+    expect(scope.notifier.beginHomeJoin('123456'), isNull);
+    server.leaveFails = false;
+    await scope.notifier.reconnect();
+    expect(scope.state.room.status, SyncPlayStatus.idle);
+    expect(server.requests.where((request) => request == 'Join'), hasLength(1));
+    final second = scope.notifier.beginHomeJoin('123456')!;
+    await _until(() => scope.video.prepares == 2, 'new room preparation');
     scope.video.prepareGate!.complete();
     await _until(() => scope.state.readyHomeJoin == second, 'new ticket ready');
     expect(scope.video.preparedCurrent, [false, true]);
     expect(scope.video.loaded, hasLength(1));
     expect(scope.notifier.consumeHomeJoin(first), isFalse);
     expect(scope.notifier.consumeHomeJoin(second), isTrue);
-    server.leaveFails = false;
     await scope.notifier.stop();
   });
 
