@@ -12,6 +12,11 @@ class _InitialQueueIntent {
   bool uncertain = false;
 }
 
+// Track which operation failed because several operations share error codes.
+class _ClockSyncFailure extends SyncPlayFailure {
+  const _ClockSyncFailure(super.code);
+}
+
 /// A room code is an exact, publicly listable GroupName (`JMS-123456`), not a
 /// password or an access grant. Jellyfin authenticates each participant.
 ///
@@ -991,12 +996,13 @@ class SyncPlayController {
       await _bounded(_api.sendRequest(SyncPlayRequest(SyncPlayRequestType.ping,
           {'Ping': (clock.ping.inMicroseconds / 1000).round()})));
       if (!_current(source, op)) return;
+      if (_failure is _ClockSyncFailure) _failure = null;
       _emit();
       if (_needsReady && !_loading) await reportReady();
       _drainCommand();
     } catch (error) {
       if (_current(source, op)) {
-        _failure = _safeFailure(error);
+        _failure = _ClockSyncFailure(_safeFailure(error).code);
         _emit();
       }
     } finally {

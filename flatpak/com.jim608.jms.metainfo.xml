@@ -25,6 +25,14 @@
   </developer>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.12.1-jms.65" date="2026-11-28">
+      <description>
+        <ul>
+          <li>Preserves interrupted downloads and video resume positions.</li>
+          <li>Cancels pending playback and restores room entry after clock recovery.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.12.1-jms.64" date="2026-11-27">
       <description>
         <ul>

@@ -55,8 +55,8 @@ final class DesktopDownloader extends BaseDownloader {
   Future<bool> enqueue(Task task) async {
     try {
       Uri.decodeFull(task.url);
-    } catch (e) {
-      _log.fine('Invalid url: ${task.url} error: $e');
+    } catch (_) {
+      _log.fine('Invalid URL for taskId ${task.taskId}');
       return false;
     }
     super.enqueue(task);
@@ -250,8 +250,7 @@ final class DesktopDownloader extends BaseDownloader {
           _log.finest(logMessage);
 
         default:
-          _log.warning('Received message with unknown type '
-              '$message from Isolate');
+          _log.warning('Unknown isolate message type ${message.runtimeType} for taskId ${task.taskId}');
       }
     }
     errorPort.close();

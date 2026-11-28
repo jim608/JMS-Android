@@ -56,6 +56,7 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
   bool _initializationTimedOut = false;
   int _rendererEpoch = 0;
   PlaybackAttemptRef? _currentPlaybackAttempt;
+  bool _currentAttemptRequestedStart = false;
   int? _acceptedRendererEpoch;
   int? _acceptedStopEpoch;
 
@@ -322,6 +323,7 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
       return false;
     }
     _currentPlaybackAttempt = attempt;
+    _currentAttemptRequestedStart = false;
     // Renderer binding is deferred during initial setup/restore. An explicit
     // user/room stop revokes this request even while that renderer is pending.
     _acceptedRendererEpoch = null;
@@ -398,16 +400,6 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
       final useMinimizedPlayer = model.item.type == FladderItemType.audio ||
           model.mediaStreams?.videoStreams.isEmpty == true;
 
-      mediaState.update((state) => state.copyWith(
-            state: useMinimizedPlayer
-                ? VideoPlayerState.minimized
-                : VideoPlayerState.fullScreen,
-            fullScreen: !useMinimizedPlayer,
-            buffering: true,
-            errorPlaying: false,
-            skippedSegments: {},
-          ));
-
       final media = model.media;
       PlaybackModel? newPlaybackModel = model;
       stage = PlaybackStage.resume;
@@ -419,6 +411,16 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
       if (!stillCurrent()) return false;
       diagnostics.record(attempt, stage,
           event: PlaybackEvent.succeeded, detail: step);
+
+      mediaState.update((state) => state.copyWith(
+            state: useMinimizedPlayer
+                ? VideoPlayerState.minimized
+                : VideoPlayerState.fullScreen,
+            fullScreen: !useMinimizedPlayer,
+            buffering: true,
+            errorPlaying: false,
+            skippedSegments: {},
+          ));
 
       if (media != null) {
         ref.read(playBackModel.notifier).update((state) => newPlaybackModel);
@@ -489,7 +491,10 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
 
         stage = PlaybackStage.lifecycle;
         step = 'start_requested';
-        if (playWhenReady) await state.play(userInitiated: false);
+        if (playWhenReady) {
+          _currentAttemptRequestedStart = true;
+          await state.play(userInitiated: false);
+        }
         return stillCurrent();
       }
 
@@ -519,6 +524,20 @@ class VideoPlayerNotifier extends StateNotifier<MediaControlsWrapper> {
         }
         subtitleSelections?.cancelInitial(initialSubtitleToken);
       }
+    }
+  }
+
+  Future<void> cancelPlaybackAttempt(
+      PlaybackAttemptRef attempt, PlaybackModel model) async {
+    if (!isPlaybackAttemptCurrent(attempt) ||
+        !identical(ref.read(playBackModel), model) ||
+        model.reportingScope?.isOwned == false) {
+      return;
+    }
+    if (_currentAttemptRequestedStart) {
+      await state.stopBeforePlayback();
+    } else {
+      await state.cancelPendingVideo();
     }
   }
 

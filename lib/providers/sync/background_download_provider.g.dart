@@ -42,7 +42,7 @@ final class BackgroundDownloaderProvider
 }
 
 String _$backgroundDownloaderHash() =>
-    r'd3301ef3570d3e5d8c374f0d4c3b20ee903efd24';
+    r'8ff8cb0780bccb5183d27b9c1283dcab6c6357a5';
 
 abstract class _$BackgroundDownloader extends $Notifier<FileDownloader> {
   FileDownloader build();

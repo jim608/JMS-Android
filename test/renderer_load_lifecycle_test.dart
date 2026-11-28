@@ -7,8 +7,12 @@ import 'package:flutter/services.dart';
 import 'package:smtc_windows/src/rust/api/api.dart';
 import 'package:smtc_windows/src/rust/frb_generated.dart';
 
+import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart'
+    show PlaybackProgressInfo, PlaybackStopInfo;
 import 'package:fladder/models/playback/playback_model.dart';
+import 'package:fladder/l10n/generated/app_localizations.dart';
 import 'package:fladder/models/item_base_model.dart';
+import 'package:fladder/models/video_stream_model.dart';
 import 'package:fladder/models/items/media_streams_model.dart';
 import 'package:fladder/services/playback_diagnostics.dart';
 import 'package:fladder/services/playback_reporting_scope.dart';
@@ -16,6 +20,10 @@ import 'package:fladder/models/settings/video_player_settings.dart';
 import 'package:fladder/models/settings/subtitle_settings_model.dart';
 import 'package:fladder/providers/video_player_provider.dart';
 import 'package:fladder/providers/sleep_timer_provider.dart';
+import 'package:fladder/util/adaptive_layout/adaptive_layout.dart';
+import 'package:fladder/util/adaptive_layout/adaptive_layout_model.dart';
+import 'package:fladder/util/item_base_model/play_item_helpers.dart';
+import 'package:fladder/util/poster_defaults.dart';
 import 'package:fladder/wrappers/media_control_wrapper.dart';
 import 'package:fladder/wrappers/players/base_player.dart';
 import 'package:fladder/wrappers/players/player_states.dart';
@@ -53,12 +61,17 @@ class _SmtcApi extends Fake implements RustLibApi {
 
 class _Item extends Fake implements ItemBaseModel {
   @override
+  bool get playAble => true;
+  @override
   String get id => 'synthetic-item';
   @override
   FladderItemType get type => FladderItemType.movie;
 }
 
 class _Playback extends Fake implements PlaybackModel {
+  Duration? stoppedPosition;
+  Duration? stoppedDuration;
+
   @override
   PlaybackReportingScope? get reportingScope => null;
   @override
@@ -72,15 +85,60 @@ class _Playback extends Fake implements PlaybackModel {
   @override
   MediaStreamsModel? get mediaStreams => null;
   @override
+  Future<Duration> startDuration() async => Duration.zero;
+  @override
   Future<Duration> resolvedStartPosition(
           [Duration? requestedStartPosition]) async =>
       requestedStartPosition ?? Duration.zero;
   @override
   Future<PlaybackModel?> playbackStopped(
-          Duration position, Duration? duration, Ref ref) async =>
-      null;
+      Duration position, Duration? duration, Ref ref) async {
+    stoppedPosition = position;
+    stoppedDuration = duration;
+    return null;
+  }
+
   @override
   void dispose() {}
+}
+
+class _PreparedMedia extends Fake implements PlaybackModelHelper {
+  final model = _Playback();
+  @override
+  Future<PlaybackModel?> createPlaybackModel(
+          BuildContext? context, ItemBaseModel? item,
+          {PlaybackModel? oldModel,
+          List<ItemBaseModel>? libraryQueue,
+          PlaybackQueueSource? queueSource,
+          bool showPlaybackOptions = false,
+          PlaybackType? forcedPlaybackType,
+          Duration? startPosition,
+          PlaybackAttemptRef? diagnosticAttempt}) async =>
+      model;
+}
+
+class _ReportApi extends Fake implements PlaybackReportApi {
+  int stops = 0;
+  @override
+  Future<void> progress(PlaybackProgressInfo info) async {}
+  @override
+  Future<void> stop(PlaybackStopInfo info) async {
+    stops++;
+  }
+  @override
+  void close() {}
+}
+
+class _ScopedPlayback extends _Playback {
+  _ScopedPlayback(this.reportingScope);
+  @override
+  final PlaybackReportingScope reportingScope;
+  @override
+  Future<PlaybackModel?> playbackStopped(
+      Duration position, Duration? duration, Ref ref) async {
+    await reportingScope.stop(PlaybackStopInfo(itemId: item.id));
+    return null;
+  }
 }
 
 class _Wrapper extends MediaControlsWrapper {
@@ -181,6 +239,7 @@ class _StatePlayer extends Fake implements BasePlayer {
   final stopQueue = <Future<void>>[];
   Future<void>? openGate;
   int stops = 0;
+  int opens = 0;
   @override
   PlayerState lastState = PlayerState();
   @override
@@ -191,8 +250,10 @@ class _StatePlayer extends Fake implements BasePlayer {
 
   @override
   Future<void> loadVideo(String url, bool play,
-          {Duration startPosition = Duration.zero}) async =>
-      await openGate;
+      {Duration startPosition = Duration.zero}) async {
+    opens++;
+    await openGate;
+  }
   @override
   void applySubtitleSettings(SubtitleSettingsModel settings) {}
   @override
@@ -202,6 +263,48 @@ class _StatePlayer extends Fake implements BasePlayer {
   Future<void> dispose() async {}
   @override
   Stream<PlayerState> get stateStream => stream;
+}
+
+class _OpeningPlayer extends _StatePlayer {
+  final String pendingStage;
+  final pending = Completer<void>();
+  final events = <String>[];
+  bool playing = false;
+  _OpeningPlayer(this.pendingStage);
+
+  @override
+  set diagnosticAttempt(PlaybackAttemptRef? value) {}
+  @override
+  Future<void> loadVideo(String url, bool play,
+      {Duration startPosition = Duration.zero}) async {
+    events.add('open');
+    if (pendingStage == 'open') await pending.future;
+    playing = play;
+  }
+
+  @override
+  Future<void> setVolume(double volume) async {}
+  @override
+  Future<int> setAudioTrack(
+      AudioStreamModel? model, PlaybackModel playback) async {
+    events.add('audio');
+    if (pendingStage == 'audio') await pending.future;
+    return 0;
+  }
+
+  @override
+  Future<int> setSubtitleTrack(
+          SubStreamModel? model, PlaybackModel playback) async =>
+      0;
+  @override
+  Future<void> play() async => events.add('play');
+  @override
+  Future<void> open(BuildContext context) async => events.add('route');
+  @override
+  Future<void> stop() async {
+    stops++;
+    playing = false;
+  }
 }
 
 void main() {
@@ -293,6 +396,71 @@ void main() {
     expect(PlaybackDiagnostics.instance.exportText(),
         isNot(contains('synthetic stale open')));
   });
+
+  for (final stage in ['open', 'audio']) {
+    testWidgets(
+        'closing the loader during $stage cancels its renderer and navigation',
+        (tester) async {
+      final media = _PreparedMedia();
+      final player = _OpeningPlayer(stage);
+      final scope = ProviderContainer(
+        overrides: [
+          playbackModelHelper.overrideWithValue(media),
+          videoPlayerProvider.overrideWith((ref) => VideoPlayerNotifier(ref)),
+        ],
+      );
+      addTearDown(scope.dispose);
+      await scope.read(videoPlayerProvider).setup(player);
+      await tester.pumpWidget(UncontrolledProviderScope(
+        container: scope,
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          builder: (_, child) => AdaptiveLayout(
+            data: const AdaptiveLayoutModel(
+              viewSize: ViewSize.desktop,
+              layoutMode: LayoutMode.dual,
+              inputDevice: InputDevice.pointer,
+              platform: TargetPlatform.linux,
+              isDesktop: true,
+              posterDefaults: PosterDefaults(size: 180, ratio: 0.7),
+              controller: {},
+              sideBarWidth: 0,
+              topBarHeight: 0,
+              statusBarHeight: 0,
+            ),
+            child: child!,
+          ),
+          home: Scaffold(
+              body: Consumer(
+                  builder: (context, ref, _) => TextButton(
+                        onPressed: () => <ItemBaseModel>[_Item()]
+                            .playLibraryItems(context, ref),
+                        child: const Text('Play video'),
+                      ))),
+        ),
+      ));
+
+      await tester.tap(find.text('Play video'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(player.events.last, stage);
+      await tester.tap(find.byTooltip('Close'));
+      await tester.pumpAndSettle();
+      expect(find.byType(Dialog), findsNothing);
+      player.pending.complete();
+      await tester.pumpAndSettle();
+      expect(player.stops, 1);
+      expect(player.playing, isFalse);
+      expect(player.events, isNot(contains('play')));
+      expect(player.events, isNot(contains('route')));
+      expect(scope.read(playBackModel), isNull);
+      expect(scope.read(mediaPlaybackProvider).buffering, isFalse);
+      expect(scope.read(mediaPlaybackProvider).fullScreen, isFalse);
+      expect(media.model.stoppedPosition, isNull);
+    });
+  }
 
   test('pending stop prevents the next media open', () async {
     final stopped = Completer<void>();
@@ -463,6 +631,29 @@ void main() {
     expect(replacementCompleted, isTrue);
     await actual.dispose();
   });
+  test('stop reports the position and duration from before the renderer reset',
+      () async {
+    final actual =
+        container.read(Provider((ref) => MediaControlsWrapper(ref: ref)));
+    final player = _StatePlayer();
+    await actual.setup(player);
+    addTearDown(actual.dispose);
+    final model = _Playback();
+    container.read(playBackModel.notifier).state = model;
+    const position = Duration(minutes: 15);
+    const duration = Duration(hours: 1);
+    player.lastState.update(position: position, duration: duration);
+
+    final stopping = actual.stopFromSyncPlay();
+    expect(player.stops, 1);
+    player.lastState.update(position: Duration.zero, duration: Duration.zero);
+    player.stopped.complete();
+    await stopping;
+
+    expect(model.stoppedPosition, position);
+    expect(model.stoppedDuration, duration);
+  });
+
   test('cancelled current backend open stops only its own player', () async {
     final actual =
         container.read(Provider((ref) => MediaControlsWrapper(ref: ref)));
@@ -480,6 +671,40 @@ void main() {
     expect(player.stops, 1);
     await actual.dispose();
   });
+
+  for (final reported in [false, true]) {
+    test(
+        'cancelling open retires the reporting scope (prior progress: $reported)',
+        () async {
+      final actual =
+          container.read(Provider((ref) => MediaControlsWrapper(ref: ref)));
+      await actual.setup(_StatePlayer()..stopped.complete());
+      addTearDown(actual.dispose);
+      final api = _ReportApi();
+      final capture = PlaybackReportingCapture(
+        api: api,
+        isCurrent: () => true,
+        isPlaybackCurrent: (scope) =>
+            identical(container.read(playBackModel)?.reportingScope, scope),
+      );
+      addTearDown(capture.close);
+      final scope = capture.bind(
+          itemId: _Item().id,
+          mediaSourceId: null,
+          playSessionId: null,
+          playlistItemId: null);
+      final model = _ScopedPlayback(scope);
+      container.read(playBackModel.notifier).state = model;
+      await actual.loadVideo(model, Duration.zero, false);
+      if (reported) {
+        await scope.progress(PlaybackProgressInfo(itemId: model.item.id));
+      }
+      await actual.cancelPendingVideo();
+      expect(scope.isOwned, isFalse);
+      expect(api.stops, reported ? 1 : 0);
+      expect(container.read(playBackModel), isNull);
+    });
+  }
 
   test('late cancelled open cannot stop a replacement on the same player',
       () async {
@@ -500,6 +725,56 @@ void main() {
     await first;
     expect(player.stops, 0);
     await actual.dispose();
+  });
+
+  test('late open stops its native media without clearing a replacement model',
+      () async {
+    final actual =
+        container.read(Provider((ref) => MediaControlsWrapper(ref: ref)));
+    final player = _StatePlayer()..stopped.complete();
+    final open = Completer<void>();
+    player.openGate = open.future;
+    await actual.setup(player);
+    addTearDown(actual.dispose);
+    final original = _Playback();
+    final replacement = _Playback();
+    container.read(playBackModel.notifier).state = original;
+    var current = true;
+    final loading = actual.loadVideo(original, Duration.zero, true,
+        isCurrent: () => current);
+    current = false;
+    container.read(playBackModel.notifier).state = replacement;
+    open.complete();
+    await loading;
+    expect(player.stops, 1);
+    expect(container.read(playBackModel), same(replacement));
+    expect(replacement.stoppedPosition, isNull);
+  });
+
+  test('replacement open waits for its renderer to finish stopping cancelled media',
+      () async {
+    final actual =
+        container.read(Provider((ref) => MediaControlsWrapper(ref: ref)));
+    final player = _StatePlayer();
+    final open = Completer<void>();
+    player.openGate = open.future;
+    await actual.setup(player);
+    addTearDown(actual.dispose);
+    var current = true;
+    final original = actual.loadVideo(_Playback(), Duration.zero, true,
+        isCurrent: () => current);
+    current = false;
+    open.complete();
+    await Future<void>.delayed(Duration.zero);
+    expect(player.stops, 1);
+    player.openGate = null;
+    final replacement = actual.loadVideo(_Playback(), Duration.zero, true);
+    await Future<void>.delayed(Duration.zero);
+    final opensBeforeStopFinished = player.opens;
+    player.stopped.complete();
+    await Future.wait([original, replacement]);
+    expect(opensBeforeStopFinished, 1);
+    expect(player.opens, 2);
   });
   test('coalesced stop preserves a later caller intent to end sleep timer',
       () async {

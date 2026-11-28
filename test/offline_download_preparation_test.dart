@@ -107,13 +107,14 @@ class _Downloader extends Fake implements FileDownloader {
   final List<String> events;
   final enqueuedIds = <String>[];
   DownloadTask? downloadTask;
+  bool acceptEnqueue = true;
 
   @override
   Future<bool> enqueue(Task task) async {
     enqueuedIds.add(task.taskId);
     downloadTask = task as DownloadTask;
     events.add('media');
-    return true;
+    return acceptEnqueue;
   }
 
   @override
@@ -457,6 +458,22 @@ void main() {
       probe.dispose();
     }
   });
+
+  for (final accepted in [true, false]) {
+    test('photo downloads keep credentials in headers and report enqueue acceptance ($accepted)', () async {
+      final downloader = await prepareSync([]);
+      downloader.acceptEnqueue = accepted;
+      final photo = item.copyWith(id: 'photo', videoFileName: 'photo.jpg');
+      expect(await notifier.syncPhotoFile(photo), accepted);
+      final task = downloader.downloadTask!;
+      expect(task.taskId, photo.id);
+      expect(task.filename, 'photo.jpg');
+      expect(task.url, 'https://fixture.invalid/Items/photo/Download');
+      expect(task.headers['authorization'], contains('Token="synthetic"'));
+      expect(container.read(downloadTasksProvider(photo.id)).status, accepted ? TaskStatus.enqueued : TaskStatus.failed);
+      expect(container.read(activeDownloadTasksProvider), [if (accepted) task]);
+    });
+  }
 
   test('the main file enters the queue before an optional thumbnail failure', () async {
     final events = <String>[];

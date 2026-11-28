@@ -861,6 +861,11 @@ extension ItemBaseModelsBooleans on List<ItemBaseModel> {
 }
 
 final _playbackLoadingRoutes = Expando<DialogRoute<void>>();
+// The metadata operation may already be complete while its player is opening.
+final _cancelledPlaybackLoads = Expando<bool>();
+
+bool _playbackLoadCancelled(CancelableOperation? op) =>
+    op != null && (op.isCanceled || _cancelledPlaybackLoads[op] == true);
 
 @visibleForTesting
 Future<void> showPlaybackLoadingIndicator(
@@ -1000,6 +1005,7 @@ class _LoadIndicatorCancelable extends StatelessWidget {
               IconButton(
                 tooltip: context.localized.close,
                 onPressed: () {
+                  _cancelledPlaybackLoads[op] = true;
                   try {
                     op.cancel();
                   } catch (_) {}
@@ -1038,7 +1044,7 @@ Future<void> _playVideo(
 }) async {
   final diagnostics = PlaybackDiagnostics.instance;
   final attempt = diagnosticAttempt ?? diagnostics.startAttempt();
-  if (!context.mounted || (cancelOperation?.isCanceled ?? false)) {
+  if (!context.mounted || _playbackLoadCancelled(cancelOperation)) {
     closePlaybackLoadingIndicator(cancelOperation);
     diagnostics.record(attempt, PlaybackStage.lifecycle,
         cancelled: true, detail: 'loading_cancelled');
@@ -1051,7 +1057,7 @@ Future<void> _playVideo(
   }
 
   bool cancelled() {
-    if (context.mounted && !(cancelOperation?.isCanceled ?? false)) {
+    if (context.mounted && !_playbackLoadCancelled(cancelOperation)) {
       return false;
     }
     diagnostics.record(attempt, PlaybackStage.lifecycle,
@@ -1102,6 +1108,10 @@ Future<void> _playVideo(
     closeLoading();
     _showPlaybackError(context);
     return;
+  } finally {
+    if (!context.mounted || _playbackLoadCancelled(cancelOperation)) {
+      await player.cancelPlaybackAttempt(attempt, current);
+    }
   }
 
   bool currentAttempt() =>

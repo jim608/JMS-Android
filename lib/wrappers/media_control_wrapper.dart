@@ -188,6 +188,7 @@ class MediaControlsWrapper extends BaseAudioHandler
   bool initializedWrapper = false;
   bool _isStopped = false;
   Future<void>? _pendingStop;
+  ({BasePlayer player, Future<void> done})? _cancelledOpenStop;
   bool _isNewPlayback = false;
   bool _isAudioQueueMode = false;
   bool _wakelockEnabled = false;
@@ -396,6 +397,11 @@ class MediaControlsWrapper extends BaseAudioHandler
         generation == _videoLoadGeneration &&
         (isCurrent?.call() ?? true) &&
         (reportingScope?.isOwned ?? true);
+    final stopping = _cancelledOpenStop;
+    if (stopping != null && identical(stopping.player, player)) {
+      await stopping.done;
+      if (!current() || !identical(_player, player)) return;
+    }
     if (reportingScope != null && !reportingScope.activate()) return;
     _subscribePlayerState();
     ref.read(sleepTimerProvider).bindMedia(model.item.id);
@@ -422,7 +428,19 @@ class MediaControlsWrapper extends BaseAudioHandler
         // only if no replacement load/renderer has taken ownership meanwhile.
         if (generation == _videoLoadGeneration && identical(_player, player)) {
           _isStopped = true;
-          await player.stop();
+          final done = Future<void>.sync(player.stop);
+          _cancelledOpenStop = (player: player, done: done);
+          try {
+            await done;
+          } catch (_) {
+            if (identical(_cancelledOpenStop?.done, done) &&
+                identical(_player, player)) {
+              _isStopped = false;
+            }
+            rethrow;
+          } finally {
+            if (identical(_cancelledOpenStop?.done, done)) _cancelledOpenStop = null;
+          }
         }
         return;
       }
@@ -974,7 +992,11 @@ class MediaControlsWrapper extends BaseAudioHandler
     return _stopLocally(preserveSleepTimer: true);
   }
 
-  Future<void> _stopLocally({required bool preserveSleepTimer}) {
+  Future<void> cancelPendingVideo() =>
+      _stopLocally(preserveSleepTimer: true, reportProgress: false);
+
+  Future<void> _stopLocally(
+      {required bool preserveSleepTimer, bool reportProgress = true}) {
     final pending = _pendingStop;
     if (pending != null) {
       // Coalescing the backend operation must not discard a later caller's
@@ -983,7 +1005,9 @@ class MediaControlsWrapper extends BaseAudioHandler
       return pending;
     }
     late final Future<void> stopping;
-    stopping = _performLocalStop(preserveSleepTimer: preserveSleepTimer)
+    stopping = _performLocalStop(
+            preserveSleepTimer: preserveSleepTimer,
+            reportProgress: reportProgress)
         .whenComplete(() {
       if (identical(_pendingStop, stopping)) _pendingStop = null;
     });
@@ -991,10 +1015,13 @@ class MediaControlsWrapper extends BaseAudioHandler
     return stopping;
   }
 
-  Future<void> _performLocalStop({required bool preserveSleepTimer}) async {
+  Future<void> _performLocalStop(
+      {required bool preserveSleepTimer, required bool reportProgress}) async {
     final stopGeneration = ++_videoLoadGeneration;
     if (!preserveSleepTimer) ref.read(sleepTimerProvider).endSession();
-    if (_isStopped) return;
+    final playbackModel = ref.read(playBackModel);
+    final rendererStopped = _isStopped;
+    if (rendererStopped && (reportProgress || playbackModel == null)) return;
     _isStopped = true;
 
     if (_player is LibMPV) {
@@ -1014,18 +1041,23 @@ class MediaControlsWrapper extends BaseAudioHandler
       ),
     );
 
-    final playbackModel = ref.read(playBackModel);
-    if (playbackModel == null) return;
-    final reportCapture = playbackModel.reportingScope?.capture;
+    if (playbackModel == null && reportProgress) return;
+    final reportCapture = playbackModel?.reportingScope?.capture;
 
-    ref
-        .read(mediaPlaybackProvider.notifier)
-        .update((state) => state.copyWith(state: VideoPlayerState.disposed));
+    ref.read(mediaPlaybackProvider.notifier).update((state) => state.copyWith(
+          state: VideoPlayerState.disposed,
+          playing: false,
+          buffering: false,
+          fullScreen: false,
+        ));
     unawaited(_applyWakelock(false));
 
     final player = _player;
+    // Stopping the renderer can reset both values before its future completes.
+    final position = player?.lastState.position;
+    final totalDuration = player?.lastState.duration;
     try {
-      await player?.stop();
+      if (!rendererStopped) await player?.stop();
     } catch (_) {
       // A failed native stop did not finish title/model/session cleanup.
       // Keep it retryable, without changing a replacement player's state.
@@ -1042,17 +1074,19 @@ class MediaControlsWrapper extends BaseAudioHandler
       ref.read(windowTitleProvider.notifier).setPlayTitle(null);
     }
 
-    final position = player?.lastState.position;
-    final totalDuration = player?.lastState.duration;
-
-    // Small delay so we don't post right after playback/progress update
-    await Future.delayed(const Duration(seconds: 1));
-
     try {
-      await playbackModel.playbackStopped(
-          position ?? Duration.zero, totalDuration, ref);
+      if (reportProgress) {
+        // Avoid posting immediately after the preceding progress update.
+        await Future.delayed(const Duration(seconds: 1));
+      }
+      // A scoped stop only reaches the server if this load already reported.
+      // An abandoned offline load must leave its saved progress untouched.
+      if (reportProgress || reportCapture != null) {
+        await playbackModel?.playbackStopped(
+            position ?? Duration.zero, totalDuration, ref);
+      }
     } finally {
-      playbackModel.dispose();
+      playbackModel?.dispose();
     }
 
     if (!identical(ref.read(playBackModel), playbackModel) ||

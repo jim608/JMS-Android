@@ -83,6 +83,7 @@ class _Server {
   int closedSockets = 0;
   String policyAccess = 'CreateAndJoinGroups';
   int policyStatus = 200;
+  int clockStatus = 200;
   Completer<void>? policyGate;
   Completer<void>? listGate, joinGate, itemGate;
   final listStarted = Completer<void>();
@@ -244,8 +245,10 @@ class _Server {
           }
         case 'GetUtcTime':
           final time = DateTime.now().toUtc().toIso8601String();
-          await _reply(request,
-              {'RequestReceptionTime': time, 'ResponseTransmissionTime': time});
+          await _reply(
+              request,
+              {'RequestReceptionTime': time, 'ResponseTransmissionTime': time},
+              clockStatus);
         case 'SetNewQueue':
           if (legacyQueueStartsPlaying) {
             _resumePlaying = true;
@@ -759,6 +762,37 @@ void main() {
     expect(scope.notifier.consumeHomeJoin(ticket!), isTrue);
     expect(scope.notifier.consumeHomeJoin(ticket), isFalse);
     expect(scope.state.readyHomeJoin, isNull);
+    await scope.notifier.stop();
+  });
+
+  test('home opens a loaded room after clock recovery without another Join',
+      () async {
+    WidgetsBinding.instance
+        .handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    final server = _Server()
+      ..name = 'JMS-123456'
+      ..queue = homeQueue()
+      ..clockStatus = 503;
+    final scope = await homeScope(server);
+    final ticket = scope.notifier.beginHomeJoin('123456')!;
+    await _until(
+        () =>
+            scope.state.readyHomeJoin == ticket &&
+            scope.state.room.failure?.code == SyncPlayFailureCode.server,
+        'video ready with failed clock');
+    expect(scope.notifier.consumeHomeJoin(ticket), isFalse);
+    server.clockStatus = 200;
+    WidgetsBinding.instance
+        .handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    WidgetsBinding.instance
+        .handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await _until(
+        () => scope.state.room.canControl && server.requests.contains('Ready'),
+        'clock and loaded item ready');
+    expect(scope.notifier.consumeHomeJoin(ticket), isTrue);
+    expect(scope.notifier.consumeHomeJoin(ticket), isFalse);
+    expect(server.requests.where((request) => request == 'Join'), hasLength(1));
+    expect(scope.video.loaded, hasLength(1));
     await scope.notifier.stop();
   });
 

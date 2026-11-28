@@ -8,6 +8,8 @@ import unittest
 from unittest.mock import Mock, patch
 import zipfile
 
+import yaml
+
 import resume_jms_flatpak as resume
 from jms_publication import ReleaseError
 
@@ -15,6 +17,17 @@ from jms_publication import ReleaseError
 class FlatpakResumeTests(unittest.TestCase):
     source = 'a' * 40
     bundle_name = 'JMS-Linux-0.11.1-jms.35-x86_64.flatpak'
+
+    def test_native_export_uses_buildkit_without_creating_an_export_container(self):
+        workflow = yaml.safe_load((resume.ROOT / resume.WORKFLOW).read_text(encoding='utf-8'))
+        steps = workflow['jobs']['flatpak']['steps']
+        native = next(step for step in steps if step.get('name') == resume.NATIVE_STEPS[0])
+        self.assertEqual(native['if'], "inputs.native_run_id == ''")
+        self.assertIn('--target export', native['run'])
+        self.assertIn('--output type=local,dest=flatpak-build-export', native['run'])
+        self.assertIn('--bundle flatpak-build-export/bundle', native['run'])
+        for command in ('docker create', 'docker cp', 'docker run'):
+            self.assertNotIn(command, native['run'])
 
     def fixture(self):
         run = {'id': 123, 'status': 'completed', 'conclusion': 'failure',

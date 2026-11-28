@@ -825,6 +825,7 @@ void main() {
       await world.advance(const Duration(milliseconds: 1));
       expect(alice.timeCalls, initialCalls + 2);
       expect(controller.state.canControl, true);
+      expect(controller.state.failure, isNull);
       expect(player.isPlaying, true);
       expect(server.newCalls, 1);
       expect(server.joinCalls, 0);
@@ -832,6 +833,22 @@ void main() {
       expect(alice.timeCalls, initialCalls + 2);
     });
   }
+
+  test('clock recovery preserves a newer command failure with the same code',
+      () async {
+    await readyRoom();
+    const error = SyncPlayFailure(SyncPlayFailureCode.server);
+    alice.onGetServerTime = () async => throw error;
+    await controller.synchronizeClock();
+    expect(controller.state.failure?.code, error.code);
+    alice.sendError = error;
+    await controller.requestPause(userInitiated: true);
+    alice.onGetServerTime = null;
+    alice.sendError = null;
+    await controller.synchronizeClock();
+    expect(controller.state.canControl, isTrue);
+    expect(controller.state.failure, same(error));
+  });
 
   test('explicit reconnect cancels the failed-clock wait and synchronizes once',
       () async {

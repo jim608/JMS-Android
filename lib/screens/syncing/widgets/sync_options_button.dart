@@ -37,7 +37,8 @@ class SyncOptionsButton extends ConsumerWidget {
         final unSyncedChildren = children.where((element) {
           final hasDownload = ref.read(syncDownloadStatusProvider(element, []));
           final canSync = element.itemModel?.syncAble == true || element.hasVideoFile;
-          return canSync && !element.videoFile.existsSync() && hasDownload?.status == TaskStatus.notFound;
+          return canSync && !element.videoFile.existsSync() &&
+              const {TaskStatus.notFound, TaskStatus.failed}.contains(hasDownload?.status);
         }).toList();
         final isAudioBatch =
             unSyncedChildren.isNotEmpty && unSyncedChildren.every((element) => element.itemModel is AudioModel);

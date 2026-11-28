@@ -1,5 +1,5 @@
 {
-  "versionNames": ["0.12.0-jms.60", "0.12.0-jms.61", "0.12.0-jms.62", "0.12.1-jms.63", "0.12.1-jms.64"],
+  "versionNames": ["0.12.0-jms.60", "0.12.0-jms.61", "0.12.0-jms.62", "0.12.1-jms.63", "0.12.1-jms.64", "0.12.1-jms.65"],
   "inputs": {
     "pubspec.lock": "7df75c91b30a588ee1c5e69889ca991d5cf64dc6f1b7ff7fa96a8c7e8ed6b938",
     "Dockerfile.linux": "c2b06e0c48e92a547438c087631195d4831034203b080e4562aca2407fbc7657",

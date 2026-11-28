@@ -211,7 +211,7 @@ Future<TaskStatus> transferBytes(
   } catch (e) {
     if (resultStatus == TaskStatus.complete) {
       // this was an unintentional error thrown within the stream processing
-      logError(task, e.toString());
+      logError(task, e);
       setTaskError(e);
       resultStatus = TaskStatus.failed;
     }
@@ -419,8 +419,12 @@ String browserEncode(String value) =>
 int lengthInBytes(String string) => utf8.encode(string).length;
 
 /// Log an error for this task
-void logError(Task task, String error) {
-  log.fine('Error for taskId ${task.taskId}: $error');
+void logError(Task task, Object error) {
+  // Download errors can contain the authenticated URI or request headers.
+  final detail = task is DownloadTask
+      ? (error is String ? 'download worker error' : error.runtimeType)
+      : error;
+  log.fine('Error for taskId ${task.taskId}: $detail');
 }
 
 /// Set the [taskException] variable based on error e
@@ -447,7 +451,7 @@ Future<String?> responseContent(http.StreamedResponse response) {
     return response.stream.bytesToString();
   } catch (e) {
     log.fine(
-        'Could not read response content from httpResponseCode ${response.statusCode}: $e');
+        'Could not read response content from httpResponseCode ${response.statusCode}: ${e.runtimeType}');
     return Future.value(null);
   }
 }

@@ -1,3 +1,19 @@
+# JMS 0.12.1-jms.65
+
+## Changed
+
+- Failed offline downloads can be retried, and finished tasks leave the sidebar download count.
+
+## Fixed
+
+- Restarting JMS preserves partial files for paused downloads. Download setup and desktop worker logs omit authenticated URLs.
+- Stopping a video preserves its position before the player resets. Cancelling while a video is opening prevents the pending load from starting playback later.
+- Joining Watch Together from Home can open the room video after clock synchronization recovers. Room guidance now reflects the account's permission to create rooms.
+
+## Known issues
+
+- This is a Linux prerelease. Cross-account synchronized playback on physical devices still needs verification.
+
 # JMS 0.12.1-jms.64
 
 ## Changed

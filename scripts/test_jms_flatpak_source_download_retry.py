@@ -9,7 +9,7 @@ import shutil
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import call, patch
+from unittest.mock import Mock, call, patch
 import urllib.error
 
 import collect_jms_flatpak_sources as collector
@@ -71,6 +71,32 @@ class DownloadRetryTests(unittest.TestCase):
             with patch.object(collector, 'download') as network:
                 collector.pinned_archive(source, root / 'source.archive', root)
             network.assert_called_once_with(URL, root / 'source.archive', SHA)
+    def test_premature_eof_in_content_length_body_retries_to_success_or_limit(self):
+        def response(body):
+            wire = f'HTTP/1.1 200 OK\r\nContent-Length: {len(DATA)}\r\n\r\n'.encode() + body
+            sock = Mock()
+            sock.makefile.return_value = io.BytesIO(wire)
+            incoming = http.client.HTTPResponse(sock)
+            incoming.url = URL
+            incoming.begin()
+            return incoming
+
+        for bodies in ([DATA[:4], DATA], [DATA[:4]] * 3):
+            with self.subTest(attempts=len(bodies)), tempfile.TemporaryDirectory() as directory:
+                destination = Path(directory) / 'source.archive'
+                destination.write_bytes(b'previous verified file')
+                with patch.object(collector.urllib.request, 'urlopen', side_effect=map(response, bodies)) as opened, \
+                        patch.object(collector.time, 'sleep') as slept:
+                    if bodies[-1] == DATA:
+                        collector.download(URL, destination, SHA)
+                        self.assertEqual(destination.read_bytes(), DATA)
+                    else:
+                        with self.assertRaises(http.client.IncompleteRead):
+                            collector.download(URL, destination, SHA)
+                        self.assertEqual(destination.read_bytes(), b'previous verified file')
+                self.assertEqual(opened.call_args_list, [call(URL, timeout=60)] * len(bodies))
+                self.assertEqual(slept.call_args_list, [call(n) for n in range(1, len(bodies))])
+                self.assertEqual(list(Path(directory).iterdir()), [destination])
 
     def test_transient_timeout_then_exact_success_uses_identical_pin(self):
         failures = [

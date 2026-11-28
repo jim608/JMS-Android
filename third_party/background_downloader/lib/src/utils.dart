@@ -131,8 +131,7 @@ Future<DownloadTask> taskWithSuggestedFilename(
         return uniqueFilename(
             task.copyWith(filename: suggestedFilename), unique);
       } on ArgumentError {
-        _log.finest(
-            'Could not interpret suggested filename (UTF-8 url encoded) ${match.group(3)}');
+        _log.finest('Could not interpret UTF-8 encoded suggested filename');
       }
     }
     // Try filename="filename"

@@ -223,7 +223,7 @@ class _SyncPlayDialogState extends ConsumerState<SyncPlayDialog> {
                 (widget.joinFromHome
                     ? _notifier.canJoinFromHome
                     : _notifier.canJoin),
-            canCreate: !widget.joinFromHome && !_opening && _notifier.canCreate,
+            canCreate: !_opening && _notifier.canCreate,
             checkingPermission: _opening || _notifier.permissionChecking,
             permissionKnown: !_opening && _notifier.permissionKnown,
             signedIn: account != null &&
@@ -398,7 +398,12 @@ class _SyncPlayRoomPanelState extends State<SyncPlayRoomPanel> {
                       builder: (context) => AlertDialog(
                         title: Text(s.roomInformation),
                         content: SingleChildScrollView(
-                          child: Text('${s.explanation}\n\n${s.codeNotice}'),
+                          child: Text([
+                            s.explanation,
+                            if (widget.joinFromHome && widget.signedIn && widget.canCreate)
+                              s.createFromVideo,
+                            s.codeNotice,
+                          ].join('\n\n')),
                         ),
                         actions: [
                           TextButton(
@@ -523,7 +528,8 @@ class _SyncPlayRoomPanelState extends State<SyncPlayRoomPanel> {
                     icon: const Icon(Icons.group_add_outlined),
                     label: Text(s.create),
                   ),
-                if (widget.canJoin && !widget.canCreate) Text(s.joinOnly),
+                if (widget.signedIn && widget.permissionKnown && widget.canJoin && !widget.canCreate)
+                  Text(s.joinOnly),
                 const SizedBox(height: 16),
                 TextField(
                   controller: _code,

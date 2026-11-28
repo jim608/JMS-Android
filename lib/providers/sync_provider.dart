@@ -16,6 +16,7 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 
 import 'package:fladder/jellyfin/jellyfin_open_api.swagger.dart';
+import 'package:fladder/models/account_model.dart';
 import 'package:fladder/models/api_result.dart';
 import 'package:fladder/models/item_base_model.dart';
 import 'package:fladder/models/items/album_model.dart';
@@ -49,6 +50,7 @@ import 'package:fladder/providers/sync/sync_provider_overlay.dart';
 import 'package:fladder/providers/user_provider.dart';
 import 'package:fladder/screens/shared/fladder_notification_overlay.dart';
 import 'package:fladder/util/duration_extensions.dart';
+import 'package:fladder/util/jelly_id.dart';
 import 'package:fladder/util/localization_helper.dart';
 import 'package:fladder/util/string_extensions.dart';
 import 'package:fladder/util/jms_test_profile_policy.dart';
@@ -131,6 +133,14 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
   set state(SyncSettingsModel value) {
     super.state = value;
     updateSyncStates();
+  }
+
+  bool _matchesDownloadAccount(AccountModel user, String? serverUrl) {
+    if (!mounted) return false;
+    final current = ref.read(userProvider);
+    return current?.id == user.id &&
+        current?.credentials == user.credentials &&
+        ref.read(serverUrlProvider) == serverUrl;
   }
 
   Future<void> updateSyncStates() async {
@@ -704,13 +714,7 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
     final user = ref.read(userProvider);
     if (user == null || user.id != syncItem.userId) return null;
     final serverUrl = ref.read(serverUrlProvider);
-    bool isCurrentAccount() {
-      if (!mounted) return false;
-      final current = ref.read(userProvider);
-      return current?.id == user.id &&
-          current?.credentials == user.credentials &&
-          ref.read(serverUrlProvider) == serverUrl;
-    }
+    bool isCurrentAccount() => _matchesDownloadAccount(user, serverUrl);
 
     final item = syncItem.createItemModel(ref);
     if (item == null) return null;
@@ -747,7 +751,7 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
 
     final playbackData = playbackResponse.data;
     if (playbackData == null) {
-      log('No playback info received for item ${syncItem.id}');
+      log('No playback information received for offline download');
       return null;
     }
     if (!isCurrentAccount()) return null;
@@ -800,12 +804,12 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
         pathSegments: [isAudioItem ? 'Audio' : 'Videos', mediaSource.id!, 'stream'],
         queryParameters: directOptions,
       );
-      log('Using direct stream URL: $downloadUrl');
+      log('Using direct stream for offline download');
     } else if (mediaSource != null &&
         (mediaSource.supportsTranscoding ?? false) &&
         mediaSource.transcodingUrl != null) {
       downloadUrl = buildServerUrl(ref, relativeUrl: mediaSource.transcodingUrl);
-      log('Using transcode URL: $downloadUrl');
+      log('Using transcoded stream for offline download');
     } else {
       log('No supported playback method found');
       return null;
@@ -823,6 +827,7 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
 
         final downloadTask = DownloadTask(
           taskId: syncItem.id,
+          metaData: jellyId,
           url: downloadUrl,
           directory: syncItem.directory.path,
           filename: syncItem.videoFileName,
@@ -838,7 +843,6 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
         final previousPreview = _offlineTrickPlay[directoryPath];
         final preview = isAudioItem ? null : _OfflineTrickPlay(isCurrentAccount);
         if (preview != null) _offlineTrickPlay[directoryPath] = preview;
-        var queued = false;
         try {
           await previousPreview?.waitForCancellation();
           if (!(preview?.isCurrent ?? isCurrentAccount())) return null;
@@ -846,16 +850,9 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
           final currentTask = ref.read(downloadTasksProvider(syncItem.id));
           if (currentTask.task != null) await downloader.cancelTaskWithId(currentTask.id);
           if (!(preview?.isCurrent ?? isCurrentAccount())) return null;
-          ref.read(activeDownloadTasksProvider.notifier).update((state) {
-            final existingTasks = state.where((element) => element.taskId != downloadTask.taskId).toList();
-            return [...existingTasks, downloadTask];
-          });
-          ref.read(downloadTasksProvider(syncItem.id).notifier).update(
-                (state) => DownloadStream(id: syncItem.id, task: downloadTask, status: TaskStatus.enqueued),
-              );
-          final enqueue = downloader.enqueue(downloadTask);
+          final enqueue = ref.read(backgroundDownloaderProvider.notifier).enqueueDownload(downloadTask);
           if (preview != null) preview.enqueue = enqueue;
-          queued = await enqueue;
+          final queued = await enqueue;
           if (queued && preview != null && preview.isCurrent) {
             preview.done = _saveOfflineTrickPlay(syncItem, item, preview);
           }
@@ -864,18 +861,10 @@ class SyncNotifier extends StateNotifier<SyncSettingsModel> {
           if (preview?.done == null && identical(_offlineTrickPlay[directoryPath], preview)) {
             _offlineTrickPlay.remove(directoryPath);
           }
-          if (!queued) {
-            ref.read(activeDownloadTasksProvider.notifier).update(
-                  (state) => state.where((task) => !identical(task, downloadTask)).toList(),
-                );
-            ref.read(downloadTasksProvider(syncItem.id).notifier).update(
-                  (state) => identical(state.task, downloadTask) ? DownloadStream.empty() : state,
-                );
-          }
         }
       }
-    } catch (e) {
-      log(e.toString());
+    } catch (_) {
+      log('Could not enqueue offline download');
       return null;
     }
 
@@ -1551,7 +1540,8 @@ extension SyncNotifierHelpers on SyncNotifier {
     if (photoItem.videoFile.existsSync()) return true;
 
     final user = ref.read(userProvider);
-    if (user == null) return null;
+    if (user == null || user.id != photoItem.userId) return null;
+    final serverUrl = ref.read(serverUrlProvider);
 
     final fileName = photoItem.videoFileName;
     if (fileName == null || fileName.isEmpty) return null;
@@ -1564,8 +1554,10 @@ extension SyncNotifierHelpers on SyncNotifier {
 
       await photoItem.directory.create(recursive: true);
 
+      if (!_matchesDownloadAccount(user, serverUrl)) return null;
       final downloadTask = DownloadTask(
         taskId: photoItem.id,
+        metaData: jellyId,
         url: buildServerUrl(ref, pathSegments: ['Items', photoItem.id, 'Download']),
         directory: photoItem.directory.path,
         filename: fileName,
@@ -1577,16 +1569,9 @@ extension SyncNotifierHelpers on SyncNotifier {
         allowPause: true,
       );
 
-      ref.read(activeDownloadTasksProvider.notifier).update((state) {
-        final existingTasks = state.where((element) => element.taskId != downloadTask.taskId).toList();
-        return [...existingTasks, downloadTask];
-      });
-
-      final defaultDownloadStream = DownloadStream(id: photoItem.id, task: downloadTask, status: TaskStatus.enqueued);
-      ref.read(downloadTasksProvider(photoItem.id).notifier).update((state) => defaultDownloadStream);
-      return await ref.read(backgroundDownloaderProvider).enqueue(downloadTask);
-    } catch (e) {
-      log('Error syncing photo ${photoItem.id}: ${e.toString()}');
+      return await ref.read(backgroundDownloaderProvider.notifier).enqueueDownload(downloadTask);
+    } catch (_) {
+      log('Offline photo download could not be queued.');
       return null;
     }
   }
