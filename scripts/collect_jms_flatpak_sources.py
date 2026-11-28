@@ -74,6 +74,9 @@ def download(url, destination, expected, limit=256 * 1024 * 1024):
                         while True:
                             try:
                                 block = response.read(1024 * 1024)
+                                # Sized HTTPResponse reads can reach EOF with Content-Length still outstanding.
+                                if not block and getattr(response, 'length', None):
+                                    raise http.client.IncompleteRead(b'', response.length)
                             except Exception as error:
                                 if attempt == 2 or not _transient_download_error(error):
                                     raise

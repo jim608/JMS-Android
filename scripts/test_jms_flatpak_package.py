@@ -77,9 +77,9 @@ class FlatpakPackageTests(unittest.TestCase):
         self.assertFalse((staged / 'payload/private-local-settings.json').exists())
 
     def test_stage_accepts_current_appstream_release_and_preserves_history(self):
-        (self.root / 'pubspec.yaml').write_text('version: 0.11.1-jms.47+50\n', encoding='utf-8')
-        current = Path(__file__).resolve().parents[1] / 'flatpak/com.jim608.jms.metainfo.xml'
-        expected = current.read_bytes()
+        project = Path(__file__).resolve().parents[1]
+        (self.root / 'pubspec.yaml').write_bytes((project / 'pubspec.yaml').read_bytes())
+        expected = (project / 'flatpak/com.jim608.jms.metainfo.xml').read_bytes()
         self.metainfo.write_bytes(expected)
         staged = self.workspace / 'staged'
         build = package.stage(self.bundle, staged, self.commit)
@@ -87,8 +87,10 @@ class FlatpakPackageTests(unittest.TestCase):
         self.assertEqual(copied, expected)
         component = ET.fromstring(copied)
         releases = component.findall('./releases/release')
-        self.assertEqual(releases[0].attrib, {'version': build['versionName'], 'date': '2026-10-24'})
-        self.assertEqual(releases[1].get('version'), '0.11.1-jms.35')
+        self.assertEqual(releases[0].get('version'), build['versionName'])
+        history = {release.get('version'): release.get('date') for release in releases}
+        self.assertEqual(history['0.11.1-jms.47'], '2026-10-24')
+        self.assertEqual(history['0.11.1-jms.35'], '2026-10-04')
         self.assertEqual(component.findtext('metadata_license'), 'CC0-1.0')
         self.assertEqual(component.findtext('project_license'), 'GPL-3.0-only')
 

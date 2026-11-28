@@ -8,6 +8,8 @@ import unittest
 from unittest.mock import Mock, patch
 import zipfile
 
+import yaml
+
 import resume_jms_flatpak as resume
 from jms_publication import ReleaseError
 
@@ -15,6 +17,28 @@ from jms_publication import ReleaseError
 class FlatpakResumeTests(unittest.TestCase):
     source = 'a' * 40
     bundle_name = 'JMS-Linux-0.11.1-jms.35-x86_64.flatpak'
+
+    def test_native_export_retires_and_archives_its_ledger_even_on_failure(self):
+        workflow = yaml.safe_load((resume.ROOT / resume.WORKFLOW).read_text(encoding='utf-8'))
+        steps = workflow['jobs']['flatpak']['steps']
+        build = next(step for step in steps if step.get('name') == resume.NATIVE_STEPS[0])
+        self.assertEqual(build['if'], "inputs.native_run_id == ''")
+        self.assertIn('git show "$GITHUB_SHA:scripts/jms_docker_cleanup.py"', build['run'])
+        self.assertIn('--purpose flatpak-bundle-export', build['run'])
+        self.assertIn('docker cp "$export_cid:', build['run'])
+        self.assertNotIn('docker create', build['run'])
+        cleanup, upload = steps[steps.index(build) + 1:steps.index(build) + 3]
+        directory = 'cleanup/flatpak-export'
+        ledger = directory + '/ledger.json'
+        for step in (cleanup, upload):
+            self.assertIn('always()', step['if'])
+            self.assertIn("inputs.native_run_id == ''", step['if'])
+            self.assertIn(f"hashFiles('{ledger}') != ''", step['if'])
+        self.assertIn(f'--ledger {ledger} create', build['run'])
+        self.assertIn(f'--ledger {ledger} cleanup', cleanup['run'])
+        self.assertEqual(upload['with']['path'].rstrip('/'), directory)
+        self.assertEqual(upload['with']['if-no-files-found'], 'error')
+        self.assertIn('github.run_attempt', upload['with']['name'])
 
     def fixture(self):
         run = {'id': 123, 'status': 'completed', 'conclusion': 'failure',

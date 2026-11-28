@@ -69,11 +69,22 @@ jobs:
           SOURCE_COMMIT: ${{ inputs.source_commit }}
         run: |
           set -euo pipefail
+          git show "$GITHUB_SHA:scripts/jms_docker_cleanup.py" > "$RUNNER_TEMP/jms-flatpak-cleanup.py"
           docker build --target build -f Dockerfile.linux --build-arg JMS_BUILD_ID="$BUILD_ID" --build-arg JMS_SOURCE_COMMIT="$SOURCE_COMMIT" -t jms-flatpak-app .
-          docker create --name jms-flatpak-export jms-flatpak-app /bin/true
+          export_cid=$(python3 "$RUNNER_TEMP/jms-flatpak-cleanup.py" --ledger cleanup/flatpak-export/ledger.json create --image jms-flatpak-app --purpose flatpak-bundle-export -- --name jms-flatpak-export jms-flatpak-app /bin/true)
           mkdir bundle candidate
-          docker cp jms-flatpak-export:/workspace/build/linux/x64/release/bundle/. bundle/
+          docker cp "$export_cid:/workspace/build/linux/x64/release/bundle/." bundle/
           python3 scripts/package_jms_flatpak.py --source-commit "$SOURCE_COMMIT" stage --bundle bundle --output flatpak-input
+      - name: 封存並移除 Flatpak 匯出容器
+        if: always() && inputs.native_run_id == '' && hashFiles('cleanup/flatpak-export/ledger.json') != ''
+        run: python3 "$RUNNER_TEMP/jms-flatpak-cleanup.py" --ledger cleanup/flatpak-export/ledger.json cleanup
+      - uses: actions/upload-artifact@v4
+        if: always() && inputs.native_run_id == '' && hashFiles('cleanup/flatpak-export/ledger.json') != ''
+        with:
+          name: jms-flatpak-export-cleanup-${{ inputs.source_commit }}-${{ github.run_attempt }}
+          path: cleanup/flatpak-export/
+          if-no-files-found: error
+          retention-days: 7
       - uses: actions/checkout@v4.1.1
         with:
           ref: ${{ github.sha }}
