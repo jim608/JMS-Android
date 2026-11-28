@@ -227,8 +227,7 @@ void main() {
     await tester.pump();
     expect(find.text('Local buffer measurements are not available yet…'),
         findsOneWidget);
-    expect(
-        find.textContaining('Unable to load the room video'), findsOneWidget);
+    expect(find.text(const SyncPlayStrings(false).failure(SyncPlayFailureCode.player)), findsOneWidget);
     final cancel =
         tester.widget<TextButton>(find.widgetWithText(TextButton, 'Cancel'));
     expect(cancel.onPressed, isNotNull);

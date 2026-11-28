@@ -344,7 +344,7 @@ void main() {
     expect(f.q.isPlaying, isTrue);
   });
 
-  test('ambiguous IgnoreWait suppresses Buffer and blocks membership mutations',
+  test('ambiguous IgnoreWait suppresses Buffer and holds Leave until settlement',
       () async {
     await f.open();
     final gate = Completer<void>();
@@ -366,16 +366,15 @@ void main() {
     await leaving;
     expect(f.server.leaves, 0);
     expect(f.first.state.status, SyncPlayStatus.unknown);
+    expect(f.server.members[f.a]!.ignored, isTrue);
     gate.complete();
     await flushTasks();
     final joins = f.server.joins;
     await f.first.reconnect();
-    expect(f.server.joins, joins + 1,
-        reason:
-            'only the exact settled acknowledgement releases the membership barrier');
-    expect(f.server.members[f.a]!.ignored, isTrue,
-        reason:
-            'restoring the same session must preserve its server ignore flag');
+    expect(f.server.joins, joins);
+    expect(f.server.leaves, 1);
+    expect(f.server.members.containsKey(f.a), isFalse);
+    expect(f.first.state.status, SyncPlayStatus.idle);
   });
 
   test('unsupported API is explicit and never repeatedly retried', () async {
@@ -495,15 +494,19 @@ void main() {
       'empty credential-scoped group list marks last-known membership uncertain',
       () async {
     await f.open();
+    await f.time.advance(const Duration(seconds: 1));
     final previous = f.first.state.group;
+    final canControl = f.first.state.canControl;
+    final confirmationAge = f.first.state.membershipCheckAge!;
+    expect(confirmationAge, greaterThan(Duration.zero));
     f.a.listOverride = [];
     await f.first.refreshMembership();
     expect(f.first.state.group, same(previous));
-    expect(f.first.state.status, SyncPlayStatus.unknown);
-    expect(f.first.state.canControl, isFalse);
+    expect(f.first.state.status, SyncPlayStatus.joined);
+    expect(f.first.state.canControl, canControl);
     expect(f.first.state.membershipFreshness,
         SyncPlayMembershipFreshness.uncertain);
-    expect(f.first.state.membershipCheckAge, Duration.zero);
+    expect(f.first.state.membershipCheckAge, confirmationAge);
     expect(f.server.leaves, 0);
     expect(
         f.requests.where((r) =>

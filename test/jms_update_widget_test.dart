@@ -50,7 +50,8 @@ Future<void> mountUpdateUi(WidgetTester tester, UpdateController controller) =>
     ));
 
 void main() {
-  testWidgets('Flatpak shows managed updates without Arch actions or switches',
+  testWidgets(
+      'Flatpak offers managed checks and a manual fallback without Arch actions',
       (tester) async {
     final controller = UpdateController(
         checker: UpdateChecker(
@@ -60,12 +61,15 @@ void main() {
     await mountUpdateUi(tester, controller);
     await tester.pumpAndSettle();
     expect(find.text('JMS Flatpak updates'), findsOneWidget);
-    expect(
-        find.textContaining('flatpak update com.jim608.jms'), findsOneWidget);
-    expect(find.textContaining('newer .flatpak file'), findsOneWidget);
-    expect(find.byType(SwitchListTile), findsNothing);
-    expect(find.byType(FilledButton), findsNothing);
-    expect(find.byType(OutlinedButton), findsNothing);
+    expect(find.textContaining('software center or a newer installer'),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('flatpak-open-releases')), findsOneWidget);
+    expect(find.byType(SwitchListTile), findsOneWidget);
+    final automatic = find.byKey(const ValueKey('flatpak-auto-check'));
+    expect(tester.widget<SwitchListTile>(automatic).onChanged, isNotNull);
+    final check = find.byKey(const ValueKey('flatpak-check-update'));
+    expect(tester.widget<TextButton>(check).onPressed, isNotNull);
+    expect(find.byKey(const ValueKey('flatpak-confirm-update')), findsNothing);
     expect(find.byKey(const ValueKey('update-primary-check')), findsNothing);
     expect(find.byKey(const ValueKey('update-primary-download')), findsNothing);
     expect(find.byKey(const ValueKey('update-primary-install')), findsNothing);
